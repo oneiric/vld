@@ -1,9 +1,10 @@
-//  $Id: vldmfc.cpp,v 1.1 2005/03/11 22:56:50 dmouldin Exp $
+//  $Id: vldmfc.cpp,v 1.2 2005/03/29 14:03:47 db Exp $
 //
 
 #include "stdafx.h"
 #include "vldmfc.h"
 #include "vldmfcdlg.h"
+#include "vld.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -27,8 +28,8 @@ END_MESSAGE_MAP()
 
 CMFCExampleApp::CMFCExampleApp()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
+    // TODO: add construction code here,
+    // Place all significant initialization in InitInstance
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -41,37 +42,37 @@ CMFCExampleApp theApp;
 
 BOOL CMFCExampleApp::InitInstance()
 {
-	// Standard initialization
-	// If you are not using these features and wish to reduce the size
-	//  of your final executable, you should remove from the following
-	//  the specific initialization routines you do not need.
+    // Standard initialization
+    // If you are not using these features and wish to reduce the size
+    //  of your final executable, you should remove from the following
+    //  the specific initialization routines you do not need.
 
 #ifdef _AFXDLL
-	Enable3dControls();			// Call this when using MFC in a shared DLL
+    Enable3dControls();         // Call this when using MFC in a shared DLL
 #else
-	Enable3dControlsStatic();	// Call this when linking to MFC statically
+    Enable3dControlsStatic();   // Call this when linking to MFC statically
 #endif
 
-	CMFCExampleDlg dlg;
-	m_pMainWnd = &dlg;
-	int nResponse = dlg.DoModal();
-	if (nResponse == IDOK)
-	{
- 		// TODO: Place code here to handle when the dialog is
-		//  dismissed with OK
+    CMFCExampleDlg dlg;
+    m_pMainWnd = &dlg;
+    int nResponse = dlg.DoModal();
+    if (nResponse == IDOK)
+    {
+        // TODO: Place code here to handle when the dialog is
+        //  dismissed with OK
         CString *s = new CString("Hello World!\n");
 
         if (!dlg.m_bLeak) {
             delete s;
         }
-	}
-	else if (nResponse == IDCANCEL)
-	{
-		// TODO: Place code here to handle when the dialog is
-		//  dismissed with Cancel
-	}
+    }
+    else if (nResponse == IDCANCEL)
+    {
+        // TODO: Place code here to handle when the dialog is
+        //  dismissed with Cancel
+    }
 
-	// Since the dialog has been closed, return FALSE so that we exit the
-	//  application, rather than start the application's message pump.
-	return FALSE;
+    // Since the dialog has been closed, return FALSE so that we exit the
+    //  application, rather than start the application's message pump.
+    return FALSE;
 }
