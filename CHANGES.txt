@@ -1,9 +1,17 @@
-Visual Leak Detector (VLD) Version 0.9b
+Visual Leak Detector (VLD) Version 0.9c
 
   Change Log / Release Notes
 
-Problems fixed in Version 0.9b
+
+Problems fixed in Verson 0.9c:
 ------------------------------
++ Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
+  occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
+  preprocessor macro defined.
+
+
+Problems fixed in Version 0.9b:
+-------------------------------
 + VLD fails to detect memory leaks in class constructors if the objects
   constructed are global objects.
 
