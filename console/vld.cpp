@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.5 2005/03/17 05:32:09 db Exp $
+//  $Id: vld.cpp,v 1.6 2005/03/25 12:25:56 db Exp $
 //
 //  Visual Leak Detector (Version 0.9c)
 //  Copyright (c) 2005 Dan Moulding
@@ -333,12 +333,12 @@ string VisualLeakDetector::buildsymbolsearchpath ()
     return path;
 }
 
-// getprogramcounterix86 - Helper function that retrieves the program counter
-//   (aka the EIP register) for getstacktrace() on Intel x86 architecture. There
-//   is no way for software to directly read the EIP register. But it's value
-//   can be obtained by calling into a function (in our case, this function) and
-//   then retrieving the return address, which will be the program counter from
-//   where the function was called.
+// getprogramcounterintelx86 - Helper function that retrieves the program
+//   counter (aka the EIP register) for getstacktrace() on Intel x86
+//   architecture. There is no way for software to directly read the EIP
+//   register. But it's value can be obtained by calling into a function (in our
+//   case, this function) and then retrieving the return address, which will be
+//   the program counter from where the function was called.
 //
 //  Notes:
 //  
