@@ -1,20 +1,20 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.2 2005/03/29 14:18:03 db Exp $
+//  $Id: vld.cpp,v 1.3 2005/03/31 02:08:34 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser Public License as published by
+//  it under the terms of the GNU Lesser General Public License as published by
 //  the Free Software Foundation; either version 2.1 of the License, or
 //  (at your option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser Public License for more details.
+//  GNU Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser Public License
+//  You should have received a copy of the GNU Lesser General Public License
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
@@ -23,11 +23,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef _DEBUG
-#error "Visual Leak Detector requires a *debug* C runtime library (compiler option /MDd, /MLd, /MTd, or /LDd."
+#error "Visual Leak Detector requires a *debug* C runtime library (compiler option /MDd, /MLd, /MTd, or /LDd)."
 #endif
 
-#pragma warning(disable:4786)       // Disable STL-induced warnings 
-#pragma comment(lib, "dbghelp.lib") // Link with the Debug Help library for symbol handling and stack walking
+#pragma warning(disable:4786) // Disable STL-induced warnings 
 
 // Standard headers
 #include <cassert>
@@ -50,6 +49,27 @@ using namespace std;
 
 #define VLD_VERSION "0.9d"
 
+// Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
+typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
+                                        PFUNCTION_TABLE_ACCESS_ROUTINE64, PGET_MODULE_BASE_ROUTINE64, PTRANSLATE_ADDRESS_ROUTINE64);
+typedef PVOID (__stdcall *SymFunctionTableAccess64_t)(HANDLE, DWORD64);
+typedef DWORD64 (__stdcall *SymGetModuleBase64_t)(HANDLE, DWORD64);
+typedef BOOL (__stdcall *SymCleanup_t)(HANDLE);
+typedef BOOL (__stdcall *SymFromAddr_t)(HANDLE, DWORD64, PDWORD64, PSYMBOL_INFO);
+typedef BOOL (__stdcall *SymGetLineFromAddr64_t)(HANDLE, DWORD64, PDWORD, PIMAGEHLP_LINE64);
+typedef BOOL (__stdcall *SymInitialize_t)(HANDLE, PCTSTR, BOOL);
+typedef DWORD (__stdcall *SymSetOptions_t)(DWORD);
+
+// Pointers to explicitly dynamically linked functions exported from dbghelp.dll.
+static StackWalk64_t              pStackWalk64;
+static SymFunctionTableAccess64_t pSymFunctionTableAccess64;
+static SymGetModuleBase64_t       pSymGetModuleBase64;
+static SymCleanup_t               pSymCleanup;
+static SymFromAddr_t              pSymFromAddr;
+static SymGetLineFromAddr64_t     pSymGetLineFromAddr64;
+static SymInitialize_t            pSymInitialize;
+static SymSetOptions_t            pSymSetOptions;
+
 // Configuration Interface - these functions provide an interface to the library
 // for setting configuration options at runtime. They have C linkage so that C
 // programs can also configure the library.
@@ -62,13 +82,15 @@ extern "C" void VLDShowUselessFrames (unsigned int show);
 // The VisualLeakDetector Class
 //
 //   One global instance of this class is instantiated. Upon construction it
-//   registers our allocation hook function with the debug heap. Upon
-//   destruction it checks for and reports memory leaks.
+//   dynamically links with the Debug Help Library and registers our allocation
+//   hook function with the debug heap. Upon destruction it checks for, and
+//   reports, memory leaks.
 //
 class VisualLeakDetector
 {
     typedef vector<DWORD64> CallStack;     // Each entry in the call stack contains that frame's program counter.
     typedef map<long, CallStack> BlockMap; // Maps memory blocks to their call stacks. Keyed on the block's allocation request number.
+
 
 public:
     VisualLeakDetector();
@@ -85,9 +107,11 @@ private:
     void hookfree (void *pdata);
     void hookmalloc (long request);
     void hookrealloc (void *pdata);
+    bool linkdebughelplibrary ();
     void reportleaks ();
 
     // Private Data
+    bool            m_installed;         // Flag indicating whether or not VLD was successfully installed
     BlockMap        m_mallocmap;         // Map of allocated memory blocks
     unsigned long   m_maxdatadump;       // Maximum number of bytes of user data to dump for each memory block
     unsigned long   m_maxtraceframes;    // Maximum number of stack frames to trace for each memory block
@@ -127,9 +151,6 @@ VisualLeakDetector::VisualLeakDetector ()
     assert(!already_instantiated);
     already_instantiated = true;
 
-    // Register our allocation hook function with the debug heap.
-    m_poldhook = _CrtSetAllocHook(allochook);
-
     // Initialize private data.
     m_maxdatadump       = 0xffffffff;
     m_maxtraceframes    = 0xffffffff;
@@ -139,7 +160,16 @@ VisualLeakDetector::VisualLeakDetector ()
     m_thread = GetCurrentThread();
 #endif // _MT
 
-    _RPT0(_CRT_WARN, "Visual Leak Detector Version "VLD_VERSION" installed.\n");
+    if (linkdebughelplibrary()) {
+        // Register our allocation hook function with the debug heap.
+        m_poldhook = _CrtSetAllocHook(allochook);
+        _RPT0(_CRT_WARN, "Visual Leak Detector Version "VLD_VERSION" installed.\n");
+        m_installed = true;
+    }
+    else {
+        _RPT0(_CRT_WARN, "Visual Leak Detector IS NOT installed!\n");
+        m_installed = false;
+    }
 }
 
 // Destructor - Unhooks our hook function and outputs a memory leak report.
@@ -148,20 +178,22 @@ VisualLeakDetector::~VisualLeakDetector ()
 {
     _CRT_ALLOC_HOOK pprevhook;
 
-    // Deregister our hook function.
-    pprevhook = _CrtSetAllocHook(m_poldhook);
-    if (pprevhook != allochook) {
-        // WTF? Somebody replaced our hook before we were done. Put theirs
-        // back, but notify the human about the situation.
-        _CrtSetAllocHook(pprevhook);
-        _RPT0(_CRT_WARN, "Visual Leak Detector: The CRT allocation hook function was unhooked prematurely!\n"
-                         "    There's a good possibility that any potential leaks have gone undetected!\n");
+    if (m_installed) {
+        // Deregister our hook function.
+        pprevhook = _CrtSetAllocHook(m_poldhook);
+        if (pprevhook != allochook) {
+            // WTF? Somebody replaced our hook before we were done. Put theirs
+            // back, but notify the human about the situation.
+            _CrtSetAllocHook(pprevhook);
+            _RPT0(_CRT_WARN, "WARNING: Visual Leak Detector: The CRT allocation hook function was unhooked prematurely!\n"
+                             "    There's a good possibility that any potential leaks have gone undetected!\n");
+        }
+
+        // Report any leaks that we find.
+        reportleaks();
+
+        _RPT0(_CRT_WARN, "Visual Leak Detector is now exiting.\n");
     }
-
-    // Report any leaks that we find.
-    reportleaks();
-
-    _RPT0(_CRT_WARN, "Visual Leak Detector is now exiting.\n");
 }
 
 // allochook - This is a hook function that is installed into Microsoft's
@@ -253,7 +285,7 @@ int VisualLeakDetector::allochook (int type, void *pdata, unsigned int size, int
         break;
 
     default:
-        _RPT1(_CRT_WARN, "Visual Leak Detector: in allochook(): Unhandled allocation type (%d).\n", type);
+        _RPT1(_CRT_WARN, "WARNING: Visual Leak Detector: in allochook(): Unhandled allocation type (%d).\n", type);
         break;
     }
 
@@ -444,8 +476,8 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
     // Walk the stack.
     while (count < m_maxtraceframes) {
         count++;
-        if (!StackWalk64(architecture, m_process, m_thread, &frame, &context,
-                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+        if (!pStackWalk64(architecture, m_process, m_thread, &frame, &context,
+                          NULL, pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)) {
             // Couldn't trace back through any more frames.
             break;
         }
@@ -521,6 +553,88 @@ void VisualLeakDetector::hookrealloc (void *pdata)
     hookmalloc(request);
 }
 
+// linkdebughelplibrary - Performs explicit dynamic linking to dbghelp.dll.
+//   Implicitly linking with dbghelp.dll is not desirable because implicit
+//   linking requires the import libary (dbghelp.lib). Because VLD is itself a
+//   library, the implicit link with the import library will not happen until
+//   VLD is linked with an executable. This would be bad because the import
+//   library may not exist on the system building the executable. We get around
+//   this by explicitly linking with dbghelp.dll. Because dbghelp.dll is
+//   redistributable, we can safely assume that it will be on the system
+//   building the executable.
+//
+//  Return Value:
+//
+//    - Returns "true" if dynamic linking was successful. Successful linking
+//      means that the Debug Help Library was found and that all functions were
+//      resolved.
+//
+//    - Returns "false" if dynamic linking failed.
+//
+bool VisualLeakDetector::linkdebughelplibrary ()
+{
+    HINSTANCE  dbghelp;
+    string     functionname;
+    bool       status = true;
+
+    // Load dbghelp.dll, and obtain pointers to the exported functions.that we
+    // will be using.
+    dbghelp = LoadLibrary("dbghelp.dll");
+    if (dbghelp) {
+        functionname = "StackWalk64";
+        pStackWalk64 = (StackWalk64_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pStackWalk64 == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymFunctionTableAccess64";
+        pSymFunctionTableAccess64 = (SymFunctionTableAccess64_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymFunctionTableAccess64 == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymGetModuleBase64";
+        pSymGetModuleBase64 = (SymGetModuleBase64_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymGetModuleBase64 == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymCleanup";
+        pSymCleanup = (SymCleanup_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymCleanup == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymFromAddr";
+        pSymFromAddr = (SymFromAddr_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymFromAddr == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymGetLineFromAddr64";
+        pSymGetLineFromAddr64 = (SymGetLineFromAddr64_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymGetLineFromAddr64 == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymInitialize";
+        pSymInitialize = (SymInitialize_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymInitialize == NULL) {
+            goto getprocaddressfailure;
+        }
+        functionname = "SymSetOptions";
+        pSymSetOptions = (SymSetOptions_t)GetProcAddress(dbghelp, functionname.c_str());
+        if (pSymSetOptions == NULL) {
+            goto getprocaddressfailure;
+        }
+    }
+    else {
+        status = false;
+        _RPT0(_CRT_WARN, "ERROR: Visual Leak Detector: Unable to load dbghelp.dll.\n");
+    }
+
+    return status;
+
+getprocaddressfailure:
+    _RPT1(_CRT_WARN, "ERROR: Visual Leak Detector: The procedure entry point %s could not be located "
+                     "in the dynamic link library dbghelp.dll.\n", functionname.c_str());
+    return false;
+}
+
 // reportleaks - Generates a memory leak report when the program terminates if
 //   leaks were detected. The report is displayed in the debug output window.
 //
@@ -571,9 +685,9 @@ void VisualLeakDetector::reportleaks ()
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
     path = buildsymbolsearchpath();
-    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
-    if (!SymInitialize(m_process, (char*)path.c_str(), TRUE)) {
-        _RPT1(_CRT_WARN, "Visual Leak Detector: The symbol handler failed to initialize (error=%d).\n"
+    pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
+    if (!pSymInitialize(m_process, (char*)path.c_str(), TRUE)) {
+        _RPT1(_CRT_WARN, "WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%d).\n"
                          "    Stack traces will probably not be available for leaked blocks.\n", GetLastError());
     }
 
@@ -599,7 +713,7 @@ void VisualLeakDetector::reportleaks ()
             // have an entry for in the allocated block map. We've identified a
             // memory leak.
             if (leaksfound == 0) {
-                _RPT0(_CRT_WARN, "Detected memory leaks!\n");
+                _RPT0(_CRT_WARN, "WARNING: Detected memory leaks!\n");
             }
             leaksfound++;
             _RPT3(_CRT_WARN, "---------- Block %d at 0x%08X: %d bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
@@ -610,7 +724,7 @@ void VisualLeakDetector::reportleaks ()
             for (itstack = callstack.begin(); itstack != callstack.end(); itstack++) {
                 // Try to get the source file and line number associated with
                 // this program counter address.
-                if (SymGetLineFromAddr64(m_process, *itstack, &displacement, &sourceinfo)) {
+                if (pSymGetLineFromAddr64(m_process, *itstack, &displacement, &sourceinfo)) {
                     // Unless m_showuselessframes has been toggled, don't show
                     // frames that are internal to the heap or Visual Leak
                     // Detector. There is virtually no situation where they
@@ -627,7 +741,7 @@ void VisualLeakDetector::reportleaks ()
 
                 // Try to get the name of the function containing this program
                 // counter address.
-                if (SymFromAddr(m_process, *itstack, &displacement64, pfunctioninfo)) {
+                if (pSymFromAddr(m_process, *itstack, &displacement64, pfunctioninfo)) {
                     functionname = pfunctioninfo->Name;
                 }
                 else {
@@ -724,8 +838,8 @@ void VisualLeakDetector::reportleaks ()
         _RPT0(_CRT_WARN, (leaksfound > 1) ? "s.\n" : ".\n");
     }
 
-    if (!SymCleanup(m_process)) {
-        _RPT1(_CRT_WARN, "Visual Leak Detector: The symbol handler failed to deallocate resources (error=%d).\n", GetLastError());
+    if (!pSymCleanup(m_process)) {
+        _RPT1(_CRT_WARN, "WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%d).\n", GetLastError());
     }
 }
 
