@@ -6,6 +6,7 @@ Problems fixed in Version 0.9b
 ------------------------------
 + VLD fails to detect memory leaks in class constructors if the objects
   constructed are global objects.
+
 + If a debug executable is built with certain compiler optimizations turned on,
   specifically frame pointer omission optimization or automatic inlining, then
   theoretically VLD may produce incomplete or inaccurate stack traces or might
