@@ -124,6 +124,19 @@ the level of detail provided in memory leak reports.
     stacks to be printed. This macro might be useful if you need to debug
     Visual Leak Detector itself or if you want to customize it.
 
+Caveats:
+--------
+In order to be successful at detecting leaks, VLD's code must run before any of
+the code being debugged. Most often this will happen without a hitch. However,
+there is one rare instance I know of where this might not happen: if any global
+objects in the program have been placed in the "compiler" initialization area.
+However, user global objects are never placed in this area by default. They must
+be manually placed there by using the "#pragma init_seg(compiler)" directive. As
+long as you are not using this directive then VLD will not have any problem
+running before your code. If you are using it, then you should take whatever
+measures are necessary to construct the global VisualLeakDetector object before
+your first global object is constructed.
+
 Frequently Asked Questions:
 ---------------------------
 
