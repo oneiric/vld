@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.3 2005/03/15 13:29:20 dmouldin Exp $
+//  $Id: vld.cpp,v 1.4 2005/03/17 05:25:03 db Exp $
 //
 //  Visual Leak Detector (Version 0.9b)
 //  Copyright (c) 2005 Dan Moulding
@@ -624,11 +624,6 @@ void VisualLeakDetector::reportleaks ()
             }
 
             // Dump the data in the user data section of the memory block.
-#ifdef VLD_MAX_DATA_DUMP
-            if (VLD_MAX_DATA_DUMP == 0) {
-                continue;
-            }
-#endif // VLD_MAX_DATA_DUMP
             string        ascdump;
             unsigned int  byte;
             unsigned int  bytesdone;
@@ -638,10 +633,11 @@ void VisualLeakDetector::reportleaks ()
             char          formatbuf [4];
             string        hexdump;
 
-            _RPT0(_CRT_WARN, "  Data:\n");
-            bytesdone = 0;
 #ifdef VLD_MAX_DATA_DUMP
-            datalen = (VLD_MAX_DATA_DUMP < pheader->size) ? VLD_MAX_DATA_DUMP : pheader->size;
+            if (VLD_MAX_DATA_DUMP == 0) {
+                continue;
+            }
+            datalen = (VLD_MAX_DATA_DUMP < pheader->nDataSize) ? VLD_MAX_DATA_DUMP : pheader->nDataSize;
 #else
             datalen = pheader->nDataSize;
 #endif // VLD_MAX_DATA_DUMP
@@ -656,6 +652,8 @@ void VisualLeakDetector::reportleaks ()
             }
             // For each byte of data, get both the ASCII equivalent (if it is a
             // printable character) and the hex representation.
+            _RPT0(_CRT_WARN, "  Data:\n");
+            bytesdone = 0;
             for (byte = 0; byte < dumplen; byte++) {
                 if (byte < datalen) {
                     datum = ((unsigned char*)pbData(pheader))[byte];
