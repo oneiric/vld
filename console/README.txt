@@ -2,8 +2,9 @@ Visual Leak Detector Example Console Application (Version 1.0)
 
   Example Program Using Visual Leak Detector in a Console Application
 
+
 About The Example Program:
-------------------------------
+--------------------------
 This is an example Visual C++ 6.0 console application project that
 implements the Visual Leak Detector. It might be a good idea to read the
 instructions for using Visual Leak Detector (see below) before you try to
@@ -29,6 +30,7 @@ Clicking on a source file/line number in the stack trace will take you to
 that file and line in the editor. This allows you to quickly see where in
 your program the memory was allocated and how it got there.
 
+
 About Visual Leak Detector:
 ---------------------------
 This memory leak detector is superior, in a number of ways, to the memory
@@ -41,65 +43,105 @@ correctly its capabilities are somewhat limited. Here is a short list of
 capabilities that Visual Leak Detector provides that the built-in leak detection
 does not:
 
-  - Provides a complete stack trace for each leaked block, including source
+  + Provides a complete stack trace for each leaked block, including source
     file and line number information when available.
-  - Provides complete data dumps (in hex and ASCII) of leaked blocks.
-  - Customizable level of detail in the memory leak report via preprocessor
+  + Provides complete data dumps (in hex and ASCII) of leaked blocks.
+  + Customizable level of detail in the memory leak report via preprocessor
     macro definitions.
 
 Okay, but how is Visual Leak Detector better than the dozens of other after-
 market leak detectors out there?
 
-  - Visual Leak Detector has an elegant interface: it doesn't require you to
+  + Visual Leak Detector has an elegant interface: it doesn't require you to
     modify ANY of the source files you are debugging. You don't need to add
     any #includes, #defines, global variables, or function calls.
-  - In addition to providing stack traces with source files, line numbers
+  + In addition to providing stack traces with source files, line numbers
     and function names, Visual Leak Detector also provides data dumps.
-  - It works with both C and C++ programs (compatible with both malloc/free
+  + It works with both C and C++ programs (compatible with both malloc/free
     and new/delete).
-  - It is well documented, so it is easy to customize it to suit your needs.
+  + It is well documented, so it is easy to customize it to suit your needs.
+
 
 How to Use Visual Leak Detector:
 --------------------------------
-Implementing Visual Leak Detector in your project is very easy. Provided
-that you've completed the prerequisites, all you need to do is compile this
-file and link it with your executable. There's no need to #include any
-headers in your source files, and no need to add any new global variables or
-function calls. Just add this file to your project.
+The hardest part about getting started with Visual Leak Detector is getting your
+build environment correctly set up. But if you follow these instructions
+carefully, the process should be fairly painless. Once your build environment
+is set up and you are able to succesfully compile VLD, using it with your
+projects is a snap.
 
-So what are the prerequesites?
-  1) You need a recent version of the Debug Help library (and header).
-     Though the Debug Help library can be obtained in standalone form, the
-     easiest way to get it, if you don't already have it, is to install the
-     Platform SDK. Be sure to add the include and lib directories of the
-     Platform SDK to the include and library directory search path in Visual
-     C++ (Tools->Options->Directories in VC++ 6.0). This version of Visual
-     Leak Detector is known to be compatible with the Platform SDK for
-     Windows XP SP2 (and/or the Debug Help library version 6.3).
+  1) Visual Leak Detector requires the Debug Help Library (dbghelp.dll) version
+     5.1 or later. Various versions of this DLL are shipped with the Windows
+     operating systems. The latest version is always included with Debugging
+     Tools for Windows.
+     * Windows XP users should already have a new enough version of dbghelp.dll
+       in WINDOWS\system32. So, if you're running Windows XP, you don't need to
+       install Debugging Tools for Windows.
+     * Windows 2000 shipped with an older version of dbghelp.dll. To use VLD on
+       Windows 2000, you must get a newer version (5.1 or newer). The best way
+       is to download Debugging Tools for Windows. After installing it, be sure
+       to copy dbghelp.dll from the Debugging Tools for Windows installation
+       directory to the directory where the executable you are debugging
+       resides.
+     * Windows Server 2003... I don't know about. But I'm fairly certain it
+       ships with a newer version of dbghelp.dll, so Windows 2003 users probably
+       don't need to install Debugging Tools for Windows.
 
-  2) Be sure you're not using precompiled headers when compiling this file.
-     This is important especially if you are using Visual Leak Detector with
-     an MFC application. MFC applications use a precompiled header by
-     default for all source files. You can continue to use the precompiled
-     header for other source files in your project, but not this one. To
-     turn off precompiled headers in VC++ 6.0, go to Project->Settings, then
-     select the C/C++ Tab. Select precompiled headers from the "Category"
-     list. Then select vld.cpp in the tree on the left and select the
-     "Not using precompiled headers" option.
-     
-When you link this file with your debug executable, anytime you run your
-program under the debugger, a memory leak report will be printed out in the
-debug output window. If there are memory leaks, you can double click on
-source file/line numbers in the call stack to jump to that file and line in
-the editor. Obviously, all the extra overhead incurred during memory
-allocation will slow down your debug executable and add additional memory
-usage. However, when you build a release executable, Visual Leak Detector is
-not compiled into your program, so it will not add any overhead whatsoever.
+  2) To successfully compile VLD and link it with the Debug Help Library
+     (dbghelp.dll) you'll need recent versions of the dbghelp.h header and
+     dbghelp.lib library files. The best way to get these two files is to
+     install the Windows XP SP2 Platform SDK*. This SDK is compatible with
+     Windows XP, Windows 2000, and Windows Server 2003. If you're debugging an
+     application for Windows Server 2003, the Windows Server 2003 Platform SDK
+     ought to have the required header and library files as well, but I haven't
+     tried it myself so I can't guarantee it will work. Both of these SDKs can
+     be downloaded from Platform SDK Update.
 
+  3) Once you have the Platform SDK installed, you'll need to make Visual C++
+     aware of where it can find the new dbghelp.h header and dbghelp.lib library
+     files. To do this, add the "include" and "lib" subdirectories from the
+     Platform SDK installation directory to the include and library search paths
+     in Visual C++:
+     * Visual C++ 7: Go to Project Properties -> C/C++ -> General -> Additional
+       Include Directories and add the "include" subdirectory from the Platform
+       SDK. Make sure it's at the top of the list. Do the same for the "lib"
+       subdirectory, but add it to Library Directories instead of Include
+       Directories.
+     * Visual C++ 6: Go to Tools -> Options -> Directories. Select "Include
+       files" from the "Show Directories For" drop-down menu. Add the "include"
+       subdirectory from the Platform SDK. Make sure it's at the top of the
+       list. Do the same for the "lib" subdirectory, but add it to the "Library
+       files" list instead of the "Include files" list.
+
+  4) VLD also depends on a couple of other header files (dbgint.h and mtdll.h)
+     that will only be installed if you elected to install the CRT source files
+     when you installed Visual C++. If you didn't install the CRT sources,
+     you'll need to re-run the Visual C++ installer and install them. If you are
+     not sure whether you installed the CRT sources when you installed Visual
+     C++, check to see if dbgint.h and mtdll.h exist in the CRT\src subdirectory
+     of your Visual C++ installation. If those files are missing, or you don't
+     have a CRT\src directory, then chances are you need to re-install Visual
+     C++ with the CRT sources selected.
+
+Once you've completed all of the above steps, your build environment should be
+ready. The next step is to start using VLD with your project:
+
+  1) To start using VLD with your project all you need to do is compile VLD with
+     your executable. The easiest way to do that is to just add vld.cpp to your
+     project. That's it. You don't need to #include any headers or anything.
+  2) Run your program under the Visual C++ debugger. When your program exits, if
+     there were any memory leaks, then VLD will display a memory leak report to
+     the debug output window. Double-click on a source file/line number in the
+     Call Stack section of the report to jump to that line of code in the
+     editor.
+
+
+Configuring Visual Leak Detector:
+---------------------------------
 There are a few OPTIONAL preprocessor macros that you can define to contol
 the level of detail provided in memory leak reports.
 
-  - VLD_MAX_TRACE_FRAMES: By default, Visual Leak Detector will trace back
+  + VLD_MAX_TRACE_FRAMES: By default, Visual Leak Detector will trace back
     as far as possible the call stack for each block that is allocated.
     Each frame traced adds additional overhead (in CPU time and memory use)
     to your debug executable. If you'd like to limit this overhead, you
@@ -111,18 +153,19 @@ the level of detail provided in memory leak reports.
     Keep this in mind when using this macro, or you may not see the number
     of frames you expect.
 
-  - VLD_MAX_DATA_DUMP: Define this macro to an integer value to limit the
+  + VLD_MAX_DATA_DUMP: Define this macro to an integer value to limit the
     amount of data displayed in memory block data dumps. When this number of
     bytes of data has been dumped, the dump will stop. This can be useful if
     any of the leaked blocks are very large and the debug output window
     becomes too cluttered. You can define this macro to 0 (zero) if you want
     to suppress the data dumps altogether.
 
-  - VLD_SHOW_USELESS_FRAMES: By default, only "useful" frames are printed in
+  + VLD_SHOW_USELESS_FRAMES: By default, only "useful" frames are printed in
     the call stacks. Frames that are internal to the heap or Visual Leak
     Detector are not shown. Define this to force all frames of the call
     stacks to be printed. This macro might be useful if you need to debug
     Visual Leak Detector itself or if you want to customize it.
+
 
 Caveats:
 --------
@@ -137,6 +180,7 @@ running before your code. If you are using it, then you should take whatever
 measures are necessary to construct the global VisualLeakDetector object before
 your first global object is constructed.
 
+
 Frequently Asked Questions:
 ---------------------------
 
@@ -146,34 +190,43 @@ Q: Is Visual Leak Detector compatible with non-Microsoft platforms?
      heap debugging functions found only in Microsoft's C runtime library. It's
      called "Visual" Leak Detector for a reason.
 
-Q: I'm getting a compile error that says "unexpected end of file while
-   looking for precomipled header directive".
+Q: When compiling VLD, I get Compile Error C1083: "Cannot open include file:
+   'dbgint.h': No such file or directory"
 
-     This is a common error when compiling Visual Leak Detector in an MFC
-     application. MFC projects use precompiled headers by default. You need to
-     turn off precompiled headers for vld.cpp. See the instructions for using
-     Visual Memory Leak Detector for more info. It would be possible for me to
-     make Visual Leak Detector compatible with precompiled headers, but it would
-     complicate the way projects interface with Visual Leak Detector. I think
-     the convenience of having Visual Leak Detector neatly packaged in a single
-     source file outweighs the negligible benefits of building it with
-     precompiled headers.
+     This will happen if the CRT source files are not installed. These are an
+     optional part of the installation when you first install Visual C++. Re-run
+     the Visual C++ installation, if needed, to install them. If the CRT sources
+     are already installed, make sure the CRT\src subdirectory of the Visual C++
+     installation directory is in Visual C++'s include search path.
 
-Q: I'm getting a linker error. For example: cannot open file dbghelp.lib
-    -- or --
-   I'm getting a compile error. For example: cannot open include file
-   dbghelp.h
+Q: when running my program with VLD compiled into it I get an error message
+   saying, "the procedure entry point SymFromAddr could not be located in the
+   dynamic link library dbghelp.dll".
 
-     You need to be sure that the Debug Help library is installed. Install
-     the Platform SDK. If you've already got the platform SDK installed,
-     make sure that the lib and include directories from the Platform SDK
-     are in Visual C++'s library and include search paths respectively.
-     This allows the linker to find dbghelp.lib, and allows the compiler to
-     find dbghelp.h. If you've done all this, but are getting other strange
-     compile or link errors, then you might need to update to a newer
-     version of the Platform SDK, and also make sure that the Platform SDK
-     include and lib directories are before Visual C++'s default directories
-     in the search path.
+     This typically only happens on Windows 2000 clients. It will happen if the
+     Debug Help Library is out-of-date. Download the latest version of
+     dbghelp.dll from Debugging Tools for Windows. If you've already downloaded
+     it, be sure you've copied dbghelp.dll from the Debugging Tools for Windows
+     installation directory to the directory where your executable resides.
+
+Q: I get Compile Error C2059: "syntax error : '('," and a whole bunch of other
+   compiler errors when compiling dbghelp.h.
+
+     Visual C++ is including the wrong copy of dbghelp.h. Be sure that the
+     include search path points to the Platform SDK "include" subdirectory, not
+     the "sdk\inc" subdirectory of "Debugging Tools for Windows".
+
+Q: I get a compile error at the very end of vld.cpp, saying, "C1010: unexpected
+   end of file while looking for precompiled header directive"
+
+     This is a common error when compiling VLD in an MFC application. MFC
+     projects use precompiled headers by default. VLD is not designed to use
+     precompiled headers, so precompiled headers must be disabled for vld.cpp.
+     To turn off precompiled headers in VC++ 6.0, go to Project->Settings, then
+     select the C/C++ Tab. Select precompiled headers from the "Category" list.
+     Then select vld.cpp in the tree on the left and select the "Not using
+     precompiled headers" option.
+
 
 License:
 --------
