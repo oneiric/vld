@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.1 2005/03/29 05:31:53 db Exp $
+//  $Id: vld.cpp,v 1.2 2005/03/29 14:18:03 db Exp $
 //
-//  Visual Leak Detector (Version 0.9c)
+//  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@
 
 using namespace std;
 
-#define VLD_VERSION "0.9c"
+#define VLD_VERSION "0.9d"
 
 // Configuration Interface - these functions provide an interface to the library
 // for setting configuration options at runtime. They have C linkage so that C
