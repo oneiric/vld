@@ -1,21 +1,42 @@
-Visual Leak Detector (VLD) Version 0.9c
+Visual Leak Detector (VLD) Version 0.9d
 
   Change Log / Release Notes
 
+New Features/Changes:
+---------------------
 
-Problems fixed in Verson 0.9c:
-------------------------------
-+ Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
-  occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
-  preprocessor macro defined.
+  Changes in Version 0.9d (30 March 2005)
+  ---------------------------------------
+  + This version of VLD brings with it some major changes to the way VLD
+    interfaces with programs that use it. Instead of requiring that VLD be built
+    from source and then linked with the application, VLD is now packaged as a
+    pre-built static libaray. For those who just want to use VLD and are not
+    interested in modifying the source, this eliminates the complexities of
+    building VLD from source. A single header file, vld.h, has been added. To
+    link with the static library, this header needs to be included in one of the
+    program's source files. Please see the README.txt file for details on how
+    these changes affect how to use Visual Leak Detector.
+
+  + The Microsoft Debug Help Library (dbghelp.dll) version 6.3 is now included
+    with the VLD distribution.
 
 
-Problems fixed in Version 0.9b:
--------------------------------
-+ VLD fails to detect memory leaks in class constructors if the objects
-  constructed are global objects.
+Bug Fixes:
+----------
 
-+ If a debug executable is built with certain compiler optimizations turned on,
-  specifically frame pointer omission optimization or automatic inlining, then
-  theoretically VLD may produce incomplete or inaccurate stack traces or might
-  fail to produce stack traces altogether.
+  Problems Fixed in Verson 0.9c (17 March 2005)
+  ---------------------------------------------
+  + Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
+    occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
+    preprocessor macro defined.
+
+
+  Problems Fixed in Version 0.9b (15 March 2005)
+  ----------------------------------------------
+  + VLD fails to detect memory leaks in class constructors if the objects
+    constructed are global objects.
+
+  + If a debug executable is built with certain compiler optimizations turned on,
+    specifically frame pointer omission optimization or automatic inlining, then
+    theoretically VLD may produce incomplete or inaccurate stack traces or might
+    fail to produce stack traces altogether.
