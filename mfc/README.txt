@@ -1,4 +1,4 @@
-Visual Leak Detector MFC Example (Version 0.0)
+Visual Leak Detector MFC Example (Version 1.0)
 
   Example Program Using Visual Leak Detector in an MFC Application
 
