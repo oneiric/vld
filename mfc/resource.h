@@ -1,4 +1,3 @@
-//  $Id: resource.h,v 1.1 2005/03/11 22:56:50 dmouldin Exp $
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
 // Used by vldmfc.rc

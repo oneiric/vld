@@ -1,4 +1,3 @@
-//  $Id: vldmfc.rc,v 1.1 2005/03/11 22:56:50 dmouldin Exp $
 //Microsoft Developer Studio generated resource script.
 //
 #include "resource.h"
@@ -80,7 +79,7 @@ CAPTION "About Visual Leak Detector MFC Example"
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
-    LTEXT           "Visual Leak Detector MFC Example Version 0.0",
+    LTEXT           "Visual Leak Detector MFC Example Version 1.0",
                     IDC_STATIC,40,14,150,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 2005 Dan Moulding",IDC_STATIC,40,31,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,34,50,14,WS_GROUP
@@ -106,8 +105,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,0,0
- PRODUCTVERSION 0,0,0,0
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -125,14 +124,14 @@ BEGIN
             VALUE "Comments", "This software is copyright (c) 2005 Dan Moulding and is distributed under the terms of the GNU Lesser Public License\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Visual Leak Detector MFC Example\0"
-            VALUE "FileVersion", "0, 0, 0, 0\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
             VALUE "InternalName", "vldmfc\0"
             VALUE "LegalCopyright", "Copyright (C) 2005\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "vldmfc.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "Visual Leak Detector MFC Example\0"
-            VALUE "ProductVersion", "0, 0, 0, 0\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
             VALUE "SpecialBuild", "\0"
         END
     END
