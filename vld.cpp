@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.3 2005/03/31 02:08:34 db Exp $
+//  $Id: vld.cpp,v 1.4 2005/04/04 12:51:32 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -18,7 +18,7 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//  See COPYING.txt for the full terms of the GNU Lesser Public License.
+//  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,6 @@
 #pragma warning(disable:4786) // Disable STL-induced warnings 
 
 // Standard headers
-#include <cassert>
 #include <map>
 #include <string>
 #include <vector>
@@ -70,12 +69,10 @@ static SymGetLineFromAddr64_t     pSymGetLineFromAddr64;
 static SymInitialize_t            pSymInitialize;
 static SymSetOptions_t            pSymSetOptions;
 
-// Configuration Interface - these functions provide an interface to the library
-// for setting configuration options at runtime. They have C linkage so that C
-// programs can also configure the library.
-extern "C" void VLDSetMaxDataDump (unsigned long bytes);
-extern "C" void VLDSetMaxTraceFrames (unsigned long frames);
-extern "C" void VLDShowUselessFrames (unsigned int show);
+// Configuration options defined in vld.h
+extern "C" unsigned long _VLD_maxdatadump;
+extern "C" unsigned long _VLD_maxtraceframes;
+extern "C" unsigned char _VLD_showuselessframes;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -113,21 +110,13 @@ private:
     // Private Data
     bool            m_installed;         // Flag indicating whether or not VLD was successfully installed
     BlockMap        m_mallocmap;         // Map of allocated memory blocks
-    unsigned long   m_maxdatadump;       // Maximum number of bytes of user data to dump for each memory block
-    unsigned long   m_maxtraceframes;    // Maximum number of stack frames to trace for each memory block
     _CRT_ALLOC_HOOK m_poldhook;          // Pointer to the previously installed allocation hook function
     HANDLE          m_process;           // Handle to the current process - required for obtaining stack traces
-    unsigned int    m_showuselessframes; // Toggles display of useless stack frames (not bool for C compatibility)
 #ifndef _MT
     HANDLE          m_thread;            // Handle to the current thread - required for obtaining stack traces
 #else
 #define m_thread GetCurrentThread()
 #endif // _MT
-
-    // Friend Functions - see each function definition for details.
-    friend void VLDSetMaxDataDump (unsigned long bytes);
-    friend void VLDSetMaxTraceFrames (unsigned long frames);
-    friend void VLDShowUselessFrames (unsigned int show);
 };
 
 // The one and ONLY VisualLeakDetector object instance. This is placed in the
@@ -143,21 +132,10 @@ VisualLeakDetector visualleakdetector;
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    static bool already_instantiated = false;
-
-    // Disallow more than one instance of VisualLeakDetector. If this code is
-    // asserting, then you've instantiated a second instance. Only one instance
-    // should be created and it is already done for you (see above).
-    assert(!already_instantiated);
-    already_instantiated = true;
-
     // Initialize private data.
-    m_maxdatadump       = 0xffffffff;
-    m_maxtraceframes    = 0xffffffff;
-    m_process           = GetCurrentProcess();
-    m_showuselessframes = false;
+    m_process = GetCurrentProcess();
 #ifndef _MT
-    m_thread = GetCurrentThread();
+    m_thread  = GetCurrentThread();
 #endif // _MT
 
     if (linkdebughelplibrary()) {
@@ -474,7 +452,7 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
     frame.AddrFrame.Mode   = AddrModeFlat;
 
     // Walk the stack.
-    while (count < m_maxtraceframes) {
+    while (count < _VLD_maxtraceframes) {
         count++;
         if (!pStackWalk64(architecture, m_process, m_thread, &frame, &context,
                           NULL, pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)) {
@@ -640,17 +618,16 @@ getprocaddressfailure:
 //
 //   By default, only "useful" frames are displayed in the Callstack section of
 //   each memory block report. By "useful" we mean frames that are not internal
-//   to the heap or Visual Leak Detector. However, if ShowUselessFrames() is
-//   called with a value of "true", then all frames will be shown. If the source
-//   file  information for a frame cannot be found, then the frame will be
-//   displayed regardless of the state of ShowUselessFrames() (this is because
-//   the useless frames are identified by the source file). In most cases, the
-//   symbols for the heap internals should be available so this should rarely,
-//   if ever, be a problem.
+//   to the heap or Visual Leak Detector. However, if _VLD_showuselessframes is
+//   non-zero, then all frames will be shown. If the source file  information
+//   for a frame cannot be found, then the frame will be displayed regardless
+//   of the state of _VLD_showuselessframes (this is because the useless frames
+//   are identified by the source file). In most cases, the symbols for the heap
+//   internals should be available so this should rarely, if ever, be a problem.
 //
 //   By default the entire user data section of each block is dumped following
 //   the call stack. However, the data dump can be restricted to a limited
-//   number of bytes by calling the SetMaxDataDump() API.
+//   number of bytes via _VLD_maxdatadump.
 //
 //  Return Value:
 //
@@ -725,11 +702,11 @@ void VisualLeakDetector::reportleaks ()
                 // Try to get the source file and line number associated with
                 // this program counter address.
                 if (pSymGetLineFromAddr64(m_process, *itstack, &displacement, &sourceinfo)) {
-                    // Unless m_showuselessframes has been toggled, don't show
-                    // frames that are internal to the heap or Visual Leak
+                    // Unless _VLD_showuselessframes has been toggled, don't
+                    // show frames that are internal to the heap or Visual Leak
                     // Detector. There is virtually no situation where they
                     // would be useful for finding the source of the leak.
-                    if (!m_showuselessframes) {
+                    if (!_VLD_showuselessframes) {
                         if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                             strstr(sourceinfo.FileName, "dbgheap.c") ||
                             strstr(sourceinfo.FileName, "new.cpp") ||
@@ -768,10 +745,11 @@ void VisualLeakDetector::reportleaks ()
             char          formatbuf [4];
             string        hexdump;
 
-            if (m_maxdatadump == 0) {
+            if (_VLD_maxdatadump == 0) {
+                pheader = pheader->pBlockHeaderNext;
                 continue;
             }
-            datalen = (m_maxdatadump < pheader->nDataSize) ? m_maxdatadump : pheader->nDataSize;
+            datalen = (_VLD_maxdatadump < pheader->nDataSize) ? _VLD_maxdatadump : pheader->nDataSize;
             // Each line of output is 16 bytes.
             if ((datalen % 16) == 0) {
                 // No padding needed.
@@ -843,72 +821,3 @@ void VisualLeakDetector::reportleaks ()
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Configuration Interface - Friend Functions of the VisualLeakDetector Class
-//
-//    These functions exist to allow the Visual Leak Detector configurator
-//    (which is external to the Visual Leak Detector library) to configure
-//    the Visual Leak Detector at runtime. The configurator itself is built
-//    at application compile-time and depends on the optional preprocessor
-//    macros VLD_MAX_DATA_DUMP, VLD_MAX_TRACE_FRAMES, and
-//    VLD_SHOW_USELESS_FRAMES.
-//
-
-// VLDSetMaxDataDump - Sets the maximum number of bytes of user data to be
-//   dumped in memory leak reports. By default, the entire contents of the user
-//   data section of each memory block is included in the dump.
-//
-//  - bytes (IN): Specifies the maximum number of bytes to include in the dump.
-//      Set to zero to suppress data dumps altogether.
-//
-//  Return Value:
-//
-//    None.
-//
-void VLDSetMaxDataDump (unsigned long bytes)
-{
-    visualleakdetector.m_maxdatadump = bytes;
-}
-
-// VLDSetMaxTraceFrames - Sets the maximum number of stack frames to trace for
-//   each allocated memory block. By default, the stack is traced as far back as
-//   possible for each block. However, this can add considerable overhead
-//   in both CPU utilization and memory utilization. Limiting the stack trace
-//   to a preset maximum can significantly decrease this overhead.
-//
-//  Note: Within the context of this function, the specified frame count
-//    includes the "useless" frames (see ShowUselessFrames()) which, by default,
-//    are not shown in the memory leak report. Keep this in mind when using this
-//    function or you may not see the number of frames that you expect.
-//
-//  - frames (IN): Specifies the maximum number of frames to trace.
-//
-//  Return Value:
-//
-//    None.
-//
-void VLDSetMaxTraceFrames (unsigned long frames)
-{
-    visualleakdetector.m_maxtraceframes = frames;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// VLDShowUselessFrames - Toggles the optional display of "useless" frames.
-//   Useless frames are those that are internal to the heap or Visual Leak
-//   Detector. By default, display of these useless frames is suppressed in the
-//   memory leak report.
-//
-//  - show (IN): Boolean value which either enables or disables display of
-//      useless frames in the memory leak report. If nonzero, useless frames
-//      will be displayed. If zero, display of useless frames will be suppressed
-//      (this is the default).
-//
-//  Return Value:
-//
-//    None.
-//
-void VLDShowUselessFrames (unsigned int show)
-{
-    visualleakdetector.m_showuselessframes = show;
-}
