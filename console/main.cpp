@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: main.cpp,v 1.2 2005/03/29 05:25:36 db Exp $
+//  $Id: main.cpp,v 1.3 2005/03/31 02:11:08 db Exp $
 //
 //  A simple C++ example program for testing the Visual Leak Detector.
 //
@@ -7,7 +7,9 @@
 
 #include <iostream>
 #include <string>
-#include "vld.h"
+
+// Include Visual Leak Detector
+#include <vld.h>
 
 using namespace std;
 

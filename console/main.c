@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: main.c,v 1.3 2005/03/29 05:25:16 db Exp $
+//  $Id: main.c,v 1.4 2005/03/31 02:10:54 db Exp $
 //
 //  A simple C example program for testing the Visual Leak Detector.
 //
@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "vld.h"
+
+// Include Visual Leak Detector
+#include <vld.h>
 
 int main (int argc, char *argv [])
 {
