@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.7 2005/03/25 12:47:28 db Exp $
+//  $Id: vld.cpp,v 1.8 2005/03/25 13:04:45 db Exp $
 //
 //  Visual Leak Detector (Version 0.9c)
 //  Copyright (c) 2005 Dan Moulding
@@ -255,7 +255,7 @@ int VisualLeakDetector::allochook (int type, void *pdata, unsigned int size, int
 //
 string VisualLeakDetector::buildsymbolsearchpath ()
 {
-    string             command = GetCommandLine();
+    string             command = GetCommandLineA();
     char              *env;
     bool               inquote = false;
     string::size_type  length = command.length();
