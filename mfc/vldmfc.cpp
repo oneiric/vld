@@ -1,10 +1,12 @@
-//  $Id: vldmfc.cpp,v 1.2 2005/03/29 14:03:47 db Exp $
+//  $Id: vldmfc.cpp,v 1.3 2005/03/31 02:13:54 db Exp $
 //
 
 #include "stdafx.h"
 #include "vldmfc.h"
 #include "vldmfcdlg.h"
-#include "vld.h"
+
+// Include Visual Leak Detector
+#include <vld.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
