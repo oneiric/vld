@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.4 2005/03/17 05:25:03 db Exp $
+//  $Id: vld.cpp,v 1.5 2005/03/17 05:32:09 db Exp $
 //
-//  Visual Leak Detector (Version 0.9b)
+//  Visual Leak Detector (Version 0.9c)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -46,11 +46,11 @@
 
 using namespace std;
 
-#define VLD_VERSION "0.9b"
+#define VLD_VERSION "0.9c"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The VisualLeakDetector class. One global intance of this class is
+// The VisualLeakDetector class. One global instance of this class is
 // instantiated. Upon construction it registers our allocation hook function
 // with the debug heap. Upon destruction it checks for and reports memory leaks.
 //
