@@ -188,5 +188,13 @@ SOURCE=.\vld.cpp
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
+# Begin Source File
+
+SOURCE=.\COPYING.txt
+# End Source File
+# Begin Source File
+
+SOURCE=.\README.txt
+# End Source File
 # End Target
 # End Project
