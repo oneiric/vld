@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.2 2005/03/11 23:34:28 dmouldin Exp $
+//  $Id: vld.cpp,v 1.3 2005/03/15 13:29:20 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 0.9a)
+//  Visual Leak Detector (Version 0.9b)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -46,13 +46,13 @@
 
 using namespace std;
 
-#define VLD_VERSION "0.9a"
+#define VLD_VERSION "0.9b"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The VisualLeakDetector class. One global intance of this class is
-// instantiated. Upon construction, it intializes the C runtime debug heap and
-// symbol handler. Upon destruction, it checks for and reports memory leaks.
+// instantiated. Upon construction it registers our allocation hook function
+// with the debug heap. Upon destruction it checks for and reports memory leaks.
 //
 class VisualLeakDetector
 {
@@ -87,7 +87,12 @@ private:
 #endif // _MT
 };
 
-// The one and ONLY VisualLeakDetector object instance.
+// The one and ONLY VisualLeakDetector object instance. This is placed in the
+// "compiler" initialization area, so that it gets constructed at C runtime
+// initialization (i.e. before any user global objects are constructed). Also
+// suppress the warning about us using the "compiler" initialization area.
+#pragma warning(disable:4074)
+#pragma init_seg(compiler)
 static VisualLeakDetector visualleakdetector;
 
 // Constructor - Installs our allocation hook function so that the C runtime's
@@ -335,11 +340,22 @@ string VisualLeakDetector::buildsymbolsearchpath ()
 //   then retrieving the return address, which will be the program counter from
 //   where the function was called.
 //
+//  Notes:
+//  
+//    a) Frame pointer omission (FPO) optimization must be turned off so that
+//       the EBP register is guaranteed to contain the frame pointer. With FPO
+//       optimization turned on, EBP might hold some other value.
+//
+//    b) Inlining of this function must be disabled. The whole purpose of this
+//       function's existence depends upon it being a *called* function.
+//
 //  Return Value:
 //
 //    Returns the return address of the current stack frame.
 //
 #ifdef _M_IX86
+#pragma optimize ("y", off)
+#pragma auto_inline(off)
 unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 {
     unsigned long programcounter;
@@ -349,6 +365,8 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 
     return programcounter;
 }
+#pragma auto_inline(on)
+#pragma optimize ("y", on)
 #endif // _M_IX86
 
 // getstacktrace - Traces the stack, starting from this function, as far
@@ -359,10 +377,17 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 //  - callstack (OUT): Empty CallStack vector to be populated with entries from
 //    the stack trace. Each frame traced will push one entry onto the CallStack.
 //
+//  Note:
+//  
+//    Frame pointer omission (FPO) optimization must be turned off so that the
+//    EBP register is guaranteed to contain the frame pointer. With FPO
+//    optimization turned on, EBP might hold some other value.
+//
 //  Return Value:
 //
 //    None.
 //
+#pragma optimize ("y", off)
 void VisualLeakDetector::getstacktrace (CallStack& callstack)
 {
     DWORD         architecture;
@@ -417,6 +442,7 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
         callstack.push_back(frame.AddrPC.Offset);
     }
 }
+#pragma optimize ("y", on)
 
 // hookfree - Called by the allocation hook function in response to freeing a
 //   block. Removes the block (and it's call stack) from the block map.
@@ -549,7 +575,7 @@ void VisualLeakDetector::reportleaks ()
     // an entry for that block in the allocation block map. If we do, it is a
     // leaked block and the map entry contains the call stack for that block.
     pheap = new char;
-    pheader = pHdr(pheap);
+    pheader = pHdr(pheap)->pBlockHeaderNext;
     while (pheader) {
         itblock = m_mallocmap.find(pheader->lRequest);
         if (itblock != m_mallocmap.end()) {
