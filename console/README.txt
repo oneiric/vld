@@ -1,4 +1,4 @@
-Visual Leak Detector Example Console Application (Version 0.0)
+Visual Leak Detector Example Console Application (Version 1.0)
 
   Example Program Using Visual Leak Detector in a Console Application
 
