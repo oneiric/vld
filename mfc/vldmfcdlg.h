@@ -1,4 +1,4 @@
-//  $Id: vldmfcdlg.h,v 1.1 2005/03/11 22:56:50 dmouldin Exp $
+//  $Id: vldmfcdlg.h,v 1.1.1.1 2005/03/11 22:56:50 dmouldin Exp $
 //
 
 #if !defined(AFX_VLDMFCDLG_H__E5AE1FE6_8C7C_4A59_8DC1_2369B5C7B240__INCLUDED_)
