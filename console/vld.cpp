@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.6 2005/03/25 12:25:56 db Exp $
+//  $Id: vld.cpp,v 1.7 2005/03/25 12:47:28 db Exp $
 //
 //  Visual Leak Detector (Version 0.9c)
 //  Copyright (c) 2005 Dan Moulding
@@ -63,7 +63,7 @@ public:
 private:
     typedef vector<DWORD64> CallStack;     // Each entry in the call stack contains that frame's program counter.
     typedef map<long, CallStack> BlockMap; // Maps memory blocks to their call stacks. Keyed on the block's allocation request number.
-    
+
     // Private Helper Functions - see each function definition for details
     static int allochook (int type, void *pdata, unsigned int size, int use, long request, const unsigned char *file, int line);
     string buildsymbolsearchpath ();
@@ -202,7 +202,7 @@ int VisualLeakDetector::allochook (int type, void *pdata, unsigned int size, int
         }
         return true;
     }
-    
+
     if (use == _CRT_BLOCK) {
         // Do not attempt to keep track of blocks used internally by the CRT
         // library. Otherwise we will kick off an infinite loop when, during
@@ -262,7 +262,7 @@ string VisualLeakDetector::buildsymbolsearchpath ()
     string::size_type  next = 0;
     string             path;
     string::size_type  pos = 0;
-    
+
     // The documentation says that executables with associated program database
     // (PDB) files have the absolute path to the PDB embedded in them and that,
     // by default, that path is used to find the PDB. That appears to not be the
@@ -320,7 +320,7 @@ string VisualLeakDetector::buildsymbolsearchpath ()
     if (env) {
         path += string(";") + env;
     }
-        
+
     // Remove any quotes from the path. The symbol handler doesn't like them.
     pos = 0;
     while (pos != string::npos) {
@@ -341,7 +341,7 @@ string VisualLeakDetector::buildsymbolsearchpath ()
 //   the program counter from where the function was called.
 //
 //  Notes:
-//  
+//
 //    a) Frame pointer omission (FPO) optimization must be turned off so that
 //       the EBP register is guaranteed to contain the frame pointer. With FPO
 //       optimization turned on, EBP might hold some other value.
@@ -378,7 +378,7 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 //    the stack trace. Each frame traced will push one entry onto the CallStack.
 //
 //  Note:
-//  
+//
 //    Frame pointer omission (FPO) optimization must be turned off so that the
 //    EBP register is guaranteed to contain the frame pointer. With FPO
 //    optimization turned on, EBP might hold some other value.
@@ -404,7 +404,7 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
 #ifdef _M_IX86
     architecture = IMAGE_FILE_MACHINE_I386;
     programcounter = getprogramcounterintelx86();
-	__asm mov [framepointer], ebp  // Get the frame pointer (aka base pointer)
+    __asm mov [framepointer], ebp  // Get the frame pointer (aka base pointer)
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide architecture-specific code to
@@ -412,7 +412,7 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
 // the STACKFRAME64 structure below.
 #error "Visual Leak Detector is not supported on this architecture."
 #endif // _M_IX86
-    
+
     // Initialize the STACKFRAME64 structure.
     memset(&frame, 0x0, sizeof(frame));
     frame.AddrPC.Offset    = programcounter;
@@ -519,7 +519,7 @@ void VisualLeakDetector::hookrealloc (void *pdata)
 //
 //   By default the entire user data section of each block is dumped following
 //   the call stack. However, the data dump can be restricted to a limited
-//   number of bytes if VLD_MAX_DATA_DUMP is defined. 
+//   number of bytes if VLD_MAX_DATA_DUMP is defined.
 //
 //  Return Value:
 //
@@ -593,7 +593,7 @@ void VisualLeakDetector::reportleaks ()
             callstack = (*itblock).second;
             for (itstack = callstack.begin(); itstack != callstack.end(); itstack++) {
                 // Try to get the name of the function containing this program
-                // counter address. 
+                // counter address.
                 if (!SymFromAddr(m_process, *itstack, &displacement64, pfunctioninfo)) {
                     functionname = "(Function name unavailable)";
                 }
@@ -614,7 +614,7 @@ void VisualLeakDetector::reportleaks ()
                     // would be useful for finding the source of the leak.
                     if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                         strstr(sourceinfo.FileName, "dbgheap.c") ||
-                        strstr(sourceinfo.FileName, "new.cpp") || 
+                        strstr(sourceinfo.FileName, "new.cpp") ||
                         strstr(sourceinfo.FileName, "vld.cpp")) {
                         continue;
                     }
