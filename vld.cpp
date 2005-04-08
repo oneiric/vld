@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.4 2005/04/04 12:51:32 db Exp $
+//  $Id: vld.cpp,v 1.4.2.1 2005/04/08 12:56:36 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -29,9 +29,7 @@
 #pragma warning(disable:4786) // Disable STL-induced warnings 
 
 // Standard headers
-#include <map>
 #include <string>
-#include <vector>
 
 // Microsoft-specific headers
 #include <windows.h> // crtdbg.h, dbghelp.h, dbgint.h, and mtdll.h depend on this.
@@ -43,6 +41,10 @@
 #include <mtdll.h>   // Gives us the ability to lock the heap in multithreaded builds.
 #endif // _MT
 #undef _CRTBLD
+
+// VLD-specific headers
+#define VLDBUILD     // Declares that we are building Visual Leak Detector
+#include "vldutil.h" // Provides utility functions and classes
 
 using namespace std;
 
@@ -85,10 +87,6 @@ extern "C" unsigned char _VLD_showuselessframes;
 //
 class VisualLeakDetector
 {
-    typedef vector<DWORD64> CallStack;     // Each entry in the call stack contains that frame's program counter.
-    typedef map<long, CallStack> BlockMap; // Maps memory blocks to their call stacks. Keyed on the block's allocation request number.
-
-
 public:
     VisualLeakDetector();
     ~VisualLeakDetector();
@@ -97,23 +95,24 @@ private:
     // Private Helper Functions - see each function definition for details.
     static int allochook (int type, void *pdata, unsigned int size, int use, long request, const unsigned char *file, int line);
     string buildsymbolsearchpath ();
+    void dumpuserdatablock (_CrtMemBlockHeader *pheader);
 #ifdef _M_IX86
     unsigned long getprogramcounterintelx86 ();
 #endif // _M_IX86
-    void getstacktrace (CallStack& callstack);
-    void hookfree (void *pdata);
-    void hookmalloc (long request);
-    void hookrealloc (void *pdata);
+    inline void getstacktrace (CallStack *callstack);
+    inline void hookfree (void *pdata);
+    inline void hookmalloc (long request);
+    inline void hookrealloc (void *pdata);
     bool linkdebughelplibrary ();
     void reportleaks ();
 
     // Private Data
-    bool            m_installed;         // Flag indicating whether or not VLD was successfully installed
-    BlockMap        m_mallocmap;         // Map of allocated memory blocks
-    _CRT_ALLOC_HOOK m_poldhook;          // Pointer to the previously installed allocation hook function
-    HANDLE          m_process;           // Handle to the current process - required for obtaining stack traces
+    bool             m_installed;         // Flag indicating whether or not VLD was successfully installed
+    BlockMap        *m_mallocmap;         // Map of allocated memory blocks
+    _CRT_ALLOC_HOOK  m_poldhook;          // Pointer to the previously installed allocation hook function
+    HANDLE           m_process;           // Handle to the current process - required for obtaining stack traces
 #ifndef _MT
-    HANDLE          m_thread;            // Handle to the current thread - required for obtaining stack traces
+    HANDLE           m_thread;            // Handle to the current thread - required for obtaining stack traces
 #else
 #define m_thread GetCurrentThread()
 #endif // _MT
@@ -133,9 +132,10 @@ VisualLeakDetector visualleakdetector;
 VisualLeakDetector::VisualLeakDetector ()
 {
     // Initialize private data.
+    m_mallocmap = new BlockMap;
     m_process = GetCurrentProcess();
 #ifndef _MT
-    m_thread  = GetCurrentThread();
+    m_thread = GetCurrentThread();
 #endif // _MT
 
     if (linkdebughelplibrary()) {
@@ -154,7 +154,9 @@ VisualLeakDetector::VisualLeakDetector ()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
-    _CRT_ALLOC_HOOK pprevhook;
+    _CrtMemBlockHeader *pheader;
+    char               *pheap;
+    _CRT_ALLOC_HOOK     pprevhook;
 
     if (m_installed) {
         // Deregister our hook function.
@@ -169,6 +171,26 @@ VisualLeakDetector::~VisualLeakDetector ()
 
         // Report any leaks that we find.
         reportleaks();
+
+        // Free internally allocated resources.
+        delete m_mallocmap;
+
+        // Do a memory leak self-check.
+        pheap = new char;
+        pheader = pHdr(pheap)->pBlockHeaderNext;
+        delete pheap;
+        while (pheader) {
+            if (pheader->lRequest == VLDREQUESTNUMBER) {
+                // Doh! VLD still has an internally allocated block!
+                // This won't ever actually happen, right guys?... guys?
+                _RPT0(_CRT_WARN, "ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
+                _RPT2(_CRT_WARN, "---------- Block at 0x%08X: %d bytes ----------\n", pbData(pheader), pheader->nDataSize);
+                _RPT2(_CRT_WARN, "%s (%d): Full call stack not available.\n", pheader->szFileName, pheader->nLine);
+                dumpuserdatablock(pheader);
+                _RPT0(_CRT_WARN, "\n");
+            }
+            pheader = pheader->pBlockHeaderNext;
+        }
 
         _RPT0(_CRT_WARN, "Visual Leak Detector is now exiting.\n");
     }
@@ -225,27 +247,18 @@ VisualLeakDetector::~VisualLeakDetector ()
 //
 int VisualLeakDetector::allochook (int type, void *pdata, unsigned int size, int use, long request, const unsigned char *file, int line)
 {
-    static inallochook = false;
+    static bool inallochook;
+    int         status = true;
 
-    if (inallochook) {
+    if (inallochook || (use == _CRT_BLOCK)) {
         // Prevent the current thread from re-entering on allocs/reallocs/frees
-        // that we do internally to record the data we are collecting.
+        // that we or the CRT do internally to record the data we are
+        // collecting.
         if (visualleakdetector.m_poldhook) {
-            return (visualleakdetector.m_poldhook)(type, pdata, size, use, request, file, line);
+            status = visualleakdetector.m_poldhook(type, pdata, size, use, request, file, line);
         }
-        return true;
+        return status;
     }
-
-    if (use == _CRT_BLOCK) {
-        // Do not attempt to keep track of blocks used internally by the CRT
-        // library. Otherwise we will kick off an infinite loop when, during
-        // later processing, we call into CRT functions that allocate memory.
-        if (visualleakdetector.m_poldhook) {
-            return (visualleakdetector.m_poldhook)(type, pdata, size, use, request, file, line);
-        }
-        return true;
-    }
-
     inallochook = true;
 
     // Call the appropriate handler for the type of operation.
@@ -267,11 +280,11 @@ int VisualLeakDetector::allochook (int type, void *pdata, unsigned int size, int
         break;
     }
 
-    inallochook = false;
     if (visualleakdetector.m_poldhook) {
-        return (visualleakdetector.m_poldhook)(type, pdata, size, use, request, file, line);
+        status = visualleakdetector.m_poldhook(type, pdata, size, use, request, file, line);
     }
-    return true;
+    inallochook = false;
+    return status;
 }
 
 // buildsymbolsearchpath - Builds the symbol search path for the symbol handler.
@@ -366,6 +379,79 @@ string VisualLeakDetector::buildsymbolsearchpath ()
     return path;
 }
 
+// dumpuserdatablock - Dumps a nicely formatted rendition of the user-data
+//   portion of a memory block to the debugger's output window. Includes both
+//   the hex value of each byte and its ASCII equivalent (if printable).
+//
+//  - pheader (IN): Pointer to the header of the memory block to dump.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
+{
+    string        ascdump;
+    unsigned int  byte;
+    unsigned int  bytesdone;
+    unsigned int  datalen;
+    unsigned char datum;
+    unsigned int  dumplen;
+    char          formatbuf [4];
+    string        hexdump;
+
+   datalen = (_VLD_maxdatadump < pheader->nDataSize) ? _VLD_maxdatadump : pheader->nDataSize;
+    // Each line of output is 16 bytes.
+    if ((datalen % 16) == 0) {
+        // No padding needed.
+        dumplen = datalen;
+    }
+    else {
+        // We'll need to pad the last line out to 16 bytes.
+        dumplen = datalen + (16 - (datalen % 16));
+    }
+    // For each byte of data, get both the ASCII equivalent (if it is a
+    // printable character) and the hex representation.
+    _RPT0(_CRT_WARN, "  Data:\n");
+    bytesdone = 0;
+    for (byte = 0; byte < dumplen; byte++) {
+        if (byte < datalen) {
+            datum = ((unsigned char*)pbData(pheader))[byte];
+            sprintf(formatbuf, "%.2X ", datum);
+            hexdump += formatbuf;
+            if (isprint(datum) && (datum != ' ')) {
+                ascdump += datum;
+            }
+            else {
+                ascdump += '.';
+            }
+        }
+        else {
+            // Add padding to fill out the last line to 16 bytes.
+            hexdump += "   ";
+            ascdump += '.';
+        }
+        bytesdone++;
+        if ((bytesdone % 16) == 0) {
+            // Print one line of data for every 16 bytes. Include the
+            // ASCII dump and the hex dump side-by-side.
+            _RPT2(_CRT_WARN, "    %s    %s\n", hexdump.c_str(), ascdump.c_str());
+            hexdump = "";
+            ascdump = "";
+        }
+        else {
+            if ((bytesdone % 8) == 0) {
+                // Add a spacer in the ASCII dump after every two words.
+                ascdump += " ";
+            }
+            if ((bytesdone % 4) == 0) {
+                // Add a spacer in the hex dump after every word.
+                hexdump += "  ";
+            }
+        }
+    }
+}
+
 // getprogramcounterintelx86 - Helper function that retrieves the program
 //   counter (aka the EIP register) for getstacktrace() on Intel x86
 //   architecture. There is no way for software to directly read the EIP
@@ -407,8 +493,9 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 //   stack frame traced. Requires architecture-specific code for retrieving
 //   the current frame pointer and program counter.
 //
-//  - callstack (OUT): Empty CallStack vector to be populated with entries from
-//    the stack trace. Each frame traced will push one entry onto the CallStack.
+//  - callstack (OUT): Pointer to an empty CallStack to be populated with
+//    entries from the stack trace. Each frame traced will push one entry onto
+//    the CallStack.
 //
 //  Note:
 //
@@ -421,7 +508,7 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 //    None.
 //
 #pragma optimize ("y", off)
-void VisualLeakDetector::getstacktrace (CallStack& callstack)
+void VisualLeakDetector::getstacktrace (CallStack *callstack)
 {
     DWORD         architecture;
     CONTEXT       context;
@@ -465,7 +552,7 @@ void VisualLeakDetector::getstacktrace (CallStack& callstack)
         }
 
         // Push this frame's program counter onto the provided CallStack.
-        callstack.push_back(frame.AddrPC.Offset);
+        callstack->push_back(frame.AddrPC.Offset);
     }
 }
 #pragma optimize ("y", on)
@@ -484,7 +571,7 @@ void VisualLeakDetector::hookfree (void *pdata)
 {
     long request = pHdr(pdata)->lRequest;
 
-    m_mallocmap.erase(request);
+    m_mallocmap->erase(request);
 }
 
 // hookmalloc - Called by the allocation hook function in response to an
@@ -503,10 +590,10 @@ void VisualLeakDetector::hookfree (void *pdata)
 //
 void VisualLeakDetector::hookmalloc (long request)
 {
-    CallStack callstack;
+    BlockMap::Pair *pair = m_mallocmap->make_pair(request);
 
-    getstacktrace(callstack);
-    m_mallocmap.insert(make_pair(request, callstack));
+    getstacktrace(pair->getcallstack());
+    m_mallocmap->insert(pair);
 }
 
 // hookrealloc - Called by the allocation hook function in response to
@@ -635,13 +722,12 @@ getprocaddressfailure:
 //
 void VisualLeakDetector::reportleaks ()
 {
-    CallStack            callstack;
+    CallStack           *callstack;
     DWORD                displacement;
     DWORD64              displacement64;
     SYMBOL_INFO         *pfunctioninfo;
+    unsigned long        frame;
     string               functionname;
-    CallStack::iterator  itstack;
-    BlockMap::iterator   itblock;
     unsigned long        leaksfound = 0;
     string               path;
     char                *pheap;
@@ -683,9 +769,10 @@ void VisualLeakDetector::reportleaks ()
     // leaked block and the map entry contains the call stack for that block.
     pheap = new char;
     pheader = pHdr(pheap)->pBlockHeaderNext;
+    delete pheap;
     while (pheader) {
-        itblock = m_mallocmap.find(pheader->lRequest);
-        if (itblock != m_mallocmap.end()) {
+        callstack = m_mallocmap->find(pheader->lRequest);
+        if (callstack) {
             // Found a block which is still in the allocated list, and which we
             // have an entry for in the allocated block map. We've identified a
             // memory leak.
@@ -697,11 +784,10 @@ void VisualLeakDetector::reportleaks ()
             _RPT0(_CRT_WARN, "  Call Stack:\n");
 
             // Iterate through each frame in the call stack.
-            callstack = (*itblock).second;
-            for (itstack = callstack.begin(); itstack != callstack.end(); itstack++) {
+            for (frame = 0; frame < callstack->size(); frame++) {
                 // Try to get the source file and line number associated with
                 // this program counter address.
-                if (pSymGetLineFromAddr64(m_process, *itstack, &displacement, &sourceinfo)) {
+                if (pSymGetLineFromAddr64(m_process, callstack->[frame], &displacement, &sourceinfo)) {
                     // Unless _VLD_showuselessframes has been toggled, don't
                     // show frames that are internal to the heap or Visual Leak
                     // Detector. There is virtually no situation where they
@@ -718,7 +804,7 @@ void VisualLeakDetector::reportleaks ()
 
                 // Try to get the name of the function containing this program
                 // counter address.
-                if (pSymFromAddr(m_process, *itstack, &displacement64, pfunctioninfo)) {
+                if (pSymFromAddr(m_process, callstack->[frame], &displacement64, pfunctioninfo)) {
                     functionname = pfunctioninfo->Name;
                 }
                 else {
@@ -730,75 +816,17 @@ void VisualLeakDetector::reportleaks ()
                     _RPT3(_CRT_WARN, "    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname.c_str());
                 }
                 else {
-                    _RPT1(_CRT_WARN, "    0x%08X (File and line number not available): ", *itstack);
+                    _RPT1(_CRT_WARN, "    0x%08X (File and line number not available): ", callstack->[frame]);
                     _RPT1(_CRT_WARN, "%s\n", functionname.c_str());
                 }
             }
 
             // Dump the data in the user data section of the memory block.
-            string        ascdump;
-            unsigned int  byte;
-            unsigned int  bytesdone;
-            unsigned int  datalen;
-            unsigned char datum;
-            unsigned int  dumplen;
-            char          formatbuf [4];
-            string        hexdump;
-
             if (_VLD_maxdatadump == 0) {
                 pheader = pheader->pBlockHeaderNext;
                 continue;
             }
-            datalen = (_VLD_maxdatadump < pheader->nDataSize) ? _VLD_maxdatadump : pheader->nDataSize;
-            // Each line of output is 16 bytes.
-            if ((datalen % 16) == 0) {
-                // No padding needed.
-                dumplen = datalen;
-            }
-            else {
-                // We'll need to pad the last line out to 16 bytes.
-                dumplen = datalen + (16 - (datalen % 16));
-            }
-            // For each byte of data, get both the ASCII equivalent (if it is a
-            // printable character) and the hex representation.
-            _RPT0(_CRT_WARN, "  Data:\n");
-            bytesdone = 0;
-            for (byte = 0; byte < dumplen; byte++) {
-                if (byte < datalen) {
-                    datum = ((unsigned char*)pbData(pheader))[byte];
-                    sprintf(formatbuf, "%.2X ", datum);
-                    hexdump += formatbuf;
-                    if (isprint(datum) && (datum != ' ')) {
-                        ascdump += datum;
-                    }
-                    else {
-                        ascdump += '.';
-                    }
-                }
-                else {
-                    // Add padding to fill out the last line to 16 bytes.
-                    hexdump += "   ";
-                    ascdump += '.';
-                }
-                bytesdone++;
-                if ((bytesdone % 16) == 0) {
-                    // Print one line of data for every 16 bytes. Include the
-                    // ASCII dump and the hex dump side-by-side.
-                    _RPT2(_CRT_WARN, "    %s    %s\n", hexdump.c_str(), ascdump.c_str());
-                    hexdump = "";
-                    ascdump = "";
-                }
-                else {
-                    if ((bytesdone % 8) == 0) {
-                        // Add a spacer in the ASCII dump after every two words.
-                        ascdump += " ";
-                    }
-                    if ((bytesdone % 4) == 0) {
-                        // Add a spacer in the hex dump after every word.
-                        hexdump += "  ";
-                    }
-                }
-            }
+            dumpuserdatablock(pheader);
             _RPT0(_CRT_WARN, "\n");
         }
         pheader = pheader->pBlockHeaderNext;
@@ -807,7 +835,6 @@ void VisualLeakDetector::reportleaks ()
     // Unlock the heap if this is a multithreaded build.
     _munlock(_HEAP_LOCK);
 #endif
-    delete pheap;
     if (!leaksfound) {
         _RPT0(_CRT_WARN, "No memory leaks detected.\n");
     }
@@ -820,4 +847,3 @@ void VisualLeakDetector::reportleaks ()
         _RPT1(_CRT_WARN, "WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%d).\n", GetLastError());
     }
 }
-
