@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.4.2.1 2005/04/08 12:56:36 db Exp $
+//  $Id: vld.cpp,v 1.4.2.2 2005/04/08 13:09:22 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -787,7 +787,7 @@ void VisualLeakDetector::reportleaks ()
             for (frame = 0; frame < callstack->size(); frame++) {
                 // Try to get the source file and line number associated with
                 // this program counter address.
-                if (pSymGetLineFromAddr64(m_process, callstack->[frame], &displacement, &sourceinfo)) {
+                if (pSymGetLineFromAddr64(m_process, (*callstack)[frame], &displacement, &sourceinfo)) {
                     // Unless _VLD_showuselessframes has been toggled, don't
                     // show frames that are internal to the heap or Visual Leak
                     // Detector. There is virtually no situation where they
@@ -804,7 +804,7 @@ void VisualLeakDetector::reportleaks ()
 
                 // Try to get the name of the function containing this program
                 // counter address.
-                if (pSymFromAddr(m_process, callstack->[frame], &displacement64, pfunctioninfo)) {
+                if (pSymFromAddr(m_process, (*callstack)[frame], &displacement64, pfunctioninfo)) {
                     functionname = pfunctioninfo->Name;
                 }
                 else {
@@ -816,7 +816,7 @@ void VisualLeakDetector::reportleaks ()
                     _RPT3(_CRT_WARN, "    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname.c_str());
                 }
                 else {
-                    _RPT1(_CRT_WARN, "    0x%08X (File and line number not available): ", callstack->[frame]);
+                    _RPT1(_CRT_WARN, "    0x%08X (File and line number not available): ", (*callstack)[frame]);
                     _RPT1(_CRT_WARN, "%s\n", functionname.c_str());
                 }
             }
