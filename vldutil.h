@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.1.2.1 2005/04/08 13:05:45 db Exp $
+//  $Id: vldutil.h,v 1.1.2.2 2005/04/11 12:54:41 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -29,8 +29,6 @@
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should NEVER include this header."
 #endif
 
-#include <cassert>
-
 #include <windows.h>
 #define _CRTBLD
 #include <dbgint.h>
@@ -38,7 +36,7 @@
 
 #define BLOCKMAPCHUNKSIZE   64
 #define CALLSTACKCHUNKSIZE  32
-#define VLDREQUESTNUMBER   -2
+#define VLDINTERNALBLOCK    0xbf42
 
 // operator new - Visual Leak Detector's internal new operator. Only VLD uses
 //   this operator (note the static linkage). Applications linking with VLD will
@@ -60,13 +58,26 @@
 //
 //    Returns a pointer to the beginning of the newly allocated object's memory.
 //
-inline static void* operator new (unsigned int size)
+inline static void* operator new (unsigned int size, char *file, int line)
 {
-    void *pdata = malloc(size);
-
-    //pHdr(pdata)->lRequest = VLDREQUESTNUMBER;
+    void *pdata = _malloc_dbg(size, _CLIENT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
 
     return pdata;
+}
+#define new new(__FILE__, __LINE__)
+
+inline static void operator delete (void *p, char *file, int line)
+{
+    _CrtMemBlockHeader *pheader = pHdr(p);
+
+    _free_dbg(p, pheader->nBlockUse);
+}
+
+inline static void operator delete (void *p)
+{
+    _CrtMemBlockHeader *pheader = pHdr(p);
+
+    _free_dbg(p, pheader->nBlockUse);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -93,10 +104,10 @@ inline static void* operator new (unsigned int size)
 class CallStack
 {
     // The chunk list is made of a linked list of stackchunk_s structures
-    class StackChunk {
+    class Chunk {
     private:
-        StackChunk *next;
-        DWORD64     frames [CALLSTACKCHUNKSIZE];
+        Chunk   *next;
+        DWORD64  frames [CALLSTACKCHUNKSIZE];
 
         friend class CallStack;
     };
@@ -115,11 +126,11 @@ public:
 
 private:
     // Private Data
-    unsigned long  m_capacity;
-    unsigned long  m_size;
-    StackChunk    *m_store;
-    StackChunk    *m_topchunk;
-    unsigned long  m_topindex;
+    unsigned long     m_capacity;
+    unsigned long     m_size;
+    CallStack::Chunk *m_store;
+    CallStack::Chunk *m_topchunk;
+    unsigned long     m_topindex;
 };
 
 class BlockMap
@@ -130,18 +141,18 @@ public:
         CallStack* getcallstack () { return &callstack; }
 
     private:
-        Pair          *next;
-        Pair          *prev;
-        CallStack      callstack;
-        unsigned long  request;
+        Pair         *next;
+        Pair         *prev;
+        CallStack     callstack;
+        unsigned long request;
 
         friend class BlockMap;
     };
 
-    class MapChunk {
+    class Chunk {
     private:
-        MapChunk *next;
-        Pair      pairs [BLOCKMAPCHUNKSIZE];
+        Chunk *next;
+        Pair   pairs [BLOCKMAPCHUNKSIZE];
 
         friend class BlockMap;
     };
@@ -152,20 +163,20 @@ public:
 
     void erase (unsigned long request);
     CallStack* find (unsigned long request);
-    void insert (Pair *pair);
-    Pair* make_pair (unsigned long request);
+    void insert (BlockMap::Pair *pair);
+    BlockMap::Pair* make_pair (unsigned long request);
 
 private:
-    Pair* _find (unsigned long request, bool exact);
-    void _free (Pair *pair);
-    void _unlink (Pair *pair);
+    BlockMap::Pair* _find (unsigned long request, bool exact);
+    void _free (BlockMap::Pair *pair);
+    void _unlink (BlockMap::Pair *pair);
 
-    Pair          *m_free;
-    Pair          *m_maphead;
-    Pair          *m_maptail;
-    unsigned long  m_size;
-    MapChunk      *m_storehead;
-    MapChunk      *m_storetail;
+    BlockMap::Pair  *m_free;
+    BlockMap::Pair  *m_maphead;
+    BlockMap::Pair  *m_maptail;
+    unsigned long    m_size;
+    BlockMap::Chunk *m_storehead;
+    BlockMap::Chunk *m_storetail;
 };
 
 #endif // _VLDUTIL_H_
