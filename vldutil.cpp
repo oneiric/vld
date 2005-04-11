@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.1.2.1 2005/04/08 13:05:16 db Exp $
+//  $Id: vldutil.cpp,v 1.1.2.2 2005/04/11 12:51:58 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -21,6 +21,8 @@
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+#include <cassert>
 
 #define VLDBUILD     // Declare that we are building Visual Leak Detector
 #include "vldutil.h"
@@ -48,31 +50,25 @@ BlockMap::BlockMap (const BlockMap &source)
 
 BlockMap::~BlockMap ()
 {
-    unsigned long  index;
-    MapChunk      *chunk;
+    BlockMap::Chunk *chunk;
 
     while (m_storehead) {
         chunk = m_storehead;
         m_storehead = m_storehead->next;
-        for (index = 0; index < BLOCKMAPCHUNKSIZE; index++) {
-            /*if (chunk->pairs[index].callstack) {
-                delete chunk->pairs[index].callstack;
-            }*/
-        }
         delete chunk;
     }
 }
 
 BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
 {
-    unsigned long  count;
-    Pair          *high = m_maptail;
-    unsigned long  highindex = m_size;
-    Pair          *low = m_maphead;
-    unsigned long  lowindex = 0;
-    Pair          *mid;
-    unsigned long  midcount;
-    unsigned long  midindex;
+    unsigned long   count;
+    BlockMap::Pair *high = m_maptail;
+    unsigned long   highindex = m_size - 1;
+    BlockMap::Pair *low = m_maphead;
+    unsigned long   lowindex = 0;
+    BlockMap::Pair *mid;
+    unsigned long   midcount;
+    unsigned long   midindex;
 
     while (low != high) {
         mid = low;
@@ -82,42 +78,54 @@ BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
             mid = mid->next;
         }
         if (mid->request == request) {
+            // Found an exact match.
             return mid;
         }
         else if (mid->request > request) {
-            high = mid->prev;
-            if (!high) {
+            if (low->request > request) {
+                // If an exact search, then the request number we're looking for
+                // is not in the list. If an inexact search, then insert at the
+                // head of the list.
                 return NULL;
             }
+            high = mid->prev;
             highindex = midindex - 1;
         }
         else {
-            low = mid->next;
-            if (!low) {
-                return NULL;
+            if (high->request < request) {
+                if (exact) {
+                    // The request number we're looking for is not in the list.
+                    return NULL;
+                }
+                // Insert at the end of the list.
+                return high;
             }
+            low = mid->next;
             lowindex = midindex + 1;
         }
     }
     
     if (low && (low->request == request)) {
+        // Found an exact match.
         return low;
     }
     else {
         if (exact) {
+            // The request number we're looking for is not in the list.
             return NULL;
         }
+        // Insert after the nearest existing lower request number.
         return low;
     }
 }
 
-void BlockMap::_free (Pair *pair)
+void BlockMap::_free (BlockMap::Pair *pair)
 {
     pair->next = m_free;
     m_free = pair;
 }
 
-void BlockMap::_unlink (Pair *pair)
+void BlockMap::_unlink (BlockMap::Pair *pair)
 {
     if (pair->prev) {
         pair->prev->next = pair->next;
@@ -136,7 +144,7 @@ void BlockMap::_unlink (Pair *pair)
 
 void BlockMap::erase (unsigned long request)
 {
-    Pair *pair = _find(request, true);
+    BlockMap::Pair *pair = _find(request, true);
 
     if (pair) {
         _unlink(pair);
@@ -148,7 +156,7 @@ void BlockMap::erase (unsigned long request)
 
 CallStack* BlockMap::find (unsigned long request)
 {
-    Pair *pair = _find(request, true);
+    BlockMap::Pair *pair = _find(request, true);
 
     if (pair) {
         return &pair->callstack;
@@ -158,9 +166,9 @@ CallStack* BlockMap::find (unsigned long request)
     }
 }
 
-void BlockMap::insert (Pair *pair)
+void BlockMap::insert (BlockMap::Pair *pair)
 {
-    Pair *insertionpoint;
+    BlockMap::Pair *insertionpoint;
 
     insertionpoint = _find(pair->request, false);
     if (insertionpoint && (insertionpoint->request == pair->request)) {
@@ -216,14 +224,14 @@ void BlockMap::insert (Pair *pair)
 
 BlockMap::Pair* BlockMap::make_pair (unsigned long request)
 {
-    MapChunk      *chunk;
-    unsigned long  index;
-    Pair          *pair;
+    BlockMap::Chunk *chunk;
+    unsigned long    index;
+    BlockMap::Pair  *pair;
 
     // Obtain a pair from the free list.
     if (m_free == NULL) {
         // No more free pairs. Allocate additional storage.
-        chunk = new MapChunk;
+        chunk = new BlockMap::Chunk;
         chunk->next = NULL;
         if (m_storehead) {
             m_storetail->next = chunk;
@@ -282,7 +290,7 @@ CallStack::CallStack (const CallStack &source)
 //
 CallStack::~CallStack ()
 {
-    StackChunk *chunk;
+    CallStack::Chunk *chunk;
 
     while (m_store) {
         chunk = m_store;
@@ -310,9 +318,9 @@ CallStack::~CallStack ()
 //
 DWORD64 CallStack::operator [] (unsigned long index)
 {
-    unsigned long  count;
-    StackChunk    *chunk = m_store;
-    unsigned long  chunknumber = index / CALLSTACKCHUNKSIZE;
+    unsigned long     count;
+    CallStack::Chunk *chunk = m_store;
+    unsigned long     chunknumber = index / CALLSTACKCHUNKSIZE;
 
     for (count = 0; count < chunknumber; count++) {
         chunk = chunk->next;
@@ -354,11 +362,11 @@ void CallStack::clear ()
 //
 void CallStack::push_back (DWORD64 programcounter)
 {
-    StackChunk *chunk;
+    CallStack::Chunk *chunk;
 
     if (m_size == m_capacity) {
         // At current capacity. Allocate additional storage.
-        chunk = new StackChunk;
+        chunk = new CallStack::Chunk;
         chunk->next = NULL;
         if (m_store) {
             m_topchunk->next = chunk;
@@ -375,7 +383,7 @@ void CallStack::push_back (DWORD64 programcounter)
         // There is more capacity, but not in this chunk. Go to the next chunk.
         // Note that this only happens if this CallStack has previously been
         // cleared (clearing resets the data, but doesn't give up any allocated
-        // space)..
+        // space).
         m_topchunk = m_topchunk->next;
         m_topindex = 0;
     }
