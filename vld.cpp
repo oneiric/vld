@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.4.2.2 2005/04/08 13:09:22 db Exp $
+//  $Id: vld.cpp,v 1.4.2.3 2005/04/11 12:46:20 db Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -180,7 +180,7 @@ VisualLeakDetector::~VisualLeakDetector ()
         pheader = pHdr(pheap)->pBlockHeaderNext;
         delete pheap;
         while (pheader) {
-            if (pheader->lRequest == VLDREQUESTNUMBER) {
+            if (_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) {
                 // Doh! VLD still has an internally allocated block!
                 // This won't ever actually happen, right guys?... guys?
                 _RPT0(_CRT_WARN, "ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
