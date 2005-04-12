@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.2 2005/04/12 03:39:50 dmouldin Exp $
+//  $Id: vldutil.h,v 1.3 2005/04/12 21:43:12 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -42,11 +42,6 @@
 #define BLOCKMAPCHUNKSIZE   64     // Size, in Pairs, of each BlockMap Chunk
 #define CALLSTACKCHUNKSIZE  32     // Size, in frames (DWORDs), of each CallStack Chunk.
 #define VLDINTERNALBLOCK    0xbf42 // VLD internal memory block subtype
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Utility Functions
-//
 
 // operator new - Visual Leak Detector's internal new operator. Only VLD uses
 //   this operator (note the static linkage). Applications linking with VLD will
@@ -129,13 +124,9 @@ inline static void operator delete (void *p)
     _free_dbg(p, pheader->nBlockUse);
 }
 
+// strapp - Appends to strings. See function definition for details.
 void strapp (char **dest, char *source);
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Utility Classes
-//
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -160,18 +151,6 @@ void strapp (char **dest, char *source);
 //
 class CallStack
 {
-    // The chunk list is made of a linked list of Chunks.
-    class Chunk {
-        Chunk () {}
-        Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
-
-    private:
-        Chunk   *next;
-        DWORD64  frames [CALLSTACKCHUNKSIZE];
-
-        friend class CallStack;
-    };
-
 public:
     CallStack ();
     CallStack (const CallStack &source);
@@ -185,13 +164,26 @@ public:
     unsigned long size ();
 
 private:
+    // The chunk list is made of a linked list of Chunks.
+    class Chunk {
+        Chunk () {}
+        Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
+
+    private:
+        Chunk   *next;
+        DWORD64  frames [CALLSTACKCHUNKSIZE];
+
+        friend class CallStack;
+    };
+
     // Private Data
     unsigned long     m_capacity; // Current capacity limit (in frames)
     unsigned long     m_size;     // Current size (in frames)
-    CallStack::Chunk *m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
+    CallStack::Chunk  m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
     CallStack::Chunk *m_topchunk; // Pointer to the Chunk at the top of the stack
     unsigned long     m_topindex; // Index, within the top Chunk, of the top of the stack
 };
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -277,7 +269,7 @@ private:
     BlockMap::Pair  *m_maphead;   // Pointer to the head of the map
     BlockMap::Pair  *m_maptail;   // Pointer to the tail of the map
     unsigned long    m_size;      // Current size of the map (in pairs)
-    BlockMap::Chunk *m_storehead; // Pointer to the start of the underlying data store (i.e. head of the Chunk list)
+    BlockMap::Chunk  m_storehead; // Pointer to the start of the underlying data store (i.e. head of the Chunk list)
     BlockMap::Chunk *m_storetail; // Pointer to the end of the underlying data store (i.e. tail of the Chunk list)
 };
 
