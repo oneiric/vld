@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.5 2005/04/12 03:39:48 dmouldin Exp $
+//  $Id: vld.cpp,v 1.6 2005/04/12 21:35:19 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -761,12 +761,12 @@ void VisualLeakDetector::reportleaks ()
     CallStack          *callstack;
     DWORD               displacement;
     DWORD64             displacement64;
-    SYMBOL_INFO        *pfunctioninfo;
     unsigned long       frame;
     char               *functionname;
     unsigned long       leaksfound = 0;
-    char               *pheap;
+    SYMBOL_INFO        *pfunctioninfo;
     _CrtMemBlockHeader *pheader;
+    char               *pheap;
     IMAGEHLP_LINE64     sourceinfo;
 #define MAXSYMBOLNAMELENGTH 256
 #define SYMBOLBUFFERSIZE (sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(TCHAR)) - 1)
