@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.2 2005/04/12 03:39:49 dmouldin Exp $
+//  $Id: vldutil.cpp,v 1.3 2005/04/12 21:41:28 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -62,17 +62,25 @@ void strapp (char **dest, char *source)
 //  BlockMap Construction / Destruction
 //
 
-// Constructor - Initializes BlockMap with an initial size and capacity of zero.
-//   No memory is allocated until a Pair is inserted into the BlockMap.
+// Constructor - Initializes the BlockMap with an initial size of zero and one
+//   Chunk of capacity.
 //
 BlockMap::BlockMap ()
 {
-    m_free      = NULL;
-    m_maphead   = NULL;
-    m_maptail   = NULL;
-    m_size      = 0;
-    m_storehead = NULL;
-    m_storetail = NULL;
+    unsigned long index;
+
+    m_maphead        = NULL;
+    m_maptail        = NULL;
+    m_size           = 0;
+    m_storehead.next = NULL;
+    m_storetail      = &m_storehead;
+
+    // Link together the initial free list.
+    for (index = 0; index < BLOCKMAPCHUNKSIZE - 1; index++) {
+        m_storehead.pairs[index].next = &m_storehead.pairs[index + 1];
+    }
+    m_storehead.pairs[index].next = NULL;
+    m_free = m_storehead.pairs;
 }
 
 // Copy Constructor - For efficiency, we want to avoid ever making copies of
@@ -89,11 +97,13 @@ BlockMap::BlockMap (const BlockMap &source)
 BlockMap::~BlockMap ()
 {
     BlockMap::Chunk *chunk;
+    BlockMap::Chunk *temp;
 
-    while (m_storehead) {
-        chunk = m_storehead;
-        m_storehead = m_storehead->next;
-        delete chunk;
+    chunk = m_storehead.next;
+    while (chunk) {
+        temp = chunk;
+        chunk = chunk->next;
+        delete temp;
     }
 }
 
@@ -128,47 +138,38 @@ BlockMap::~BlockMap ()
 //
 BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
 {
-    unsigned long   count;
+    long            count;
     BlockMap::Pair *high = m_maptail;
-    unsigned long   highindex = m_size - 1;
+    long            highindex = m_size - 1;
     BlockMap::Pair *low = m_maphead;
-    unsigned long   lowindex = 0;
+    long            lowindex = 0;
     BlockMap::Pair *mid;
-    unsigned long   midcount;
-    unsigned long   midindex;
+    long            midcount;
+    long            midindex;
 
-    while (low != high) {
+    while (lowindex < highindex) {
+        // Advance mid to the middle of the linked list.
         mid = low;
         midindex = lowindex + ((highindex - lowindex) / 2);
         midcount = midindex - lowindex;
         for (count = 0; count < midcount; count++) {
             mid = mid->next;
         }
-        if (mid->request == request) {
-            // Found an exact match.
-            return mid;
-        }
-        else if (mid->request > request) {
-            if (low->request > request) {
-                // If an exact search, then the request number we're looking for
-                // is not in the list. If an inexact search, then insert at the
-                // head of the list.
-                return NULL;
-            }
+
+        // Divide and conquer.
+        if (mid->request > request) {
+            // Eliminate upper half.
             high = mid->prev;
             highindex = midindex - 1;
         }
-        else {
-            if (high->request < request) {
-                if (exact) {
-                    // The request number we're looking for is not in the list.
-                    return NULL;
-                }
-                // Insert at the end of the list.
-                return high;
-            }
+        else if (mid->request < request) {
+            // Eliminate lower half.
             low = mid->next;
             lowindex = midindex + 1;
+        }
+        else {
+            // Found an exact match.
+            return mid;
         }
     }
     
@@ -271,59 +272,63 @@ void BlockMap::insert (BlockMap::Pair *pair)
 {
     BlockMap::Pair *insertionpoint;
 
-    // Search for the closest match.
-    insertionpoint = _find(pair->request, false);
-
-    if (insertionpoint && (insertionpoint->request == pair->request)) {
-        // Found an exact match. The request number we are inserting already
-        // exists in the map. Replace the existing pair with the new pair.
-        if (insertionpoint->prev) {
-            insertionpoint->prev->next = pair;
-        }
-        else {
-            m_maphead = pair;
-        }
-        pair->prev = insertionpoint->prev;
-        if (insertionpoint->next) {
-            insertionpoint->next->prev = pair;
-        }
-        else {
-            m_maptail = pair;
-        }
-        pair->next = insertionpoint->next;
-
-        // Put the replaced Pair onto the free list.
-        insertionpoint->next = m_free;
-        m_free = insertionpoint;
-        return;
-    }
-
-    if (insertionpoint == NULL) {
-        // Insert at the beginning of the map.
-        if (m_maphead) {
-            m_maphead->prev = pair;
-        }
-        else {
-            // Inserting into an empty list. Initialize the tail.
-            m_maptail = pair;
-        }
-        pair->next = m_maphead;
-        pair->prev = NULL;
-        m_maphead = pair;
+    // Insertions are almost always going to go onto the tail of the map, so 
+    // optimize for that particular case.
+    if (m_maptail && (pair->request > m_maptail->request)) {
+        // Insert at the tail.
+        pair->next = NULL;
+        pair->prev = m_maptail;
+        m_maptail->next = pair;
+        m_maptail = pair;
     }
     else {
-        // Insert after the insertion point.
-        if (insertionpoint->next) {
-            // Inserting somewhere in the middle.
-            insertionpoint->next->prev = pair;
+        // Search for the closest match.
+        insertionpoint = _find(pair->request, false);
+
+        // Insert or replace at the indicated position.
+        if (insertionpoint && (insertionpoint->request == pair->request)) {
+            // Found an exact match. The request number we are inserting already
+            // exists in the map. Replace the existing pair with the new pair.
+            if (insertionpoint->prev) {
+                insertionpoint->prev->next = pair;
+            }
+            else {
+                m_maphead = pair;
+            }
+            pair->prev = insertionpoint->prev;
+            if (insertionpoint->next) {
+                insertionpoint->next->prev = pair;
+            }
+            else {
+                m_maptail = pair;
+            }
+            pair->next = insertionpoint->next;
+
+            // Put the replaced Pair onto the free list.
+            insertionpoint->next = m_free;
+            m_free = insertionpoint;
+            return;
+        }
+        if (insertionpoint == NULL) {
+            // Insert at the beginning of the map.
+            if (m_maphead) {
+                m_maphead->prev = pair;
+            }
+            else {
+                // Inserting into an empty list. Initialize the tail.
+                m_maptail = pair;
+            }
+            pair->next = m_maphead;
+            pair->prev = NULL;
+            m_maphead = pair;
         }
         else {
-            // Inserting at the tail.
-            m_maptail = pair;
+            // Inserting somewhere in the middle.
+            pair->next = insertionpoint->next;
+            pair->prev = insertionpoint;
+            insertionpoint->next->prev = pair;
+            insertionpoint->next = pair;
         }
-        pair->next = insertionpoint->next;
-        pair->prev = insertionpoint;
-        insertionpoint->next = pair;
     }
     m_size++;
 }
@@ -348,14 +353,9 @@ BlockMap::Pair* BlockMap::make_pair (unsigned long request)
         // No more free Pairs. Allocate additional storage.
         chunk = new BlockMap::Chunk;
         chunk->next = NULL;
-        if (m_storehead) {
-            m_storetail->next = chunk;
-            m_storetail = chunk;
-        }
-        else {
-            m_storehead = chunk;
-            m_storetail = chunk;
-        }
+        m_storetail->next = chunk;
+        m_storetail = chunk;
+
         // Link the newly allocated storage to the free list.
         for (index = 0; index < BLOCKMAPCHUNKSIZE - 1; index++) {
             chunk->pairs[index].next = &chunk->pairs[index + 1];
@@ -380,16 +380,16 @@ BlockMap::Pair* BlockMap::make_pair (unsigned long request)
 //  CallStack Construction / Destruction
 //
 
-// Constructor - Initializes the CallStack with zero capacity. No memory is
-//   allocated until a frame is actually pushed onto the CallStack.
+// Constructor - Initializes the CallStack with an initial size of zero and one
+//   Chunk of capacity.
 //
 CallStack::CallStack ()
 {
-    m_capacity = 0;
-    m_size     = 0;
-    m_store    = NULL;
-    m_topchunk = NULL;
-    m_topindex = 0;
+    m_capacity   = CALLSTACKCHUNKSIZE;
+    m_size       = 0;
+    m_store.next = NULL;
+    m_topchunk   = &m_store;
+    m_topindex   = 0;
 }
 
 // Copy Constructor - For efficiency, we want to avoid ever making copies of
@@ -408,11 +408,13 @@ CallStack::CallStack (const CallStack &source)
 CallStack::~CallStack ()
 {
     CallStack::Chunk *chunk;
+    CallStack::Chunk *temp;
 
-    while (m_store) {
-        chunk = m_store;
-        m_store = m_store->next;
-        delete chunk;
+    chunk = m_store.next;
+    while (chunk) {
+        temp = chunk;
+        chunk = temp->next;
+        delete temp;
     }
 }
 
@@ -441,7 +443,7 @@ CallStack::~CallStack ()
 DWORD64 CallStack::operator [] (unsigned long index)
 {
     unsigned long     count;
-    CallStack::Chunk *chunk = m_store;
+    CallStack::Chunk *chunk = &m_store;
     unsigned long     chunknumber = index / CALLSTACKCHUNKSIZE;
 
     for (count = 0; count < chunknumber; count++) {
@@ -465,7 +467,7 @@ DWORD64 CallStack::operator [] (unsigned long index)
 void CallStack::clear ()
 {
     m_size     = 0;
-    m_topchunk = m_store;
+    m_topchunk = &m_store;
     m_topindex = 0;
 }
 
@@ -490,14 +492,8 @@ void CallStack::push_back (DWORD64 programcounter)
         // At current capacity. Allocate additional storage.
         chunk = new CallStack::Chunk;
         chunk->next = NULL;
-        if (m_store) {
-            m_topchunk->next = chunk;
-            m_topchunk = chunk;
-        }
-        else {
-            m_store = chunk;
-            m_topchunk = chunk;
-        }
+        m_topchunk->next = chunk;
+        m_topchunk = chunk;
         m_topindex = 0;
         m_capacity += CALLSTACKCHUNKSIZE;
     }
