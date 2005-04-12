@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.1.2.2 2005/04/11 12:51:58 db Exp $
+//  $Id: vldutil.cpp,v 1.1.2.3 2005/04/12 03:04:17 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9d)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,17 +22,49 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <cassert>
-
 #define VLDBUILD     // Declare that we are building Visual Leak Detector
 #include "vldutil.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  The BlockMap Class
+//  Utility Functions
 //
-////////////////////////////////////////////////////////////////////////////////
 
+// strapp - Appends the specified source string to the specified destination
+//   string. Allocates additional space so that the destination string "grows"
+//   as new strings are appended to it. This function is fairly infrequently
+//   used so efficiency is not a major concern.
+//
+//  - dest (IN/OUT): Address of the destination string. Receives the resulting
+//      combined string after the append operation.
+//
+//  - source (IN): Source string to be appended to the destination string.
+//
+//  Return Value:
+//
+//    None.
+//
+void strapp (char **dest, char *source)
+{
+    size_t  length;
+    char   *temp;
+
+    temp = *dest;
+    length = strlen(*dest) + strlen(source);
+    *dest = new char [length + 1];
+    strncpy(*dest, temp, length);
+    strncat(*dest, source, length);
+    delete [] temp;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  BlockMap Construction / Destruction
+//
+
+// Constructor - Initializes BlockMap with an initial size and capacity of zero.
+//   No memory is allocated until a Pair is inserted into the BlockMap.
+//
 BlockMap::BlockMap ()
 {
     m_free      = NULL;
@@ -43,11 +75,17 @@ BlockMap::BlockMap ()
     m_storetail = NULL;
 }
 
+// Copy Constructor - For efficiency, we want to avoid ever making copies of
+//   BlockMaps (only pointer passing or reference passing should be performed).
+//   The sole purpose of this copy constructor is to ensure that no copying is
+//   being done inadvertently.
 BlockMap::BlockMap (const BlockMap &source)
 {
+    // Don't make copies of BlockMaps!
     assert(false);
 }
 
+// Destructor - Frees all memory allocated to the BlockMap.
 BlockMap::~BlockMap ()
 {
     BlockMap::Chunk *chunk;
@@ -59,6 +97,35 @@ BlockMap::~BlockMap ()
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+//  BlockMap Internal Helper Functions
+//
+
+// _find - Performs a binary search of the map to find the specified request
+//   number. Can perform exact searches (when searching for an existing Pair) or
+//   inexact searches (when searching for the insertion point for a new Pair).
+//
+//  - request (IN): For exact searches, the memory allocation request number of
+//      the Pair to find. For inexact searches, the memory allocation request
+//      number of the Pair to be inserted.
+//
+//  - exact (IN): If "true", and exact search is performed. Otherwise an
+//      inexact search is performed.
+//
+//  Return Value:
+//
+//    - For exact searches, returns a pointer to the Pair with the exact
+//      specified request number. If no Pair with the specified request number
+//      was found, returns NULL.
+//
+//    - For inexact searches, returns a pointer to the Pair with the exact
+//      specified request number, if an exact match was found. Otherwise returns
+//      a pointer to the element after which the Pair with the specified request
+//      number should be inserted. The returned pointer will be NULL if the Pair
+//      with the specified request number should be inserted at the head of the
+//      map.
+//
 BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
 {
     unsigned long   count;
@@ -119,61 +186,97 @@ BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
     }
 }
 
-void BlockMap::_free (BlockMap::Pair *pair)
-{
-    pair->next = m_free;
-    m_free = pair;
-}
+////////////////////////////////////////////////////////////////////////////////
+//
+//  BlockMap Public APIs
+//
 
-void BlockMap::_unlink (BlockMap::Pair *pair)
-{
-    if (pair->prev) {
-        pair->prev->next = pair->next;
-    }
-    else {
-        m_maphead = pair->next;
-    }
-
-    if (pair->next) {
-        pair->next->prev = pair->prev;
-    }
-    else {
-        m_maptail = pair->prev;
-    }
-}
-
+// erase - Erases the Pair with the specified allocation request number.
+//
+//  - request (IN): Specifies the request number of the Pair to erase. If no
+//      existing Pair matches this request number, nothing happens.
+//
+//  Return Value:
+//
+//    None.
+//
 void BlockMap::erase (unsigned long request)
 {
-    BlockMap::Pair *pair = _find(request, true);
+    BlockMap::Pair *pair;
 
+    // Search for an exact match. If an exact match is not found, do nothing.
+    pair = _find(request, true);
     if (pair) {
-        _unlink(pair);
+        // An exact match was found. Remove the matching Pair from the map.
+        if (pair->prev) {
+            pair->prev->next = pair->next;
+        }
+        else {
+            m_maphead = pair->next;
+        }
+        if (pair->next) {
+            pair->next->prev = pair->prev;
+        }
+        else {
+            m_maptail = pair->prev;
+        }
+
+        // Reset the removed Pair.
         pair->callstack.clear();
-        _free(pair);
+
+        // Put the removed Pair onto the free list.
+        pair->next = m_free;
+        m_free = pair;
         m_size--;
     }
 }
 
+// find - Searches for and retrieves the CallStack matching the specified
+//   request number.
+//
+//  - request (IN): Specifies the request number of the Pair to search for.
+//
+//  Return Value:
+//
+//    Returns a pointer to the matching CallStack. If no matchin CallStack is
+//    found, returns NULL.
+//
 CallStack* BlockMap::find (unsigned long request)
 {
-    BlockMap::Pair *pair = _find(request, true);
-
+    BlockMap::Pair *pair;
+    
+    // Search for an exact match.
+    pair = _find(request, true);
     if (pair) {
+        // Found an exact match.
         return &pair->callstack;
     }
     else {
+        // No exact match found.
         return NULL;
     }
 }
 
+// insert - Inserts a new Pair into the map. make_pair() should be used to
+//   obtain a pointer to the Pair to be inserted.
+//
+//  - pair (IN): Pointer to the Pair to be inserted. Call make_pair() to obtain
+//      a pointer to a new Pair to be used for this parameter.
+//
+//  Return Value:
+//
+//    None.
+//
 void BlockMap::insert (BlockMap::Pair *pair)
 {
     BlockMap::Pair *insertionpoint;
 
+    // Search for the closest match.
     insertionpoint = _find(pair->request, false);
+
     if (insertionpoint && (insertionpoint->request == pair->request)) {
-        // The request number we are inserting already exists in the map.
-        // Replace the existing pair with the new pair.
+        // Found an exact match. The request number we are inserting already
+        // exists in the map. Replace the existing pair with the new pair.
         if (insertionpoint->prev) {
             insertionpoint->prev->next = pair;
         }
@@ -188,7 +291,10 @@ void BlockMap::insert (BlockMap::Pair *pair)
             m_maptail = pair;
         }
         pair->next = insertionpoint->next;
-        _free(insertionpoint);
+
+        // Put the replaced Pair onto the free list.
+        insertionpoint->next = m_free;
+        m_free = insertionpoint;
         return;
     }
 
@@ -222,15 +328,24 @@ void BlockMap::insert (BlockMap::Pair *pair)
     m_size++;
 }
 
+// make_pair - Obtains a free Pair that can be populated and inserted into the
+//   BlockMap and initializes it with the specified request number.
+//
+//  - request (IN): Request number to use to initialize the new Pair.
+//
+//  Return Value:
+//
+//    Returns a pointer to the new Pair. This pointer can then be used to insert
+//    the Pair into the BlockMap via insert().
+//
 BlockMap::Pair* BlockMap::make_pair (unsigned long request)
 {
     BlockMap::Chunk *chunk;
     unsigned long    index;
     BlockMap::Pair  *pair;
 
-    // Obtain a pair from the free list.
     if (m_free == NULL) {
-        // No more free pairs. Allocate additional storage.
+        // No more free Pairs. Allocate additional storage.
         chunk = new BlockMap::Chunk;
         chunk->next = NULL;
         if (m_storehead) {
@@ -248,9 +363,12 @@ BlockMap::Pair* BlockMap::make_pair (unsigned long request)
         chunk->pairs[index].next = NULL;
         m_free = chunk->pairs;
     }
+
+    // Obtain a Pair from the free list.
     pair = m_free;
     m_free = m_free->next;
 
+    // Initialize the Pair with the supplied request number.
     pair->request = request;
 
     return pair;
@@ -259,9 +377,8 @@ BlockMap::Pair* BlockMap::make_pair (unsigned long request)
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  The CallStack Class
+//  CallStack Construction / Destruction
 //
-////////////////////////////////////////////////////////////////////////////////
 
 // Constructor - Initializes the CallStack with zero capacity. No memory is
 //   allocated until a frame is actually pushed onto the CallStack.
@@ -286,7 +403,7 @@ CallStack::CallStack (const CallStack &source)
     assert(false);
 }
 
-// Destructor - Frees all memory allocated to a CallStack.
+// Destructor - Frees all memory allocated to the CallStack.
 //
 CallStack::~CallStack ()
 {
@@ -298,6 +415,11 @@ CallStack::~CallStack ()
         delete chunk;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  CallStack Public APIs
+//
 
 // operator [] - Random access operator. Retrieves the frame at the specified
 //   index.
