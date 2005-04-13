@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.6 2005/04/12 21:35:19 dmouldin Exp $
+//  $Id: vld.cpp,v 1.7 2005/04/13 04:52:59 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 0.9d)
+//  Visual Leak Detector (Version 0.9e)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -46,7 +46,7 @@
 #define VLDBUILD     // Declares that we are building Visual Leak Detector
 #include "vldutil.h" // Provides utility functions and classes
 
-#define VLD_VERSION "0.9d"
+#define VLD_VERSION "0.9e"
 
 // Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
 typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
@@ -126,8 +126,9 @@ private:
 #pragma init_seg(compiler)
 VisualLeakDetector visualleakdetector;
 
-// Constructor - Installs our allocation hook function so that the C runtime's
-//   debug heap manager will call our hook function for every heap request.
+// Constructor - Dynamically links with the Debug Help Library and installs the
+//   allocation hook function so that the C runtime's debug heap manager will
+//   call the hook function for every heap request.
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
@@ -149,7 +150,7 @@ VisualLeakDetector::VisualLeakDetector ()
     }
 }
 
-// Destructor - Unhooks our hook function and outputs a memory leak report.
+// Destructor - Unhooks the hook function and outputs a memory leak report.
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
@@ -158,7 +159,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     _CRT_ALLOC_HOOK     pprevhook;
 
     if (m_installed) {
-        // Deregister our hook function.
+        // Deregister the hook function.
         pprevhook = _CrtSetAllocHook(m_poldhook);
         if (pprevhook != allochook) {
             // WTF? Somebody replaced our hook before we were done. Put theirs
@@ -455,7 +456,7 @@ void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            strncpy(hexdump + hexindex, "   ", 3);
+            strncpy(hexdump + hexindex, "   ", 4);
             ascdump[ascindex] = '.';
         }
         bytesdone++;
@@ -471,7 +472,7 @@ void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
             }
             if ((bytesdone % 4) == 0) {
                 // Add a spacer in the hex dump after every word.
-                strncpy(hexdump + hexindex + 3, "   ", 3);
+                strncpy(hexdump + hexindex + 3, "   ", 4);
             }
         }
     }
@@ -509,6 +510,9 @@ unsigned long VisualLeakDetector::getprogramcounterintelx86 ()
 //   back as possible. Populates the provided CallStack with one entry for each
 //   stack frame traced. Requires architecture-specific code for retrieving
 //   the current frame pointer and program counter.
+//
+//   By default, all stack frames are traced. But the trace can be limited to
+//   a maximum number of frames via _VLD_maxtraceframes.
 //
 //  - callstack (OUT): Pointer to an empty CallStack to be populated with
 //    entries from the stack trace. Each frame traced will push one entry onto
@@ -651,7 +655,7 @@ bool VisualLeakDetector::linkdebughelplibrary ()
     char      *functionname;
     bool       status = true;
 
-    // Load dbghelp.dll, and obtain pointers to the exported functions.that we
+    // Load dbghelp.dll, and obtain pointers to the exported functions that we
     // will be using.
     dbghelp = LoadLibrary("dbghelp.dll");
     if (dbghelp) {
@@ -712,7 +716,7 @@ getprocaddressfailure:
 // report - Sends a printf-style formatted message to the debugger for display.
 //
 //  - format (IN): Specifies a printf-compliant format string containing the
-//      messages to be sent to the debugger.
+//      message to be sent to the debugger.
 //
 //  - ... (IN): Arguments to be formatted using the specified format string.
 //
