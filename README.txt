@@ -187,9 +187,9 @@ fairly painless.
      the Visual C++ installer and install them. If you are not sure whether you
      installed the CRT sources when you installed Visual C++, check to see if
      dbgint.h exists in the CRT\src subdirectory of your Visual C++ installation
-     directory. If those files are missing, or you don't have a CRT\src
-     directory, then chances are you need to re-install Visual C++ with the CRT
-     sources selected.
+     directory. If that file is missing, or you don't have a CRT\src directory,
+     then chances are you need to re-install Visual C++ with the CRT sources
+     selected.
 
   5) Make sure that your Visual C++ installation's CRT\src subdirectory is
      in the include search path. Refer to step 3 for instructions on how to
