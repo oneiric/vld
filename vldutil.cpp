@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.3 2005/04/12 21:41:28 dmouldin Exp $
+//  $Id: vldutil.cpp,v 1.4 2005/04/13 04:54:29 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 0.9d)
+//  Visual Leak Detector (Version 0.9e)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -24,11 +24,6 @@
 
 #define VLDBUILD     // Declare that we are building Visual Leak Detector
 #include "vldutil.h"
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Utility Functions
-//
 
 // strapp - Appends the specified source string to the specified destination
 //   string. Allocates additional space so that the destination string "grows"
@@ -56,11 +51,6 @@ void strapp (char **dest, char *source)
     strncat(*dest, source, length);
     delete [] temp;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  BlockMap Construction / Destruction
-//
 
 // Constructor - Initializes the BlockMap with an initial size of zero and one
 //   Chunk of capacity.
@@ -107,11 +97,6 @@ BlockMap::~BlockMap ()
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-//  BlockMap Internal Helper Functions
-//
-
 // _find - Performs a binary search of the map to find the specified request
 //   number. Can perform exact searches (when searching for an existing Pair) or
 //   inexact searches (when searching for the insertion point for a new Pair).
@@ -120,8 +105,8 @@ BlockMap::~BlockMap ()
 //      the Pair to find. For inexact searches, the memory allocation request
 //      number of the Pair to be inserted.
 //
-//  - exact (IN): If "true", and exact search is performed. Otherwise an
-//      inexact search is performed.
+//  - exact (IN): If "true", an exact search is performed. Otherwise an inexact
+//      search is performed.
 //
 //  Return Value:
 //
@@ -187,11 +172,6 @@ BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-//  BlockMap Public APIs
-//
-
 // erase - Erases the Pair with the specified allocation request number.
 //
 //  - request (IN): Specifies the request number of the Pair to erase. If no
@@ -228,6 +208,7 @@ void BlockMap::erase (unsigned long request)
         // Put the removed Pair onto the free list.
         pair->next = m_free;
         m_free = pair;
+
         m_size--;
     }
 }
@@ -239,7 +220,7 @@ void BlockMap::erase (unsigned long request)
 //
 //  Return Value:
 //
-//    Returns a pointer to the matching CallStack. If no matchin CallStack is
+//    Returns a pointer to the matching CallStack. If no matching CallStack is
 //    found, returns NULL.
 //
 CallStack* BlockMap::find (unsigned long request)
@@ -374,12 +355,6 @@ BlockMap::Pair* BlockMap::make_pair (unsigned long request)
     return pair;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  CallStack Construction / Destruction
-//
-
 // Constructor - Initializes the CallStack with an initial size of zero and one
 //   Chunk of capacity.
 //
@@ -417,11 +392,6 @@ CallStack::~CallStack ()
         delete temp;
     }
 }
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  CallStack Public APIs
-//
 
 // operator [] - Random access operator. Retrieves the frame at the specified
 //   index.
