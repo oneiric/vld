@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.7 2005/04/13 04:52:59 dmouldin Exp $
+//  $Id: vld.cpp,v 1.8 2005/04/13 06:36:03 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9e)
 //  Copyright (c) 2005 Dan Moulding
@@ -122,8 +122,8 @@ private:
 // "compiler" initialization area, so that it gets constructed during C runtime
 // initialization and before any user global objects are constructed. Also,
 // disable the warning about us using the "compiler" initialization area.
-#pragma warning(disable:4074)
-#pragma init_seg(compiler)
+#pragma warning (disable:4074)
+#pragma init_seg (compiler)
 VisualLeakDetector visualleakdetector;
 
 // Constructor - Dynamically links with the Debug Help Library and installs the
