@@ -76,12 +76,14 @@ To use VLD with your project, follow these simple steps:
      subdirectory.
 
   2) Copy the VLD header (vld.h) file to your Visual C++ installation's
-    "include" subdirectory.
+     "include" subdirectory.
 
   3) In one of your source files -- preferably the one with your program's main
      entry point -- add the line "#include <vld.h>". It's probably best to add
-     this #include before any of the other #includes in your file, but is not
-     absolutely necessary. In most cases, the specific order will not matter.
+     this #include before any of the other #includes in your file (with one
+     important exception), but is not absolutely necessary. In most cases, the
+     specific order will not matter. The one exception is "stdafx.h". If your
+     file includes stdafx.h, then vld.h should be included just after it.
 
   4) Windows 2000 users will also need to copy dbghelp.dll to the directory
      where the executable being debugged resides. This would also apply to users
@@ -98,10 +100,14 @@ within the memory leak report will jump to that line of source in the editor
 window. In this way, you can easily navigate the code that led up to the memory
 allocation that resulted in a memory leak.
 
+When you build release versions of your program, VLD will not be linked into
+the executable. So it is safe to leave the #include <vld.h> in your source file
+when doing release builds.
+
 
 Configuring Visual Leak Detector:
 ---------------------------------
-There are a few OPTIONAL preprocessor macros that you can define to contol
+There are a few optional preprocessor macros that you can define to contol
 the level of detail provided in memory leak reports.
 
   + VLD_MAX_TRACE_FRAMES: By default, Visual Leak Detector will trace back
@@ -129,29 +135,22 @@ the level of detail provided in memory leak reports.
     stacks to be printed. This macro might be useful if you need to debug
     Visual Leak Detector itself or if you want to customize it.
 
-Defining these preprocessor macros is all you need to do to configure VLD with
-C++ programs. But if you are using VLD with a C program, in addition to defining
-these macros, you'll also need to place a call to VLDConfigure() somewhere in
-your program. It's best to place the call to VLDConfigure() as early in your
-program as possible.
-
 
 Caveats:
 --------
 In order to be successful at detecting leaks, VLD's code must run before any of
 the code being debugged. Most often this will happen without a hitch. However,
-there are some rare instances where this might not happen: if any global
-objects in the program have been placed in the "compiler" or "library"
-initialization areas. However, user global objects are never placed in these
-areas by default. They must be manually placed there by using the
-"#pragma init_seg(...)" directive. As long as you are not using this directive
-then VLD will not have any problem running before your code. If you are using it,
-then you should take whatever measures are necessary to ensure that objects
-from the VLD library are constructed before your first global object is
-constructed. If this situation applies to you, but you are not concerned about
-the possibility of memory leaks in your global objects' constructors, then
-it will not be a problem if your global objects are consructed before VLD's
-objects.
+there is one rare instances where this might not happen: if any global objects
+in the program have been placed in the "compiler" initialization area. However,
+user global objects are never placed in this area by default. They must be
+manually placed there by using the "#pragma init_seg(compiler)" directive. As
+long as you are not using this directive then VLD will not have any problem
+running before your code. If you are using it, then you should take whatever
+measures are necessary to ensure that objects from the VLD library are
+constructed before your first global object is constructed. If this situation
+applies to you, but you are not concerned about the possibility of memory leaks
+in your global objects' constructors, then it will not be a problem if your
+global objects are consructed before VLD's objects.
 
 
 Building Visual Leak Detector From Source:
@@ -175,43 +174,56 @@ fairly painless.
        way is to use the copy of dbghelp.dll included with VLD (version 6.3).
        Place the included copy of the DLL in the directory where the executable
        you are debugging resides.
-     * Windows Server 2003... I don't know about. But I'm fairly certain it
-       ships with a newer version of dbghelp.dll, so Windows 2003 users probably
-       don't need to do anything with the DLL.
+     * Windows Server 2003 users also should already have a new enough version
+       of dbghelp.dll in WINDOWS\system32. So, if you're running Windows Server
+       2003, you don't need to do anything with the dbghelp.dll included with
+       VLD.
 
-  2) The Debug Help Library header file (dbghelp.h) won't compile unless you
-     have a recent Platform SDK installed. I recommend installing the Windows XP
-     SP2 Platform SDK. This SDK is compatible with Windows XP, Windows 2000, and
-     Windows Server 2003. If you're debugging an application for Windows Server
-     2003, the Windows Server 2003 Platform SDK will probably work as well, but
-     I haven't tried it myself so I can't guarantee it will work. Both of these
-     SDKs can be downloaded from Platform SDK Update.
+  2) VLD also depends on the Debug Help Library header file (dbghelp.h). This
+     header file won't exist unless you have a recent Platform SDK installed. I
+     recommend installing the Windows XP SP2 Platform SDK. This SDK is
+     compatible with Windows XP, Windows 2000, and Windows Server 2003. If
+     you're debugging an application for Windows Server 2003, the Windows Server
+     2003 Platform SDK will probably work as well, but I haven't tried it myself
+     so I can't guarantee it will work. Both of these SDKs can be downloaded
+     from Platform SDK Update.
 
   3) Once you have the Platform SDK installed, you'll need to make Visual C++
-     aware of where it can find the updated headers and libraries. To do this,
-     add the "include" and "lib" subdirectories from the Platform SDK
-     installation directory to the include and library search paths in Visual
-     C++:
+     aware of where it can find the Debug Help Library header file. To do this,
+     add the "include" subdirectory from the Platform SDK installation directory
+     to the include search path in Visual C++:
      * Visual C++ 7: Go to Project Properties -> C/C++ -> General -> Additional
        Include Directories and add the "include" subdirectory from the Platform
-       SDK. Make sure it's at the top of the list. Do the same for the "lib"
-       subdirectory, but add it to Library Directories instead of Include
-       Directories.
+       SDK. Make sure it's at the top of the list.
      * Visual C++ 6: Go to Tools -> Options -> Directories. Select "Include
        files" from the "Show Directories For" drop-down menu. Add the "include"
        subdirectory from the Platform SDK. Make sure it's at the top of the
-       list. Do the same for the "lib" subdirectory, but add it to the "Library
-       files" list instead of the "Include files" list.
+       list.
 
-  4) VLD also depends on a couple of other header files (dbgint.h and mtdll.h)
-     that will only be installed if you elected to install the CRT source files
-     when you installed Visual C++. If you didn't install the CRT sources,
-     you'll need to re-run the Visual C++ installer and install them. If you are
-     not sure whether you installed the CRT sources when you installed Visual
-     C++, check to see if dbgint.h and mtdll.h exist in the CRT\src subdirectory
-     of your Visual C++ installation. If those files are missing, or you don't
-     have a CRT\src directory, then chances are you need to re-install Visual
-     C++ with the CRT sources selected.
+  4) VLD also depends on one other header file (dbgint.h) that will only be
+     installed if you elected to install the CRT source files when you installed
+     Visual C++. If you didn't install the CRT sources, you'll need to re-run
+     the Visual C++ installer and install them. If you are not sure whether you
+     installed the CRT sources when you installed Visual C++, check to see if
+     dbgint.h exists in the CRT\src subdirectory of your Visual C++ installation
+     directory. If those files are missing, or you don't have a CRT\src
+     directory, then chances are you need to re-install Visual C++ with the CRT
+     sources selected.
+
+  5) Make sure that your Visual C++ installation's CRT\src subdirectory is
+     in the include search path. Refer to step 3 for instructions on how to
+     add directories to the include search path. The CRT\src subdirectory should
+     go after the default include directory. To summarize, your include search
+     path should look like this:
+
+       C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Include
+       C:\Program Files\Microsoft Visual Studio\VCx\Include
+       C:\Program Files\Microsoft Visual Studio\CRT\src
+
+     In the above example, "VCx" would be "VC7" for Visual Studio .NET 2003 or
+     "VC98" for Visual Studio 6.0. Also, the name of your Platform SDK
+     directory might be different from the example depending on which version of
+     the Platform SDK you have installed.
 
 Once you've completed all of the above steps, your build environment should be
 ready. To build VLD, just open the vld.dsp project and do a batch build to
@@ -221,24 +233,25 @@ build all six of the configurations:
     have debugging information so that VLD itself can be conveniently debugged.
 
   * The three release configurations build the library for use in debugging
-    other programs. There are three configurations each: one for each method of
-    linking with the C runtime library (single-threaded, multithreaded, and
-    DLL). When linking the VLD library against a program, the vld.h header file
-    detects how the program is linking to the C runtime library and selects the
-    appropriate VLD library from the three possible choices.
+    other programs.
 
-Note that when VLD is built, it always links against *debug* versions of the C
-runtime libraries -- even the release builds of VLD do. This is a requirement.
-VLD depends on features of the heap that are only present in debug versions of
-the C runtime.
+  * There are three configurations each: one for each method of linking with the
+    C runtime library (single-threaded, multithreaded, and DLL). When linking
+    the VLD library against a program, the vld.h header file detects how the
+    program is linking to the C runtime library and selects the appropriate VLD
+    library from the three possible choices.
 
-  Miscellaneous Notes on Building from Source
-  -------------------------------------------
-  VLD can also be directly linked to your program as a regular object (.obj)
-  file if you want. Just add vld.cpp to an existing project. If your build
-  environment is setup correctly, then vld.obj should effortlessly link with the
-  program. I don't think there's any advantage to doing it this way, versus
-  linking with the library.
+The "release" builds of the VLD libraries are not like typical release builds.
+Despite the "release" name, they are actually meant to be linked only to debug
+builds of your own programs. When doing release builds of your programs, VLD
+will not be linked to them at all. In the context of VLD, "release" simply
+means the versions that are optimized and have the symbols stripped from them
+(to make the libraries smaller). They are the versions of the libraries that
+are included in the release of VLD itself (hence the "release" name). So when
+you are building the release libraries, you're really building the same
+libraries that are included in the main VLD distribution. The "debug" builds of
+VLD are strictly for debugging VLD itself (e.g. if you want to modify it or if
+you need to fix a bug in it).
 
 
 Frequently Asked Questions:
@@ -259,6 +272,15 @@ Q: when running my program with VLD linked to it I get an error message saying,
      (version 6.3) to the directory where the executable you are debugging
      resides. If dbghelp.dll is missing for some reason, you can get it by
      installing Debugging Tools for Windows. I recommend installing version 6.3.
+
+Q: When building VLD from source, I get the fatal error "C1189: #error :  ERROR:
+   Use of C runtime library internal header file." in either the file stdio.h
+   or in the file assert.h (or possibly in some other standard header file).
+
+     Visual C++ is including the wrong copies of the standard headers. Be sure
+     that the CRT\src subdirectory of your Visual C++ installation directory
+     is listed AFTER the default include directory in Visual C++'s include
+     search path.
 
 Q: When building VLD from source, I get Compile Error C1083: "Cannot open
    include file: 'dbgint.h': No such file or directory"
@@ -287,10 +309,10 @@ The Debug Help Library (dbghelp.dll) distributed with this software is not part
 of Visual Leak Detector and is not covered under the terms of the GNU Lesser
 General Public License. It is a separately copyrighted work of Microsoft
 Corporation. Microsoft reserves all its rights to its copyright in the Debug
-Help Library. Neither your use of the Visual Leak Detector software, nor the
-GNU Lesser General Public license grant you any rights to use the Debug Help
-Library in ANY WAY (for example, redistributing it) that would infringe upon
-Microsoft Corporation's copyright in the Debug Help Library.
+Help Library. Neither your use of the Visual Leak Detector software, nor your
+license under the GNU Lesser General Public license grant you any rights to use
+the Debug Help Library in ANY WAY (for example, redistributing it) that would
+infringe upon Microsoft Corporation's copyright in the Debug Help Library.
 
 
 Contacting The author:
