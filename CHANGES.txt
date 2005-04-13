@@ -1,9 +1,33 @@
-Visual Leak Detector (VLD) Version 0.9d
+Visual Leak Detector (VLD) Version 0.9e
 
   Change Log / Release Notes
 
 New Features/Changes:
 ---------------------
+
+  Changes in Version 0.9e (12 April 2005)
+  ---------------------------------------
+  + VLD no longer uses any STL containers or STL strings. In addition to solving
+    compatibility bugs with Visual Studio .NET 2003, this change increases
+    the performance of VLD by a fair margin. Overall, VLD is now nearly twice
+    as fast as the previous release. Additionally, the library files are now
+    about one third of the size that they previously were.
+
+  + The configuration preprocessor macros now work with C programs without the
+    need to call VLDConfigure from within the program being debugged.
+    Because VLDConfigure is now obsolete, it has been removed.
+
+  + One new source file (vldutil.cpp) and one new header (vldutil.h) have been
+    added. They contain utility functions and utility classes that replace
+    functionality previously performed by STL containers and strings.
+
+  + The VisualLeakDetector global class object is now constructed at C runtime
+    initialization (i.e. it resides in the "compiler" initialization area).
+    Because VLD no longer uses any STL components, there is no longer the risk
+    that VLD will conflict with any STL libraries that also are constructed at
+    C runtime initialization. The end result is that VLD starts running earlier
+    and is destroyed later, which leads to more accurate leak detection.
+
 
   Changes in Version 0.9d (30 March 2005)
   ---------------------------------------
@@ -24,8 +48,25 @@ New Features/Changes:
 Bug Fixes:
 ----------
 
-  Problems Fixed in Verson 0.9c (17 March 2005)
-  ---------------------------------------------
+  Problems Fixed in Version 0.9e (12 April 2005)
+  ----------------------------------------------
+  + Linking to the VLD 0.9d libraries from the VLD distribution under Visual
+    Studio .NET 2003 results in a number of linker "unresolved external symbol"
+    errors. Unresolved symbols include "__declspec(dllimport) void __cdecl
+    std::_Xran(void)" and "__declspec(dllimport) private: void __thiscall
+    std::basic_string,class std::allocator >::_Eos(unsigned int)", among others.
+
+  + Call stacks do not appear in the memory leak report when linking against
+    release VLD libraries built from source with Visual Studio .NET 2003.
+
+  + If the preprocessor macro VLD_MAX_DATA_DUMP is defined as 0 (zero), then VLD
+    will get stuck in an infinite loop, repeatedly printing the same information
+    while attempting to display the memory leak report in the debugger's output
+    window.
+
+
+  Problems Fixed in Version 0.9c (17 March 2005)
+  ----------------------------------------------
   + Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
     occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
     preprocessor macro defined.
