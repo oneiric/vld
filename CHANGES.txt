@@ -1,9 +1,16 @@
-Visual Leak Detector (VLD) Version 0.9e
+Visual Leak Detector (VLD) Version 0.9f
 
   Change Log / Release Notes
 
 New Features/Changes:
 ---------------------
+
+  Changes in Version 0.9f (13 April 2005)
+  ---------------------------------------
+  + Changed the internal search algorithm to a temporary simpler, but
+    more stable algorithm. A permanent algorithm which should be much
+    more efficient will be in a forthcoming release.
+
 
   Changes in Version 0.9e (12 April 2005)
   ---------------------------------------
@@ -47,6 +54,12 @@ New Features/Changes:
 
 Bug Fixes:
 ----------
+
+  Problems Fixed in Version 0.9f (13 April 2005)
+  ----------------------------------------------
+  + Access Violation at line 319 in vldutil.cpp may occur when running a
+    program linked with the VLD library.
+
 
   Problems Fixed in Version 0.9e (12 April 2005)
   ----------------------------------------------
