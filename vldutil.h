@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.4 2005/04/13 04:55:11 dmouldin Exp $
+//  $Id: vldutil.h,v 1.5 2005/04/17 13:29:39 db Exp $
 //
-//  Visual Leak Detector (Version 0.9e)
+//  Visual Leak Detector (Version 0.9f)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -194,11 +194,9 @@ private:
 //
 //  A BlockMap is made of a number of "Chunks" which are arranged in a linked
 //  list. Each Chunk contains an array of smaller linked list elements called
-//  "Pairs". The Pairs are linked in sorted order according to each Pair's
-//  index value, which is a memory block allocation request number. Links
-//  between Pairs can cross Chunk boundaries. In this way, the linked list
-//  of Pairs grows dynamically, but also has "reserved" space which reduces the
-//  number of heap allocations performed.
+//  "Pairs". Links between Pairs can cross Chunk boundaries. In this way, the
+//  linked list of Pairs grows dynamically, but also has "reserved" space which
+//  reduces the number of heap allocations performed.
 //
 //  Each pair contains a request number (the index or "key" value) and a
 //  CallStack. Whenever a Pair is removed from the linked list, memory allocated
@@ -262,7 +260,7 @@ private:
     };
 
     // Private Helper Functions - see each function definition for details.
-    inline BlockMap::Pair* _find (unsigned long request, bool exact);
+    inline BlockMap::Pair* _find (unsigned long request);
 
     // Private Data
     BlockMap::Pair  *m_free;      // Pointer to the head of the free list

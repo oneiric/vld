@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.4 2005/04/13 04:54:29 dmouldin Exp $
+//  $Id: vldutil.cpp,v 1.5 2005/04/17 13:29:15 db Exp $
 //
-//  Visual Leak Detector (Version 0.9e)
+//  Visual Leak Detector (Version 0.9f)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -97,79 +97,33 @@ BlockMap::~BlockMap ()
     }
 }
 
-// _find - Performs a binary search of the map to find the specified request
-//   number. Can perform exact searches (when searching for an existing Pair) or
-//   inexact searches (when searching for the insertion point for a new Pair).
+// XXX This really needs to be replaced by a better search algorithm. A
+// XXX balanced binary tree (e.g. a red-black tree) would probably be best
+// XXX suited to the task.
 //
-//  - request (IN): For exact searches, the memory allocation request number of
-//      the Pair to find. For inexact searches, the memory allocation request
-//      number of the Pair to be inserted.
+// _find - Performs a linear search of the map to find the specified request
+//   number.
 //
-//  - exact (IN): If "true", an exact search is performed. Otherwise an inexact
-//      search is performed.
+//  - request (IN): Specifies the memory allocation request number of the Pair
+//      to find.
 //
 //  Return Value:
 //
-//    - For exact searches, returns a pointer to the Pair with the exact
-//      specified request number. If no Pair with the specified request number
-//      was found, returns NULL.
+//    Returns a pointer to the Pair with the specified request number. If no
+//    matching Pair is found, returns NULL.
 //
-//    - For inexact searches, returns a pointer to the Pair with the exact
-//      specified request number, if an exact match was found. Otherwise returns
-//      a pointer to the element after which the Pair with the specified request
-//      number should be inserted. The returned pointer will be NULL if the Pair
-//      with the specified request number should be inserted at the head of the
-//      map.
-//
-BlockMap::Pair* BlockMap::_find (unsigned long request, bool exact)
+BlockMap::Pair* BlockMap::_find (unsigned long request)
 {
-    long            count;
-    BlockMap::Pair *high = m_maptail;
-    long            highindex = m_size - 1;
-    BlockMap::Pair *low = m_maphead;
-    long            lowindex = 0;
-    BlockMap::Pair *mid;
-    long            midcount;
-    long            midindex;
+    BlockMap::Pair *cur = m_maphead;
 
-    while (lowindex < highindex) {
-        // Advance mid to the middle of the linked list.
-        mid = low;
-        midindex = lowindex + ((highindex - lowindex) / 2);
-        midcount = midindex - lowindex;
-        for (count = 0; count < midcount; count++) {
-            mid = mid->next;
+    while (cur) {
+        if (cur->request == request) {
+            return cur;
         }
+        cur = cur->next;
+    }
 
-        // Divide and conquer.
-        if (mid->request > request) {
-            // Eliminate upper half.
-            high = mid->prev;
-            highindex = midindex - 1;
-        }
-        else if (mid->request < request) {
-            // Eliminate lower half.
-            low = mid->next;
-            lowindex = midindex + 1;
-        }
-        else {
-            // Found an exact match.
-            return mid;
-        }
-    }
-    
-    if (low && (low->request == request)) {
-        // Found an exact match.
-        return low;
-    }
-    else {
-        if (exact) {
-            // The request number we're looking for is not in the list.
-            return NULL;
-        }
-        // Insert after the nearest existing lower request number.
-        return low;
-    }
+    return NULL;
 }
 
 // erase - Erases the Pair with the specified allocation request number.
@@ -186,7 +140,7 @@ void BlockMap::erase (unsigned long request)
     BlockMap::Pair *pair;
 
     // Search for an exact match. If an exact match is not found, do nothing.
-    pair = _find(request, true);
+    pair = _find(request);
     if (pair) {
         // An exact match was found. Remove the matching Pair from the map.
         if (pair->prev) {
@@ -228,7 +182,7 @@ CallStack* BlockMap::find (unsigned long request)
     BlockMap::Pair *pair;
     
     // Search for an exact match.
-    pair = _find(request, true);
+    pair = _find(request);
     if (pair) {
         // Found an exact match.
         return &pair->callstack;
@@ -239,6 +193,10 @@ CallStack* BlockMap::find (unsigned long request)
     }
 }
 
+// XXX This really needs to be replaced by a sorted-insertion algorithm. A
+// XXX balanced binary tree (e.g. a red-black tree) would probably be best
+// XXX suited to the task.
+//
 // insert - Inserts a new Pair into the map. make_pair() should be used to
 //   obtain a pointer to the Pair to be inserted.
 //
@@ -251,66 +209,17 @@ CallStack* BlockMap::find (unsigned long request)
 //
 void BlockMap::insert (BlockMap::Pair *pair)
 {
-    BlockMap::Pair *insertionpoint;
-
-    // Insertions are almost always going to go onto the tail of the map, so 
-    // optimize for that particular case.
-    if (m_maptail && (pair->request > m_maptail->request)) {
-        // Insert at the tail.
-        pair->next = NULL;
-        pair->prev = m_maptail;
+    // Insert at the end of the map.
+    if (m_maptail) {
         m_maptail->next = pair;
-        m_maptail = pair;
     }
     else {
-        // Search for the closest match.
-        insertionpoint = _find(pair->request, false);
-
-        // Insert or replace at the indicated position.
-        if (insertionpoint && (insertionpoint->request == pair->request)) {
-            // Found an exact match. The request number we are inserting already
-            // exists in the map. Replace the existing pair with the new pair.
-            if (insertionpoint->prev) {
-                insertionpoint->prev->next = pair;
-            }
-            else {
-                m_maphead = pair;
-            }
-            pair->prev = insertionpoint->prev;
-            if (insertionpoint->next) {
-                insertionpoint->next->prev = pair;
-            }
-            else {
-                m_maptail = pair;
-            }
-            pair->next = insertionpoint->next;
-
-            // Put the replaced Pair onto the free list.
-            insertionpoint->next = m_free;
-            m_free = insertionpoint;
-            return;
-        }
-        if (insertionpoint == NULL) {
-            // Insert at the beginning of the map.
-            if (m_maphead) {
-                m_maphead->prev = pair;
-            }
-            else {
-                // Inserting into an empty list. Initialize the tail.
-                m_maptail = pair;
-            }
-            pair->next = m_maphead;
-            pair->prev = NULL;
-            m_maphead = pair;
-        }
-        else {
-            // Inserting somewhere in the middle.
-            pair->next = insertionpoint->next;
-            pair->prev = insertionpoint;
-            insertionpoint->next->prev = pair;
-            insertionpoint->next = pair;
-        }
+        m_maphead = pair;
     }
+    pair->prev = m_maptail;
+    pair->next = NULL;
+    m_maptail = pair;
+
     m_size++;
 }
 
