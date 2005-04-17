@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.8 2005/04/13 06:36:03 dmouldin Exp $
+//  $Id: vld.cpp,v 1.9 2005/04/17 13:26:58 db Exp $
 //
-//  Visual Leak Detector (Version 0.9e)
+//  Visual Leak Detector (Version 0.9f)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -46,7 +46,7 @@
 #define VLDBUILD     // Declares that we are building Visual Leak Detector
 #include "vldutil.h" // Provides utility functions and classes
 
-#define VLD_VERSION "0.9e"
+#define VLD_VERSION "0.9f"
 
 // Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
 typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
