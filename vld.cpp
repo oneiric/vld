@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.9 2005/04/17 13:26:58 db Exp $
+//  $Id: vld.cpp,v 1.10 2005/04/22 03:33:03 db Exp $
 //
-//  Visual Leak Detector (Version 0.9f)
+//  Visual Leak Detector (Version 0.9g)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -603,10 +603,10 @@ void VisualLeakDetector::hookfree (void *pdata)
 //
 void VisualLeakDetector::hookmalloc (long request)
 {
-    BlockMap::Pair *pair = m_mallocmap->make_pair(request);
+    CallStack *callstack;
 
-    getstacktrace(pair->getcallstack());
-    m_mallocmap->insert(pair);
+    callstack = m_mallocmap->insert(request);
+    getstacktrace(callstack);
 }
 
 // hookrealloc - Called by the allocation hook function in response to
