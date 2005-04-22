@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.5 2005/04/17 13:29:15 db Exp $
+//  $Id: vldutil.cpp,v 1.6 2005/04/22 03:35:03 db Exp $
 //
-//  Visual Leak Detector (Version 0.9f)
+//  Visual Leak Detector (Version 0.9g)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -59,18 +59,26 @@ BlockMap::BlockMap ()
 {
     unsigned long index;
 
-    m_maphead        = NULL;
-    m_maptail        = NULL;
-    m_size           = 0;
-    m_storehead.next = NULL;
-    m_storetail      = &m_storehead;
+    m_max        = &m_nil;
+    m_nil.color  = black;
+    m_nil.data   = NULL;
+    m_nil.key    = 0;
+    m_nil.left   = &m_nil;
+    m_nil.parent = NULL;
+    m_nil.right  = &m_nil;
+    m_root       = &m_nil;
+    m_store.next = NULL;
+    m_storetail  = &m_store;
 
-    // Link together the initial free list.
+    // Link together the initial free lists.
     for (index = 0; index < BLOCKMAPCHUNKSIZE - 1; index++) {
-        m_storehead.pairs[index].next = &m_storehead.pairs[index + 1];
+        m_store.nodes[index].parent = &m_store.nodes[index + 1];
+        m_store.stacks[index].next = &m_store.stacks[index + 1];
     }
-    m_storehead.pairs[index].next = NULL;
-    m_free = m_storehead.pairs;
+    m_store.nodes[index].parent = NULL;
+    m_store.stacks[index].next = NULL;
+    m_freenodes = m_store.nodes;
+    m_freestacks = m_store.stacks;
 }
 
 // Copy Constructor - For efficiency, we want to avoid ever making copies of
@@ -86,10 +94,9 @@ BlockMap::BlockMap (const BlockMap &source)
 // Destructor - Frees all memory allocated to the BlockMap.
 BlockMap::~BlockMap ()
 {
-    BlockMap::Chunk *chunk;
+    BlockMap::Chunk *chunk = m_store.next;
     BlockMap::Chunk *temp;
 
-    chunk = m_storehead.next;
     while (chunk) {
         temp = chunk;
         chunk = chunk->next;
@@ -97,39 +104,87 @@ BlockMap::~BlockMap ()
     }
 }
 
-// XXX This really needs to be replaced by a better search algorithm. A
-// XXX balanced binary tree (e.g. a red-black tree) would probably be best
-// XXX suited to the task.
+// _rotateleft: Rotates a pair of nodes counter-clockwise so that the parent
+//   node becomes the left child and the right child becomes the parent.
 //
-// _find - Performs a linear search of the map to find the specified request
-//   number.
-//
-//  - request (IN): Specifies the memory allocation request number of the Pair
-//      to find.
+//  - node (IN): Pointer to the node to rotate about (the parent of the pair).
 //
 //  Return Value:
 //
-//    Returns a pointer to the Pair with the specified request number. If no
-//    matching Pair is found, returns NULL.
+//    None.
 //
-BlockMap::Pair* BlockMap::_find (unsigned long request)
+void BlockMap::_rotateleft (BlockMap::Node *node)
 {
-    BlockMap::Pair *cur = m_maphead;
+    BlockMap::Node *child = node->right;
 
-    while (cur) {
-        if (cur->request == request) {
-            return cur;
-        }
-        cur = cur->next;
+    // Reassign the child's left subtree to the parent.
+    node->right = child->left;
+    if (child->left != &m_nil) {
+        child->left->parent = node;
     }
 
-    return NULL;
+    // Reassign the child/parent relationship.
+    child->parent = node->parent;
+    if (node->parent == &m_nil) {
+        // The child becomes the new root node.
+        m_root = child;
+    }
+    else {
+        // Point the grandparent at the child.
+        if (node == node->parent->left) {
+            node->parent->left = child;
+        }
+        else {
+            node->parent->right = child;
+        }
+    }
+    child->left = node;
+    node->parent = child;
 }
 
-// erase - Erases the Pair with the specified allocation request number.
+// _rotateright - Rotates a pair of nodes clockwise so that the parent node
+//   becomes the right child and the left child becomes the parent.
 //
-//  - request (IN): Specifies the request number of the Pair to erase. If no
-//      existing Pair matches this request number, nothing happens.
+//  - node (IN): Pointer to the node to rotate about (the parent of the pair).
+//
+//  Return Value:
+//
+//    None.
+//
+void BlockMap::_rotateright (BlockMap::Node *node)
+{
+    BlockMap::Node *child = node->left;
+
+    // Reassign the child's right subtree to the parent.
+    node->left = child->right;
+    if (child->right != &m_nil) {
+        child->right->parent = node;
+    }
+
+    // Reassign the child/parent relationship.
+    child->parent = node->parent;
+    if (node->parent == &m_nil) {
+        // The child becomes the new root node.
+        m_root = child;
+    }
+    else {
+        // Point the grandparent at the child.
+        if (node == node->parent->left) {
+            node->parent->left = child;
+        }
+        else {
+            node->parent->right = child;
+        }
+    }
+    child->right = node;
+    node->parent = child;
+}
+
+// erase - Erases the block with the specified allocation request number from
+//   block map.
+//
+//  - request (IN): The memory block allocation request number of the block to
+//      erase from the map.
 //
 //  Return Value:
 //
@@ -137,132 +192,350 @@ BlockMap::Pair* BlockMap::_find (unsigned long request)
 //
 void BlockMap::erase (unsigned long request)
 {
-    BlockMap::Pair *pair;
+    BlockMap::Node      *child;
+    BlockMap::Node      *cur;
+    BlockMap::Node      *erasure;
+    BlockMap::Node      *node = m_root;
+    BlockMap::Node      *sibling;
+    BlockMap::StackLink *stacklink;
 
-    // Search for an exact match. If an exact match is not found, do nothing.
-    pair = _find(request);
-    if (pair) {
-        // An exact match was found. Remove the matching Pair from the map.
-        if (pair->prev) {
-            pair->prev->next = pair->next;
+    // Find the node to delete.
+    while (node != &m_nil) {
+        if (node->key == request) {
+            break;
+        }
+        else if (node->key > request) {
+            // Go left.
+            node = node->left;
         }
         else {
-            m_maphead = pair->next;
+            // Go right.
+            node = node->right;
         }
-        if (pair->next) {
-            pair->next->prev = pair->prev;
-        }
-        else {
-            m_maptail = pair->prev;
-        }
-
-        // Reset the removed Pair.
-        pair->callstack.clear();
-
-        // Put the removed Pair onto the free list.
-        pair->next = m_free;
-        m_free = pair;
-
-        m_size--;
     }
-}
+    if (node == &m_nil) {
+        // Node not found. Do nothing.
+        return;
+    }
 
-// find - Searches for and retrieves the CallStack matching the specified
-//   request number.
-//
-//  - request (IN): Specifies the request number of the Pair to search for.
-//
-//  Return Value:
-//
-//    Returns a pointer to the matching CallStack. If no matching CallStack is
-//    found, returns NULL.
-//
-CallStack* BlockMap::find (unsigned long request)
-{
-    BlockMap::Pair *pair;
-    
-    // Search for an exact match.
-    pair = _find(request);
-    if (pair) {
-        // Found an exact match.
-        return &pair->callstack;
+    if ((node->left == &m_nil) || (node->right == &m_nil)) {
+        // The node to be erased has less than two children. It can be directly
+        // deleted from the tree.
+        erasure = node;
     }
     else {
-        // No exact match found.
-        return NULL;
+        // The to be erased has two children. It can only be deleted indirectly.
+        // The actual node will stay where it is, but it's contents will be
+        // replaced by it's in-order successor's contents. The successro node
+        // will then be deleted. Find the successor.
+        erasure = node->right;
+        while (erasure->left != &m_nil) {
+            erasure = erasure->left;
+        }
     }
+
+    // Select the child node which will replace the node to be deleted.
+    if (erasure->left != &m_nil) {
+        child = erasure->left;
+    }
+    else {
+        child = erasure->right;
+    }
+
+    // Replace the node to be deleted with the selected child.
+    child->parent = erasure->parent;
+    if (child->parent == &m_nil) {
+        // The root of the tree is being deleted. The child becomes root.
+        m_root = child;
+    }
+    else {
+        if (erasure == erasure->parent->left) {
+            erasure->parent->left = child;
+        }
+        else {
+            erasure->parent->right = child;
+        }
+    }
+
+    if (erasure != node) {
+        // The node being deleted from the tree is the successor of the actual
+        // node to be erased. Replace the contents of the node to be erased
+        // with the successor's contents.
+        stacklink = node->data;
+
+        node->data = erasure->data;
+        node->key  = erasure->key;
+    }
+    else {
+        stacklink = erasure->data;
+        if (node == m_max) {
+            m_max = node->parent;
+        }
+    }
+
+    if (erasure->color == black) {
+        // The node being deleted from the tree is black. Restructuring of the
+        // tree may be needed so that black-height is maintained.
+        cur = child;
+        while ((cur != m_root) && (cur->color == black)) {
+            if (cur == cur->parent->left) {
+                // Current node is a left child.
+                sibling = cur->parent->right;
+                if (sibling->color == red) {
+                    // Sibling is red. Rotate sibling up and color it black.
+                    sibling->color = black;
+                    cur->parent->color = red;
+                    _rotateleft(cur->parent);
+                    sibling = cur->parent->right;
+                }
+                if ((sibling->left->color == black) && (sibling->right->color == black)) {
+                    // Both of sibling's children are black. Color sibling red.
+                    sibling->color = red;
+                    cur = cur->parent;
+                }
+                else {
+                    // At least one of sibling's children is red.
+                    if (sibling->right->color == black) {
+                        sibling->left->color = black;
+                        sibling->color = red;
+                        _rotateright(sibling);
+                        sibling = cur->parent->right;
+                    }
+                    sibling->color = cur->parent->color;
+                    cur->parent->color = black;
+                    sibling->right->color = black;
+                    _rotateleft(cur->parent);
+                    cur = m_root;
+                }
+            }
+            else {
+                // Current node is a right child.
+                sibling = cur->parent->left;
+                if (sibling->color == red) {
+                    // Sibling is red. Rotate sibling up and color it black.
+                    sibling->color = black;
+                    cur->parent->color = red;
+                    _rotateright(cur->parent);
+                    sibling = cur->parent->left;
+                }
+                if ((sibling->left->color == black) && (sibling->right->color == black)) {
+                    // Both of sibling's children are black. Color sibling red.
+                    sibling->color = red;
+                    cur = cur->parent;
+                }
+                else {
+                    // At least one of sibling's children is red.
+                    if (sibling->left->color == black) {
+                        sibling->right->color = black;
+                        sibling->color = red;
+                        _rotateleft(sibling);
+                        sibling = cur->parent->left;
+                    }
+                    sibling->color = cur->parent->color;
+                    cur->parent->color = black;
+                    sibling->left->color = black;
+                    _rotateright(cur->parent);
+                    cur = m_root;
+                }
+            }
+        }
+        cur->color = black;
+    }
+
+    // Put the node deleted from the tree onto the free list.
+    erasure->parent = m_freenodes;
+    m_freenodes = erasure;
+
+    // Put the deleted stack onto the free list.
+    stacklink->stack.clear();
+    stacklink->next = m_freestacks;
+    m_freestacks = stacklink;
 }
 
-// XXX This really needs to be replaced by a sorted-insertion algorithm. A
-// XXX balanced binary tree (e.g. a red-black tree) would probably be best
-// XXX suited to the task.
+// find - Retrieves the CallStack associated with the specified allocation 
+//   request number.
 //
-// insert - Inserts a new Pair into the map. make_pair() should be used to
-//   obtain a pointer to the Pair to be inserted.
-//
-//  - pair (IN): Pointer to the Pair to be inserted. Call make_pair() to obtain
-//      a pointer to a new Pair to be used for this parameter.
+//  - request (IN): Memory block allocation request number of the specific block
+//      for which the CallStack should be retrieved.
 //
 //  Return Value:
 //
 //    None.
 //
-void BlockMap::insert (BlockMap::Pair *pair)
+CallStack* BlockMap::find (unsigned long request)
 {
-    // Insert at the end of the map.
-    if (m_maptail) {
-        m_maptail->next = pair;
-    }
-    else {
-        m_maphead = pair;
-    }
-    pair->prev = m_maptail;
-    pair->next = NULL;
-    m_maptail = pair;
+    BlockMap::Node *cur = m_root;
 
-    m_size++;
+    while (cur != &m_nil) {
+        if (cur->key == request) {
+            // Found a match.
+            return &cur->data->stack;
+        }
+        else if (cur->key > request) {
+            // Go left.
+            cur = cur->left;
+        }
+        else {
+            // Go right.
+            cur = cur->right;
+        }
+    }
+
+    // Node not found.
+    return NULL;
 }
 
-// make_pair - Obtains a free Pair that can be populated and inserted into the
-//   BlockMap and initializes it with the specified request number.
+// insert - Inserts an allocation request number into the map. Once the request
+//   number has been inserted, the returned CallStack pointer can be used to
+//   access the CallStack associated with that request number.
 //
-//  - request (IN): Request number to use to initialize the new Pair.
+//  - request (IN): Memory block allocation request number to be inserted into
+//      the map.
 //
 //  Return Value:
 //
-//    Returns a pointer to the new Pair. This pointer can then be used to insert
-//    the Pair into the BlockMap via insert().
+//    Returns a pointer to the CallStack associated with the allocation request
+//    number inserted into the map. This pointer can be used to populate the
+//    CallStack which will initially be empty.
 //
-BlockMap::Pair* BlockMap::make_pair (unsigned long request)
+CallStack* BlockMap::insert (unsigned long request)
 {
-    BlockMap::Chunk *chunk;
-    unsigned long    index;
-    BlockMap::Pair  *pair;
+    BlockMap::Chunk     *chunk;
+    BlockMap::Node      *cur;
+    unsigned long        index;
+    BlockMap::Node      *node;
+    BlockMap::Node      *parent;
+    BlockMap::StackLink *stacklink;
+    BlockMap::Node      *uncle;
 
-    if (m_free == NULL) {
-        // No more free Pairs. Allocate additional storage.
-        chunk = new BlockMap::Chunk;
-        chunk->next = NULL;
-        m_storetail->next = chunk;
-        m_storetail = chunk;
-
-        // Link the newly allocated storage to the free list.
-        for (index = 0; index < BLOCKMAPCHUNKSIZE - 1; index++) {
-            chunk->pairs[index].next = &chunk->pairs[index + 1];
+    // Find the location where the new node should be inserted. Because memory
+    // block allocation request numbers always increase, new nodes will almost
+    // always go to the far right of the tree. To squeeze out a bit of extra
+    // efficiency, first compare with the maximum node.
+    if (request > m_max->key) {
+        parent = m_max;
+    }
+    else {
+        parent = &m_nil;
+        cur = m_root;
+        while (cur != &m_nil) {
+            parent = cur;
+            if (cur->key == request) {
+                // Overwrite the existing CallStack.
+                cur->data->stack.clear();
+                return &cur->data->stack;
+            }
+            else if (cur->key > request) {
+                // Go left.
+                cur = cur->left;
+            }
+            else {
+                // Go right.
+                cur = cur->right;
+            }
         }
-        chunk->pairs[index].next = NULL;
-        m_free = chunk->pairs;
     }
 
-    // Obtain a Pair from the free list.
-    pair = m_free;
-    m_free = m_free->next;
+    // Obtain a new node and new stack from the free list.
+    if ((m_freenodes == NULL) || (m_freestacks == NULL)) {
+        // Allocate additional storage.
+        chunk = new BlockMap::Chunk;
+        chunk->next = NULL;
+        for (index = 0; index < BLOCKMAPCHUNKSIZE - 1; index++) {
+            chunk->nodes[index].parent = &chunk->nodes[index + 1];
+            chunk->stacks[index].next = &chunk->stacks[index + 1];
+        }
+        chunk->nodes[index].parent = NULL;
+        chunk->stacks[index].next = NULL;
+        m_freenodes = chunk->nodes;
+        m_freestacks = chunk->stacks;
+        m_storetail->next = chunk;
+        m_storetail = chunk;
+    }
+    node = m_freenodes;
+    stacklink = m_freestacks;
+    m_freenodes = m_freenodes->parent;
+    m_freestacks = m_freestacks->next;
 
-    // Initialize the Pair with the supplied request number.
-    pair->request = request;
+    // Initialize the new node and insert it.
+    node->color  = red;
+    node->data   = stacklink;
+    node->key    = request;
+    node->left   = &m_nil;
+    node->parent = parent;
+    node->right  = &m_nil;
+    if (parent == &m_nil) {
+        // The tree is empty. The new node becomes root.
+        m_root = node;
+    }
+    else {
+        if (parent->key > request) {
+            // New node is a left child.
+            parent->left = node;
+        }
+        else {
+            // New node is a right child.
+            parent->right = node;
+        }
+    }
+    if (node->key > m_max->key) {
+        m_max = node;
+    }
 
-    return pair;
+    // Rebalance and/or adjust the tree, if necessary.
+    cur = node;
+    while (cur->parent->color == red) {
+        // Double-red violation. Rebalancing/adjustment needed.
+        if (cur->parent == cur->parent->parent->left) {
+            // Parent is the left child. Uncle is the right child.
+            uncle = cur->parent->parent->right;
+            if (uncle->color == red) {
+                // Uncle is red. Recolor.
+                cur->parent->parent->color = red;
+                cur->parent->color = black;
+                uncle->color = black;
+                cur = cur->parent->parent;
+            }
+            else {
+                // Uncle is black. Restructure.
+                if (cur == cur->parent->right) {
+                    cur = cur->parent;
+                    _rotateleft(cur);
+                }
+                cur->parent->color = black;
+                cur->parent->parent->color = red;
+                _rotateright(cur->parent->parent);
+            }
+        }
+        else {
+            // Parent is the right child. Uncle is the left child.
+            uncle = cur->parent->parent->left;
+            if (uncle->color == red) {
+                // Uncle is red. Recolor.
+                cur->parent->parent->color = red;
+                cur->parent->color = black;
+                uncle->color = black;
+                cur = cur->parent->parent;
+            }
+            else {
+                // Uncle is black. Restructure.
+                if (cur == cur->parent->left) {
+                    cur = cur->parent;
+                    _rotateright(cur);
+                }
+                cur->parent->color = black;
+                cur->parent->parent->color = red;
+                _rotateleft(cur->parent->parent);
+            }
+        }
+    }
+
+    // The root node is always colored black.
+    m_root->color = black;
+
+    return &node->data->stack;
 }
+
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
 //   Chunk of capacity.
@@ -291,10 +564,9 @@ CallStack::CallStack (const CallStack &source)
 //
 CallStack::~CallStack ()
 {
-    CallStack::Chunk *chunk;
+    CallStack::Chunk *chunk = m_store.next;
     CallStack::Chunk *temp;
 
-    chunk = m_store.next;
     while (chunk) {
         temp = chunk;
         chunk = temp->next;
