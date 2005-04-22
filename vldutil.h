@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.5 2005/04/17 13:29:39 db Exp $
+//  $Id: vldutil.h,v 1.6 2005/04/22 03:35:51 db Exp $
 //
-//  Visual Leak Detector (Version 0.9f)
+//  Visual Leak Detector (Version 0.9g)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -166,10 +166,10 @@ public:
 private:
     // The chunk list is made of a linked list of Chunks.
     class Chunk {
+    private:
         Chunk () {}
         Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
 
-    private:
         Chunk   *next;
         DWORD64  frames [CALLSTACKCHUNKSIZE];
 
@@ -192,49 +192,22 @@ private:
 //  This data structure is similar in concept to a STL map, but is specifically
 //  tailored for use by VLD, making it more efficient than a standard STL map.
 //
-//  A BlockMap is made of a number of "Chunks" which are arranged in a linked
-//  list. Each Chunk contains an array of smaller linked list elements called
-//  "Pairs". Links between Pairs can cross Chunk boundaries. In this way, the
-//  linked list of Pairs grows dynamically, but also has "reserved" space which
-//  reduces the number of heap allocations performed.
+//  The purpose of the BlockMap is to map allocated memory blocks (via their
+//  unique allocation request numbers) to the call stacks that allocated them.
+//  One of the primary concerns of the BlockMap is to be able to quickly insert
+//  search and delete. For this reaseon, the underlying data structure is
+//  a red-black tree (a type of balanced binary tree).
 //
-//  Each pair contains a request number (the index or "key" value) and a
-//  CallStack. Whenever a Pair is removed from the linked list, memory allocated
-//  to the Pair's CallStack is not actually freed. Instead the CallStack's data
-//  is simply reset and the Pair is placed on the BlockMap's "free" list. Then
-//  if a new Pair is needed, before resorting to allocating a new Pair from the
-//  heap, existing Pairs (with some reserved CallStack space already available
-//  within them) are obtained from the free list. This cuts down on the number
-//  of heap allocations performed when inserting into the BlockMap. In fact, for
-//  most applications, new heap allocations internal to VLD should eventually
-//  taper off to nothing as the application's memory usage peaks, even if the
-//  application continues to free and reallocate memory from the heap.
+//  The red-black tree is overlayed on top of larger "chunks" of pre-allocated
+//  storage. These chunks make it possible for the map to have reserve capacity
+//  allowing it to grow dynamically without incurring a heap hit each time a
+//  new element is added to the map.
 //
 class BlockMap
 {
-private:
-    class Chunk;
+    enum color_e { black, red };
 
 public:
-    // The map is made of a linked list of Pairs.
-    class Pair {
-    public:
-        Pair (const Pair &source) { assert(false); } // Do not make copies of Pairs!
-
-        CallStack* getcallstack () { return &callstack; }
-
-    private:
-        Pair () {} // No public constructor - use make_pair().
-
-        Pair          *next;
-        Pair          *prev;
-        CallStack      callstack;
-        unsigned long  request;
-
-        friend class BlockMap;
-        friend class Chunk;
-    };
-
     BlockMap ();
     BlockMap (const BlockMap &source);
     ~BlockMap ();
@@ -242,33 +215,62 @@ public:
     // Public APIs - see each function definition for details.
     void erase (unsigned long request);
     CallStack* find (unsigned long request);
-    void insert (BlockMap::Pair *pair);
-    BlockMap::Pair* make_pair (unsigned long request);
+    CallStack* insert (unsigned long request);
 
 private:
-    // Space for the linked list of Pairs is reserved in yet another linked
-    // list, this time a linked list of Chunks.
-    class Chunk {
-        Chunk () {}
-        Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
+    class Chunk;
 
+    // This class allows the BlockMap to maintain a linked list of CallStacks
+    // for its internal free list.
+    class StackLink {
     private:
-        Chunk *next;
-        Pair   pairs [BLOCKMAPCHUNKSIZE];
+        StackLink *next;
+        CallStack  stack;
 
         friend class BlockMap;
     };
 
-    // Private Helper Functions - see each function definition for details.
-    inline BlockMap::Pair* _find (unsigned long request);
+    // Nodes form the basis of the red-black tree.
+    class Node {
+    private:
+        Node () {}
+        Node (const Node &node) { assert(false); } // Do not make copies of Nodes!
+
+        color_e        color;
+        StackLink     *data;
+        unsigned long  key;
+        Node          *left;
+        Node          *parent;
+        Node          *right;
+
+        friend class BlockMap;
+        friend class Chunk;
+    };
+
+    class Chunk {
+    private:
+        Chunk () {}
+        Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
+
+        Chunk     *next;
+        Node       nodes [BLOCKMAPCHUNKSIZE];
+        StackLink  stacks [BLOCKMAPCHUNKSIZE];
+
+        friend class BlockMap;
+    };
+
+    // Private Helper Functions -- see each function for details
+    void _rotateleft (BlockMap::Node *node);
+    void _rotateright (BlockMap::Node *node);
 
     // Private Data
-    BlockMap::Pair  *m_free;      // Pointer to the head of the free list
-    BlockMap::Pair  *m_maphead;   // Pointer to the head of the map
-    BlockMap::Pair  *m_maptail;   // Pointer to the tail of the map
-    unsigned long    m_size;      // Current size of the map (in pairs)
-    BlockMap::Chunk  m_storehead; // Pointer to the start of the underlying data store (i.e. head of the Chunk list)
-    BlockMap::Chunk *m_storetail; // Pointer to the end of the underlying data store (i.e. tail of the Chunk list)
+    BlockMap::Node      *m_freenodes;  // Pointer to the head of the free node list
+    BlockMap::StackLink *m_freestacks; // Pointer to the head of the free stack list
+    BlockMap::Node      *m_max;        // Pointer to the maximum node in the tree
+    BlockMap::Node       m_nil;        // The nil node - all leaf nodes point to this, it is always colored black
+    BlockMap::Node      *m_root;       // Pointer to the root of the red-black tree
+    BlockMap::Chunk      m_store;      // The underlying data store (grows as needed)
+    BlockMap::Chunk     *m_storetail;  // Pointer to the end of the underlying data store (i.e. tail of the Chunk list)
 };
 
 #endif // _VLDUTIL_H_
