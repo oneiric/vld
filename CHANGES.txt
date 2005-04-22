@@ -1,9 +1,17 @@
-Visual Leak Detector (VLD) Version 0.9f
+Visual Leak Detector (VLD) Version 0.9g
 
   Change Log / Release Notes
 
 New Features/Changes:
 ---------------------
+
+  Changes in Version 0.9g (22 April 2005)
+  ---------------------------------------
+  + Replaced the temporary internal search algorithm with a permanent search
+    algorithm that is much faster. Programs that dynamically allocate a large
+    number of memory blocks (tens of thousands or more) will see the most
+    significant performance boost from this version of VLD versus the previous
+    version. Overall, this is the fastest version of VLD released to date.
 
   Changes in Version 0.9f (13 April 2005)
   ---------------------------------------
@@ -14,11 +22,9 @@ New Features/Changes:
 
   Changes in Version 0.9e (12 April 2005)
   ---------------------------------------
-  + VLD no longer uses any STL containers or STL strings. In addition to solving
-    compatibility bugs with Visual Studio .NET 2003, this change increases
-    the performance of VLD by a fair margin. Overall, VLD is now nearly twice
-    as fast as the previous release. Additionally, the library files are now
-    about one third of the size that they previously were.
+  + VLD no longer uses any STL containers or STL strings. This solves all of the
+    compatibility problems with Visual Studio .NET when using the pre-built
+    VLD libraries.
 
   + The configuration preprocessor macros now work with C programs without the
     need to call VLDConfigure from within the program being debugged.
