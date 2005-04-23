@@ -1,4 +1,4 @@
-Visual Leak Detector (Version 0.9g)
+Visual Leak Detector (Version 0.9h)
 
   Enhanced Memory Leak Detection for Visual C++
 
