@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.7 2005/04/23 20:30:01 db Exp $
+//  $Id: vldutil.h,v 1.8 2005/04/23 22:16:14 db Exp $
 //
 //  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
@@ -195,7 +195,7 @@ private:
 //  The purpose of the BlockMap is to map allocated memory blocks (via their
 //  unique allocation request numbers) to the call stacks that allocated them.
 //  One of the primary concerns of the BlockMap is to be able to quickly insert
-//  search and delete. For this reaseon, the underlying data structure is
+//  search and delete. For this reason, the underlying data structure is
 //  a red-black tree (a type of balanced binary tree).
 //
 //  The red-black tree is overlayed on top of larger "chunks" of pre-allocated
