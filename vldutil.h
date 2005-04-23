@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.6 2005/04/22 03:35:51 db Exp $
+//  $Id: vldutil.h,v 1.7 2005/04/23 20:30:01 db Exp $
 //
-//  Visual Leak Detector (Version 0.9g)
+//  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
