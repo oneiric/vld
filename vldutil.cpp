@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.6 2005/04/22 03:35:03 db Exp $
+//  $Id: vldutil.cpp,v 1.7 2005/04/23 20:29:42 db Exp $
 //
-//  Visual Leak Detector (Version 0.9g)
+//  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -222,12 +222,24 @@ void BlockMap::erase (unsigned long request)
         // The node to be erased has less than two children. It can be directly
         // deleted from the tree.
         erasure = node;
+        if (node == m_max) {
+            // The maximum node is being deleted. Find the new maximum.
+            if (m_max->left == &m_nil) {
+                m_max = node->parent;
+            }
+            else {
+                m_max = m_max->left;
+                while (m_max->right != &m_nil) {
+                    m_max = m_max->right;
+                }
+            }
+        }
     }
     else {
-        // The to be erased has two children. It can only be deleted indirectly.
-        // The actual node will stay where it is, but it's contents will be
-        // replaced by it's in-order successor's contents. The successro node
-        // will then be deleted. Find the successor.
+        // The node to be erased has two children. It can only be deleted
+        // indirectly. The actual node will stay where it is, but it's contents
+        // will be replaced by it's in-order successor's contents. The successor
+        // node will then be deleted. Find the successor.
         erasure = node->right;
         while (erasure->left != &m_nil) {
             erasure = erasure->left;
@@ -265,12 +277,13 @@ void BlockMap::erase (unsigned long request)
 
         node->data = erasure->data;
         node->key  = erasure->key;
+        if (erasure == m_max) {
+            // The maximum node has been transplanted.
+            m_max = node;
+        }
     }
     else {
         stacklink = erasure->data;
-        if (node == m_max) {
-            m_max = node->parent;
-        }
     }
 
     if (erasure->color == black) {
@@ -467,6 +480,7 @@ CallStack* BlockMap::insert (unsigned long request)
     if (parent == &m_nil) {
         // The tree is empty. The new node becomes root.
         m_root = node;
+        m_max = node;
     }
     else {
         if (parent->key > request) {
@@ -476,10 +490,10 @@ CallStack* BlockMap::insert (unsigned long request)
         else {
             // New node is a right child.
             parent->right = node;
+            if (parent == m_max) {
+                m_max = node;
+            }
         }
-    }
-    if (node->key > m_max->key) {
-        m_max = node;
     }
 
     // Rebalance and/or adjust the tree, if necessary.
