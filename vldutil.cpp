@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.7 2005/04/23 20:29:42 db Exp $
+//  $Id: vldutil.cpp,v 1.8 2005/04/28 03:41:36 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
@@ -181,7 +181,7 @@ void BlockMap::_rotateright (BlockMap::Node *node)
 }
 
 // erase - Erases the block with the specified allocation request number from
-//   block map.
+//   the BlockMap.
 //
 //  - request (IN): The memory block allocation request number of the block to
 //      erase from the map.
@@ -605,7 +605,7 @@ CallStack::~CallStack ()
 //    specified index is out of range for the CallStack, the return value is
 //    undefined.
 //
-DWORD64 CallStack::operator [] (unsigned long index)
+DWORD_PTR CallStack::operator [] (unsigned long index)
 {
     unsigned long     count;
     CallStack::Chunk *chunk = &m_store;
@@ -649,7 +649,7 @@ void CallStack::clear ()
 //
 //    None.
 //
-void CallStack::push_back (DWORD64 programcounter)
+void CallStack::push_back (DWORD_PTR programcounter)
 {
     CallStack::Chunk *chunk;
 
