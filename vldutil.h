@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.8 2005/04/23 22:16:14 db Exp $
+//  $Id: vldutil.h,v 1.9 2005/04/28 03:46:07 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
@@ -30,7 +30,6 @@
 #endif
 
 // Standard headers
-#define _CRTBLD
 #include <cassert>
 
 // Microsoft-specific headers
@@ -39,15 +38,21 @@
 #include <dbgint.h>  // Provides access to the heap internals, specifically the memory block header structure.
 #undef _CRTBLD
 
+#ifdef _WIN64
+#define ADDRESSFORMAT       "0x%.16X" // Format string for 64-bit addresses
+#else
+#define ADDRESSFORMAT       "0x%.8X"  // Format string for 32-bit addresses
+#endif // _WIN64
 #define BLOCKMAPCHUNKSIZE   64     // Size, in Pairs, of each BlockMap Chunk
 #define CALLSTACKCHUNKSIZE  32     // Size, in frames (DWORDs), of each CallStack Chunk.
 #define VLDINTERNALBLOCK    0xbf42 // VLD internal memory block subtype
 
-// operator new - Visual Leak Detector's internal new operator. Only VLD uses
-//   this operator (note the static linkage). Applications linking with VLD will
-//   still use the "standard" new operator.
+// operator new,
+// operator new [] - Visual Leak Detector's internal new operators. Only VLD
+//   uses these operators (note the static linkage). Applications linking with
+//   VLD will still use the "standard" new operator.
 //
-//   This special new operator assigns a VLD-specific "use" type to each
+//   These special new operators assign a VLD-specific "use" type to each
 //   allocated block. VLD uses this type information to identify blocks
 //   belonging to VLD. Ultimately this is used to detect memory leaks internal
 //   to VLD.
@@ -67,7 +72,8 @@
 //
 //  Return Value:
 //
-//    Returns a pointer to the beginning of the newly allocated object's memory.
+//    Both versions return a pointer to the beginning of the newly allocated
+//    object's memory.
 //
 inline static void* operator new (unsigned int size, char *file, int line)
 {
@@ -76,13 +82,21 @@ inline static void* operator new (unsigned int size, char *file, int line)
     return pdata;
 }
 
-// Map new to the internal new operator.
+inline static void* operator new[] (unsigned int size, char *file, int line)
+{
+    void *pdata = _malloc_dbg(size, _CLIENT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
+
+    return pdata;
+}
+
+// Map new to the internal new operators.
 #define new new(__FILE__, __LINE__)
 
-// operator delete - Matching delete operator for VLD's internal new operator.
-//   This exists solely to satisfy the compiler. Unless there is an exception
-//   while constructing an object allocated using VLD's new operator, this
-//   version of delete never gets used.
+// operator delete,
+// operator delete [] - Matching delete operators for VLD's internal new
+//   operators. These exist solely to satisfy the compiler. Unless there is an
+//   exception while constructing an object allocated using VLD's new operators,
+//   these versions of delete never get used.
 //
 //  - p (IN): Pointer to the user-data section of the memory block to be freed.
 //
@@ -101,14 +115,22 @@ inline static void operator delete (void *p, char *file, int line)
     _free_dbg(p, pheader->nBlockUse);
 }
 
-// operator delete - Visual Leak Detector's internal delete operator. Only VLD
-//   uses this operator (note the static linkage). Applications linking with VLD
-//   will still use the "standard" delete operator.
+inline static void operator delete[] (void *p, char *file, int line)
+{
+    _CrtMemBlockHeader *pheader = pHdr(p);
+
+    _free_dbg(p, pheader->nBlockUse);
+}
+
+// operator delete,
+// operator delete [] - Visual Leak Detector's internal delete operators. Only
+//   VLD uses these operators (note the static linkage). Applications linking
+//   with VLD will still use the "standard" delete operators.
 //
-//   This special delete operator ensures that the proper "use" type is passed
+//   These special delete operators ensure that the proper "use" type is passed
 //   to the underlying heap functions to avoid asserts that will occur if the
-//   type passed in (which for the default delete opeator is _NORMAL_BLOCK) does
-//   not match the block's type (which for VLD's internal blocks is
+//   type passed in (which for the default delete operators is _NORMAL_BLOCK)
+//   does not match the block's type (which for VLD's internal blocks is
 //   _CLIENT_BLOCK bitwise-OR'd with a VLD-specific subtype identifier).
 //
 //  - p (IN): Pointer to the user-data section of the memory block to be freed.
@@ -118,6 +140,13 @@ inline static void operator delete (void *p, char *file, int line)
 //    None.
 //
 inline static void operator delete (void *p)
+{
+    _CrtMemBlockHeader *pheader = pHdr(p);
+
+    _free_dbg(p, pheader->nBlockUse);
+}
+
+inline static void operator delete[] (void *p)
 {
     _CrtMemBlockHeader *pheader = pHdr(p);
 
@@ -157,10 +186,10 @@ public:
     ~CallStack ();
 
     // Public APIs - see each function definition for details.
-    DWORD64 operator [] (unsigned long index);
+    DWORD_PTR operator [] (unsigned long index);
 
     void clear ();
-    void push_back (DWORD64 programcounter);
+    void push_back (DWORD_PTR programcounter);
     unsigned long size ();
 
 private:
@@ -170,8 +199,8 @@ private:
         Chunk () {}
         Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
 
-        Chunk   *next;
-        DWORD64  frames [CALLSTACKCHUNKSIZE];
+        Chunk     *next;
+        DWORD_PTR  frames [CALLSTACKCHUNKSIZE];
 
         friend class CallStack;
     };
@@ -199,9 +228,9 @@ private:
 //  a red-black tree (a type of balanced binary tree).
 //
 //  The red-black tree is overlayed on top of larger "chunks" of pre-allocated
-//  storage. These chunks make it possible for the map to have reserve capacity
-//  allowing it to grow dynamically without incurring a heap hit each time a
-//  new element is added to the map.
+//  storage. These chunks, which are arranged in a linked list, make it possible
+//  for the map to have reserve capacity, allowing it to grow dynamically
+//  without incurring a heap hit each time a new element is added to the map.
 //
 class BlockMap
 {
@@ -220,8 +249,8 @@ public:
 private:
     class Chunk;
 
-    // This class allows the BlockMap to maintain a linked list of CallStacks
-    // for its internal free list.
+    // StackLinks allow the BlockMap to maintain a linked list of CallStacks for
+    // its internal free list.
     class StackLink {
     private:
         StackLink *next;
@@ -247,6 +276,7 @@ private:
         friend class Chunk;
     };
 
+    // The chunk list is made of a linked list of Chunks.
     class Chunk {
     private:
         Chunk () {}
@@ -260,8 +290,8 @@ private:
     };
 
     // Private Helper Functions -- see each function for details
-    void _rotateleft (BlockMap::Node *node);
-    void _rotateright (BlockMap::Node *node);
+    inline void _rotateleft (BlockMap::Node *node);
+    inline void _rotateright (BlockMap::Node *node);
 
     // Private Data
     BlockMap::Node      *m_freenodes;  // Pointer to the head of the free node list
