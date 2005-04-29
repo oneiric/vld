@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.9 2005/04/28 03:46:07 dmouldin Exp $
+//  $Id: vldutil.h,v 1.10 2005/04/29 11:29:16 db Exp $
 //
 //  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
@@ -39,13 +39,13 @@
 #undef _CRTBLD
 
 #ifdef _WIN64
-#define ADDRESSFORMAT       "0x%.16X" // Format string for 64-bit addresses
+#define ADDRESSFORMAT      "0x%.16X" // Format string for 64-bit addresses
 #else
-#define ADDRESSFORMAT       "0x%.8X"  // Format string for 32-bit addresses
+#define ADDRESSFORMAT      "0x%.8X"  // Format string for 32-bit addresses
 #endif // _WIN64
-#define BLOCKMAPCHUNKSIZE   64     // Size, in Pairs, of each BlockMap Chunk
-#define CALLSTACKCHUNKSIZE  32     // Size, in frames (DWORDs), of each CallStack Chunk.
-#define VLDINTERNALBLOCK    0xbf42 // VLD internal memory block subtype
+#define BLOCKMAPCHUNKSIZE  64        // Size, in Pairs, of each BlockMap Chunk
+#define CALLSTACKCHUNKSIZE 32        // Size, in frames (DWORDs), of each CallStack Chunk.
+#define VLDINTERNALBLOCK   0xbf42    // VLD internal memory block subtype
 
 // operator new,
 // operator new [] - Visual Leak Detector's internal new operators. Only VLD
