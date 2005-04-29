@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.13 2005/04/28 03:40:19 dmouldin Exp $
+//  $Id: vld.cpp,v 1.14 2005/04/29 11:26:44 db Exp $
 //
 //  Visual Leak Detector (Version 0.9h)
 //  Copyright (c) 2005 Dan Moulding
@@ -51,6 +51,19 @@
 
 #define VLD_VERSION "0.9h"
 
+// Architecture-specific definitions for x86 and x64
+#if defined(_M_IX86)
+#define SIZEOFPTR 4
+#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_I386
+#define AXREG eax
+#define BPREG ebp
+#elif defined(_M_X64)
+#define SIZEOFPTR 8
+#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
+#define AXREG rax
+#define BPREG rbp
+#endif // _M_IX86
+
 // Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
 typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
                                         PFUNCTION_TABLE_ACCESS_ROUTINE64, PGET_MODULE_BASE_ROUTINE64, PTRANSLATE_ADDRESS_ROUTINE64);
@@ -101,9 +114,9 @@ private:
     static int allochook (int type, void *pdata, size_t size, int use, long request, const unsigned char *file, int line);
     void buildsymbolsearchpath ();
     void dumpuserdatablock (_CrtMemBlockHeader *pheader);
-#ifdef _M_IX86
-    DWORD32 getprogramcounterintelx86 ();
-#endif // _M_IX86
+#if defined(_M_IX86) || defined(_M_X64)
+    DWORD_PTR getprogramcounterx86x64 ();
+#endif // defined(_M_IX86) || defined(_M_X64)
     inline void getstacktrace (CallStack *callstack);
     inline void hookfree (void *pdata);
     inline void hookmalloc (long request);
@@ -310,12 +323,12 @@ int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, 
 void VisualLeakDetector::buildsymbolsearchpath ()
 {
     const char *command = GetCommandLineA();
-    char   *env;
-    size_t  index;
-    bool    inquote = false;
-    size_t  length = strlen(command);
-    char   *path = new char [length + 1];
-    size_t  pos = 0;
+    char       *env;
+    size_t      index;
+    bool        inquote = false;
+    size_t      length = strlen(command);
+    char       *path = new char [length + 1];
+    size_t      pos = 0;
 
     if (m_symbolpath) {
         delete [] m_symbolpath;
@@ -487,12 +500,13 @@ void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
     }
 }
 
-// getprogramcounterintelx86 - Helper function that retrieves the program
-//   counter (aka the EIP register) for getstacktrace() on Intel x86
-//   architecture. There is no way for software to directly read the EIP
-//   register. But it's value can be obtained by calling into a function (in our
-//   case, this function) and then retrieving the return address, which will be
-//   the program counter from where the function was called.
+// getprogramcounterx86x64 - Helper function that retrieves the program counter
+//   (aka the EIP (x86) or RIP (x64) register) for getstacktrace() on Intel x86
+//   or x64 architectures (x64 supports both AMD64 and Intel EM64T). There is no
+//   way for software to directly read the EIP/RIP register. But it's value can
+//   be obtained by calling into a function (in our case, this function) and
+//   then retrieving the return address, which will be the program counter from
+//   where the function was called.
 //
 //  Note: Inlining of this function must be disabled. The whole purpose of this
 //    function's existence depends upon it being a *called* function.
@@ -501,19 +515,19 @@ void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
 //
 //    Returns the return address of the current stack frame.
 //
-#ifdef _M_IX86
+#if defined(_M_IX86) || defined(_M_X64)
 #pragma auto_inline(off)
-DWORD32 VisualLeakDetector::getprogramcounterintelx86 ()
+DWORD_PTR VisualLeakDetector::getprogramcounterx86x64 ()
 {
-    DWORD32 programcounter;
+    DWORD_PTR programcounter;
 
-    __asm mov eax, [ebp + 4]        // Get the return address out of the current stack frame
-    __asm mov [programcounter], eax // Put the return address into the variable we'll return
+    __asm mov AXREG, [BPREG + SIZEOFPTR] // Get the return address out of the current stack frame
+    __asm mov [programcounter], AXREG    // Put the return address into the variable we'll return
 
     return programcounter;
 }
 #pragma auto_inline(on)
-#endif // _M_IX86
+#endif // defined(_M_IX86) || defined(_M_X64)
 
 // getstacktrace - Traces the stack, starting from this function, as far
 //   back as possible. Populates the provided CallStack with one entry for each
@@ -542,17 +556,17 @@ void VisualLeakDetector::getstacktrace (CallStack *callstack)
 
     // Get the required values for initialization of the STACKFRAME64 structure
     // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
-#ifdef _M_IX86
-    architecture = IMAGE_FILE_MACHINE_I386;
-    programcounter = getprogramcounterintelx86();
-    __asm mov [framepointer], ebp  // Get the frame pointer (aka base pointer)
+#if defined(_M_IX86) || defined(_M_X64)
+    architecture = X86X64ARCHITECTURE;
+    programcounter = getprogramcounterx86x64();
+    __asm mov [framepointer], BPREG // Get the frame pointer (aka base pointer)
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide architecture-specific code to
 // retrieve the current frame pointer and program counter in order to initialize
 // the STACKFRAME64 structure below.
 #error "Visual Leak Detector is not supported on this architecture."
-#endif // _M_IX86
+#endif // defined(_M_IX86) || defined(_M_X64)
 
     // Initialize the STACKFRAME64 structure.
     memset(&frame, 0x0, sizeof(frame));
@@ -744,6 +758,7 @@ void VisualLeakDetector::report (const char *format, ...)
     va_start(args, format);
     _vsnprintf(message, MAXREPORTMESSAGESIZE, format, args);
     va_end(args);
+    message[MAXREPORTMESSAGESIZE - 1] = '\0';
 
     OutputDebugString(message);
 }
