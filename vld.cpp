@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.14 2005/04/29 11:26:44 db Exp $
+//  $Id: vld.cpp,v 1.15 2005/05/02 11:22:45 db Exp $
 //
-//  Visual Leak Detector (Version 0.9h)
+//  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -49,7 +49,7 @@
 #define VLDBUILD     // Declares that we are building Visual Leak Detector
 #include "vldutil.h" // Provides utility functions and classes
 
-#define VLD_VERSION "0.9h"
+#define VLD_VERSION "0.9i"
 
 // Architecture-specific definitions for x86 and x64
 #if defined(_M_IX86)
