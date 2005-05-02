@@ -208,15 +208,15 @@ fairly painless.
        subdirectory from the Platform SDK. Make sure it's at the top of the
        list.
 
-  4) VLD also depends on one other header file (dbgint.h) that will only be
-     installed if you elected to install the CRT source files when you installed
-     Visual C++. If you didn't install the CRT sources, you'll need to re-run
-     the Visual C++ installer and install them. If you are not sure whether you
-     installed the CRT sources when you installed Visual C++, check to see if
-     dbgint.h exists in the CRT\src subdirectory of your Visual C++ installation
-     directory. If those files are missing, or you don't have a CRT\src
-     directory, then chances are you need to re-install Visual C++ with the CRT
-     sources selected.
+  4) VLD also depends on two other header files (dbgint.h and mtdll.h) that will
+     only be installed if you elected to install the CRT source files when you
+     installed Visual C++. If you didn't install the CRT sources, you'll need to
+     re-run the Visual C++ installer and install them. If you are not sure
+     whether you installed the CRT sources when you installed Visual C++, check
+     to see if dbgint.h and mtdll.h exist in the CRT\src subdirectory of your
+     Visual C++ installation directory. If that file is missing, or you don't
+     have a CRT\src directory, then chances are you need to re-install Visual
+     C++ with the CRT sources selected.
 
   5) Make sure that your Visual C++ installation's CRT\src subdirectory is
      in the include search path. Refer to step 3 for instructions on how to
@@ -228,10 +228,10 @@ fairly painless.
        C:\Program Files\Microsoft Visual Studio\VCx\Include
        C:\Program Files\Microsoft Visual Studio\CRT\src
 
-     In the above example, "VCx" would be "VC7" for Visual Studio .NET 2003 or
-     "VC98" for Visual Studio 6.0. Also, the name of your Platform SDK
-     directory might be different from the example depending on which version of
-     the Platform SDK you have installed.
+     In the above example, "VCx" would be "VC7" for Visual Studio .NET or "VC98"
+     for Visual Studio 6.0. Also, the name of your Platform SDK directory might
+     be different from the example depending on which version of the Platform
+     SDK you have installed.
 
 Once you've completed all of the above steps, your build environment should be
 ready. To build VLD, just open the vld.dsp project and do a batch build to
@@ -260,6 +260,22 @@ you are building the release libraries, you're really building the same
 libraries that are included in the main VLD distribution. The "debug" builds of
 VLD are strictly for debugging VLD itself (e.g. if you want to modify it or if
 you need to fix a bug in it).
+
+Using VLD On x64-based Windows:
+-------------------------------
+As of version 0.9i, VLD supports x64-based 64-bit Windows. However, the binaries
+contained in the distributed versions of VLD are 32-bit only. To take advantage
+of the 64-bit support, you'll need to build 64-bit versions of the libraries
+from source. To build the 64-bit versions, follow the instructions for building
+VLD from source. So long as they are built using an x64-compatible compiler in
+64-bit mode, the resulting libraries will be 64-bit libraries.
+
+NOTE: I have not personally tested the 64-bit extensions so they are not
+absolutely guaranteed to work out-of-the-box. There may be a few lingering
+64-bit compiler errors that still need to be worked out. If you need 64-bit
+support and run into problems trying to build the source in 64-bit mode, please
+let me know (my email address is listed at the end of this file). I'll be glad
+to assist in getting the 64-bit code working properly.
 
 
 Frequently Asked Questions:
