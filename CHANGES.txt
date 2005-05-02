@@ -1,6 +1,27 @@
-Visual Leak Detector (VLD) Version 0.9h
+Visual Leak Detector (VLD) Version 0.9i
 
   Change Log / Release Notes
+
+0.9i (30 April 2005)
+--------------------
+  New Features/Enhancements:
+  + Added support in the source code for x64 architecture. The pre-built
+    libraries will continue to support 32-bit only. If you need 64-bit support
+    you'll need to build 64-bit versions of the libraries from source. Note that
+    x64 is the only 64-bit architecture supported at this time. Itanium (aka
+    IA-64) is NOT currently supported.
+
+  Bugs Fixed:
+  + VLD does not report memory leaks that are the result of a failure to free
+    memory allocated via a call to realloc().
+  + In multithreaded programs, if the program's main thread terminates before
+    other threads in the same process, then VLD may cause an access violation
+    while checking for memory leaks.
+  + If VLD cannot find the source file and line number information for a program
+    address, the last known file and line number will be repeated in the call
+    stack section of the memory leak report. The correct behavior should be for
+    VLD to print "File and line number not available" for that call stack entry.
+
 
 0.9h (22 April 2005)
 --------------------
@@ -8,6 +29,7 @@ Visual Leak Detector (VLD) Version 0.9h
   + Access Violations occur at random places within the VLD code when using
     VLD version 0.9g.
   + When using VLD version 0.9g, VLD may fail to report some memory leaks.
+
 
 0.9g (22 April 2005)
 --------------------
@@ -17,6 +39,7 @@ Visual Leak Detector (VLD) Version 0.9h
     number of memory blocks (tens of thousands or more) will see the most
     significant performance boost from this version of VLD versus the previous
     version. Overall, this is the fastest version of VLD released to date.
+
 
 0.9f (13 April 2005)
 --------------------
@@ -84,12 +107,14 @@ Visual Leak Detector (VLD) Version 0.9h
   + The Microsoft Debug Help Library (dbghelp.dll) version 6.3 is now included
     with the VLD distribution.
 
+
 0.9c (17 March 2005)
 --------------------
   Bugs Fixed:
   + Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
     occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
     preprocessor macro defined.
+
 
 0.9b (15 March 2005)
 --------------------
@@ -101,6 +126,7 @@ Visual Leak Detector (VLD) Version 0.9h
     specifically frame pointer omission optimization or automatic inlining, then
     theoretically VLD may produce incomplete or inaccurate stack traces or might
     fail to produce stack traces altogether.
+
 
 0.9a (12 March 2005)
 --------------------
