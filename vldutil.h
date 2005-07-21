@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.11 2005/05/02 11:24:05 db Exp $
+//  $Id: vldutil.h,v 1.12 2005/07/21 21:58:10 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
@@ -77,14 +77,14 @@
 //
 inline static void* operator new (unsigned int size, char *file, int line)
 {
-    void *pdata = _malloc_dbg(size, _CLIENT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
+    void *pdata = _malloc_dbg(size, _CRT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
 
     return pdata;
 }
 
 inline static void* operator new[] (unsigned int size, char *file, int line)
 {
-    void *pdata = _malloc_dbg(size, _CLIENT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
+    void *pdata = _malloc_dbg(size, _CRT_BLOCK | (VLDINTERNALBLOCK << 16), file, line);
 
     return pdata;
 }
