@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.9 2005/05/02 11:22:55 db Exp $
+//  $Id: vld.h,v 1.10 2005/07/21 21:55:58 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
@@ -30,14 +30,14 @@
 // Link with the appropriate Visual Leak Detector library. One of: multithreaded
 // DLL, multithreaded static, or single threaded. All three link with debug
 // versions of the CRT.
-#if defined(_DLL)
-#pragma comment(lib, "vldmtdll.lib")
+#ifdef _DLL
+#pragma comment (lib, "vldmtdll.lib")
 #else
-#if defined(_MT)
-#pragma comment(lib, "vldmt.lib")
+#ifdef _MT
+#pragma comment (lib, "vldmt.lib")
 #else
-#pragma comment(lib, "vld.lib")
-#endif // _MT
+#pragma comment (lib, "vld.lib")
+#endif // _MT 
 #endif // _DLL
 
 // Force a symbolic reference to the global VisualLeakDetector class object from
