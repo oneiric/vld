@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.15 2005/05/02 11:22:45 db Exp $
+//  $Id: vld.cpp,v 1.16 2005/07/21 21:41:34 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
@@ -35,21 +35,34 @@
 #include <cstdio>
 
 // Microsoft-specific headers
-#include <windows.h> // crtdbg.h, dbghelp.h, dbgint.h, and mtdll.h depend on this.
-#include <crtdbg.h>  // Provides heap debugging services.
-#include <dbghelp.h> // Provides stack walking and symbol handling services.
-#define _CRTBLD      // Force dbgint.h and mtdll.h to allow us to include them, even though we're not building the C runtime library.
-#include <dbgint.h>  // Provides access to the heap internals, specifically the memory block header structure.
+#include <windows.h>    // crtdbg.h, dbghelp.h, dbgint.h, and mtdll.h depend on this.
+#include <crtdbg.h>     // Provides heap debugging services.
+#define __out_xcount(x) // Workaround for the specstrings bug in the dbghelp.h from Debugging Tools for Windows.
+#include <dbghelp.h>    // Provides stack walking and symbol handling services.
+#define _CRTBLD         // Force dbgint.h and mtdll.h to allow us to include them, even though we're not building the C runtime library.
+#include <dbgint.h>     // Provides access to the heap internals, specifically the memory block header structure.
 #ifdef _MT
-#include <mtdll.h>   // Provides mutex locking services.
+#include <mtdll.h>      // Provides mutex locking services.
 #endif // _MT
 #undef _CRTBLD
+#include <shlwapi.h>    // Provides path/file specification services.
+#pragma comment(lib, "shlwapi.lib")
 
 // VLD-specific headers
-#define VLDBUILD     // Declares that we are building Visual Leak Detector
-#include "vldutil.h" // Provides utility functions and classes
+#define VLDBUILD        // Declares that we are building Visual Leak Detector
+#include "vldutil.h"    // Provides utility functions and classes
 
+// VLD version and library type definitions
 #define VLD_VERSION "0.9i"
+#ifdef _DLL
+#define VLD_LIBTYPE "multithreaded DLL"
+#else
+#ifdef _MT
+#define VLD_LIBTYPE "multithreaded static"
+#else
+#define VLD_LIBTYPE "single-threaded static"
+#endif // _MT
+#endif // _DLL
 
 // Architecture-specific definitions for x86 and x64
 #if defined(_M_IX86)
@@ -157,7 +170,7 @@ VisualLeakDetector::VisualLeakDetector ()
     if (linkdebughelplibrary()) {
         // Register our allocation hook function with the debug heap.
         m_poldhook = _CrtSetAllocHook(allochook);
-        report("Visual Leak Detector Version "VLD_VERSION" installed.\n");
+        report("Visual Leak Detector Version "VLD_VERSION" installed ("VLD_LIBTYPE").\n");
         m_installed = true;
     }
     else {
@@ -188,14 +201,15 @@ VisualLeakDetector::~VisualLeakDetector ()
         // Report any leaks that we find.
         reportleaks();
 
+#ifdef _MT
+        _mlock(_HEAP_LOCK);
+#endif // _MT
+
         // Free internally allocated resources.
         delete m_mallocmap;
         delete [] m_symbolpath;
 
         // Do a memory leak self-check.
-#ifdef _MT
-        _mlock(_HEAP_LOCK);
-#endif // _MT
         pheap = new char;
         pheader = pHdr(pheap)->pBlockHeaderNext;
         delete pheap;
@@ -211,6 +225,7 @@ VisualLeakDetector::~VisualLeakDetector ()
             }
             pheader = pheader->pBlockHeaderNext;
         }
+
 #ifdef _MT
         _munlock(_HEAP_LOCK);
 #endif // _MT
@@ -269,7 +284,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 //
 int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, long request, const unsigned char *file, int line)
 {
-    static bool inallochook;
+    static bool inallochook = false;
     int         status = true;
 
     if (inallochook || (use == _CRT_BLOCK)) {
@@ -322,12 +337,11 @@ int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, 
 //
 void VisualLeakDetector::buildsymbolsearchpath ()
 {
-    const char *command = GetCommandLineA();
     char       *env;
     size_t      index;
-    bool        inquote = false;
-    size_t      length = strlen(command);
-    char       *path = new char [length + 1];
+    size_t      length;
+    HMODULE     module;
+    char       *path = new char [MAX_PATH];
     size_t      pos = 0;
 
     if (m_symbolpath) {
@@ -339,40 +353,10 @@ void VisualLeakDetector::buildsymbolsearchpath ()
     // by default, that path is used to find the PDB. That appears to not be the
     // case (at least not with Visual C++ 6.0). So we'll manually add the
     // location of the executable (which is where the PDB is located by default)
-    // to the symbol search path. Use the command line to extract the path.
-    //
-    // Start by filtering out any command line arguments.
-    strncpy(path, command, length);
-    while (pos < length) {
-        if (path[pos] == ' ') {
-            if (!inquote) {
-                break;
-            }
-        }
-        else if (path[pos] == '\"') {
-            if (inquote) {
-                inquote = false;
-            }
-            else {
-                inquote = true;
-            }
-        }
-        pos++;
-    }
-    path[pos] = '\0';
-
-    // Now remove the executable file name to get just the path by itself.
-    pos = strlen(path) - 1;
-    while (pos) {
-        if (path[pos] == '\\') {
-            path[pos + 1] = '\0';
-            break;
-        }
-        pos--;
-    }
-    if (pos == 0) {
-        strncpy(path, "\\", length);
-    }
+    // to the symbol search path.
+    module = GetModuleHandle(NULL);
+    GetModuleFileNameA(module, path, MAX_PATH);
+    PathRemoveFileSpec(path);
 
     // When the symbol handler is given a custom symbol search path, it will no
     // longer search the default directories (working directory, system root,
@@ -841,7 +825,7 @@ void VisualLeakDetector::reportleaks ()
             // have an entry for in the allocated block map. We've identified a
             // memory leak.
             if (leaksfound == 0) {
-                report("WARNING: Detected memory leaks!\n");
+                report("WARNING: Visual Leak Detector detected memory leaks!\n");
             }
             leaksfound++;
             report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
@@ -904,7 +888,7 @@ void VisualLeakDetector::reportleaks ()
         report("No memory leaks detected.\n");
     }
     else {
-        report("Detected %lu memory leak", leaksfound);
+        report("Visual Leak Detector detected %lu memory leak", leaksfound);
         report((leaksfound > 1) ? "s.\n" : ".\n");
     }
 
