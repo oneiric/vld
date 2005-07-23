@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.17 2005/07/23 00:18:28 dmouldin Exp $
+//  $Id: vld.cpp,v 1.18 2005/07/23 03:48:02 db Exp $
 //
-//  Visual Leak Detector (Version 0.9i)
+//  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -74,7 +74,7 @@ VisualLeakDetector::VisualLeakDetector ()
         // Register our allocation hook function with the debug heap.
         m_poldhook = _CrtSetAllocHook(allochook);
         report("Visual Leak Detector Version "VLD_VERSION" installed ("VLD_LIBTYPE").\n");
-        if (!(_VLD_configflags & VLD_CONFIG_START_ENABLED)) {
+        if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
             // Memory leak detection will initially be disabled.
             m_status |= VLD_STATUS_NEVER_ENABLED;
         }
@@ -109,10 +109,12 @@ VisualLeakDetector::~VisualLeakDetector ()
         }
 
         if (m_status & VLD_STATUS_NEVER_ENABLED) {
+            // Visual Leak Detector started with leak detection disabled and
+            // it was never enabled at runtime. A lot of good that does.
             report("WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
         }
         else {
-            // Report any leaks that we find.
+            // Generate a memory leak report.
             reportleaks();
         }
 
@@ -170,8 +172,6 @@ VisualLeakDetector::~VisualLeakDetector ()
 //      simply be a normal block. Client blocks are just normal blocks that
 //      have been specifically tagged by the application so that the application
 //      can separately keep track of the tagged blocks for debugging purposes.
-//      Visual Leak Detector, for example, makes use of client blocks to keep
-//      track of internally allocated memory.
 //
 //  - request (IN): Specifies the allocation request number. This is basically
 //      a sequence number that is incremented for each allocation request. It
@@ -196,10 +196,6 @@ int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, 
 {
     static bool inallochook = false;
     int         status = true;
-
-    if (!visualleakdetector.enabled()) {
-        return true;
-    }
 
     if (inallochook || (use == _CRT_BLOCK)) {
         // Prevent the current thread from re-entering on allocs/reallocs/frees
@@ -409,11 +405,11 @@ bool VisualLeakDetector::enabled ()
     status = (unsigned long)TlsGetValue(m_tlsindex);
     if (status == VLD_TLS_UNINITIALIZED) {
         // TLS is uninitialized for the current thread. Use the initial state.
-        if (_VLD_configflags & VLD_CONFIG_START_ENABLED) {
-            status = VLD_TLS_ENABLED;
+        if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
+            status = VLD_TLS_DISABLED;
         }
         else {
-            status = VLD_TLS_DISABLED;
+            status = VLD_TLS_ENABLED;
         }
         // Initialize TLS for this thread.
         TlsSetValue(m_tlsindex, (LPVOID)status);
@@ -549,6 +545,11 @@ void VisualLeakDetector::hookfree (void *pdata)
 void VisualLeakDetector::hookmalloc (long request)
 {
     CallStack *callstack;
+
+    if (!enabled()) {
+        // Memory leak detection is disabled. Don't track allocations.
+        return;
+    }
 
     callstack = m_mallocmap->insert(request);
     getstacktrace(callstack);
@@ -781,7 +782,7 @@ void VisualLeakDetector::reportleaks ()
                     // don't show frames that are internal to the heap or Visual
                     // Leak Detector. There is virtually no situation where they
                     // would be useful for finding the source of the leak.
-                    if (_VLD_configflags & VLD_CONFIG_HIDE_USELESS_FRAMES) {
+                    if (!(_VLD_configflags & VLD_CONFIG_SHOW_USELESS_FRAMES)) {
                         if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                             strstr(sourceinfo.FileName, "dbgheap.c") ||
                             strstr(sourceinfo.FileName, "new.cpp") ||
