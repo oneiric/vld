@@ -201,6 +201,10 @@ SOURCE=.\vld.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\vldint.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\vldutil.h
 # End Source File
 # End Group
