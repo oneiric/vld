@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.11 2005/07/23 00:20:55 dmouldin Exp $
+//  $Id: vld.h,v 1.12 2005/07/23 03:49:07 db Exp $
 //
-//  Visual Leak Detector (Version 0.9i)
+//  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -90,8 +90,8 @@ void VLDDisable ();
 //
 
 // Configuration flags
-#define VLD_CONFIG_HIDE_USELESS_FRAMES 0x1
-#define VLD_CONFIG_START_ENABLED       0x2
+#define VLD_CONFIG_SHOW_USELESS_FRAMES 0x1
+#define VLD_CONFIG_START_DISABLED      0x2
 
 #ifndef VLDBUILD
 
@@ -119,21 +119,21 @@ unsigned long _VLD_maxtraceframes = 0xffffffff;
 // If VLD_SHOW_USELESS_FRAMES is defined, then all frames traced will be
 // displayed, even frames internal to the heap and Visual Leak Detector.
 #ifdef VLD_SHOW_USELESS_FRAMES
-#define VLD_FLAG_HIDE_USELESS_FRAMES 0x0
+#define VLD_FLAG_SHOW_USELESS_FRAMES VLD_CONFIG_SHOW_USELESS_FRAMES
 #else
-#define VLD_FLAG_HIDE_USELESS_FRAMES VLD_CONFIG_HIDE_USELESS_FRAMES
+#define VLD_FLAG_SHOW_USELESS_FRAMES 0x0
 #endif // VLD_SHOW_USELESS_FRAMES
 
 // If VLD_START_DISABLED is defined, then Visual Leak Detector will initially
 // be disabled for all threads.
 #ifdef VLD_START_DISABLED
-#define VLD_FLAG_START_ENABLED 0x0
+#define VLD_FLAG_START_DISABLED VLD_CONFIG_START_DISABLED
 #else
-#define VLD_FLAG_START_ENABLED VLD_CONFIG_START_ENABLED
+#define VLD_FLAG_START_DISABLED 0x0
 #endif // VLD_START_DISABLED
 
 // Initialize the configuration flags based on defined preprocessor macros.
-unsigned _VLD_configflags = VLD_FLAG_HIDE_USELESS_FRAMES | VLD_FLAG_START_ENABLED;
+unsigned _VLD_configflags = VLD_FLAG_SHOW_USELESS_FRAMES | VLD_FLAG_START_DISABLED;
 
 #ifdef __cplusplus
 }
