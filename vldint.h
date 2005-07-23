@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.1 2005/07/23 00:22:07 dmouldin Exp $
+//  $Id: vldint.h,v 1.2 2005/07/23 03:50:28 db Exp $
 //
-//  Visual Leak Detector (Version 0.9i)
+//  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -21,6 +21,10 @@
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+#ifndef VLDBUILD
+#error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
+#endif
 
 #ifndef _DEBUG
 #error "Visual Leak Detector requires a *debug* C runtime library (compiler option /MDd, /MLd, /MTd, or /LDd)."
@@ -73,8 +77,8 @@
 
 // Thread local status flags
 #define VLD_TLS_UNINITIALIZED 0x0 // Thread local storage for the current thread is uninitialized.
-#define VLD_TLS_DISABLED      0x1 // If set, Visual Leak Detector is disabled for the current thread.
-#define VLD_TLS_ENABLED       0x2 // If set, Visual Leak Detector is enabled for the current thread.
+#define VLD_TLS_DISABLED      0x1 // If set, memory leak detection is disabled for the current thread.
+#define VLD_TLS_ENABLED       0x2 // If set, memory leak detection is enabled for the current thread.
 
 // Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
 typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
