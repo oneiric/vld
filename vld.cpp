@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.16 2005/07/21 21:41:34 dmouldin Exp $
+//  $Id: vld.cpp,v 1.17 2005/07/23 00:18:28 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,130 +22,29 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _DEBUG
-#error "Visual Leak Detector requires a *debug* C runtime library (compiler option /MDd, /MLd, /MTd, or /LDd)."
-#endif // _DEBUG
-
 // Frame pointer omission (FPO) optimization should be turned off for this
 // entire file. The release VLD libs don't include FPO debug information, so FPO
 // optimization will interfere with stack walking.
 #pragma optimize ("y", off)
 
-// Standard headers
-#include <cstdio>
+#define VLDBUILD    // Declares that we are building Visual Leak Detector
+#include "vld.h"    // Provides common Visual Leak Detector definitions.
+#include "vldint.h" // Provides access to the Visual Leak Detector internals.
 
-// Microsoft-specific headers
-#include <windows.h>    // crtdbg.h, dbghelp.h, dbgint.h, and mtdll.h depend on this.
-#include <crtdbg.h>     // Provides heap debugging services.
-#define __out_xcount(x) // Workaround for the specstrings bug in the dbghelp.h from Debugging Tools for Windows.
-#include <dbghelp.h>    // Provides stack walking and symbol handling services.
-#define _CRTBLD         // Force dbgint.h and mtdll.h to allow us to include them, even though we're not building the C runtime library.
-#include <dbgint.h>     // Provides access to the heap internals, specifically the memory block header structure.
-#ifdef _MT
-#include <mtdll.h>      // Provides mutex locking services.
-#endif // _MT
-#undef _CRTBLD
-#include <shlwapi.h>    // Provides path/file specification services.
-#pragma comment(lib, "shlwapi.lib")
-
-// VLD-specific headers
-#define VLDBUILD        // Declares that we are building Visual Leak Detector
-#include "vldutil.h"    // Provides utility functions and classes
-
-// VLD version and library type definitions
-#define VLD_VERSION "0.9i"
-#ifdef _DLL
-#define VLD_LIBTYPE "multithreaded DLL"
-#else
-#ifdef _MT
-#define VLD_LIBTYPE "multithreaded static"
-#else
-#define VLD_LIBTYPE "single-threaded static"
-#endif // _MT
-#endif // _DLL
-
-// Architecture-specific definitions for x86 and x64
-#if defined(_M_IX86)
-#define SIZEOFPTR 4
-#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_I386
-#define AXREG eax
-#define BPREG ebp
-#elif defined(_M_X64)
-#define SIZEOFPTR 8
-#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
-#define AXREG rax
-#define BPREG rbp
-#endif // _M_IX86
-
-// Typedefs for explicit dynamic linking with functions exported from dbghelp.dll.
-typedef BOOL (__stdcall *StackWalk64_t)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64,
-                                        PFUNCTION_TABLE_ACCESS_ROUTINE64, PGET_MODULE_BASE_ROUTINE64, PTRANSLATE_ADDRESS_ROUTINE64);
-typedef PVOID (__stdcall *SymFunctionTableAccess64_t)(HANDLE, DWORD64);
-typedef DWORD64 (__stdcall *SymGetModuleBase64_t)(HANDLE, DWORD64);
-typedef BOOL (__stdcall *SymCleanup_t)(HANDLE);
-typedef BOOL (__stdcall *SymFromAddr_t)(HANDLE, DWORD64, PDWORD64, PSYMBOL_INFO);
-typedef BOOL (__stdcall *SymGetLineFromAddr64_t)(HANDLE, DWORD64, PDWORD, PIMAGEHLP_LINE64);
-typedef BOOL (__stdcall *SymInitialize_t)(HANDLE, PCTSTR, BOOL);
-typedef DWORD (__stdcall *SymSetOptions_t)(DWORD);
+// Configuration options defined in vld.h
+extern "C" unsigned long _VLD_configflags;
+extern "C" unsigned long _VLD_maxdatadump;
+extern "C" unsigned long _VLD_maxtraceframes;
 
 // Pointers to explicitly dynamically linked functions exported from dbghelp.dll.
 static StackWalk64_t              pStackWalk64;
-static SymFunctionTableAccess64_t pSymFunctionTableAccess64;
-static SymGetModuleBase64_t       pSymGetModuleBase64;
 static SymCleanup_t               pSymCleanup;
 static SymFromAddr_t              pSymFromAddr;
+static SymFunctionTableAccess64_t pSymFunctionTableAccess64;
+static SymGetModuleBase64_t       pSymGetModuleBase64;
 static SymGetLineFromAddr64_t     pSymGetLineFromAddr64;
 static SymInitialize_t            pSymInitialize;
 static SymSetOptions_t            pSymSetOptions;
-
-// Configuration options defined in vld.h
-extern "C" unsigned long _VLD_maxdatadump;
-extern "C" unsigned long _VLD_maxtraceframes;
-extern "C" unsigned char _VLD_showuselessframes;
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// The VisualLeakDetector Class
-//
-//   One global instance of this class is instantiated. Upon construction it
-//   dynamically links with the Debug Help Library and registers our allocation
-//   hook function with the debug heap. Upon destruction it checks for, and
-//   reports, memory leaks.
-//
-//   It is constructed within the context of the process' main thread during C
-//   runtime initialization and is destroyed in that same context after the
-//   process has returned from its main function.
-//
-class VisualLeakDetector
-{
-public:
-    VisualLeakDetector();
-    ~VisualLeakDetector();
-
-private:
-    // Private Helper Functions - see each function definition for details.
-    static int allochook (int type, void *pdata, size_t size, int use, long request, const unsigned char *file, int line);
-    void buildsymbolsearchpath ();
-    void dumpuserdatablock (_CrtMemBlockHeader *pheader);
-#if defined(_M_IX86) || defined(_M_X64)
-    DWORD_PTR getprogramcounterx86x64 ();
-#endif // defined(_M_IX86) || defined(_M_X64)
-    inline void getstacktrace (CallStack *callstack);
-    inline void hookfree (void *pdata);
-    inline void hookmalloc (long request);
-    inline void hookrealloc (void *pdata, long request);
-    bool linkdebughelplibrary ();
-    void report (const char *format, ...);
-    void reportleaks ();
-
-    // Private Data
-    bool             m_installed;  // Flag indicating whether or not VLD was successfully installed
-    BlockMap        *m_mallocmap;  // Map of allocated memory blocks
-    _CRT_ALLOC_HOOK  m_poldhook;   // Pointer to the previously installed allocation hook function
-    HANDLE           m_process;    // Handle to the current process - required for obtaining stack traces
-    char            *m_symbolpath; // String containing the symbol search path for the symbol handler
-    HANDLE           m_thread;     // Pseudo-handle meaning "current thread" - required for obtaining stack traces
-};
 
 // The one and only VisualLeakDetector object instance. This is placed in the
 // "compiler" initialization area, so that it gets constructed during C runtime
@@ -164,19 +63,27 @@ VisualLeakDetector::VisualLeakDetector ()
     // Initialize private data.
     m_mallocmap  = new BlockMap;
     m_process    = GetCurrentProcess();
-    m_symbolpath = NULL;
+    m_status     = 0x0;
     m_thread     = GetCurrentThread();
+    m_tlsindex   = TlsAlloc();
 
-    if (linkdebughelplibrary()) {
+    if (m_tlsindex == TLS_OUT_OF_INDEXES) {
+        report("ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n");
+    }
+    else if (linkdebughelplibrary()) {
         // Register our allocation hook function with the debug heap.
         m_poldhook = _CrtSetAllocHook(allochook);
         report("Visual Leak Detector Version "VLD_VERSION" installed ("VLD_LIBTYPE").\n");
-        m_installed = true;
+        if (!(_VLD_configflags & VLD_CONFIG_START_ENABLED)) {
+            // Memory leak detection will initially be disabled.
+            m_status |= VLD_STATUS_NEVER_ENABLED;
+        }
+        m_status |= VLD_STATUS_INSTALLED;
+        return;
     }
-    else {
-        report("Visual Leak Detector IS NOT installed!\n");
-        m_installed = false;
-    }
+    
+    report("Visual Leak Detector IS NOT installed!\n");
+    m_status |= VLD_STATUS_INSTALLED;
 }
 
 // Destructor - Unhooks the hook function and outputs a memory leak report.
@@ -187,7 +94,10 @@ VisualLeakDetector::~VisualLeakDetector ()
     char               *pheap;
     _CRT_ALLOC_HOOK     pprevhook;
 
-    if (m_installed) {
+    if (m_status & VLD_STATUS_INSTALLED) {
+#ifdef _MT
+        _mlock(_HEAP_LOCK);
+#endif // _MT
         // Deregister the hook function.
         pprevhook = _CrtSetAllocHook(m_poldhook);
         if (pprevhook != allochook) {
@@ -198,16 +108,16 @@ VisualLeakDetector::~VisualLeakDetector ()
                    "    There's a good possibility that any potential leaks have gone undetected!\n");
         }
 
-        // Report any leaks that we find.
-        reportleaks();
-
-#ifdef _MT
-        _mlock(_HEAP_LOCK);
-#endif // _MT
+        if (m_status & VLD_STATUS_NEVER_ENABLED) {
+            report("WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
+        }
+        else {
+            // Report any leaks that we find.
+            reportleaks();
+        }
 
         // Free internally allocated resources.
         delete m_mallocmap;
-        delete [] m_symbolpath;
 
         // Do a memory leak self-check.
         pheap = new char;
@@ -287,10 +197,13 @@ int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, 
     static bool inallochook = false;
     int         status = true;
 
+    if (!visualleakdetector.enabled()) {
+        return true;
+    }
+
     if (inallochook || (use == _CRT_BLOCK)) {
         // Prevent the current thread from re-entering on allocs/reallocs/frees
-        // that we or the CRT do internally to record the data we are
-        // collecting.
+        // that we or the CRT do internally to record the data we collect.
         if (visualleakdetector.m_poldhook) {
             status = visualleakdetector.m_poldhook(type, pdata, size, use, request, file, line);
         }
@@ -333,9 +246,10 @@ int VisualLeakDetector::allochook (int type, void *pdata, size_t size, int use, 
 //
 //  Return Value:
 //
-//    None. The resulting path is stored in m_symbolpath.
+//    Returns a string containing the search path. The caller is responsible for
+//    freeing the string.
 //
-void VisualLeakDetector::buildsymbolsearchpath ()
+char* VisualLeakDetector::buildsymbolsearchpath ()
 {
     char       *env;
     size_t      index;
@@ -343,10 +257,6 @@ void VisualLeakDetector::buildsymbolsearchpath ()
     HMODULE     module;
     char       *path = new char [MAX_PATH];
     size_t      pos = 0;
-
-    if (m_symbolpath) {
-        delete [] m_symbolpath;
-    }
 
     // The documentation says that executables with associated program database
     // (PDB) files have the absolute path to the PDB embedded in them and that,
@@ -400,7 +310,7 @@ void VisualLeakDetector::buildsymbolsearchpath ()
         pos++;
     }
 
-    m_symbolpath = path;
+    return path;
 }
 
 // dumpuserdatablock - Dumps a nicely formatted rendition of the user-data
@@ -482,6 +392,34 @@ void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
             }
         }
     }
+}
+
+// enabled - Determines if memory leak detection is enabled for the current
+//   thread.
+//
+//  Return Value:
+//
+//    Returns true if Visual Leak Detector is enabled for the current thread.
+//    Otherwise, the function returns false.
+//
+bool VisualLeakDetector::enabled ()
+{
+    unsigned long status;
+
+    status = (unsigned long)TlsGetValue(m_tlsindex);
+    if (status == VLD_TLS_UNINITIALIZED) {
+        // TLS is uninitialized for the current thread. Use the initial state.
+        if (_VLD_configflags & VLD_CONFIG_START_ENABLED) {
+            status = VLD_TLS_ENABLED;
+        }
+        else {
+            status = VLD_TLS_DISABLED;
+        }
+        // Initialize TLS for this thread.
+        TlsSetValue(m_tlsindex, (LPVOID)status);
+    }
+
+    return (status & VLD_TLS_ENABLED) ? true : false;
 }
 
 // getprogramcounterx86x64 - Helper function that retrieves the program counter
@@ -752,12 +690,13 @@ void VisualLeakDetector::report (const char *format, ...)
 //
 //   By default, only "useful" frames are displayed in the Callstack section of
 //   each memory block report. By "useful" we mean frames that are not internal
-//   to the heap or Visual Leak Detector. However, if _VLD_showuselessframes is
-//   non-zero, then all frames will be shown. If the source file information for
-//   a frame cannot be found, then the frame will be displayed regardless of the
-//   state of _VLD_showuselessframes (this is because the useless frames are
-//   identified by the source file). In most cases, the symbols for the heap
-//   internals should be available so this should rarely, if ever, be a problem.
+//   to the heap or Visual Leak Detector. However, if the "show useless frames"
+//   option is enabled, then all frames will be shown. If the source file
+//   information for a frame cannot be found, then the frame will be displayed
+//   regardless of the state of the "show useless frames" option (this is
+//   because the useless frames are identified by the source file). In most
+//   cases, the symbols for the heap internals should be available so this
+//   should rarely, if ever, be a problem.
 //
 //   For each leaked memory block, the Callstack section of the report is
 //   followed by a dump of the user-data section of the memory block.
@@ -782,6 +721,7 @@ void VisualLeakDetector::reportleaks ()
 #define MAXSYMBOLNAMELENGTH 256
 #define SYMBOLBUFFERSIZE (sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(TCHAR)) - 1)
     unsigned char       symbolbuffer [SYMBOLBUFFERSIZE];
+    char               *symbolpath;
 
     // Initialize structures passed to the symbol handler.
     pfunctioninfo = (SYMBOL_INFO*)symbolbuffer;
@@ -793,12 +733,13 @@ void VisualLeakDetector::reportleaks ()
 
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
-    buildsymbolsearchpath();
+    symbolpath = buildsymbolsearchpath();
     pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
-    if (!pSymInitialize(m_process, m_symbolpath, TRUE)) {
+    if (!pSymInitialize(m_process, symbolpath, TRUE)) {
         report("WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
                "    Stack traces will probably not be available for leaked blocks.\n", GetLastError());
     }
+    delete [] symbolpath;
 
     // We employ a simple trick here to get a pointer to the first allocated
     // block: just allocate a new block and get the new block's memory header.
@@ -836,11 +777,11 @@ void VisualLeakDetector::reportleaks ()
                 // Try to get the source file and line number associated with
                 // this program counter address.
                 if ((foundline = pSymGetLineFromAddr64(m_process, (*callstack)[frame], &displacement, &sourceinfo)) == TRUE) {
-                    // Unless _VLD_showuselessframes has been toggled, don't
-                    // show frames that are internal to the heap or Visual Leak
-                    // Detector. There is virtually no situation where they
+                    // Unless the "show useless frames" option has been enabled,
+                    // don't show frames that are internal to the heap or Visual
+                    // Leak Detector. There is virtually no situation where they
                     // would be useful for finding the source of the leak.
-                    if (!_VLD_showuselessframes) {
+                    if (_VLD_configflags & VLD_CONFIG_HIDE_USELESS_FRAMES) {
                         if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                             strstr(sourceinfo.FileName, "dbgheap.c") ||
                             strstr(sourceinfo.FileName, "new.cpp") ||
@@ -870,11 +811,9 @@ void VisualLeakDetector::reportleaks ()
             }
 
             // Dump the data in the user data section of the memory block.
-            if (_VLD_maxdatadump == 0) {
-                pheader = pheader->pBlockHeaderNext;
-                continue;
+            if (_VLD_maxdatadump != 0) {
+                dumpuserdatablock(pheader);
             }
-            dumpuserdatablock(pheader);
             report("\n");
         }
         pheader = pheader->pBlockHeaderNext;
@@ -896,4 +835,33 @@ void VisualLeakDetector::reportleaks ()
     if (!pSymCleanup(m_process)) {
         report("WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Visual Leak Detector APIs - see vld.h for each function's details
+//
+
+void VLDEnable ()
+{
+    if (visualleakdetector.enabled()) {
+        // Already enabled for the current thread.
+        return;
+    }
+
+    // Enable memory leak detection for the current thread.
+    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_ENABLED);
+    visualleakdetector.m_status &= ~VLD_STATUS_NEVER_ENABLED;
+}
+
+void VLDDisable ()
+{
+    if (!visualleakdetector.enabled()) {
+        // Already disabled for the current thread.
+        return;
+    }
+
+    // Disable memory leak detection for the current thread.
+    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_DISABLED);
 }
