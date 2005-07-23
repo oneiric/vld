@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.2 2005/07/23 03:50:28 db Exp $
+//  $Id: vldint.h,v 1.3 2005/07/23 21:31:18 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -128,6 +128,7 @@ private:
     void reportleaks ();
 
     // Private Data
+    HMODULE          m_dbghelp;      // Handle to the Debug Help Library.
     BlockMap        *m_mallocmap;    // Map of allocated memory blocks
     _CRT_ALLOC_HOOK  m_poldhook;     // Pointer to the previously installed allocation hook function
     HANDLE           m_process;      // Handle to the current process - required for obtaining stack traces

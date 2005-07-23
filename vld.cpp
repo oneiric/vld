@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.18 2005/07/23 03:48:02 db Exp $
+//  $Id: vld.cpp,v 1.19 2005/07/23 21:31:00 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -83,7 +83,6 @@ VisualLeakDetector::VisualLeakDetector ()
     }
     
     report("Visual Leak Detector IS NOT installed!\n");
-    m_status |= VLD_STATUS_INSTALLED;
 }
 
 // Destructor - Unhooks the hook function and outputs a memory leak report.
@@ -94,10 +93,11 @@ VisualLeakDetector::~VisualLeakDetector ()
     char               *pheap;
     _CRT_ALLOC_HOOK     pprevhook;
 
-    if (m_status & VLD_STATUS_INSTALLED) {
 #ifdef _MT
         _mlock(_HEAP_LOCK);
 #endif // _MT
+
+    if (m_status & VLD_STATUS_INSTALLED) {
         // Deregister the hook function.
         pprevhook = _CrtSetAllocHook(m_poldhook);
         if (pprevhook != allochook) {
@@ -118,32 +118,35 @@ VisualLeakDetector::~VisualLeakDetector ()
             reportleaks();
         }
 
-        // Free internally allocated resources.
-        delete m_mallocmap;
+        // Unload the Debug Help Library.
+        FreeLibrary(m_dbghelp);
+    }
 
-        // Do a memory leak self-check.
-        pheap = new char;
-        pheader = pHdr(pheap)->pBlockHeaderNext;
-        delete pheap;
-        while (pheader) {
-            if (_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) {
-                // Doh! VLD still has an internally allocated block!
-                // This won't ever actually happen, right guys?... guys?
-                report("ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
-                report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
-                report("%s (%d): Full call stack not available.\n", pheader->szFileName, pheader->nLine);
-                dumpuserdatablock(pheader);
-                report("\n");
-            }
-            pheader = pheader->pBlockHeaderNext;
+    // Free internally allocated resources.
+    delete m_mallocmap;
+
+    // Do a memory leak self-check.
+    pheap = new char;
+    pheader = pHdr(pheap)->pBlockHeaderNext;
+    delete pheap;
+    while (pheader) {
+        if (_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) {
+            // Doh! VLD still has an internally allocated block!
+            // This won't ever actually happen, right guys?... guys?
+            report("ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
+            report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
+            report("%s (%d): Full call stack not available.\n", pheader->szFileName, pheader->nLine);
+            dumpuserdatablock(pheader);
+            report("\n");
         }
+        pheader = pheader->pBlockHeaderNext;
+    }
 
 #ifdef _MT
         _munlock(_HEAP_LOCK);
 #endif // _MT
 
-        report("Visual Leak Detector is now exiting.\n");
-    }
+    report("Visual Leak Detector is now exiting.\n");
 }
 
 // allochook - This is a hook function that is installed into Microsoft's
@@ -599,51 +602,50 @@ void VisualLeakDetector::hookrealloc (void *pdata, long request)
 //
 bool VisualLeakDetector::linkdebughelplibrary ()
 {
-    HINSTANCE  dbghelp;
     char      *functionname;
     bool       status = true;
 
     // Load dbghelp.dll, and obtain pointers to the exported functions that we
     // will be using.
-    dbghelp = LoadLibrary("dbghelp.dll");
-    if (dbghelp) {
+    m_dbghelp = LoadLibrary("dbghelp.dll");
+    if (m_dbghelp) {
         functionname = "StackWalk64";
-        pStackWalk64 = (StackWalk64_t)GetProcAddress(dbghelp, functionname);
+        pStackWalk64 = (StackWalk64_t)GetProcAddress(m_dbghelp, functionname);
         if (pStackWalk64 == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymFunctionTableAccess64";
-        pSymFunctionTableAccess64 = (SymFunctionTableAccess64_t)GetProcAddress(dbghelp, functionname);
+        pSymFunctionTableAccess64 = (SymFunctionTableAccess64_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymFunctionTableAccess64 == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymGetModuleBase64";
-        pSymGetModuleBase64 = (SymGetModuleBase64_t)GetProcAddress(dbghelp, functionname);
+        pSymGetModuleBase64 = (SymGetModuleBase64_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymGetModuleBase64 == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymCleanup";
-        pSymCleanup = (SymCleanup_t)GetProcAddress(dbghelp, functionname);
+        pSymCleanup = (SymCleanup_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymCleanup == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymFromAddr";
-        pSymFromAddr = (SymFromAddr_t)GetProcAddress(dbghelp, functionname);
+        pSymFromAddr = (SymFromAddr_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymFromAddr == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymGetLineFromAddr64";
-        pSymGetLineFromAddr64 = (SymGetLineFromAddr64_t)GetProcAddress(dbghelp, functionname);
+        pSymGetLineFromAddr64 = (SymGetLineFromAddr64_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymGetLineFromAddr64 == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymInitialize";
-        pSymInitialize = (SymInitialize_t)GetProcAddress(dbghelp, functionname);
+        pSymInitialize = (SymInitialize_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymInitialize == NULL) {
             goto getprocaddressfailure;
         }
         functionname = "SymSetOptions";
-        pSymSetOptions = (SymSetOptions_t)GetProcAddress(dbghelp, functionname);
+        pSymSetOptions = (SymSetOptions_t)GetProcAddress(m_dbghelp, functionname);
         if (pSymSetOptions == NULL) {
             goto getprocaddressfailure;
         }
