@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.10 2005/07/21 21:55:58 dmouldin Exp $
+//  $Id: vld.h,v 1.11 2005/07/23 00:20:55 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 0.9i)
 //  Copyright (c) 2005 Dan Moulding
@@ -27,28 +27,73 @@
 
 #ifdef _DEBUG
 
-// Link with the appropriate Visual Leak Detector library. One of: multithreaded
-// DLL, multithreaded static, or single threaded. All three link with debug
-// versions of the CRT.
-#ifdef _DLL
-#pragma comment (lib, "vldmtdll.lib")
-#else
-#ifdef _MT
-#pragma comment (lib, "vldmt.lib")
-#else
-#pragma comment (lib, "vld.lib")
-#endif // _MT 
-#endif // _DLL
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Visual Leak Detector APIs
+//
 
-// Force a symbolic reference to the global VisualLeakDetector class object from
-// the library. This enusres that the object is linked with the program, even
-// though nobody directly references it outside of the library.
-#pragma comment(linker, "/include:?visualleakdetector@@3VVisualLeakDetector@@A")
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+// VLDEnable - Enables Visual Leak Detector's memory leak detection at runtime.
+//   If memory leak detection is already enabled, which it is by default, then
+//   calling this function has no effect.
+//
+//  Note: In multithreaded programs, this function operates on a per-thread
+//    basis. In other words, if you call this function from one thread, then
+//    memory leak detection is only enabled for that thread. If memory leak
+//    detection is disabled for other threads, then it will remain disabled for
+//    those other threads. It was designed to work this way to insulate you,
+//    the programmer, from having to ensure thread synchronization when calling
+//    VLDEnable() and VLDDisable(). Without this, calling these two functions
+//    unsychronized could result in unpredictable and unintended behavior.
+//    But this also means that if you want to enable memory leak detection
+//    process-wide, then you need to call this function from every thread in
+//    the process.
+//
+//  Return Value:
+//
+//    None.
+//
+void VLDEnable ();
+
+// VLDDisable - Disables Visual Leak Detector's memory leak detection at
+//   runtime. If memory leak detection is already disabled, then calling this
+//   function has no effect.
+//
+//  Note: In multithreaded programs, this function operates on a per-thread
+//    basis. In other words, if you call this function from one thread, then
+//    memory leak detection is only disabled for that thread. If memory leak
+//    detection is enabled for other threads, then it will remain enabled for
+//    those other threads. It was designed to work this way to insulate you,
+//    the programmer, from having to ensure thread synchronization when calling
+//    VLDEnable() and VLDDisable(). Without this, calling these two functions
+//    unsychronized could result in unpredictable and unintended behavior.
+//    But this also means that if you want to disable memory leak detection
+//    process-wide, then you need to call this function from every thread in
+//    the process.
+//
+//  Return Value:
+//
+//    None.
+//
+void VLDDisable ();
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Configuration Options
+//  Configuration Options
 //
+
+// Configuration flags
+#define VLD_CONFIG_HIDE_USELESS_FRAMES 0x1
+#define VLD_CONFIG_START_ENABLED       0x2
+
+#ifndef VLDBUILD
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,14 +119,50 @@ unsigned long _VLD_maxtraceframes = 0xffffffff;
 // If VLD_SHOW_USELESS_FRAMES is defined, then all frames traced will be
 // displayed, even frames internal to the heap and Visual Leak Detector.
 #ifdef VLD_SHOW_USELESS_FRAMES
-unsigned char _VLD_showuselessframes = 0x1;
-#else 
-unsigned char _VLD_showuselessframes = 0x0;
+#define VLD_FLAG_HIDE_USELESS_FRAMES 0x0
+#else
+#define VLD_FLAG_HIDE_USELESS_FRAMES VLD_CONFIG_HIDE_USELESS_FRAMES
 #endif // VLD_SHOW_USELESS_FRAMES
+
+// If VLD_START_DISABLED is defined, then Visual Leak Detector will initially
+// be disabled for all threads.
+#ifdef VLD_START_DISABLED
+#define VLD_FLAG_START_ENABLED 0x0
+#else
+#define VLD_FLAG_START_ENABLED VLD_CONFIG_START_ENABLED
+#endif // VLD_START_DISABLED
+
+// Initialize the configuration flags based on defined preprocessor macros.
+unsigned _VLD_configflags = VLD_FLAG_HIDE_USELESS_FRAMES | VLD_FLAG_START_ENABLED;
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Linker Directives
+//
+
+// Link with the appropriate Visual Leak Detector library. One of: multithreaded
+// DLL, multithreaded static, or single threaded. All three link with debug
+// versions of the CRT.
+#ifdef _DLL
+#pragma comment (lib, "vldmtdll.lib")
+#else
+#ifdef _MT
+#pragma comment (lib, "vldmt.lib")
+#else
+#pragma comment (lib, "vld.lib")
+#endif // _MT 
+#endif // _DLL
+
+// Force a symbolic reference to the global VisualLeakDetector class object from
+// the library. This enusres that the object is linked with the program, even
+// though nobody directly references it outside of the library.
+#pragma comment(linker, "/include:?visualleakdetector@@3VVisualLeakDetector@@A")
+
+#endif // VLDBUILD
 
 #endif // _DEBUG
 
