@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.19 2005/07/23 21:31:00 db Exp $
+//  $Id: vld.cpp,v 1.20 2005/07/25 22:40:04 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -326,7 +326,7 @@ char* VisualLeakDetector::buildsymbolsearchpath ()
 //
 //    None.
 //
-void VisualLeakDetector::dumpuserdatablock (_CrtMemBlockHeader *pheader)
+void VisualLeakDetector::dumpuserdatablock (const _CrtMemBlockHeader *pheader)
 {
     char          ascdump [18] = {0};
     size_t        ascindex;
@@ -419,6 +419,60 @@ bool VisualLeakDetector::enabled ()
     }
 
     return (status & VLD_TLS_ENABLED) ? true : false;
+}
+
+// eraseduplicates - Erases, from the block map, blocks that appear to be
+//   duplicate leaks of an already identified leak. This is used to avoid
+//   finding duplicate leaks when running the leak report with the "aggregate
+//   duplicates" feature turned on.
+//
+//  - pheader (IN): Pointer to the memory block header on the allocated list
+//      from which to start searching for duplicates. Presumably, any duplicates
+//      prior to this entry would already have been erased.
+//
+//  - size (IN): The size of the block for which to find duplicates. Blocks with
+//      a different size will not be considered duplicates, even if the call
+//      stack is identical.
+//
+//  - callstack (IN): Pointer to the CallStack of the block for which to search
+//      for duplicates. Blocks with both matching size and call stack will be
+//      considered duplicates and will be erased.
+//
+//  Return Value:
+//
+//    Returns the number of duplicate blocks erased from the block map.
+//
+unsigned long VisualLeakDetector::eraseduplicates (const _CrtMemBlockHeader *pheader, size_t size, const CallStack *callstack)
+{
+    unsigned long  erased = 0;
+    CallStack     *target;
+
+#ifdef _MT
+    _mlock(_HEAP_LOCK);
+#endif // _MT
+
+    // Walk the allocated list, starting from the indicated block, looking for
+    // other blocks with the same size and call stack as those specified.
+    while (pheader) {
+        if ((_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) || (pheader->nDataSize != size)) {
+            // Skip internally allocated blocks and blocks of different sizes.
+            pheader = pheader->pBlockHeaderNext;
+            continue;
+        }
+        target = m_mallocmap->find(pheader->lRequest);
+        if (target && ((*target) == (*callstack))) {
+            // We've found a duplicate. Erase it.
+            m_mallocmap->erase(pheader->lRequest);
+            erased++;
+        }
+        pheader = pheader->pBlockHeaderNext;
+    }
+
+#ifdef _MT
+    _munlock(_HEAP_LOCK);
+#endif // _MT
+
+    return erased;
 }
 
 // getprogramcounterx86x64 - Helper function that retrieves the program counter
@@ -524,7 +578,7 @@ void VisualLeakDetector::getstacktrace (CallStack *callstack)
 //
 //    None.
 //
-void VisualLeakDetector::hookfree (void *pdata)
+void VisualLeakDetector::hookfree (const void *pdata)
 {
     long request = pHdr(pdata)->lRequest;
 
@@ -575,7 +629,7 @@ void VisualLeakDetector::hookmalloc (long request)
 //
 //    None.
 //
-void VisualLeakDetector::hookrealloc (void *pdata, long request)
+void VisualLeakDetector::hookrealloc (const void *pdata, long request)
 {
     // Do a free, then do a malloc.
     hookfree(pdata);
@@ -713,6 +767,7 @@ void VisualLeakDetector::reportleaks ()
     CallStack          *callstack;
     DWORD               displacement;
     DWORD64             displacement64;
+    unsigned long       duplicates;
     BOOL                foundline;
     unsigned long       frame;
     char               *functionname;
@@ -773,6 +828,15 @@ void VisualLeakDetector::reportleaks ()
             }
             leaksfound++;
             report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
+            if (_VLD_configflags & VLD_CONFIG_AGGREGATE_DUPLICATES) {
+                // Aggregate all other leaks which are duplicates of this one
+                // under this same heading, to cut down on clutter.
+                duplicates = eraseduplicates(pheader->pBlockHeaderNext, pheader->nDataSize, callstack);
+                if (duplicates) {
+                    report("A total of %lu leaks match this size and call stack. Showing only the first one.\n", duplicates + 1);
+                    leaksfound += duplicates;
+                }
+            }
             report("  Call Stack:\n");
 
             // Iterate through each frame in the call stack.
