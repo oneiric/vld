@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.3 2005/07/23 21:31:18 db Exp $
+//  $Id: vldint.h,v 1.4 2005/07/25 22:41:27 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -114,15 +114,16 @@ private:
     // Private Helper Functions - see each function definition for details.
     static int allochook (int type, void *pdata, size_t size, int use, long request, const unsigned char *file, int line);
     char* buildsymbolsearchpath ();
-    void dumpuserdatablock (_CrtMemBlockHeader *pheader);
+    void dumpuserdatablock (const _CrtMemBlockHeader *pheader);
     inline bool enabled ();
+    unsigned long eraseduplicates (const _CrtMemBlockHeader *pheader, size_t size, const CallStack *callstack);
 #if defined(_M_IX86) || defined(_M_X64)
     DWORD_PTR getprogramcounterx86x64 ();
 #endif // defined(_M_IX86) || defined(_M_X64)
     inline void getstacktrace (CallStack *callstack);
-    inline void hookfree (void *pdata);
+    inline void hookfree (const void *pdata);
     inline void hookmalloc (long request);
-    inline void hookrealloc (void *pdata, long request);
+    inline void hookrealloc (const void *pdata, long request);
     bool linkdebughelplibrary ();
     void report (const char *format, ...);
     void reportleaks ();
