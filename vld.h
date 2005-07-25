@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.12 2005/07/23 03:49:07 db Exp $
+//  $Id: vld.h,v 1.13 2005/07/25 22:40:35 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -90,14 +90,26 @@ void VLDDisable ();
 //
 
 // Configuration flags
-#define VLD_CONFIG_SHOW_USELESS_FRAMES 0x1
-#define VLD_CONFIG_START_DISABLED      0x2
+#define VLD_CONFIG_AGGREGATE_DUPLICATES 0x1
+#define VLD_CONFIG_SHOW_USELESS_FRAMES  0x2
+#define VLD_CONFIG_START_DISABLED       0x4
 
 #ifndef VLDBUILD
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+// If VLD_AGGREGATE_DUPLICATES is defined, then duplicated leaks (those that
+// have the same size and call stack as a previously identified leak) are not
+// shown in detail in the memory leak report. Instead, only a count of the
+// number of matching duplicate leaks is shown along with the detailed
+// information from the first such leak encountered.
+#ifdef VLD_AGGREGATE_DUPLICATES
+#define VLD_FLAG_AGGREGATE_DUPLICATES VLD_CONFIG_AGGREGATE_DUPLICATES
+#else
+#define VLD_FLAG_AGGREGATE_DUPLICATES 0x0
+#endif // VLD_AGGREGATE_DUPLICATES
 
 // If VLD_MAX_DATA_DUMP is defined, then the amount of data shown in user-data
 // memory dumps will be limited to the specified number of bytes.
@@ -133,7 +145,7 @@ unsigned long _VLD_maxtraceframes = 0xffffffff;
 #endif // VLD_START_DISABLED
 
 // Initialize the configuration flags based on defined preprocessor macros.
-unsigned _VLD_configflags = VLD_FLAG_SHOW_USELESS_FRAMES | VLD_FLAG_START_DISABLED;
+unsigned _VLD_configflags = VLD_FLAG_AGGREGATE_DUPLICATES | VLD_FLAG_SHOW_USELESS_FRAMES | VLD_FLAG_START_DISABLED;
 
 #ifdef __cplusplus
 }
