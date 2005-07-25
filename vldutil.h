@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.13 2005/07/23 03:51:13 db Exp $
+//  $Id: vldutil.h,v 1.14 2005/07/25 22:44:01 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -186,10 +186,11 @@ public:
     ~CallStack ();
 
     // Public APIs - see each function definition for details.
+    bool operator == (const CallStack &target);
     DWORD_PTR operator [] (unsigned long index);
 
     void clear ();
-    void push_back (DWORD_PTR programcounter);
+    void push_back (const DWORD_PTR programcounter);
     unsigned long size ();
 
 private:

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.10 2005/07/23 03:50:54 db Exp $
+//  $Id: vldutil.cpp,v 1.11 2005/07/25 22:43:29 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -588,6 +588,47 @@ CallStack::~CallStack ()
     }
 }
 
+// operator == - Equality operator. Compares the CallStack to another CallStack
+//   for equality. Two CallStacks are equal if they are the same size and if
+//   every frame in each is identical to the corresponding frame in the other.
+//
+//  target (IN) - Reference to the CallStack to compare the current CallStack
+//    against for equality.
+//
+//  Return Value:
+//
+//    Returns true if the two CallStacks are equal. Otherwise returns false.
+//
+bool CallStack::operator == (const CallStack &target)
+{
+    CallStack::Chunk       *chunk = &m_store;
+    unsigned long           index;
+    CallStack::Chunk       *prevchunk = NULL;
+    const CallStack::Chunk *targetchunk = &target.m_store;
+
+    if (m_size != target.m_size) {
+        // They can't be equal if the sizes are different.
+        return false;
+    }
+
+    // Walk the chunk list and within each chunk walk the frames array until we
+    // either find a mismatch, or until we reach the end of the call stacks.
+    while (prevchunk != m_topchunk) {
+        for (index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
+            if (chunk->frames[index] != targetchunk->frames[index]) {
+                // Found a mismatch. They are not equal.
+                return false;
+            }
+        }
+        prevchunk = chunk;
+        chunk = chunk->next;
+        targetchunk = targetchunk->next;
+    }
+
+    // Reached the end of the call stacks. They are equal.
+    return true;
+}
+
 // operator [] - Random access operator. Retrieves the frame at the specified
 //   index.
 //
@@ -649,7 +690,7 @@ void CallStack::clear ()
 //
 //    None.
 //
-void CallStack::push_back (DWORD_PTR programcounter)
+void CallStack::push_back (const DWORD_PTR programcounter)
 {
     CallStack::Chunk *chunk;
 
