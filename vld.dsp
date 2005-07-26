@@ -189,6 +189,10 @@ SOURCE=.\vld.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\vldapi.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\vldutil.cpp
 # End Source File
 # End Group
@@ -198,6 +202,10 @@ SOURCE=.\vldutil.cpp
 # Begin Source File
 
 SOURCE=.\vld.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\vldapi.h
 # End Source File
 # Begin Source File
 
