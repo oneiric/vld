@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.5 2005/07/26 21:50:28 dmouldin Exp $
+//  $Id: vldint.h,v 1.6 2005/07/26 23:03:44 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
+//  Visual Leak Detector (Version 1.0 RC1)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -54,7 +54,7 @@
 #include "vldutil.h"    // Provides utility functions and classes
 
 // VLD version and library type definitions
-#define VLD_VERSION "1.0"
+#define VLD_VERSION "1.0 RC1"
 #ifdef _DLL
 #define VLD_LIBTYPE "multithreaded DLL"
 #else

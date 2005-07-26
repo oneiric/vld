@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.2 2005/07/26 22:30:06 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.3 2005/07/26 23:03:09 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
+//  Visual Leak Detector (Version 1.0 RC1)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify

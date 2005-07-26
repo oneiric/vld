@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.14 2005/07/26 21:47:32 dmouldin Exp $
+//  $Id: vld.h,v 1.15 2005/07/26 23:02:57 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
+//  Visual Leak Detector (Version 1.0 RC1)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
