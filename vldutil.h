@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.14 2005/07/25 22:44:01 dmouldin Exp $
+//  $Id: vldutil.h,v 1.15 2005/07/26 22:28:32 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,8 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _VLDUTIL_H_
-#define _VLDUTIL_H_
+#pragma once
 
 #ifndef VLDBUILD
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
@@ -131,7 +130,7 @@ inline static void operator delete[] (void *p, char *file, int line)
 //   to the underlying heap functions to avoid asserts that will occur if the
 //   type passed in (which for the default delete operators is _NORMAL_BLOCK)
 //   does not match the block's type (which for VLD's internal blocks is
-//   _CLIENT_BLOCK bitwise-OR'd with a VLD-specific subtype identifier).
+//   _CRT_BLOCK bitwise-OR'd with a VLD-specific subtype identifier).
 //
 //  - p (IN): Pointer to the user-data section of the memory block to be freed.
 //
@@ -303,5 +302,3 @@ private:
     BlockMap::Chunk      m_store;      // The underlying data store (grows as needed)
     BlockMap::Chunk     *m_storetail;  // Pointer to the end of the underlying data store (i.e. tail of the Chunk list)
 };
-
-#endif // _VLDUTIL_H_
