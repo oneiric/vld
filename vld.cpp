@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.20 2005/07/25 22:40:04 dmouldin Exp $
+//  $Id: vld.cpp,v 1.21 2005/07/26 21:45:16 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -902,33 +902,4 @@ void VisualLeakDetector::reportleaks ()
     if (!pSymCleanup(m_process)) {
         report("WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
     }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Visual Leak Detector APIs - see vld.h for each function's details
-//
-
-void VLDEnable ()
-{
-    if (visualleakdetector.enabled()) {
-        // Already enabled for the current thread.
-        return;
-    }
-
-    // Enable memory leak detection for the current thread.
-    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_ENABLED);
-    visualleakdetector.m_status &= ~VLD_STATUS_NEVER_ENABLED;
-}
-
-void VLDDisable ()
-{
-    if (!visualleakdetector.enabled()) {
-        // Already disabled for the current thread.
-        return;
-    }
-
-    // Disable memory leak detection for the current thread.
-    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_DISABLED);
 }
