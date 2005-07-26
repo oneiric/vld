@@ -1,7 +1,17 @@
-Visual Leak Detector (Version 0.9i)
+Visual Leak Detector (Version 1.0 RC1)
 
   Enhanced Memory Leak Detection for Visual C++
 
+Special Notice:
+---------------
+This version of Visual Leak Detector is a release candidate build. This release
+candidate contains several bug fixes and a few new features. This version of
+the README.txt file has not been updated to reflect bug fixes and new features
+in this release. In other words, there are new features in this release that
+you won't find documented here. If you need the latest documentation, then you
+should obtain the official Visual Leak Detector 1.0 release as soon as it is
+made publicly available for download. Or if you have questions, please send them
+to me, the author, at dmoulding@gmail.com. Thanks!
 
 About Visual Leak Detector:
 ---------------------------
