@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.1 2005/07/26 21:48:13 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.2 2005/07/26 22:30:06 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -30,7 +30,7 @@ extern VisualLeakDetector visualleakdetector;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  Visual Leak Detector APIs - see vld.h for each function's details
+//  Visual Leak Detector APIs - see vldapi.h for each function's details
 //
 
 void VLDEnable ()
