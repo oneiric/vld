@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.4 2005/07/25 22:41:27 dmouldin Exp $
+//  $Id: vldint.h,v 1.5 2005/07/26 21:50:28 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,6 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #ifndef VLDBUILD
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
 #endif
@@ -36,7 +38,7 @@
 // Microsoft-specific headers
 #include <windows.h>    // crtdbg.h, dbghelp.h, dbgint.h, and mtdll.h depend on this.
 #include <crtdbg.h>     // Provides heap debugging services.
-#define __out_xcount(x) // Workaround for the specstrings bug in the dbghelp.h from Debugging Tools for Windows.
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK
 #include <dbghelp.h>    // Provides stack walking and symbol handling services.
 #define _CRTBLD         // Force dbgint.h and mtdll.h to allow us to include them, even though we're not building the C runtime library.
 #include <dbgint.h>     // Provides access to the heap internals, specifically the memory block header structure.
@@ -48,6 +50,7 @@
 #pragma comment(lib, "shlwapi.lib")
 
 // VLD-specific headers
+#include "vldapi.h"     // Declares the Visual Leak Detector APIs
 #include "vldutil.h"    // Provides utility functions and classes
 
 // VLD version and library type definitions
@@ -129,7 +132,7 @@ private:
     void reportleaks ();
 
     // Private Data
-    HMODULE          m_dbghelp;      // Handle to the Debug Help Library.
+    HMODULE          m_dbghelp;      // Handle to the Debug Help Library
     BlockMap        *m_mallocmap;    // Map of allocated memory blocks
     _CRT_ALLOC_HOOK  m_poldhook;     // Pointer to the previously installed allocation hook function
     HANDLE           m_process;      // Handle to the current process - required for obtaining stack traces
@@ -137,7 +140,7 @@ private:
 #define VLD_STATUS_INSTALLED     0x1 //   If set, VLD was successfully installed
 #define VLD_STATUS_NEVER_ENABLED 0x2 //   If set, VLD started disabled, and has not yet been manually enabled
     HANDLE           m_thread;       // Pseudo-handle meaning "current thread" - required for obtaining stack traces
-    DWORD            m_tlsindex;     // Index for thread-local storage of VLD data.
+    DWORD            m_tlsindex;     // Index for thread-local storage of VLD data
 
     // The Visual Leak Detector APIs are our friends.
     friend void VLDEnable ();
