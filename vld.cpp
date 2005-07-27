@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.22 2005/07/26 23:02:44 dmouldin Exp $
+//  $Id: vld.cpp,v 1.23 2005/07/27 21:17:01 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0 RC1)
 //  Copyright (c) 2005 Dan Moulding
@@ -454,7 +454,7 @@ unsigned long VisualLeakDetector::eraseduplicates (const _CrtMemBlockHeader *phe
     // Walk the allocated list, starting from the indicated block, looking for
     // other blocks with the same size and call stack as those specified.
     while (pheader) {
-        if ((_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) || (pheader->nDataSize != size)) {
+        if ((_BLOCK_TYPE(pheader->nBlockUse) == _CRT_BLOCK) || (pheader->nDataSize != size)) {
             // Skip internally allocated blocks and blocks of different sizes.
             pheader = pheader->pBlockHeaderNext;
             continue;
@@ -813,7 +813,7 @@ void VisualLeakDetector::reportleaks ()
     pheader = pHdr(pheap)->pBlockHeaderNext;
     delete pheap;
     while (pheader) {
-        if (_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) {
+        if (_BLOCK_TYPE(pheader->nBlockUse) == _CRT_BLOCK) {
             // Skip internally allocated blocks.
             pheader = pheader->pBlockHeaderNext;
             continue;
