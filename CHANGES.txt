@@ -2,6 +2,7 @@ Visual Leak Detector (VLD) Version 1.0
 
   Change Log / Release Notes
 
+
 1.0 (XXXXXXXXXXXXXX)
 --------------------
   New Features/Enhancements:
@@ -34,13 +35,14 @@ Visual Leak Detector (VLD) Version 1.0
     memory leaks. These bogus leaks are always reported as "client block at
     <address>, subtype bf42" and are claimed to be "invalid objects".
 
+  + VLD will leak a fixed-sized block of memory when the program exits if VLD
+    failed to initialize because the Debug Help library (dbghelp.dll) could not
+    be loaded.
+
   + In multithreaded programs, if the program's main thread terminates before
     other threads in the same process, then VLD may cause an access violation
     while freeing resources used internally by VLD.
 
-  + VLD will leak a fixed-sized block of memory when the program exits if VLD
-    failed to initialize because the Debug Help library (dbghelp.dll) could not
-    be loaded.
 
 0.9i (30 April 2005)
 --------------------
