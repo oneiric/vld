@@ -3,41 +3,49 @@ Visual Leak Detector (Version 1.0)
   Enhanced Memory Leak Detection for Visual C++
 
 
-About Visual Leak Detector:
----------------------------
-This memory leak detector is superior, in a number of ways, to the memory
-leak detection provided natively by MFC or the Microsoft C runtime library.
-First, built-in leak detection for non-MFC applications is not enabled by
-default. It can be enabled, but implementing it is not very intuitive and
-(for Visual C++ 6.0 at least) it doesn't work correctly unless you fix a
-couple of bugs in the C runtime library yourself. And even when it is working
-correctly its capabilities are somewhat limited. Here is a short list of
-capabilities that Visual Leak Detector provides that the built-in leak detection
-does not:
+About Visual Leak Detector
+--------------------------
 
-  + Provides a complete stack trace for each leaked block, including source
+Visual C++ provides some built-in memory leak detection features, but their
+capabilities are minimal at best. This memory leak detector was created as a
+free alternative to the built-in memory leak detection provided with Visual C++.
+Here is a short list of of the most valuable capabilities that Visual Leak
+Detector provides, all of which are lacking in the built-in detector:
+
+  * Provides a complete stack trace for each leaked block, including source
     file and line number information when available.
-  + Provides complete data dumps (in hex and ASCII) of leaked blocks.
-  + Customizable level of detail in the memory leak report via preprocessor
-    macro definitions.
 
-Okay, but how is Visual Leak Detector better than the dozens of other after-
-market leak detectors out there?
+  * Provides complete data dumps (in hex and ASCII) of leaked blocks.
 
-  + Visual Leak Detector is now packaged as an easy-to-use library. Just copy
-    the library to the appropriate directory and include a single header.
-    Because the library is already built, you don't need to worry about things
-    like installing the Platform SDK or Debugging Tools for Windows.
-  + In addition to providing stack traces with source files, line numbers
+  * Customizable level of detail in the memory leak report.
+
+Other aftermarket leak detectors for Visual C++ are already available. But most
+of the really popular ones, like Purify and BoundsChecker, are very expensive.
+A few free alternatives exist, but they're often too intrusive, restrictive,
+or unreliable. Here's some key advantages that Visual Leak Detector has over
+many other free alternatives:
+
+  * Visual Leak Detector is cleanly packaged as an easy-to-use library. You
+    don't need to compile its source code to use it. And you only need to make
+    minor additions to your own source code to integrate it with your program.
+
+  * In addition to providing stack traces with source files, line numbers,
     and function names, Visual Leak Detector also provides data dumps.
-  + It works with both C and C++ programs (compatible with both malloc/free
-    and new/delete).
-  + The full source code to the library is included and it is well documented,
+
+  * It works with both C++ and C programs (compatible with both new/delete and
+    malloc/free).
+
+  * The full source code to the library is included and it is well documented,
     so it is easy to customize it to suit your needs.
 
 
-How To Use Visual Leak Detector:
---------------------------------
+How to Use Visual Leak Detector
+-------------------------------
+
+This section briefly describes the basics of using Visual Leak Detector (VLD).
+For information on advanced usage, such as using VLD to debug DLLs, see the
+"Advanced Topics" section in this document.
+
 To use VLD with your project, follow these simple steps:
 
   1) Copy the VLD library (*.lib) files to your Visual C++ installation's "lib"
@@ -46,66 +54,141 @@ To use VLD with your project, follow these simple steps:
   2) Copy the VLD header files (vld.h and vldapi.h) to your Visual C++
      installation's "include" subdirectory.
 
-  3) In one of your source files -- preferably the one with your program's main
-     entry point -- add the line "#include <vld.h>". It's probably best to add
-     this #include before any of the other #includes in your file (with one
-     important exception), but is not absolutely necessary. In most cases, the
-     specific order will not matter. The one exception is "stdafx.h". If your
-     file includes stdafx.h, then vld.h should be included just after it.
+  3) In the source file containing your program's main entry point, include the
+     vld.h header file. It's best, but not absolutely required, to include this
+     header before any other header files, except for stdafx.h. If the source
+     file includes stdafx.h, then vld.h should be included after it.
 
-  4) Windows 2000 users will also need to copy dbghelp.dll to the directory
-     where the executable being debugged resides. This would also apply to users
-     of earlier versions of Windows, but I can't guarantee that VLD even works
-     on versions prior to Windows 2000.
+  4) If you are running Windows 2000 or earlier, then you will need to copy
+     dbghelp.dll to the directory where the executable being debugged resides.
 
-When you build debug versions of your program, by including the vld.h header
-file, your program will be linked with VLD. When you run your program under the
-Visual C++ debugger, VLD will display a memory leak report in the debugger's
-output window when your program quits.
+  5) Build the debug version of your project.
 
-If memory leaks were detected, double-clicking on a source file/line number 
-within the memory leak report will jump to that line of source in the editor
-window. In this way, you can easily navigate the code that led up to the memory
-allocation that resulted in a memory leak.
+VLD will detect memory leaks in your program whenever you run the debug version
+under the Visual C++ debugger. A report of all the memory leaks detected will be
+displayed in the debugger's output window when your program exits. Double-
+clicking on a source file's line number in the memory leak report will take you
+to that file and line in the editor window, allowing easy navigation of the code
+path leading up to the allocation that resulted in a memory leak.
 
-When you build release versions of your program, VLD will not be linked into
-the executable. So it is safe to leave the #include <vld.h> in your source file
-when doing release builds.
+  NOTE: When you build release versions of your program, VLD will not be linked
+        into the executable. So it is safe to leave the "#include <vld.h>" in
+        your source files when doing release builds. Doing so will not result in
+        any performance degradation or any other undesirable overhead.
 
 
-Configuring Visual Leak Detector:
----------------------------------
+Configuring Visual Leak Detector
+--------------------------------
+
 There are a few optional preprocessor macros that you can define to contol
-the level of detail provided in memory leak reports.
+certain aspects of VLD's operation, including the level of detail provided in
+the memory leak report:
 
-  + VLD_MAX_TRACE_FRAMES: By default, Visual Leak Detector will trace back
-    as far as possible the call stack for each block that is allocated.
-    Each frame traced adds additional overhead (in CPU time and memory use)
-    to your debug executable. If you'd like to limit this overhead, you
-    can define this macro to an integer value. The stack trace will stop
-    when it has traced this number of frames. The frame count includes the
-    "useless" frames which, by default, are not displayed in the debug
-    output window (see VLD_SHOW_USELESS_FRAMES below). Usually, there will
-    be about 5 or 6 "useless" frames at the beginning of the call stack.
-    Keep this in mind when using this macro, or you may not see the number
-    of frames you expect.
+  * VLD_AGGREGATE_DUPLICATES
 
-  + VLD_MAX_DATA_DUMP: Define this macro to an integer value to limit the
-    amount of data displayed in memory block data dumps. When this number of
-    bytes of data has been dumped, the dump will stop. This can be useful if
-    any of the leaked blocks are very large and the debug output window
-    becomes too cluttered. You can define this macro to 0 (zero) if you want
-    to suppress the data dumps altogether.
+      Normally, VLD displays each individual leaked block in detail. Defining
+      this macro will make VLD aggregate all leaks that share the same size and
+      call stack under a single entry in the memory leak report. Only the first
+      leaked block will be reported in detail. No other identical leaks will be
+      displayed. Instead, a tally showing the total number of leaks matching
+      that size and call stack will be shown. This can be useful if there are a
+      small number of sources of leaks, but they are repeatedly leaking a very
+      large number of memory blocks.
 
-  + VLD_SHOW_USELESS_FRAMES: By default, only "useful" frames are printed in
-    the call stacks. Frames that are internal to the heap or Visual Leak
-    Detector are not shown. Define this to force all frames of the call
-    stacks to be printed. This macro might be useful if you need to debug
-    Visual Leak Detector itself or if you want to customize it.
+  * VLD_MAX_TRACE_FRAMES
+
+      By default, VLD will trace the call stack for each allocated block as far
+      back as possible. Each frame traced adds additional overhead (in both CPU
+      time and memory usage) to your debug executable. If you'd like to limit
+      this overhead, you can define this macro to an integer value. The stack
+      trace will stop when it has traced this number of frames. The frame count
+      includes the "useless" frames which, by default, are not displayed in the
+      debugger's output window (see VLD_SHOW_USELESS_FRAMES below). Usually,
+      there will be about five or six "useless" frames at the beginning of the
+      call stack. Keep this in mind when using this macro, or you may not see
+      the number of frames you expect.
+
+  * VLD_MAX_DATA_DUMP
+
+      Define this macro to an integer value to limit the amount of data
+      displayed in memory block data dumps. When this number of bytes of data
+      has been dumped, the dump will stop. This can be useful if any of the
+      leaked blocks are very large and the debugger's output window becomes too
+      cluttered. You can define this macro to 0 (zero) if you want to suppress
+      data dumps altogether.
+
+  * VLD_SHOW_USELESS_FRAMES
+
+      By default, only "useful" frames are printed in the call stacks. Frames
+      that are internal to the heap or VLD are not shown. Define this to force
+      all frames of the call stacks to be printed. This macro is usually only
+      useful for debugging VLD itself.
 
 
-Caveats:
---------
+Controlling Visual Leak Detector at Runtime
+-------------------------------------------
+
+Using the default configuration, VLD's memory leak detection will be enabled
+during the entire run of your program. In certain scenarious it may be desirable
+to selectively disable memory leak detection in certain segments of your code.
+VLD provides simple APIs for controlling the state of memory leak detection at
+runtime. To access these APIs, include the vldapi.h header file. These APIs are
+described here in detail:
+
+  * VLDDisable
+
+      This function disables memory leak detection. After calling this function,
+      memory leak detection will remain disabled until it is explicitly
+      re-enabled via a call to VLDEnable.
+
+      void VLDDisable (void);
+
+      Parameters:
+
+      This function accepts no parameters.
+
+      Return Value:
+
+      None (this function always succeeds).
+
+      Remarks:
+
+      This function controls memory leak detection on a per-thread basis. In
+      other words, calling this function disables memory leak detection for only
+      the thread that called the function. Memory leak detection will remain
+      enabled for any other threads in the same process. This insulates the
+      programmer from having to synchronize multiple threads that disable and
+      enable memory leak detection. However, note also that this means that in
+      order to disable memory leak detection process-wide, this function must be
+      called from every thread in the process.
+
+
+  * VLDEnable()
+
+      This function enables memory leak detection if it was previously disabled.
+      After calling this function, memory leak detection will remain enabled
+      unless it is explicitly disabled again via a call to VLDDisable().
+
+      void VLDEnable (void);
+
+      Parameters:
+
+      This function accepts no paramters.
+
+      Return Value:
+
+      None (this function always succeeds).
+
+      Remarks:
+
+      This function controls memory leak detection on a per-thread basis. See
+      the remarks for VLDDisable regarding multithreading and memory leak
+      detection for details. Those same concepts also apply to this function.
+
+
+Caveats
+-------
+
 In order to be successful at detecting leaks, VLD's code must run before any of
 the code being debugged. Most often this will happen without a hitch. However,
 there is one rare instances where this might not happen: if any global objects
@@ -121,8 +204,9 @@ in your global objects' constructors, then it will not be a problem if your
 global objects are consructed before VLD's objects.
 
 
-Building Visual Leak Detector From Source:
-------------------------------------------
+Building Visual Leak Detector from Source
+-----------------------------------------
+
 Because Visual Leak Detector is open source, the library can be built from
 source if you want to tweak it to your liking. The hardest part about building
 the VLD libraries from source is getting your build environment correctly set
@@ -221,8 +305,9 @@ libraries that are included in the main VLD distribution. The "debug" builds of
 VLD are strictly for debugging VLD itself (e.g. if you want to modify it or if
 you need to fix a bug in it).
 
-Using VLD On x64-based Windows:
--------------------------------
+Using VLD on x64-based Windows
+------------------------------
+
 As of version 0.9i, VLD supports x64-based 64-bit Windows. However, the binaries
 contained in the distributed versions of VLD are 32-bit only. To take advantage
 of the 64-bit support, you'll need to build 64-bit versions of the libraries
@@ -238,8 +323,8 @@ let me know (my email address is listed at the end of this file). I'll be glad
 to assist in getting the 64-bit code working properly.
 
 
-Frequently Asked Questions:
----------------------------
+Frequently Asked Questions
+--------------------------
 
 Q: Is Visual Leak Detector compatible with non-Microsoft platforms?
 
@@ -283,8 +368,8 @@ Q: When building VLD from source, I get Compile Error C2059: "syntax error :..."
      include search path.
 
 
-License:
---------
+License
+-------
 
 Visual Leak Detector is distributed under the terms of the GNU Lesser General
 Public License. See the COPYING.txt file for details.
@@ -299,8 +384,8 @@ the Debug Help Library in ANY WAY (for example, redistributing it) that would
 infringe upon Microsoft Corporation's copyright in the Debug Help Library.
 
 
-Contacting The author:
-----------------------
+Contacting the Author
+---------------------
 
 Please forward any bug reports, questions, comments or suggestions to me at
 dmoulding@gmail.com.
