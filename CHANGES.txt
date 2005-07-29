@@ -1,6 +1,46 @@
-Visual Leak Detector (VLD) Version 0.9i
+Visual Leak Detector (VLD) Version 1.0
 
   Change Log / Release Notes
+
+1.0 (XXXXXXXXXXXXXX)
+--------------------
+  New Features/Enhancements:
+  + Memory leak detection can now be selectively disabled and enabled at
+    runtime, using provided APIs. This provides a straight-forward way of
+    allowing VLD to selectively "ignore" certain allocations. It can also be
+    used to disable VLD altogether at runtime, improving application performance
+    without needing to relink the executable.
+
+  + If there are multiple identical memory leaks (i.e. leaks that originate from
+    the same call stack and that leak the same size memory block) then VLD can
+    optionally aggregate all of the repeated leaks, showing only the first such
+    leaked block in detail in the memory leak report. A tally of the total
+    number of leaks that match that particular size and call stack accompanies
+    the information for that leak.
+
+  + When VLD is initialized at program startup, the library type which was
+    linked-in is displayed. This can help verify that the expected VLD library
+    (either single-threaded static, multithreaded static, or multithreaded DLL)
+    is being linked with your program.
+
+  + The Visual Leak Detector name is displayed on most messages output to the
+    debugger to easily differentiate VLD's output from the output produced by
+    the built-in memory leak detector.
+
+  Bugs Fixed:
+  + If the MFC libraries are statically linked to the program being debugged,
+    then MFC will erroneously detect memory leaks in the Visual Leak Detector
+    code and may cause an access violation while attempting to report the false
+    memory leaks. These bogus leaks are always reported as "client block at
+    <address>, subtype bf42" and are claimed to be "invalid objects".
+
+  + In multithreaded programs, if the program's main thread terminates before
+    other threads in the same process, then VLD may cause an access violation
+    while freeing resources used internally by VLD.
+
+  + VLD will leak a fixed-sized block of memory when the program exits if VLD
+    failed to initialize because the Debug Help library (dbghelp.dll) could not
+    be loaded.
 
 0.9i (30 April 2005)
 --------------------
