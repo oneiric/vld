@@ -1,17 +1,7 @@
-Visual Leak Detector (Version 1.0 RC1)
+Visual Leak Detector (Version 1.0)
 
   Enhanced Memory Leak Detection for Visual C++
 
-Special Notice:
----------------
-This version of Visual Leak Detector is a release candidate build. This release
-candidate contains several bug fixes and a few new features. This version of
-the README.txt file has not been updated to reflect bug fixes and new features
-in this release. In other words, there are new features in this release that
-you won't find documented here. If you need the latest documentation, then you
-should obtain the official Visual Leak Detector 1.0 release as soon as it is
-made publicly available for download. Or if you have questions, please send them
-to me, the author, at dmoulding@gmail.com. Thanks!
 
 About Visual Leak Detector:
 ---------------------------
@@ -48,26 +38,13 @@ market leak detectors out there?
 
 How To Use Visual Leak Detector:
 --------------------------------
-Earlier versions of Visual Leak Detector (VLD) had a design that required
-absolutely no modification of the source files being debugged. But to acheive
-this, VLD had to be compiled into your program from source. It turned out that
-building VLD from source was, for most people, the hardest part about using it.
-
-So to make life easier, VLD is now packaged as a library. This means that there
-is no longer a need to build VLD from source. But it also means that there is
-now a single header file that needs to be included in one of your own source
-files that tells your program to link with the VLD library. But beyond that, you
-don't need to make any other changes to your sources. In the end, this is a much
-easier way to use VLD because it eliminates all of the complexity involved with
-building VLD from source.
-
 To use VLD with your project, follow these simple steps:
 
   1) Copy the VLD library (*.lib) files to your Visual C++ installation's "lib"
      subdirectory.
 
-  2) Copy the VLD header (vld.h) file to your Visual C++ installation's
-     "include" subdirectory.
+  2) Copy the VLD header files (vld.h and vldapi.h) to your Visual C++
+     installation's "include" subdirectory.
 
   3) In one of your source files -- preferably the one with your program's main
      entry point -- add the line "#include <vld.h>". It's probably best to add
