@@ -44,6 +44,7 @@
             padding-left: 1em;
             font-size: 16pt;
             font-family: trebuchet ms, sans-serif;
+            letter-spacing: -1pt;
             background: #6599fc;
         }
 
@@ -65,6 +66,14 @@
             margin-left: 0;
             padding: 1em;
             list-style: none;
+        }
+
+        a {
+            text-decoration:none;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
 
         .preprocessor {
@@ -90,6 +99,12 @@
             text-align: right;
             font-size: larger;
             font-style: italic;
+        }
+
+        #copyright {
+            text-align: right;
+            font-family: georgia;
+            color: #808080;
         }
 
     </style>
@@ -258,15 +273,15 @@
 
         <p class="code">void VLDDisable (void);</p>
 
-        <h3>Parameters:</h3>
+        <h3>Arguments:</h3>
 
-        <p>This function accepts no parameters.</p>
+        <p>This function accepts no arguments.</p>
 
         <h3>Return Value:</h3>
 
         <p>None (this function always succeeds).</p>
 
-        <h3>Remarks:</h3>
+        <h3>Notes:</h3>
 
         <p>This function controls memory leak detection on a per-thread basis. In other words, calling this function disables
            memory leak detection for only the thread that called the function. Memory leak detection will remain enabled for any
@@ -283,15 +298,15 @@
 
         <p class="code">void VLDEnable (void);</p>
 
-        <h3>Parameters:</h3>
+        <h3>Arguments:</h3>
 
-        <p>This function accepts no paramters.</p>
+        <p>This function accepts no arguments.</p>
 
         <h3>Return Value:</h3>
 
         <p>None (this function always succeeds).</p>
 
-        <h3>Remarks:</h3>
+        <h3>Notes:</h3>
 
         <p>This function controls memory leak detection on a per-thread basis. See the remarks for VLDDisable regarding
            multithreading and memory leak detection for details. Those same concepts also apply to this function.</p>
@@ -449,9 +464,9 @@
 <h2 id="contacting">Contacting the Author</h2>
 
 <p>Please forward any bug reports, questions, comments or suggestions to me at
-dmoulding@gmail.com.</p>
+<a href="mailto:dmoulding@gmail.com">dmoulding@gmail.com.</a></p>
 
-<p>Copyright (c) 2005 Dan Moulding</p>
+<p id="copyright">Copyright &copy; 2005 Dan Moulding</p>
 
 </body>
 
