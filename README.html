@@ -193,8 +193,8 @@
 <ol>
     <li>Copy the VLD library (<span class="filename">*.lib</span>) files to your Visual C++ installation's "lib" subdirectory.</li>
 
-    <li>Copy the VLD header files (<span class="filename">vld.h</span> and <span class="filename">vldapi.h</span>) to your Visual C++
-        installation's "include" subdirectory.</li>
+    <li>Copy the VLD header files (<span class="filename">vld.h</span> and <span class="filename">vldapi.h</span>) to your
+        Visual C++ installation's "include" subdirectory.</li>
 
     <li>In the source file containing your program's main entry point, include the <span class="filename">vld.h</span> header file.
         It's best, but not absolutely required, to include this header before any other header files, except for
@@ -212,9 +212,8 @@
    file's line number in the memory leak report will take you to that file and line in the editor window, allowing easy navigation
    of the code path leading up to the allocation that resulted in a memory leak.</p>
 
-<p>Note: When you build release versions of your program, VLD will not be linked into the executable. So it is safe to leave the
-   <span class="code">#include &lt;vld.h&gt;</span> in your source files when doing release builds. Doing so will not result in any performance degradation or
-   any other undesirable overhead.</p>
+<p>Note: When you build release versions of your program, VLD will not be linked into the executable. So it is safe to leave
+   <span class="filename">vld.h</span> included in your source files when doing release builds. Doing so will not result in any    performance degradation or any other undesirable overhead.</p>
 
 <h2 id="configuring">Configuring Visual Leak Detector</h2>
 
