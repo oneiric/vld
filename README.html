@@ -195,9 +195,9 @@
 
 <h2 id="about">About Visual&nbsp;Leak&nbsp;Detector</h2>
 
-<p>Visual&nbsp;C++ provides some built-in memory leak detection features, but their capabilities are minimal at best. This memory
-   leak detector was created as a free alternative to the built-in memory leak detection provided with Visual&nbsp;C++. Here are
-   some of Visual&nbsp;Leak&nbsp;Detector's features, none of which exist in the built-in detector:</p>
+<p>Visual&nbsp;C++ provides built-in memory leak detection, but its capabilities are minimal at best. This memory leak detector was
+   created as a free alternative to the built-in memory leak detector provided with Visual&nbsp;C++. Here are some of
+   Visual&nbsp;Leak&nbsp;Detector's features, none of which exist in the built-in detector:</p>
 
 <ul>
     <li>Provides a complete stack trace for each leaked block, including source file and line number information when
@@ -282,8 +282,8 @@
         <p>Normally, VLD displays each individual leaked block in detail. Defining this macro will make VLD aggregate all leaks that
         share the same size and call stack under a single entry in the memory leak report. Only the first leaked block will be
         reported in detail. No other identical leaks will be displayed. Instead, a tally showing the total number of leaks matching
-        that size and call stack will be shown. This can be useful if there are a small number of sources of leaks, but they are
-        repeatedly leaking a very large number of memory blocks.</p>
+        that size and call stack will be shown. This can be useful if there are only a few sources of leaks, but those few sources
+        are repeatedly leaking a very large number of memory blocks.</p>
     </dd>
 
     <dt class="preprocessor">VLD_MAX_TRACE_FRAMES</dt>
@@ -309,6 +309,17 @@
         <p>By default, only "useful" frames are printed in the call stacks. Frames that are internal to the heap or VLD are not shown.
         Define this to force all frames of the call stacks to be printed. This macro is usually only useful for debugging VLD
         itself.</p>
+    </dd>
+
+    <dt class="preprocessor">VLD_START_DISABLED</dt>
+    <dd>
+        <p>Define this macro to disable memory leak detection initially. This can be useful if you need to be able to selectively
+           enable memory leak detection from runtime, without needing to rebuild the executable; however, this macro should be used
+           with caution. Any memory leaks that may occur before memory leak detection is enabled at runtime will go undetected. For
+           example, if the constructor of some global variable allocates memory before execution reaches a subsequent call to
+           <span class="function">VLDEnable</span>, then VLD will not be able to detect if the memory allocated by the global
+           variable is never freed. Refer to the following section on <a href="#control">controlling leak detection at runtime</a>
+           for details on using the runtime APIs which can be useful in conjunction with this preprocessor macro.</p>
     </dd>
 </dl>
 
@@ -365,8 +376,9 @@
 
         <h3>Notes:</h3>
 
-        <p>This function controls memory leak detection on a per-thread basis. See the remarks for VLDDisable regarding
-           multithreading and memory leak detection for details. Those same concepts also apply to this function.</p>
+        <p>This function controls memory leak detection on a per-thread basis. See the remarks for
+           <span class="function">VLDDisable</span> regarding multithreading and memory leak detection for details. Those same
+           concepts also apply to this function.</p>
     </dd>
 </dl>
 
@@ -377,17 +389,17 @@
 
 <p>VLD is capable of detecting memory leaks in DLLs. But DLLs can present special situations that need to be carefully considered to
    ensure that VLD can properly do its job. When using DLLs, you will have more than one module. Each DLL is a module and the main
-   executable is also a module. Probably the most important thing to consider is which module VLD should be linked with. The answer
-   will depend on whether your DLLs are load-time linked, run-time linked, or a combination of both. The general rule of thumb is
-   that VLD should always be linked with the module that is initialized first, and it should only be linked with that one
-   module.</p>
+   executable is also a module. VLD should be linked with only one module per process. So the question is: which module should VLD
+   be linked with? The answer will depend on whether your DLLs are load-time linked or run-time linked. <em>The general rule of
+   thumb is that VLD should always be linked with the module that is initialized first.</em></p>
 
 <h3>Load-Time Dynamic Linking</h3>
 
 <p>This is probably the most commonly used way to link with DLLs. If your program doesn't use
-   <span class="function">LoadLibrary</span> to load your DLL, then this is most likely the type of dynamic linking your program
-   uses. With this form of linking, the DLL is initialized before the program's main executable. Therefore, the DLL is the first
-   module to be initialized and VLD should be linked with the DLL.</p>
+   <span class="function">LoadLibrary</span> to load your DLL, then this is the type of dynamic linking your program uses. With this
+   form of linking, the DLL is initialized before the program's main executable. Therefore, the DLL is the first module to be
+   initialized and VLD should be linked with the DLL. Include <span class="filename">vld.h</span> in the main source file for the
+   DLL.</p>
 
 <p>Of course, there will most likely be several system DLLs that are loaded before any of your own DLLs. You don't need to worry
    about linking VLD with those DLLs, because those DLLs are not being checked for memory leaks. Only your own DLLs will be checked
@@ -409,7 +421,9 @@
 
 <p>You know you're using this type of dynamic linking if your program calls <span class="function">LoadLibrary</span> to load your
    DLL. With this type of dynamic linking, the DLL is not initialized until <span class="function">LoadLibrary</span> is called.
-   Therefore, the main executable is the first module to be initialized and VLD should be linked with the main executable.</p>
+   Therefore, if all of your DLLs are runtime linked, then the main executable is the first module to be initialized and VLD should
+   be linked with the main executable. Include <span class="filename">vld.h</span> in the main source file for the main
+   executable.</p>
 
 <h3>Using DLLs and the Static C Runtime Libraries</h3>
 
