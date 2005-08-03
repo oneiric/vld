@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.23.2.1 2005/07/28 22:29:53 dmouldin Exp $
+//  $Id: vld.cpp,v 1.23.2.2 2005/08/03 23:11:04 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0 RC1)
+//  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -61,11 +61,18 @@ VisualLeakDetector visualleakdetector;
 VisualLeakDetector::VisualLeakDetector ()
 {
     // Initialize private data.
-    m_mallocmap  = new BlockMap;
-    m_process    = GetCurrentProcess();
-    m_status     = 0x0;
-    m_thread     = GetCurrentThread();
-    m_tlsindex   = TlsAlloc();
+    m_mallocmap    = new BlockMap;
+    m_process      = GetCurrentProcess();
+    m_selftestfile = __FILE__;
+    m_status       = 0x0;
+    m_thread       = GetCurrentThread();
+    m_tlsindex     = TlsAlloc();
+
+    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+        // Self-test mode has been enabled. Intentionally leak a small amount of
+        // memory so that memory leak self-checking can be verified.
+        strncpy(new char [21], "Memory Leak Self-Test", 21); m_selftestline = __LINE__;
+    }
 
     if (m_tlsindex == TLS_OUT_OF_INDEXES) {
         report("ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n");
@@ -74,10 +81,12 @@ VisualLeakDetector::VisualLeakDetector ()
         // Register our allocation hook function with the debug heap.
         m_poldhook = _CrtSetAllocHook(allochook);
         report("Visual Leak Detector Version "VLD_VERSION" installed ("VLD_LIBTYPE").\n");
+        reportconfig();
         if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
             // Memory leak detection will initially be disabled.
             m_status |= VLD_STATUS_NEVER_ENABLED;
         }
+
         m_status |= VLD_STATUS_INSTALLED;
         return;
     }
@@ -89,6 +98,9 @@ VisualLeakDetector::VisualLeakDetector ()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
+    unsigned int        internalleaks = 0;
+    char               *leakfile;
+    int                 leakline;
     _CrtMemBlockHeader *pheader;
     char               *pheap;
     _CRT_ALLOC_HOOK     pprevhook;
@@ -133,13 +145,24 @@ VisualLeakDetector::~VisualLeakDetector ()
         if (_BLOCK_SUBTYPE(pheader->nBlockUse) == VLDINTERNALBLOCK) {
             // Doh! VLD still has an internally allocated block!
             // This won't ever actually happen, right guys?... guys?
+            internalleaks++;
+            leakfile = pheader->szFileName;
+            leakline = pheader->nLine;
             report("ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
             report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
-            report("%s (%d): Full call stack not available.\n", pheader->szFileName, pheader->nLine);
+            report("%s (%d): Full call stack not available.\n", leakfile, leakline);
             dumpuserdatablock(pheader);
             report("\n");
         }
         pheader = pheader->pBlockHeaderNext;
+    }
+    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+        if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
+            report("Visual Leak Detector passed the memory leak self-test.\n");
+        }
+        else {
+            report("ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
+        }
     }
 
 #ifdef _MT
@@ -740,6 +763,40 @@ void VisualLeakDetector::report (const char *format, ...)
     message[MAXREPORTMESSAGESIZE - 1] = '\0';
 
     OutputDebugString(message);
+}
+
+// reportconfig - Generates a brief report summarizing Visual Leak Detector's
+//   compile-time configuration.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::reportconfig ()
+{
+    if (_VLD_configflags & VLD_CONFIG_AGGREGATE_DUPLICATES) {
+        report("    Aggregating duplicate leaks.\n");
+    }
+    if (_VLD_maxdatadump != 0xffffffff) {
+        if (_VLD_maxdatadump == 0) {
+            report("    Suppressing data dumps.\n");
+        }
+        else {
+            report("    Limiting data dumps to %lu bytes.\n", _VLD_maxdatadump);
+        }
+    }
+    if (_VLD_maxtraceframes != 0xffffffff) {
+        report("    Limiting stack traces to %lu frames.\n", _VLD_maxtraceframes);
+    }
+    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+        report("    Perfoming a memory leak self-test.\n");
+    }
+    if (_VLD_configflags & VLD_CONFIG_SHOW_USELESS_FRAMES) {
+        report("    Showing useless frames.\n");
+    }
+    if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
+        report("    Starting with memory leak detection disabled.\n");
+    }
 }
 
 // reportleaks - Generates a memory leak report when the program terminates if
