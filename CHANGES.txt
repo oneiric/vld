@@ -28,6 +28,14 @@ Visual Leak Detector (VLD) Version 1.0
     debugger to easily differentiate VLD's output from the output produced by
     the built-in memory leak detector.
 
+  + If any of the compile-time configuration options have been changed from
+    their default values, then the current state of the option is displayed in
+    the debugger when VLD is initialized.
+
+  + VLD's memory leak self-checking capability (checking for leaks in VLD
+    itself) can be verified using a new preprocessor macro that allows VLD to
+    perform a self-test at runtime.
+
   Bugs Fixed:
   + If the MFC libraries are statically linked to the program being debugged,
     then MFC will erroneously detect memory leaks in the Visual Leak Detector
@@ -139,7 +147,7 @@ Visual Leak Detector (VLD) Version 1.0
   + This version of VLD brings with it some major changes to the way VLD
     interfaces with programs that use it. Instead of requiring that VLD be built
     from source and then linked with the application, VLD is now packaged as a
-    pre-built static libaray. For those who just want to use VLD and are not
+    pre-built static library. For those who just want to use VLD and are not
     interested in modifying the source, this eliminates the complexities of
     building VLD from source. A single header file, vld.h, has been added. To
     link with the static library, this header needs to be included in one of the
