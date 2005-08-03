@@ -58,7 +58,7 @@
 
         #toc h2 {
             margin: 0;
-            border-width: 2px 0 2px 0;
+            border-width: 2px 2px 2px 0;
             border-style: solid;
             border-color: #6599fc;
             text-align: center;
@@ -302,6 +302,15 @@
         bytes of data has been dumped, the dump will stop. This can be useful if any of the leaked blocks are very large and the
         debugger's output window becomes too cluttered. You can define this macro to 0 (zero) if you want to suppress data dumps
         altogether.</p>
+    </dd>
+
+    <dt class="preprocessor">VLD_SELF_TEST</dt>
+    <dd>
+        <p>VLD has the ability to check itself for memory leaks. This feature is always active. Every time you run VLD, in addition
+           to checking your own program for memory leaks, it is also checking itself for leaks. Defining this macro forces VLD to
+           intentionally leak a small amount of memory: a 21-byte block filled with the text "Memory Leak Self-Test". This provides
+           a way to test VLD's ability to check itself for memory leaks and verify that this capability is working correctly.
+           This macro is usually only useful for debugging VLD itself.</p>
     </dd>
 
     <dt class="preprocessor">VLD_SHOW_USELESS_FRAMES</dt>
