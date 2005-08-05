@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.23.2.2 2005/08/03 23:11:04 dmouldin Exp $
+//  $Id: vld.cpp,v 1.23.2.3 2005/08/05 17:43:31 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -511,7 +511,7 @@ unsigned long VisualLeakDetector::eraseduplicates (const _CrtMemBlockHeader *phe
 //
 //  Return Value:
 //
-//    Returns the return address of the current stack frame.
+//    Returns the caller's program address.
 //
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma auto_inline(off)
