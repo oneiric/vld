@@ -3,14 +3,14 @@ Visual Leak Detector (VLD) Version 1.0
   Change Log / Release Notes
 
 
-1.0 (XXXXXXXXXXXXXX)
---------------------
+1.0 (5 August 2005)
+-------------------
   New Features/Enhancements:
   + Memory leak detection can now be selectively disabled and enabled at
     runtime, using provided APIs. This provides a straight-forward way of
     allowing VLD to selectively "ignore" certain allocations. It can also be
     used to disable VLD altogether at runtime, improving application performance
-    without needing to relink the executable.
+    without needing to recompile.
 
   + If there are multiple identical memory leaks (i.e. leaks that originate from
     the same call stack and that leak the same size memory block) then VLD can
@@ -38,7 +38,7 @@ Visual Leak Detector (VLD) Version 1.0
 
   Bugs Fixed:
   + If the MFC libraries are statically linked to the program being debugged,
-    then MFC will erroneously detect memory leaks in the Visual Leak Detector
+    then MFC will erroneously report memory leaks in the Visual Leak Detector
     code and may cause an access violation while attempting to report the false
     memory leaks. These bogus leaks are always reported as "client block at
     <address>, subtype bf42" and are claimed to be "invalid objects".
