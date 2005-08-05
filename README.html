@@ -14,7 +14,7 @@
             border-width: 0 0 1px 0;
             border-style: solid;
             border-color: #808080;
-            background: #3569cc;
+            background-color: #3569cc;
         }
 
         #content {
@@ -24,7 +24,7 @@
 
         #toc {
             float: right;
-            background: #ffeda5;
+            background-color: #ffeda5;
         }
 
         h1 {
@@ -45,7 +45,7 @@
             font-size: 16pt;
             font-family: trebuchet ms, sans-serif;
             letter-spacing: -1pt;
-            background: #6599fc;
+            background-color: #6599fc;
         }
 
         h3 {
@@ -63,7 +63,7 @@
             border-color: #6599fc;
             text-align: center;
             color: #ffffff;
-            background: #3569cc;
+            background-color: #3569cc;
         }
 
         #toc ul {
@@ -101,7 +101,7 @@
 
         .code {
             font-family: courier new, monospace;
-            background: #e0e0e0;
+            background-color: #e0e0e0;
         }
 
         .filename, .operator, .function {
@@ -165,7 +165,7 @@
 <h2>Table of Contents</h2>
 
 <ul>
-    <li><a href="#about">About Visual&nbsp;Leak&nbsp;Detector</a></li>
+    <li><a href="#intro">Introduction</a></li>
 
     <li><a href="#use">Using Visual&nbsp;Leak&nbsp;Detector</a></li>
 
@@ -193,7 +193,7 @@
 
 
 
-<h2 id="about">About Visual&nbsp;Leak&nbsp;Detector</h2>
+<h2 id="intro">Introduction</h2>
 
 <p>Visual&nbsp;C++ provides built-in memory leak detection, but its capabilities are minimal at best. This memory leak detector was
    created as a free alternative to the built-in memory leak detector provided with Visual&nbsp;C++. Here are some of
@@ -227,11 +227,10 @@
         needs.</li>
 </ul>
 
-<p>Visual Leak Detector is provided free of charge as a service to the Windows developer community. If you find it to be useful and
-   would like to just say "Thanks!", please feel free to <a href="#contact">drop me a note</a> or
-   <a href="#contact">contribute a small donation</a>. Both are very appreciated!</p>
-
-
+<p>Visual Leak Detector is <a href="#license">licensed</a> free of charge as a service to the Windows developer community. If you
+   find it to be useful and would like to just say "Thanks!", or you think it stinks and would like to say "This thing sucks!",
+   please feel free to <a href="mailto:dmoulding@gmail.com">drop me a note</a>. Or, if you'd prefer, you can
+   <a href="#contact">contribute a small donation</a>. Both are very appreciated.</p>
 
 
 <h2 id="use">Using Visual&nbsp;Leak&nbsp;Detector</h2>
@@ -586,6 +585,10 @@
 <p>Known restrictions in the current version of VLD, as of the time of this writing, include:</p>
 
 <ul>
+    <li>VLD does not detect COM leaks, out-of-process resource leaks, or any other types of memory leaks that are not associated
+        with the CRT heap. In simpler terms, VLD only detects memory leaks that are the result of calls to
+        <span class="function">new</span> or <span class="function">malloc</span>.</li>
+
     <li>VLD is not compatible with version 6.5 of the Debug Help library (<span class="filename">dbghelp.dll</span>). The
         recommended version of <span class="filename">dbghelp.dll</span> to use with VLD is 6.3. Version 6.3 is included in the VLD
         distribution.</li>
