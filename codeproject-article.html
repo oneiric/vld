@@ -32,7 +32,7 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <LI><A href="#references">References</A> 
 <LI><A href="#license">License</A> 
 <LI><A href="#history">History</A> </LI></UL>
-<H2>What's New?</H2>
+<H2><A name=new></A>What's New?</H2>
 <P><B>5 August 2005:</B> Visual Leak Detector 1.0 has finally arrived. If you are currently using an older version, this release should definitely be worth an upgrade. A couple of new features have been added, and a few bugs have been fixed:</P>
 <UL>
 <LI>Memory leak detection can now be selectively disabled and enabled at runtime, using the provided APIs. This provides a straightforward way of allowing VLD to selectively "ignore" certain allocations. It can also be used to disable VLD altogether at runtime, improving application performance without needing to recompile. 
@@ -43,20 +43,20 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <LI>If the MFC libraries are statically linked to the program being debugged, then MFC will erroneously report memory leaks in the Visual Leak Detector code and may cause an access violation while attempting to report the false memory leaks. These bogus leaks are always reported as "client block at &lt;address&gt;, subtype bf42" and are claimed to be "invalid objects". 
 <LI>VLD will leak a fixed-sized block of memory when the program exits, if VLD failed to initialize because the Debug Help library (<I>dbghelp.dll</I>) could not be loaded. 
 <LI>In multithreaded programs, if the program's main thread terminates before other threads in the same process, then VLD may cause an access violation while freeing resources used internally by VLD. </LI></UL>
-<H2>Introduction</H2>
+<H2><A name=intro></A>Introduction</H2>
 <P>Visual C++ provides built-in memory leak detection, but its capabilities are minimal at best. This memory leak detector was created as a free alternative to the built-in memory leak detector provided with Visual C++. Here are some of Visual Leak Detector's features, none of which exist in the built-in detector:</P>
 <UL>
 <LI>Provides a complete stack trace for each leaked block, including source file and line number information when available. 
 <LI>Provides complete data dumps (in hex and ASCII) of leaked blocks. 
 <LI>Customizable level of detail in the memory leak report. </LI></UL>
-<P>Other after-market leak detectors for Visual C++ are already available. But most of the really popular ones, like Purify and BoundsChecker, are very expensive. A few free alternatives exist, but they're often too intrusive, restrictive, or unreliable. Here're some key advantages that Visual Leak Detector has over many other free alternatives:</P>
+<P>Other after-market leak detectors for Visual C++ are already available. But most of the really popular ones, like Purify and BoundsChecker, are very expensive. A few free alternatives exist, but they're often too intrusive, restrictive, or unreliable. Here are some key advantages that Visual Leak Detector has over many other free alternatives:</P>
 <UL>
 <LI>Visual Leak Detector is cleanly packaged as an easy-to-use library. You don't need to compile its source code to use it. And you only need to make minor additions to your own source code to integrate it with your program. 
 <LI>In addition to providing stack traces with source files, line numbers, and function names, Visual Leak Detector also provides data dumps. 
 <LI>It works with both C++ and C programs (compatible with both <CODE>new</CODE>/<CODE>delete</CODE> and <CODE>malloc</CODE>/<CODE>free</CODE>). 
 <LI>The full source code to the library is included and it is well documented, so it is easy to customize it to suit your needs. </LI></UL>
 <P>Visual Leak Detector is <A href="#license">licensed</A> free of charge as a service to the Windows developer community.</P>
-<H2>Using Visual Leak Detector</H2>
+<H2><A name=use></A>Using Visual Leak Detector</H2>
 <P>This section briefly describes the basics of using Visual Leak Detector (VLD). For a more in-depth discussion of the configuration options, runtime APIs, and a discussion of the more advanced usage scenarios (such as using VLD with DLLs), please see the full documentation included in the downloadable Zip files.</P>
 <P>To use VLD with your project, follow these simple steps:</P>
 <OL>
@@ -67,7 +67,7 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <LI>Build the debug version of your project. </LI></OL>
 <P>VLD will detect memory leaks in your program whenever you run the debug version under the Visual C++ debugger. A report of all the memory leaks detected will be displayed in the debugger's output window when your program exits. Double-clicking on a source file's line number in the memory leak report will take you to that file and line in the editor window, allowing easy navigation of the code path leading up to the allocation that resulted in a memory leak.</P>
 <P><B>Note:</B> When you build release versions of your program, VLD will not be linked into the executable. So it is safe to leave <I>vld.h</I> included in your source files when doing release builds. Doing so will not result in any performance degradation or any other undesirable overhead.</P>
-<H2>Making a Memory Leak Detector</H2>
+<H2><A name=make></A>Making a Memory Leak Detector</H2>
 <P>The goal of Visual Leak Detector was to build a better replacement for the memory leak detector built-in to Visual C++. With that in mind, I set out to use the same method used by the built-in detector, namely the CRT Debug Heap. But this new detector would provide enhancements -- primarily full stack traces, which can be <I>extremely</I> helpful for finding and fixing leaks.</P>
 <H3>The Built-In Detector</H3>
 <P>The built-in detector is pretty simple really. When a program is exiting, the CRT runs a bunch of cleanup code after <CODE>main</CODE> returns. If the built-in detector is enabled, then it runs a memory leak check as part of the cleanup procedure. The memory leak check simply looks at the debug heap: if there are any user blocks still allocated on the debug heap, then they must be memory leaks. The debug version of <CODE>malloc</CODE> stores the file and line number that allocated each block in the block's header at the time it is allocated. When the built-in detector identifies a memory leak, it simply peers inside the block header to get the file and line number. It then reports that information to the debugger where it is displayed.</P>
@@ -81,7 +81,7 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <H3>Detecting Memory Leaks</H3>
 <P>Because global objects are destroyed in the inverse order they are constructed, our global object will be destroyed after any user objects. We can then examine the heap, just like the built-in detector does. If we find a block on the heap that has not been freed, it is a leak and we can look up its call stack using the unique ID number recorded by our allocation hook function. An STL map would work fine here for mapping the ID number to the call stacks. I didn't use an STL map because I wanted my library to be compatible with both new and old versions of Visual C++. The STL from older versions is incompatible with the newer versions, so I couldn't use STL components. But the good news is that this gave me the opportunity to create a data structure similar in concept to the STL map, but with specific optimizations for use with my memory leak detector.</P>
 <P>Do you remember that the built-in leak detector peers inside the memory block to get the name of the file and the line number where the block was allocated? Well, all we have for our call stack is a bunch of program addresses. Dumping all those hex numbers to the debugger wouldn't be of much use. To make those addresses more meaningful, we need to translate them to human readable information: files and line numbers (and function names too). Once again, Microsoft comes through with the tools that will help us do our job: the symbol handler APIs. Like <CODE>StackWalk64</CODE>, they also happen to be part of the Debug Help Library. I won't dwell on them in detail here, because there are a lot of them and they're pretty simple to use. They don't require as much ingenuity to use as <CODE>StackWalk64</CODE> does. We can use two of the symbol handler APIs to get the filenames, line numbers, and function names that we want. The aptly named <CODE>SymGetLineFromAddr64</CODE> translates addresses into source filenames and line numbers. Its sister API, <CODE>SymFromAddr</CODE> translates addresses into symbol names. For program addresses, which are what we have, the corresponding symbol name will be the name of the function containing that program address.</P>
-<H2>Key Parts of the Source Code</H2>
+<H2><A name=source></A>Key Parts of the Source Code</H2>
 <P>In case you got bored with the above section and skipped ahead, I'll summarize it here. In a nutshell, this memory leak detector works like this:</P>
 <OL>
 <LI>A global object is automatically constructed. It is the first object constructed. The constructor registers our allocation hook function. 
@@ -298,29 +298,29 @@ void VisualLeakDetector::reportleaks ()
     ...
 
 }</PRE>
-<H2>Known Bugs and Restrictions</H2>
-<P>There are now currently no known bugs in the latest release, but there are some known restrictions:</P>
+<H2><A name=bandr></A>Known Bugs and Restrictions</H2>
+<P>There are currently no known bugs in the latest release, but there are some known restrictions:</P>
 <UL>
-<LI>VLD does not detect COM leaks, out-of-process resource leaks, or any other types of memory leaks that are not associated with the CRT heap. In simpler terms, VLD only detects memory leaks that are the result of calls to <CODE>new</CODE> or <CODE>malloc</CODE>. Keep in mind that VLD was created as an alternative to the built-in memory leak detector. It also only detects leaks from <CODE>new</CODE> and <CODE>malloc</CODE>. 
+<LI>VLD does not detect COM leaks, out-of-process resource leaks, or any other types of memory leaks that are not associated with the CRT heap. In simpler terms, VLD only detects memory leaks that are the result of calls to <CODE>new</CODE> or <CODE>malloc</CODE>. Keep in mind that VLD was created as an alternative to the built-in memory leak detector, which also only detects leaks from <CODE>new</CODE> and <CODE>malloc</CODE>. 
 <LI>VLD is not compatible with version 6.5 of the Debug Help Library (<I>dbghelp.dll</I>). The recommended version of <I>dbghelp.dll</I> to use with VLD is 6.3. Version 6.3 is included in the VLD distribution. 
 <LI>The pre-compiled libraries included in the VLD distribution may not be compatible with Visual Studio 2005. If you need to use VLD with Visual Studio 2005, <A href="#build">building VLD from source</A> in Visual Studio 2005 should create compatible libraries. </LI></UL>
-<H2>Credits</H2>
+<H2><A name=credits></A>Credits</H2>
 <UL>
 <LI>Thanks to Alexandre Nikolov for quickly discovering the bug in 0.9e and helping to slap together a quick fix. 
 <LI>Credit for the idea of how to make VLD's global class <CODE>VisualLeakDetector</CODE> object get constructed before any other user global objects goes to cmk. Thanks cmk! 
 <LI>Thanks to Nitrogenycs (aka Matthias) for discovering the <CODE>VLD_MAX_DATA_DUMP</CODE> infinite loop bug. 
 <LI>Thanks to hsvcs (aka Holger) for discovering the <CODE>VLD_MAX_DATA_DUMP</CODE> compilation bug. 
 <LI>Thanks to Don Clugston for pointing out to me that people sometimes do build optimized debug executables, and that I need to watch out for that. </LI></UL>
-<H2>References</H2>
+<H2><A name=references></A>References</H2>
 <P>Here are some links to useful related articles and resources:</P>
 <UL>
 <LI><A href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/vclib/html/_crt__crtsetallochook.asp" target=_blank><CODE>_CrtSetAllocHook</CODE></A> from the MSDN Library. 
 <LI><A href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/debug/base/stackwalk64.asp" target=_blank><CODE>StackWalk64</CODE></A> from the MSDN Library. 
 <LI><A href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/debug/base/symbol_handling.asp" target=_blank>Using the Symbol Handler</A>, from the MSDN Library. 
 <LI><A href="ftp://download.intel.com/design/Pentium4/manuals/25366514.pdf" target=_blank>IA-32 Intel Architecture Software Developer's Manual - Volume 1</A>. Section 3.5 explains the <CODE lang=asm>EIP</CODE> register and how software can and cannot interact with it. </LI></UL>
-<H2>License</H2>
+<H2><A name=license></A>License</H2>
 <P>Visual Leak Detector is distributed under the terms of the <A href="http://www.gnu.org/copyleft/lesser.html" target=_blank>GNU Lesser General Public License</A>. See the documentation included in the downloadable ZIP files for detailed licensing information.</P>
-<H2>History</H2>
+<H2><A name=history></A>History</H2>
 <P>This list gives a brief overview of the changes made from release to release. For a detailed description of changes made in each release, please see the change log, <I>CHANGES.txt</I>, in the downloadable ZIP files.</P>
 <UL>
 <LI><B>5 August 2005:</B> Version 1.0 - A couple of new features have been added, and a few bugs have been fixed. Major revisions have been made to this article to bring it up to date with respect to the 1.0 release. 
