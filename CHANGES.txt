@@ -7,7 +7,7 @@ Visual Leak Detector (VLD) Version 1.0
 -------------------
   New Features/Enhancements:
   + Memory leak detection can now be selectively disabled and enabled at
-    runtime, using provided APIs. This provides a straight-forward way of
+    runtime, using provided APIs. This provides a straightforward way of
     allowing VLD to selectively "ignore" certain allocations. It can also be
     used to disable VLD altogether at runtime, improving application performance
     without needing to recompile.
