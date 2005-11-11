@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.3.2.1 2005/08/03 23:14:14 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.3.2.2 2005/11/11 17:58:12 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -33,6 +33,17 @@ extern VisualLeakDetector visualleakdetector;
 //  Visual Leak Detector APIs - see vldapi.h for each function's details
 //
 
+void VLDDisable ()
+{
+    if (!visualleakdetector.enabled()) {
+        // Already disabled for the current thread.
+        return;
+    }
+
+    // Disable memory leak detection for the current thread.
+    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_DISABLED);
+}
+
 void VLDEnable ()
 {
     if (visualleakdetector.enabled()) {
@@ -43,15 +54,4 @@ void VLDEnable ()
     // Enable memory leak detection for the current thread.
     TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_ENABLED);
     visualleakdetector.m_status &= ~VLD_STATUS_NEVER_ENABLED;
-}
-
-void VLDDisable ()
-{
-    if (!visualleakdetector.enabled()) {
-        // Already disabled for the current thread.
-        return;
-    }
-
-    // Disable memory leak detection for the current thread.
-    TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_DISABLED);
 }
