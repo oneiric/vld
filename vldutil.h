@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.h,v 1.17 2005/11/19 15:06:57 dmouldin Exp $
+//  $Id: vldutil.h,v 1.18 2005/11/19 15:44:19 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -152,8 +152,10 @@ inline static void operator delete[] (void *p)
     _free_dbg(p, pheader->nBlockUse);
 }
 
-// strapp - Appends to strings. See function definition for details.
+// Utility functions. See function definitions for details.
+const char* booltostr (bool b);
 void strapp (char **dest, char *source);
+bool strtobool (const char *s);
 
 
 ////////////////////////////////////////////////////////////////////////////////

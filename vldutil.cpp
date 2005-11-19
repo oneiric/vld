@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldutil.cpp,v 1.13 2005/11/19 15:06:57 dmouldin Exp $
+//  $Id: vldutil.cpp,v 1.14 2005/11/19 15:43:55 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -24,6 +24,25 @@
 
 #define VLDBUILD     // Declare that we are building Visual Leak Detector
 #include "vldutil.h"
+
+// booltostr - Converts boolean values to string values ("true" or "false").
+//
+//  - b (IN): Boolean value to convert.
+//
+//  Return Value:
+//
+//  - String containing "true" if the input is true.
+//  - String containing "false" if the input is false.
+//
+const char* booltostr (bool b)
+{
+    if (b == true) {
+        return "true";
+    }
+    else {
+        return "false";
+    }
+}
 
 // strapp - Appends the specified source string to the specified destination
 //   string. Allocates additional space so that the destination string "grows"
@@ -50,6 +69,30 @@ void strapp (char **dest, char *source)
     strncpy(*dest, temp, length);
     strncat(*dest, source, length);
     delete [] temp;
+}
+
+// strtobool - Converts string values (e.g. "yes", "no", "on", "off") to boolean
+//   values.
+//
+//  - s (IN): String value to convert.
+//
+//  Return Value:
+//
+//    Returns true if the string is recognized as a "true" string. Otherwise
+//    returns false.
+//
+bool strtobool (const char *s) {
+    char *end;
+
+    if ((_stricmp(s, "true") == 0) ||
+        (_stricmp(s, "yes") == 0) ||
+        (_stricmp(s, "on") == 0) ||
+        (strtol(s, &end, 10) == 1)) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 // Constructor - Initializes the BlockMap with an initial size of zero and one
