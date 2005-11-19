@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.15 2005/07/26 23:02:57 dmouldin Exp $
+//  $Id: vld.h,v 1.16 2005/11/19 15:06:56 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0 RC1)
+//  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -33,8 +33,9 @@
 
 // Configuration flags
 #define VLD_CONFIG_AGGREGATE_DUPLICATES 0x1
-#define VLD_CONFIG_SHOW_USELESS_FRAMES  0x2
-#define VLD_CONFIG_START_DISABLED       0x4
+#define VLD_CONFIG_SELF_TEST            0x2
+#define VLD_CONFIG_SHOW_USELESS_FRAMES  0x4
+#define VLD_CONFIG_START_DISABLED       0x8
 
 #ifndef VLDBUILD
 
@@ -70,6 +71,15 @@ unsigned long _VLD_maxtraceframes = VLD_MAX_TRACE_FRAMES;
 unsigned long _VLD_maxtraceframes = 0xffffffff;
 #endif // VLD_MAX_TRACE_FRAMES
 
+// If VLD_SELF_TEST is defined, then Visual Leak Detector will perform a memory
+// leak self-test, by intentionally leaking memory, to ensure that it is able to
+// correctly detect memory leaks internal to Visual Leak Detector.
+#ifdef VLD_SELF_TEST
+#define VLD_FLAG_SELF_TEST VLD_CONFIG_SELF_TEST
+#else
+#define VLD_FLAG_SELF_TEST 0x0
+#endif // VLD_SELF_TEST
+
 // If VLD_SHOW_USELESS_FRAMES is defined, then all frames traced will be
 // displayed, even frames internal to the heap and Visual Leak Detector.
 #ifdef VLD_SHOW_USELESS_FRAMES
@@ -87,7 +97,8 @@ unsigned long _VLD_maxtraceframes = 0xffffffff;
 #endif // VLD_START_DISABLED
 
 // Initialize the configuration flags based on defined preprocessor macros.
-unsigned _VLD_configflags = VLD_FLAG_AGGREGATE_DUPLICATES | VLD_FLAG_SHOW_USELESS_FRAMES | VLD_FLAG_START_DISABLED;
+unsigned _VLD_configflags = VLD_FLAG_AGGREGATE_DUPLICATES | VLD_FLAG_SELF_TEST |
+                            VLD_FLAG_SHOW_USELESS_FRAMES | VLD_FLAG_START_DISABLED;
 
 #ifdef __cplusplus
 }

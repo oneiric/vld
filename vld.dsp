@@ -123,6 +123,16 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
+# Begin Custom Build - Stripping paths from $(InputPath)
+ProjDir=.
+InputPath=.\Release\vld.lib
+SOURCE="$(InputPath)"
+
+"$(InputPath).unstripped" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(InputPath) $(InputPath).unstripped 
+	stripp $(ProjDir) $(InputPath) 
+	
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "vld - Win32 Release Multithreaded"
 
@@ -146,6 +156,16 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo /out:"Release\vldmt.lib"
+# Begin Custom Build - Stripping paths from $(InputPath)
+ProjDir=.
+InputPath=.\Release\vldmt.lib
+SOURCE="$(InputPath)"
+
+"$(InputPath).unstripped" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(InputPath) $(InputPath).unstripped 
+	stripp $(ProjDir) $(InputPath) 
+	
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "vld - Win32 Release Multithreaded DLL"
 
@@ -169,6 +189,16 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo /out:"Release\vldmtdll.lib"
+# Begin Custom Build - Stripping paths from $(InputPath)
+ProjDir=.
+InputPath=.\Release\vldmtdll.lib
+SOURCE="$(InputPath)"
+
+"$(InputPath).unstripped" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(InputPath) $(InputPath).unstripped 
+	stripp $(ProjDir) $(InputPath) 
+	
+# End Custom Build
 
 !ENDIF 
 
