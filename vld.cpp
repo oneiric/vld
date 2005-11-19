@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.25 2005/11/19 15:06:56 dmouldin Exp $
+//  $Id: vld.cpp,v 1.26 2005/11/19 15:35:48 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,70 +28,49 @@
 #pragma optimize ("y", off)
 
 #define VLDBUILD    // Declares that we are building Visual Leak Detector
-#include "vld.h"    // Provides common Visual Leak Detector definitions.
 #include "vldint.h" // Provides access to the Visual Leak Detector internals.
 
-// Configuration options defined in vld.h
-extern "C" unsigned long _VLD_configflags;
-extern "C" unsigned long _VLD_maxdatadump;
-extern "C" unsigned long _VLD_maxtraceframes;
+// The one and only VisualLeakDetector object instance.
+__declspec(dllexport) VisualLeakDetector visualleakdetector;
 
-// Pointers to explicitly dynamically linked functions exported from dbghelp.dll.
-static StackWalk64_t              pStackWalk64;
-static SymCleanup_t               pSymCleanup;
-static SymFromAddr_t              pSymFromAddr;
-static SymFunctionTableAccess64_t pSymFunctionTableAccess64;
-static SymGetModuleBase64_t       pSymGetModuleBase64;
-static SymGetLineFromAddr64_t     pSymGetLineFromAddr64;
-static SymInitialize_t            pSymInitialize;
-static SymSetOptions_t            pSymSetOptions;
-
-// The one and only VisualLeakDetector object instance. This is placed in the
-// "compiler" initialization area, so that it gets constructed during C runtime
-// initialization and before any user global objects are constructed. Also,
-// disable the warning about us using the "compiler" initialization area.
-#pragma warning (disable:4074)
-#pragma init_seg (compiler)
-VisualLeakDetector visualleakdetector;
-
-// Constructor - Dynamically links with the Debug Help Library and installs the
-//   allocation hook function so that the C runtime's debug heap manager will
-//   call the hook function for every heap request.
+// Constructor - Installs the allocation hook function so that the C runtime's
+//   debug heap manager will call the hook function for every heap request.
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
     // Initialize private data.
-    m_mallocmap    = new BlockMap;
-    m_process      = GetCurrentProcess();
-    m_selftestfile = __FILE__;
-    m_status       = 0x0;
-    m_thread       = GetCurrentThread();
-    m_tlsindex     = TlsAlloc();
+    m_optflags    = 0x0;
+    m_mallocmap      = new BlockMap;
+    m_maxdatadump    = 0xffffffff;
+    m_process        = GetCurrentProcess();
+    m_selftestfile   = __FILE__;
+    m_status         = 0x0;
+    m_thread         = GetCurrentThread();
+    m_tlsindex       = TlsAlloc();
+    m_maxtraceframes = 0xffffffff;
 
-    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+    if (m_optflags & VLD_OPT_SELF_TEST) {
         // Self-test mode has been enabled. Intentionally leak a small amount of
         // memory so that memory leak self-checking can be verified.
         strncpy(new char [21], "Memory Leak Self-Test", 21); m_selftestline = __LINE__;
     }
 
     if (m_tlsindex == TLS_OUT_OF_INDEXES) {
-        report("ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n");
+        report("ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n"
+               "Visual Leak Detector is NOT installed!\n");
     }
-    else if (linkdebughelplibrary()) {
+    else {
         // Register our allocation hook function with the debug heap.
         m_poldhook = _CrtSetAllocHook(allochook);
         report("Visual Leak Detector Version "VLD_VERSION" installed ("VLD_LIBTYPE").\n");
+        configure();
         reportconfig();
-        if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
+        if (m_optflags & VLD_OPT_START_DISABLED) {
             // Memory leak detection will initially be disabled.
             m_status |= VLD_STATUS_NEVER_ENABLED;
         }
-
         m_status |= VLD_STATUS_INSTALLED;
-        return;
     }
-    
-    report("Visual Leak Detector is NOT installed!\n");
 }
 
 // Destructor - Unhooks the hook function and outputs a memory leak report.
@@ -156,7 +135,7 @@ VisualLeakDetector::~VisualLeakDetector ()
         }
         pheader = pheader->pBlockHeaderNext;
     }
-    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+    if (m_optflags & VLD_OPT_SELF_TEST) {
         if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
             report("Visual Leak Detector passed the memory leak self-test.\n");
         }
@@ -335,13 +314,55 @@ char* VisualLeakDetector::buildsymbolsearchpath ()
     return path;
 }
 
+// configure - Configures VLD using values read from the vld.ini file.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::configure ()
+{
+    const char *defstate;
+    char        inipath [MAX_PATH];
+#define BSIZE 16
+    char        state [BSIZE];
+
+    _fullpath(inipath, ".\\vld.ini", MAX_PATH);
+
+    // Read the boolean options.
+    defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_AGGREGATE_DUPLICATES);
+    GetPrivateProfileString("Options", "AggregateDuplicates", defstate, state, BSIZE, inipath);
+    if (strtobool(state) == true) {
+        m_optflags |= VLD_OPT_AGGREGATE_DUPLICATES;
+    }
+    defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SELF_TEST);
+    GetPrivateProfileString("Options", "SelfTest", defstate, state, BSIZE, inipath);
+    if (strtobool(state) == true) {
+        m_optflags |= VLD_OPT_SELF_TEST;
+    }
+    defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SHOW_USELESS_FRAMES);
+    GetPrivateProfileString("Options", "ShowUselessFrames", defstate, state, BSIZE, inipath);
+    if (strtobool(state) == true) {
+        m_optflags |= VLD_OPT_SHOW_USELESS_FRAMES;
+    }
+    defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_START_DISABLED);
+    GetPrivateProfileString("Options", "StartDisabled", defstate, state, BSIZE, inipath);
+    if (strtobool(state) == true) {
+        m_optflags |= VLD_OPT_START_DISABLED;
+    }
+
+    // Read the integer configuration options.
+    m_maxdatadump = GetPrivateProfileInt("Options", "MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
+    m_maxtraceframes = GetPrivateProfileInt("Options", "MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
+}
+
 // dumpuserdatablock - Dumps a nicely formatted rendition of the user-data
 //   portion of a memory block to the debugger's output window. Includes both
 //   the hex value of each byte and its ASCII equivalent (if printable).
 //
 //   By default the entire user data section of each block is dumped. However,
-//   the data dump can be restricted to a limited number of bytes via
-//   _VLD_maxdatadump.
+//   the data dump can be restricted to a limited number of bytes via VLD's
+//   configuration options.
 //
 //  - pheader (IN): Pointer to the header of the memory block to dump.
 //
@@ -362,7 +383,7 @@ void VisualLeakDetector::dumpuserdatablock (const _CrtMemBlockHeader *pheader)
     char          hexdump [58] = {0};
     size_t        hexindex;
 
-    datalen = (_VLD_maxdatadump < pheader->nDataSize) ? _VLD_maxdatadump : pheader->nDataSize;
+    datalen = (m_maxdatadump < pheader->nDataSize) ? m_maxdatadump : pheader->nDataSize;
 
     // Each line of output is 16 bytes.
     if ((datalen % 16) == 0) {
@@ -431,7 +452,7 @@ bool VisualLeakDetector::enabled ()
     status = (unsigned long)TlsGetValue(m_tlsindex);
     if (status == VLD_TLS_UNINITIALIZED) {
         // TLS is uninitialized for the current thread. Use the initial state.
-        if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
+        if (m_optflags & VLD_OPT_START_DISABLED) {
             status = VLD_TLS_DISABLED;
         }
         else {
@@ -504,7 +525,7 @@ unsigned long VisualLeakDetector::eraseduplicates (const _CrtMemBlockHeader *phe
 //   the current frame pointer and program counter.
 //
 //   By default, all stack frames are traced. But the trace can be limited to
-//   a maximum number of frames via _VLD_maxtraceframes.
+//   a maximum number of frames via VLD's configuration options.
 //
 //  - callstack (OUT): Pointer to an empty CallStack to be populated with
 //    entries from the stack trace. Each frame traced will push one entry onto
@@ -551,10 +572,10 @@ void VisualLeakDetector::getstacktrace (CallStack *callstack)
 #endif // _M_IX86, _M_X64, _M_IA64
 
     // Walk the stack.
-    while (count < _VLD_maxtraceframes) {
+    while (count < m_maxtraceframes) {
         count++;
-        if (!pStackWalk64(architecture, m_process, m_thread, &frame, &context,
-                          NULL, pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)) {
+        if (!StackWalk64(architecture, m_process, m_thread, &frame, &context,
+                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
             // Couldn't trace back through any more frames.
             break;
         }
@@ -636,87 +657,6 @@ void VisualLeakDetector::hookrealloc (const void *pdata, long request)
     hookmalloc(request);
 }
 
-// linkdebughelplibrary - Performs explicit dynamic linking to dbghelp.dll.
-//   Implicitly linking with dbghelp.dll is not desirable because implicit
-//   linking requires the import libary (dbghelp.lib). Because VLD is itself a
-//   library, the implicit link with the import library will not happen until
-//   VLD is linked with an executable. This would be bad because the import
-//   library may not exist on the system building the executable. We get around
-//   this by explicitly linking with dbghelp.dll. Because dbghelp.dll is
-//   redistributable, we can safely assume that it will be on the system
-//   building the executable.
-//
-//  Return Value:
-//
-//    - Returns "true" if dynamic linking was successful. Successful linking
-//      means that the Debug Help Library was found and that all functions were
-//      resolved.
-//
-//    - Returns "false" if dynamic linking failed.
-//
-bool VisualLeakDetector::linkdebughelplibrary ()
-{
-    char      *functionname;
-    bool       status = true;
-
-    // Load dbghelp.dll, and obtain pointers to the exported functions that we
-    // will be using.
-    m_dbghelp = LoadLibrary("dbghelp.dll");
-    if (m_dbghelp) {
-        functionname = "StackWalk64";
-        pStackWalk64 = (StackWalk64_t)GetProcAddress(m_dbghelp, functionname);
-        if (pStackWalk64 == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymFunctionTableAccess64";
-        pSymFunctionTableAccess64 = (SymFunctionTableAccess64_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymFunctionTableAccess64 == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymGetModuleBase64";
-        pSymGetModuleBase64 = (SymGetModuleBase64_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymGetModuleBase64 == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymCleanup";
-        pSymCleanup = (SymCleanup_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymCleanup == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymFromAddr";
-        pSymFromAddr = (SymFromAddr_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymFromAddr == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymGetLineFromAddr64";
-        pSymGetLineFromAddr64 = (SymGetLineFromAddr64_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymGetLineFromAddr64 == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymInitialize";
-        pSymInitialize = (SymInitialize_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymInitialize == NULL) {
-            goto getprocaddressfailure;
-        }
-        functionname = "SymSetOptions";
-        pSymSetOptions = (SymSetOptions_t)GetProcAddress(m_dbghelp, functionname);
-        if (pSymSetOptions == NULL) {
-            goto getprocaddressfailure;
-        }
-    }
-    else {
-        status = false;
-        report("ERROR: Visual Leak Detector: Unable to load dbghelp.dll.\n");
-    }
-
-    return status;
-
-getprocaddressfailure:
-    report("ERROR: Visual Leak Detector: The procedure entry point %s could not be located "
-           "in the dynamic link library dbghelp.dll.\n", functionname);
-    return false;
-}
-
 // report - Sends a printf-style formatted message to the debugger for display.
 //
 //  - format (IN): Specifies a printf-compliant format string containing the
@@ -751,27 +691,27 @@ void VisualLeakDetector::report (const char *format, ...)
 //
 void VisualLeakDetector::reportconfig ()
 {
-    if (_VLD_configflags & VLD_CONFIG_AGGREGATE_DUPLICATES) {
+    if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
         report("    Aggregating duplicate leaks.\n");
     }
-    if (_VLD_maxdatadump != 0xffffffff) {
-        if (_VLD_maxdatadump == 0) {
+    if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
+        if (m_maxdatadump == 0) {
             report("    Suppressing data dumps.\n");
         }
         else {
-            report("    Limiting data dumps to %lu bytes.\n", _VLD_maxdatadump);
+            report("    Limiting data dumps to %lu bytes.\n", m_maxdatadump);
         }
     }
-    if (_VLD_maxtraceframes != 0xffffffff) {
-        report("    Limiting stack traces to %lu frames.\n", _VLD_maxtraceframes);
+    if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
+        report("    Limiting stack traces to %lu frames.\n", m_maxtraceframes);
     }
-    if (_VLD_configflags & VLD_CONFIG_SELF_TEST) {
+    if (m_optflags & VLD_OPT_SELF_TEST) {
         report("    Perfoming a memory leak self-test.\n");
     }
-    if (_VLD_configflags & VLD_CONFIG_SHOW_USELESS_FRAMES) {
+    if (m_optflags & VLD_OPT_SHOW_USELESS_FRAMES) {
         report("    Showing useless frames.\n");
     }
-    if (_VLD_configflags & VLD_CONFIG_START_DISABLED) {
+    if (m_optflags & VLD_OPT_START_DISABLED) {
         report("    Starting with memory leak detection disabled.\n");
     }
 }
@@ -826,8 +766,8 @@ void VisualLeakDetector::reportleaks ()
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
     symbolpath = buildsymbolsearchpath();
-    pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
-    if (!pSymInitialize(m_process, symbolpath, TRUE)) {
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
+    if (!SymInitialize(m_process, symbolpath, TRUE)) {
         report("WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
                "    Stack traces will probably not be available for leaked blocks.\n", GetLastError());
     }
@@ -862,7 +802,7 @@ void VisualLeakDetector::reportleaks ()
             }
             leaksfound++;
             report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", pheader->lRequest, pbData(pheader), pheader->nDataSize);
-            if (_VLD_configflags & VLD_CONFIG_AGGREGATE_DUPLICATES) {
+            if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
                 // Aggregate all other leaks which are duplicates of this one
                 // under this same heading, to cut down on clutter.
                 duplicates = eraseduplicates(pheader->pBlockHeaderNext, pheader->nDataSize, callstack);
@@ -877,12 +817,12 @@ void VisualLeakDetector::reportleaks ()
             for (frame = 0; frame < callstack->size(); frame++) {
                 // Try to get the source file and line number associated with
                 // this program counter address.
-                if ((foundline = pSymGetLineFromAddr64(m_process, (*callstack)[frame], &displacement, &sourceinfo)) == TRUE) {
+                if ((foundline = SymGetLineFromAddr64(m_process, (*callstack)[frame], &displacement, &sourceinfo)) == TRUE) {
                     // Unless the "show useless frames" option has been enabled,
                     // don't show frames that are internal to the heap or Visual
                     // Leak Detector. There is virtually no situation where they
                     // would be useful for finding the source of the leak.
-                    if (!(_VLD_configflags & VLD_CONFIG_SHOW_USELESS_FRAMES)) {
+                    if (!(m_optflags & VLD_OPT_SHOW_USELESS_FRAMES)) {
                         if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                             strstr(sourceinfo.FileName, "dbgheap.c") ||
                             strstr(sourceinfo.FileName, "new.cpp") ||
@@ -894,7 +834,7 @@ void VisualLeakDetector::reportleaks ()
 
                 // Try to get the name of the function containing this program
                 // counter address.
-                if (pSymFromAddr(m_process, (*callstack)[frame], &displacement64, pfunctioninfo)) {
+                if (SymFromAddr(m_process, (*callstack)[frame], &displacement64, pfunctioninfo)) {
                     functionname = pfunctioninfo->Name;
                 }
                 else {
@@ -912,7 +852,7 @@ void VisualLeakDetector::reportleaks ()
             }
 
             // Dump the data in the user data section of the memory block.
-            if (_VLD_maxdatadump != 0) {
+            if (m_maxdatadump != 0) {
                 dumpuserdatablock(pheader);
             }
             report("\n");
@@ -933,7 +873,7 @@ void VisualLeakDetector::reportleaks ()
     }
 
     // Free resources used by the symbol handler.
-    if (!pSymCleanup(m_process)) {
+    if (!SymCleanup(m_process)) {
         report("WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
     }
 }
