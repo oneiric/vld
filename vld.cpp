@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.26 2005/11/19 15:35:48 dmouldin Exp $
+//  $Id: vld.cpp,v 1.27 2006/01/14 12:33:23 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -519,6 +519,35 @@ unsigned long VisualLeakDetector::eraseduplicates (const _CrtMemBlockHeader *phe
     return erased;
 }
 
+// getprogramcounterx86x64 - Helper function that retrieves the program counter
+//   (aka the EIP (x86) or RIP (x64) register) for getstacktrace() on Intel x86
+//   or x64 architectures (x64 supports both AMD64 and Intel EM64T). There is no
+//   way for software to directly read the EIP/RIP register. But it's value can
+//   be obtained by calling into a function (in our case, this function) and
+//   then retrieving the return address, which will be the program counter from
+//   where the function was called.
+//
+//  Note: Inlining of this function must be disabled. The whole purpose of this
+//    function's existence depends upon it being a *called* function.
+//
+//  Return Value:
+//
+//    Returns the return address of the current stack frame.
+//
+#if defined(_M_IX86) || defined(_M_X64)
+#pragma auto_inline(off)
+DWORD_PTR VisualLeakDetector::getprogramcounterx86x64 ()
+{
+    DWORD_PTR programcounter;
+
+    __asm mov AXREG, [BPREG + SIZEOFPTR] // Get the return address out of the current stack frame
+    __asm mov [programcounter], AXREG    // Put the return address into the variable we'll return
+
+    return programcounter;
+}
+#pragma auto_inline(on)
+#endif // defined(_M_IX86) || defined(_M_X64)
+
 // getstacktrace - Traces the stack, starting from this function, as far
 //   back as possible. Populates the provided CallStack with one entry for each
 //   stack frame traced. Requires architecture-specific code for retrieving
@@ -541,35 +570,29 @@ void VisualLeakDetector::getstacktrace (CallStack *callstack)
     CONTEXT      context;
     unsigned int count = 0;
     STACKFRAME64 frame;
+    DWORD_PTR    framepointer;
+    DWORD_PTR    programcounter;
 
-    // Get a snapshot of the current thread's context.
-    RtlCaptureContext(&context);
-
-    // Fill in the required values of the STACKFRAME64 structure to be passed to
-    // StackWalk64(). Required fields are AddrPC and AddrFrame. Use the values
-    // obtained from the thread's context snapshot.
-    memset(&frame, 0x0, sizeof(STACKFRAME64));
-#if defined(_M_IX86)
-    architecture = IMAGE_FILE_MACHINE_I386;
-    frame.AddrPC.Offset    = context.Eip;
-    frame.AddrPC.Mode      = AddrModeFlat;
-    frame.AddrFrame.Offset = context.Ebp;
-    frame.AddrFrame.Mode   = AddrModeFlat;
-#elif defined(_M_X64)
-    architecture = IMAGE_FILE_MACHINE_AMD64;
-    frame.AddrPC.Offset    = context.Rip;
-    frame.AddrPC.Mode      = AddrModeFlat;
-    frame.AddrFrame.Offset = context.Rbp;
-    frame.AddrFrame.Mode   = AddrModeFlat;
-#elif defined(_M_IA64)
-    architecture = IMAGE_FILE_MACHINE_IA64;
+    // Get the required values for initialization of the STACKFRAME64 structure
+    // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
+#if defined(_M_IX86) || defined(_M_X64)
+    architecture = X86X64ARCHITECTURE;
+    programcounter = getprogramcounterx86x64();
+    __asm mov [framepointer], BPREG // Get the frame pointer (aka base pointer)
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide architecture-specific code to
 // retrieve the current frame pointer and program counter in order to initialize
 // the STACKFRAME64 structure below.
 #error "Visual Leak Detector is not supported on this architecture."
-#endif // _M_IX86, _M_X64, _M_IA64
+#endif // defined(_M_IX86) || defined(_M_X64)
+
+    // Initialize the STACKFRAME64 structure.
+    memset(&frame, 0x0, sizeof(frame));
+    frame.AddrPC.Offset    = programcounter;
+    frame.AddrPC.Mode      = AddrModeFlat;
+    frame.AddrFrame.Offset = framepointer;
+    frame.AddrFrame.Mode   = AddrModeFlat;
 
     // Walk the stack.
     while (count < m_maxtraceframes) {

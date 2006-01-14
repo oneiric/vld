@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.9 2005/11/19 15:42:37 dmouldin Exp $
+//  $Id: vldint.h,v 1.10 2006/01/14 12:33:29 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -64,6 +64,19 @@
 #endif // _MT
 #endif // _DLL
 
+// Architecture-specific definitions for x86 and x64
+#if defined(_M_IX86)
+#define SIZEOFPTR 4
+#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_I386
+#define AXREG eax
+#define BPREG ebp
+#elif defined(_M_X64)
+#define SIZEOFPTR 8
+#define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
+#define AXREG rax
+#define BPREG rbp
+#endif // _M_IX86
+
 // Thread local status flags
 #define VLD_TLS_UNINITIALIZED 0x0 // Thread local storage for the current thread is uninitialized.
 #define VLD_TLS_DISABLED      0x1 // If set, memory leak detection is disabled for the current thread.
@@ -95,6 +108,9 @@ private:
     void dumpuserdatablock (const _CrtMemBlockHeader *pheader);
     bool enabled ();
     unsigned long eraseduplicates (const _CrtMemBlockHeader *pheader, size_t size, const CallStack *callstack);
+#if defined(_M_IX86) || defined(_M_X64)
+    DWORD_PTR getprogramcounterx86x64 ();
+#endif // defined(_M_IX86) || defined(_M_X64)
     inline void getstacktrace (CallStack *callstack);
     inline void hookfree (const void *pdata);
     inline void hookmalloc (long request);
