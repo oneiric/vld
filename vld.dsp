@@ -40,9 +40,11 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\mainexe\Release"
 # PROP Intermediate_Dir "..\mainexe\Release"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "VLD_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "VLD_EXPORTS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /Zd /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "VLD_EXPORTS" /FD /c
+# SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -52,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib dbghelp.lib shlwapi.lib /nologo /dll /debug /machine:I386
 
 !ELSEIF  "$(CFG)" == "vld - Win32 Debug"
 
@@ -65,6 +67,7 @@ LINK32=link.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "..\mainexe\Debug"
 # PROP Intermediate_Dir "..\mainexe\Debug"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "VLD_EXPORTS" /YX /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "VLD_EXPORTS" /YX /FD /GZ /c
@@ -90,6 +93,14 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\callstack.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\utility.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\vld.cpp
 # End Source File
 # Begin Source File
@@ -98,12 +109,28 @@ SOURCE=.\vldapi.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\vldutil.cpp
+SOURCE=.\vldheap.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\callstack.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\tree.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\utility.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\vld.h
@@ -114,11 +141,11 @@ SOURCE=.\vldapi.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\vldint.h
+SOURCE=.\vldheap.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\vldutil.h
+SOURCE=.\vldint.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
