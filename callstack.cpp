@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.1 2006/01/15 06:49:59 db Exp $
+//  $Id: callstack.cpp,v 1.2 2006/01/16 03:51:10 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -200,6 +200,7 @@ void CallStack::dump (bool showuselessframes) const
             // don't show frames that are internal to the heap or Visual
             // Leak Detector.
             if (!(showuselessframes)) {
+                _strlwr(sourceinfo.FileName);
                 if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
                     strstr(sourceinfo.FileName, "callstack.cpp") ||
                     strstr(sourceinfo.FileName, "dbgheap.c") ||
