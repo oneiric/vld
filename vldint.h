@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.11 2006/01/15 06:47:05 db Exp $
+//  $Id: vldint.h,v 1.12 2006/01/16 03:53:10 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -35,8 +35,8 @@
 #include "callstack.h"  // Provides a custom class for handline call stacks
 #include "map.h"        // Provides a custom STL-like Map template
 
-// VLD version and library type definitions
-#define VLD_VERSION "1.9a"
+#define MODULELISTLENGTH 1024
+#define VLDVERSION       "1.9a"
 
 // Thread local status flags
 #define VLD_TLS_UNINITIALIZED 0x0 // Thread local storage for the current thread is uninitialized.
@@ -116,11 +116,13 @@ private:
     HeapMap          *m_heapmap;        // Map of all active heaps in the process
     unsigned long     m_maxdatadump;    // Maximum number of user-data bytes to dump for each leaked block
     unsigned long     m_maxtraceframes; // Maximum number of frames per stack trace for each leaked block
+    char              m_modulelist [MODULELISTLENGTH]; // List of modules to include or exclude
     unsigned long     m_optflags;       // Configuration options:
-#define VLD_OPT_AGGREGATE_DUPLICATES 0x1 // If set, aggregate duplicate leaks in the leak report
-#define VLD_OPT_SELF_TEST            0x2 // If set, peform a self-test to verify memory leak self-checking
-#define VLD_OPT_SHOW_USELESS_FRAMES  0x4 // If set, include useless frames (e.g. internal to VLD) in call stacks
-#define VLD_OPT_START_DISABLED       0x8 // If set, memory leak detection will initially disabled
+#define VLD_OPT_AGGREGATE_DUPLICATES 0x1  // If set, aggregate duplicate leaks in the leak report
+#define VLD_OPT_SELF_TEST            0x2  // If set, peform a self-test to verify memory leak self-checking
+#define VLD_OPT_SHOW_USELESS_FRAMES  0x4  // If set, include useless frames (e.g. internal to VLD) in call stacks
+#define VLD_OPT_START_DISABLED       0x8  // If set, memory leak detection will initially disabled
+#define VLD_OPT_MODULE_LIST_INCLUDE  0x10 // If set, modules in the module list are included, all others are excluded.
     char             *m_selftestfile;   // Filename where the memory leak self-test block is leaked
     int               m_selftestline;   // Line number where the memory leak self-test block is leaked
     unsigned long     m_status;         // Status flags:

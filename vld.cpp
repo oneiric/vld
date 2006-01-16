@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.28 2006/01/15 06:35:30 db Exp $
+//  $Id: vld.cpp,v 1.29 2006/01/16 03:52:45 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -81,13 +81,8 @@ VisualLeakDetector::VisualLeakDetector ()
                "Visual Leak Detector is NOT installed!\n");
     }
     else {
-        // For each loaded module, patch the Windows heap APIs.
-        EnumerateLoadedModules64(currentprocess, patchheapapis, NULL);
-        report("Visual Leak Detector Version "VLD_VERSION" installed.\n");
-
         // Load configuration options.
         configure();
-        reportconfig();
         if (m_optflags & VLD_OPT_SELF_TEST) {
             // Self-test mode has been enabled. Intentionally leak a small amount of
             // memory so that memory leak self-checking can be verified.
@@ -98,6 +93,11 @@ VisualLeakDetector::VisualLeakDetector ()
             m_status |= VLD_STATUS_NEVER_ENABLED;
         }
         m_status |= VLD_STATUS_INSTALLED;
+
+        // For each loaded module, patch the Windows heap APIs.
+        EnumerateLoadedModules64(currentprocess, patchheapapis, NULL);
+        report("Visual Leak Detector Version "VLDVERSION" installed.\n");
+        reportconfig();
     }
 }
 
@@ -288,6 +288,18 @@ void VisualLeakDetector::configure ()
     // Read the integer configuration options.
     m_maxdatadump = GetPrivateProfileInt("Options", "MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
     m_maxtraceframes = GetPrivateProfileInt("Options", "MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
+
+    // Read string options
+    GetPrivateProfileString("Options", "ModuleList", "", m_modulelist, MODULELISTLENGTH, inipath);
+    _strlwr(m_modulelist);
+    GetPrivateProfileString("Options", "ModuleListMode", "exclude", state, BSIZE, inipath);
+    if (_stricmp(state, "include") == 0) {
+        // The default behavior is to include all modules, except those listed
+        // in the module list, in memory leak detection. However, the "include"
+        // ModuleListMode has been specified. So, all modules will be excluded
+        // except those listed in the module list.
+        m_optflags |= VLD_OPT_MODULE_LIST_INCLUDE;
+    }
 }
 
 // enabled - Determines if memory leak detection is enabled for the current
@@ -771,6 +783,19 @@ BOOL VisualLeakDetector::patchheapapis (PTSTR modulename, DWORD64 modulebase, UL
         // Don't patch the VLD DLL's IAT. VLD's calls to the Windows heap APIs
         // will go directly to the real APIs.
         return TRUE;
+    }
+    _strlwr(modulename);
+    if (visualleakdetector.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) {
+        // Only patch this module if it is in the module list.
+        if (strstr(visualleakdetector.m_modulelist, modulename) == NULL) {
+            return TRUE;
+        }
+    }
+    else {
+        // Do not patch this module if it is in the module list.
+        if (strstr(visualleakdetector.m_modulelist, modulename) != NULL) {
+            return TRUE;
+        }
     }
 
     // Patch key Windows heap APIs to functions provided by VLD.
