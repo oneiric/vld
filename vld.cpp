@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.30 2006/01/17 01:36:12 dmouldin Exp $
+//  $Id: vld.cpp,v 1.31 2006/01/17 23:14:46 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,19 +22,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Frame pointer omission (FPO) optimization should be turned off for this
-// entire file. The release VLD libs don't include FPO debug information, so FPO
-// optimization will interfere with stack walking.
-#pragma optimize ("y", off)
+#if !defined(_DEBUG) || !defined(_DLL)
+#error "Visual Leak Detector must be dynamically linked with the debug C runtime library (compiler option /MDd)"
+#endif // _DEBUG
 
 #define _CRTBLD
-#ifdef NDEBUG
-#define _DEBUG
-#endif // NDEBUG
 #include <dbgint.h>  // Provides access to the heap internals, specifically the memory block header structure.
-#ifdef NDEBUG
-#undef _DEBUG
-#endif // NDEBUG
 #undef _CRTBLD
 
 #define VLDBUILD     // Declares that we are building Visual Leak Detector.
@@ -50,10 +43,27 @@ extern vldblockheader_t *vldblocklist;
 extern HANDLE            vldheap;
 
 // Global variables.
-HANDLE crtdllheap = (HANDLE)0xffffffff; // Pseudo-handle for the shared DLL CRT heap.
-HANDLE crtheap = NULL;                  // Handle to the static CRT heap.
-HANDLE currentprocess;                  // Pseudo-handle for the current process.
-HANDLE currentthread;                   // Pseudo-handle for the current thread.
+static HANDLE crtheap = NULL;                  // Handle to the static CRT heap.
+HANDLE        currentprocess;                  // Pseudo-handle for the current process.
+HANDLE        currentthread;                   // Pseudo-handle for the current thread.
+static HANDLE dllcrtheap = (HANDLE)0xffffffff; // Internal pseudo-handle for the shared DLL CRT heap.
+
+// The import patch table: lists the heap API imports that VLD patches through
+// to replacement functions provided by VLD. Having this table simply makes it
+// more convenient to add/remove API patches.
+static importpatchentry_t importpatchtable [] = {
+    "kernel32.dll", "HeapAlloc",         VisualLeakDetector::_HeapAlloc,
+    "kernel32.dll", "HeapCreate",        VisualLeakDetector::_HeapCreate,
+    "kernel32.dll", "HeapDestroy",       VisualLeakDetector::_HeapDestroy,
+    "kernel32.dll", "HeapFree",          VisualLeakDetector::_HeapFree,
+    "kernel32.dll", "HeapReAlloc",       VisualLeakDetector::_HeapReAlloc,
+    "msvcrtd.dll",  "??2@YAPAXI@Z",      VisualLeakDetector::_malloc,      // operator new
+    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z", VisualLeakDetector::__malloc_dbg, // operator new (debug)
+    "msvcrtd.dll",  "_free_dbg",         VisualLeakDetector::__free_dbg,
+    "msvcrtd.dll",  "_malloc_dbg",       VisualLeakDetector::__malloc_dbg,
+    "msvcrtd.dll",  "free",              VisualLeakDetector::_free,
+    "msvcrtd.dll",  "malloc",            VisualLeakDetector::_malloc
+};
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector visualleakdetector;
@@ -172,6 +182,268 @@ VisualLeakDetector::~VisualLeakDetector ()
     DeleteCriticalSection(&m_heaplock);
 
     report("Visual Leak Detector is now exiting.\n");
+}
+
+// __free_dbg - Calls to _free_dbg are patched through to this function. This
+//   function calls VLD's free tracking function and then invokes the real
+//   _free_dbg. All arguments passed to this function are passed on to the real
+//   _free_dbg without modification.
+//
+//   Note: Only modules dynamically linked to the CRT will import _free_dbg, so
+//     this function only frees blocks allocated to the shared DLL CRT heap.
+//
+//  - mem (IN): Pointer to the memory block to be freed.
+//
+//  - type (IN): CRT block "use type" of the block being freed.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::__free_dbg (void *mem, int type)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapfree(dllcrtheap, mem);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    _free_dbg(mem, type);
+}
+
+// __malloc_dbg - Calls to _malloc_dbg are patched through to this function.
+//   This function invokes the real _malloc_dbg and then calls VLD's allocation
+//   tracking function. All arguments passed to this function are passed on to
+//   the real _malloc_dbg without modification.
+//
+//   Note: Only modules dynamically linked to the CRT will import _malloc_dbg,
+//     so this function only allocates blocks from the shared DLL CRT heap.
+//
+//  - size (IN): The size of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _malloc_dbg.
+//
+void* VisualLeakDetector::__malloc_dbg (size_t size, int type, const char *file, int line)
+{
+    void *block;
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    block = _malloc_dbg(size, type, file, line);
+    if (block != NULL) {
+        visualleakdetector.mapalloc(dllcrtheap, block, size);
+    }
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return block;
+}
+
+// _free - Calls to free are patched through to this function. This function
+//   calls VLD's free tracking function and then invokes the real "free". All
+//   arguments passed to this function are passed on to the real "free" without
+//   modification.
+//
+//   Note: Only modules dynamically linked to the CRT will import free, so this
+//     function only frees blocks allocated to the shared DLL CRT heap.
+//
+//  - mem (IN): Pointer to the memory block to be freed. Passed on to "free"
+//      without modification.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::_free (void *mem)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapfree(dllcrtheap, mem);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    free(mem);
+}
+
+// _HeapAlloc - Calls to HeapAlloc are patched through to this function. This
+//   function invokes the real HeapAlloc and then calls VLD's allocation
+//   tracking function. All arguments passed to this function are passed on to
+//   the real HeapAlloc without modification.
+//
+//  - heap (IN): Handle to the heap from which to allocate memory.
+//
+//  - flags (IN): Heap allocation control flags.
+//
+//  - bytes (IN): Size, in bytes, of the block to allocate.
+//
+//  Return Value:
+//
+//    Returns the return value from HeapAlloc.
+//
+LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, DWORD bytes)
+{
+    LPVOID block;
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+    
+    block = HeapAlloc(heap, flags, bytes);
+    if (block != NULL) {
+        visualleakdetector.mapalloc(heap, block, bytes);
+    }
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return block;
+}
+
+// _HeapCreate - Calls to HeapCreate are patched through to this function. This
+//   function invokes the real HeapCreate and then calls VLD's heap creation
+//   tracking function. All arguments passed to this function are passed on to
+//   the real HeapCreate without modification.
+//
+//  - options (IN): Heap options.
+//
+//  - initsize (IN): Initial size of the heap.
+//
+//  - maxsize (IN): Maximum size of the heap.
+//
+//  Return Value:
+//
+//    Returns the value returned by HeapCreate.
+//
+HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
+{
+    HANDLE heap = HeapCreate(options, initsize, maxsize);
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    if (crtheap == NULL) {
+        // The static CRT heap is always the first one created. XXX is this reliable?
+        crtheap = heap;
+    }
+
+    visualleakdetector.mapcreate(heap);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return heap;
+}
+
+// _HeapDestroy - Calls to HeapDestroy are patched through to this function.
+//   This function calls VLD's heap destruction tracking function and then
+//   invokes the real HeapDestroy. All arguments passed to this function are
+//   passed on to the real HeapDestroy without modification.
+//
+//  - heap (IN): Handle to the heap to be destroyed.
+//
+//  Return Value:
+//
+//    Returns the valued returned by HeapDestroy.
+//
+BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapdestroy(heap);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return HeapDestroy(heap);
+}
+
+// _HeapFree - Calls to HeapFree are patched through to this function. This
+//   function calls VLD's free tracking function and then invokes the real
+//   HeapFree. All arguments passed to this function are passed on to the real
+//   HeapFree without modification.
+//
+//  - heap (IN): Handle to the heap to which the block being freed belongs.
+//
+//  - flags (IN): Heap control flags.
+//
+//  - mem (IN): Pointer to the memory block being freed.
+//
+//  Return Value:
+//
+//    Returns the value returned by HeapFree.
+//
+BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapfree(heap, mem);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return HeapFree(heap, flags, mem);
+}
+
+// _HeapReAlloc - Calls to HeapReAlloc are patched through to this function.
+//   This function invokes the real HeapReAlloc and then calls VLD's
+//   reallocation tracking function. All arguments passed to this function are
+//   passed on to the real HeapReAlloc without modification.
+//
+//  - heap (IN): Handle to the heap to reallocate memory from.
+//
+//  - flags (IN): Heap control flags.
+//
+//  - bytes (IN): Size, in bytes, of the block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned by HeapReAlloc.
+//
+LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T bytes)
+{
+    LPVOID newmem;
+    
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    newmem = HeapReAlloc(heap, flags, mem, bytes);
+
+    visualleakdetector.maprealloc(heap, mem, newmem, bytes);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return newmem;
+}
+
+// _malloc - Calls to malloc are patched through to this function. This function
+//   invokes the real malloc and then calls VLD's allocation tracking function.
+//   All arguments passed to this function are passed on to the real malloc
+//   without modification.
+//
+//   Note: Only modules dynamically linked to the CRT will import malloc, so
+//     this function only allocates blocks from the shared DLL CRT heap.
+//
+//  - size (IN): Size of the memory block to allocate.
+//
+//  Return Value:
+//
+//    Returns the valued returned from malloc.
+//
+void* VisualLeakDetector::_malloc (size_t size)
+{
+    void *block;
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+    
+    block = malloc(size);
+    if (block != NULL) {
+        visualleakdetector.mapalloc(dllcrtheap, block, size);
+    }
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return block;
 }
 
 // buildsymbolsearchpath - Builds the symbol search path for the symbol handler.
@@ -379,167 +651,8 @@ unsigned long VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &ele
     return erased;
 }
 
-// heapalloc - Calls to HeapAlloc are patched through to this function. This
-//   function calls the real HeapAlloc and then invokes VLD's internal mapping
-//   function to track the resulting block returned by HeapAlloc.
-//
-//  - heap (IN): Handle to the heap from which to allocate memory. Passed on to
-//      HeapAlloc without modification.
-//
-//  - flags (IN): Heap allocation control flags. See HeapAlloc documentation for
-//      details. Passed on to HeapAlloc without modification.
-//
-//  - bytes (IN): Size, in bytes, of the block to allocate. Passed on to
-//      HeapAlloc without modification.
-//
-//  Return Value:
-//
-//    Returns the return value from HeapAlloc. See HeapAlloc documentation for
-//    details.
-//
-LPVOID VisualLeakDetector::heapalloc (HANDLE heap, DWORD flags, DWORD bytes)
-{
-    LPVOID block;
-
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-    
-    block = HeapAlloc(heap, flags, bytes);
-    if (block != NULL) {
-        visualleakdetector.mapalloc(heap, block, bytes);
-    }
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return block;
-}
-
-// heapcreate - Calls to HeapCreate are patched through to this function. This
-//   function calls the real HeapCreate and then creates VLD's internal
-//   datastructures for tracking allocations from the heap created.
-//
-//  - options (IN): Heap options. See HeapCreate documentation for details.
-//      Passed on to HeapCreate without modification.
-//
-//  - initsize (IN): Initial size of the heap. Passed on to HeapCreate without
-//      modification.
-//
-//  - maxsize (IN): Maximum size of the heap. Passed on to HeapCreate without
-//      modification.
-//
-//  Return Value:
-//
-//    Returns the value returned by HeapCreate. See HeapCreate documentation
-//    for details.
-//
-HANDLE VisualLeakDetector::heapcreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
-{
-    HANDLE heap = HeapCreate(options, initsize, maxsize);
-
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    if (crtheap == NULL) {
-        // The static CRT heap is always the first one created.
-        crtheap = heap;
-    }
-
-    visualleakdetector.mapcreate(heap);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return heap;
-}
-
-// heapdestroy - Calls to HeapDestroy are patched through to this function. This
-//   function clears and frees VLD's internal datastructures for the specified
-//   heap and then invokes the real HeapDestroy function.
-//
-//  - heap (IN): Handle to the heap to be destroyed. Passed on to HeapDestroy
-//      without modification.
-//
-//  Return Value:
-//
-//    Returns the valued returned by HeapDestroy. See HeapDestroy documentation
-//    for details.
-//
-BOOL VisualLeakDetector::heapdestroy (HANDLE heap)
-{
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    visualleakdetector.mapdestroy(heap);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return HeapDestroy(heap);
-}
-
-// heapfree - Calls to HeapFree are patched through to this function. This
-//   function invokes VLD's internal mapping function for tracking the block
-//   that is being freed and then calls the real HeapFree.
-//
-//  - heap (IN): Handle to the heap to which the block being freed belongs.
-//      Passed on to HeapFree without modification.
-//
-//  - flags (IN): Heap control flags. See HeapFree documentation for more
-//      details. Passed on to HeapFree without modification.
-//
-//  - mem (IN): Pointer to the memory block being freed. Passed on to HeapFree
-//      without modification.
-//
-//  Return Value:
-//
-//    Returns the value returned by HeapFree. See HeapFree documentation for
-//    details.
-//
-BOOL VisualLeakDetector::heapfree (HANDLE heap, DWORD flags, LPVOID mem)
-{
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    visualleakdetector.mapfree(heap, mem);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return HeapFree(heap, flags, mem);
-}
-
-// heaprealloc - Calls to HeapReAlloc are patched through to this function. This
-//   function calls the real HeapReAlloc and then invokes VLD's internal mapping
-//   function for tracking the reallocation.
-//
-//  - heap (IN): Handle to the heap to reallocate memory from. Passed on to
-//      HeapReAlloc without modification.
-//
-//  - flags (IN): Heap control flags. See HeapReAlloc documentation for details.
-//      Passed on to HeapReAlloc without modification.
-//
-//  - bytes (IN): Size, in bytes, of the block to reallocate. Passed on to
-//      HeapReAlloc without modification.
-//
-//  Return Value:
-//
-//    Returns the value returned by HeapReAlloc. See HeapReAlloc documentation
-//    for more details.
-//
-LPVOID VisualLeakDetector::heaprealloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T bytes)
-{
-    LPVOID newmem;
-    
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    newmem = HeapReAlloc(heap, flags, mem, bytes);
-
-    visualleakdetector.maprealloc(heap, mem, newmem, bytes);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return newmem;
-}
-
-// mapalloc - VLD's internal mapping function for tracking memory allocations.
-//   Any API that results in a memory allocation should eventually result in a
-//   call to this function. This function then records the block's information
-//   in VLD's block map. If the process fails to free this block before the
-//   process terminates, VLD will find the block in the block map and detect
-//   the leak.
+// mapalloc - Tracks memory allocations. Information about allocated blocks is
+//   collected and then stored in the block map.
 //
 //  - heap (IN): Handle to the heap from which the block has been allocated.
 //
@@ -565,7 +678,7 @@ void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
         return;
     }
 
-    // Record the block's information and insert it into the heap's block map.
+    // Record the block's information.
     info = new blockinfo_t;
     info->callstack.getstacktrace(m_maxtraceframes);
     info->serialnumber = serialnumber++;
@@ -579,41 +692,30 @@ void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
     else {
         info->size = size;
     }
-    try {
-        heapit = m_heapmap->find(heap);
-        if (heapit == m_heapmap->end()) {
-            // We haven't created a block map for this heap yet, do it now.
-            mapcreate(heap);
-            heapit = m_heapmap->find(heap);
-        }
-        blockmap = (*heapit).second;
-        blockmap->insert(mem, info);
-    }
-    catch (exception_e e) {
-        switch (e) {
-        case duplicate_value:
-            // A block with this address has already been allocated. The
-            // previously allocated block must have been freed (probably by some
-            // mechanism unknown to VLD), or the heap wouldn't have allocated it
-            // again. Replace the previously allocated info with the new info.
-            blockit = blockmap->find(mem);
-            delete (*blockit).second;
-            blockmap->erase(blockit);
-            blockmap->insert(mem, info);
-            break;
 
-        default:
-            report("ERROR: Visual Leak Detector: Unhandled exception.\n");
-            assert(false);
-        }
+    // Insert the block's information into the block map.
+    heapit = m_heapmap->find(heap);
+    if (heapit == m_heapmap->end()) {
+        // We haven't created a block map for this heap yet, do it now.
+        mapcreate(heap);
+        heapit = m_heapmap->find(heap);
+    }
+    blockmap = (*heapit).second;
+    blockit = blockmap->insert(mem, info);
+    if (blockit == blockmap->end()) {
+        // A block with this address has already been allocated. The
+        // previously allocated block must have been freed (probably by some
+        // mechanism unknown to VLD), or the heap wouldn't have allocated it
+        // again. Replace the previously allocated info with the new info.
+        blockit = blockmap->find(mem);
+        delete (*blockit).second;
+        blockmap->erase(blockit);
+        blockmap->insert(mem, info);
     }
 }
 
-// mapcreate - VLD's internal mapping function for tracking newly created
-//   heaps. Any API that results in a new heap being created should eventually
-//   result in a call to this function. This function creates the block map
-//   required for tracking allocations from the new heap and inserts it into
-//   the heap map.
+// mapcreate - Tracks heap creation. Creates a block map for tracking
+//   individual allocations from the newly created heap.
 //
 //  - heap (IN): Handle to the newly created heap.
 //
@@ -623,31 +725,26 @@ void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
 //
 void VisualLeakDetector::mapcreate (HANDLE heap)
 {
-    BlockMap *blockmap;
+    BlockMap          *blockmap;
+    HeapMap::Iterator  heapit;
 
-    try {
-        // Create a new block map for this heap and insert it into the heap map.
-        blockmap = new BlockMap;
-        blockmap->reserve(BLOCKMAPRESERVE);
+    // Create a new block map for this heap and insert it into the heap map.
+    blockmap = new BlockMap;
+    blockmap->reserve(BLOCKMAPRESERVE);
+    heapit = m_heapmap->insert(heap, blockmap);
+    if (heapit == m_heapmap->end()) {
+        // Somehow this heap has been created twice without being destroyed,
+        // or at least it was destroyed without VLD's knowledge. Destroy the
+        // old heap and replace it with the new one.
+        report("WARNING: Visual Leak Detector detected a duplicate heap.\n");
+        heapit = m_heapmap->find(heap);
+        mapdestroy((*heapit).first);
         m_heapmap->insert(heap, blockmap);
-    }
-    catch (exception_e e) {
-        switch (e) {
-        case duplicate_value:
-            report("WARNING: Visual Leak Detector detected a duplicate heap.\n");
-            break;
-
-        default:
-            report("ERROR: Visual Leak Detector: Unhandled exception.\n");
-            assert(false);
-        }
     }
 }
 
-// mapdestroy - VLD's internal mapping function for tracking heaps that are
-//   destroyed. Any API that results in a heap being destroyed should
-//   eventually result in a call to this function. This function clears and
-//   frees the block map corresponding to the heap being destroyed.
+// mapdestroy - Tracks heap destruction. Clears the block map associated with
+//   the specified heap and relinquishes internal resources.
 //
 //  - heap (IN): Handle to the heap which is being destroyed.
 //
@@ -675,11 +772,8 @@ void VisualLeakDetector::mapdestroy (HANDLE heap)
     m_heapmap->erase(heapit);
 }
 
-// mapfree - VLD's internal mapping function for tracking freed memory blocks.
-//   Any API that results in memory being freed should eventually result in a
-//   call to this function. This function then acknowledges that the block is
-//   being freed by removing the block from VLD's block map, thereby ensuring
-//   that VLD will not flag this block as a leak.
+// mapfree - Tracks blocks that are freed. Removes the information about the
+//   block being freed from the block map.
 //
 //  - heap (IN): Handle to the heap to which this block is being freed.
 //
@@ -717,12 +811,9 @@ void VisualLeakDetector::mapfree (HANDLE heap, LPVOID mem)
     blockmap->erase(blockit);
 }
 
-// maprealloc - VLD's internal mapping function for tracking reallocated memory
-//   blocks. Any API that results in a block being reallocated should eventually
-//   result in a call to this function. This function will then determine
-//   whether or not the block must be removed and a replacement block re-added
-//   to VLD's block map in order to track the reallocation, in the same manner
-//   that mapalloc tracks allocations.
+// maprealloc - Tracks reallocations. Updates the information stored in the
+//   block map about the reallocated block, or erases the old information and
+//   reinserts the new information, if needed.
 //
 //  - heap (IN): Handle to the heap from which the memory is being reallocated.
 //
@@ -781,68 +872,11 @@ void VisualLeakDetector::maprealloc (HANDLE heap, LPVOID mem, LPVOID newmem, SIZ
     }
 }
 
-void VisualLeakDetector::vldfree (void *mem)
-{
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    visualleakdetector.mapfree(crtdllheap, mem);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    free(mem);
-}
-
-void VisualLeakDetector::vldfreedbg (void *mem, int type)
-{
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    visualleakdetector.mapfree(crtdllheap, mem);
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    _free_dbg(mem, type);
-}
-
-void* VisualLeakDetector::vldmalloc (size_t size)
-{
-    void *block;
-
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-    
-    block = malloc(size);
-    if (block != NULL) {
-        visualleakdetector.mapalloc(crtdllheap, block, size);
-    }
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return block;
-}
-
-void* VisualLeakDetector::vldmallocdbg (size_t size, int type, const char *file, int line)
-{
-    void *block;
-
-    EnterCriticalSection(&visualleakdetector.m_heaplock);
-
-    block = _malloc_dbg(size, type, file, line);
-    if (block != NULL) {
-        visualleakdetector.mapalloc(crtdllheap, block, size);
-    }
-
-    LeaveCriticalSection(&visualleakdetector.m_heaplock);
-
-    return block;
-}
-
 // patchheapapis - Callback function for EnumerateLoadedModules64 that patches
-//   key heap APIs for all modules loaded in the process (unless otherwise
-//   excepted). One notable exception is the VLD DLL's module. It is not
-//   necessary, nor desirable, to patch the heap APIs for VLD's own module.
-//   This avoids potential infinte recursion when VLD itself needs to allocate
-//   memory and also improves the performance of VLD's internal memory
-//   allocations to minimize the overall performance impact of VLD on the host
-//   process (no stack traces are taken for VLD's own allocations).
+//   heap APIs for all modules loaded in the process (unless otherwise
+//   excepted). The import patch table is consulted for determining which APIs
+//   exported by which modules should be patched and to which replacement
+//   functions provided by VLD they should be patched through to.
 //
 //  - modulename (IN): Name of a module loaded in the current process.
 //
@@ -850,7 +884,7 @@ void* VisualLeakDetector::vldmallocdbg (size_t size, int type, const char *file,
 //
 //  - modulesize (IN): Total size of the module.
 //
-//  - context (IN): User-supplied context (Not currently used by VLD).
+//  - context (IN): User-supplied context (not currently used by VLD).
 //
 //  Return Value:
 //
@@ -858,19 +892,23 @@ void* VisualLeakDetector::vldmallocdbg (size_t size, int type, const char *file,
 //
 BOOL VisualLeakDetector::patchheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
+    char   *exportmodulename;
+    char   *importname;
+    SIZE_T  index;
     char   *lowername;
     size_t  length = strlen(modulename) + 1;
+    SIZE_T  numpatchentries = sizeof(importpatchtable) / sizeof(importpatchentry_t);
+    void   *replacement;
 
     lowername = new char [length];
     strncpy(lowername, modulename, length);
     _strlwr(lowername);
-    if (strstr("vld.dll dbghelp.dll msvcrt.dll", lowername) != NULL) {
+    if (strstr("vld.dll dbghelp.dll msvcrt.dll msvcrtd.dll", lowername) != NULL) {
         // Don't patch vld.dll's, dbghelp.dll's, or msvcrt.dll's IATs. We want
-        // VLD's calls to the Windows heap APIs to go directly to the real APIs.
-        // Also, VLD's replacement heap APIs depend on certain Debug Help
-        // Library and CRT routines which may need to allocate memory so
-        // patching dbghelp.dll's or msvcrt.dll's IATs can result in infinite
-        // recursion.
+        // VLD's calls to the heap APIs to go directly to the real APIs. Also,
+        // VLD's replacement heap APIs depend on certain Debug Help Library and
+        // CRT routines which may need to allocate memory so patching
+        // dbghelp.dll's or msvcrt.dll's IATs can result in infinite recursion.
         delete lowername;
         return TRUE;
     }
@@ -890,18 +928,14 @@ BOOL VisualLeakDetector::patchheapapis (PCTSTR modulename, DWORD64 modulebase, U
     }
     delete lowername;
 
-    // Patch key Windows heap APIs to functions provided by VLD.
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXI@Z", vldmalloc);
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXIHPBDH@Z", vldmallocdbg);
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "malloc", vldmalloc);
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "_malloc_dbg", vldmallocdbg);
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "free", vldfree);
-    patchimport((HMODULE)modulebase, "msvcrtd.dll", "_free_dbg", vldfreedbg);
-    patchimport((HMODULE)modulebase, "kernel32.dll", "HeapAlloc",  heapalloc);
-    patchimport((HMODULE)modulebase, "kernel32.dll", "HeapCreate", heapcreate);
-    patchimport((HMODULE)modulebase, "kernel32.dll", "HeapDestroy", heapdestroy);
-    patchimport((HMODULE)modulebase, "kernel32.dll", "HeapFree",   heapfree);
-    patchimport((HMODULE)modulebase, "kernel32.dll", "HeapReAlloc", heaprealloc);
+    // Patch each API listed in the import patch table to its respective VLD
+    // replacement function.
+    for (index = 0; index < numpatchentries; ++index) {
+        exportmodulename = importpatchtable[index].exportmodulename;
+        importname       = importpatchtable[index].importname;
+        replacement      = importpatchtable[index].replacement;
+        patchimport((HMODULE)modulebase, exportmodulename, importname, replacement);
+    }
 
     return TRUE;
 }
@@ -980,7 +1014,7 @@ void VisualLeakDetector::reportleaks ()
             // potential memory leak.
             mem = (*blockit).first;
             info = (*blockit).second;
-            if ((heap == crtheap) || (heap == crtdllheap)) {
+            if ((heap == crtheap) || (heap == dllcrtheap)) {
                 // This block is allocated to a CRT heap, so the block has a CRT
                 // memory block header prepended to it.
                 crtheader = pHdr(mem);
@@ -1044,7 +1078,7 @@ void VisualLeakDetector::reportleaks ()
 //
 //  - modulesize (IN): Total size of the module.
 //
-//  - context (IN): User-supplied context (Not currently used by VLD).
+//  - context (IN): User-supplied context (not currently used by VLD).
 //
 //  Return Value:
 //
@@ -1052,15 +1086,19 @@ void VisualLeakDetector::reportleaks ()
 //
 BOOL VisualLeakDetector::restoreheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    // Restore the previously patched Windows heap APIs.
-    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXI@Z", vldmalloc);
-    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "free", vldfree);
-    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "malloc", vldmalloc);
-    restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapAlloc", heapalloc);
-    restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapCreate", heapcreate);
-    restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapDestroy", heapdestroy);
-    restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapFree", heapfree);
-    restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapReAlloc", heaprealloc);
+    char   *exportmodulename;
+    char   *importname;
+    SIZE_T  index;
+    SIZE_T  numpatchentries = sizeof(importpatchtable) / sizeof(importpatchentry_t);
+    void   *replacement;
+
+    // Restore the previously patched APIs.
+    for (index = 0; index < numpatchentries; ++index) {
+        exportmodulename = importpatchtable[index].exportmodulename;
+        importname       = importpatchtable[index].importname;
+        replacement      = importpatchtable[index].replacement;
+        restoreimport((HMODULE)modulebase, exportmodulename, importname, replacement);
+    }
 
     return TRUE;
 }
