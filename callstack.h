@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.h,v 1.1 2006/01/15 06:50:31 db Exp $
+//  $Id: callstack.h,v 1.2 2006/01/17 01:28:54 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -37,22 +37,20 @@
 //
 //  The CallStack Class
 //
-//    This data structure is similar in concept to a STL vector, but is
-//    specifically tailored for use by VLD, making it more efficient than a
-//    standard STL vector.
+//    CallStack objects can be used for obtaining, storing, and displaying the
+//    call stack at a given point during program execution.
 //
-//    A CallStack is made up of a number of "Chunks" which are arranged in a
+//    The primary data structure used by the CallStack is similar in concept to
+//    a STL vector, but is specifically tailored for use by VLD, making it more
+//    efficient than a standard STL vector.
+//
+//    Inside the CallStack are a number of "Chunks" which are arranged in a
 //    linked list. Each Chunk contains an array of frames (each frame is
 //    represented by a program counter address). If we run out of space when
 //    pushing new frames onto an existing chunk in the CallStack Chunk list,
 //    then a new Chunk is allocated and appended to the end of the list. In this
 //    way, the CallStack can grow dynamically as needed. New frames are always
 //    pushed onto the Chunk at the end of the list known as the "top" Chunk.
-//
-//    When a CallStack is no longer needed (i.e. the memory block associated
-//    with a CallStack has been freed) the memory allocated to the CallStack is
-//    not actually freed. Instead, the CallStack's data is simply reset so that
-//    the CallStack can be reused later without needing to reallocate memory.
 //
 class CallStack
 {

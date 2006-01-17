@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.2 2006/01/16 03:51:10 db Exp $
+//  $Id: callstack.cpp,v 1.3 2006/01/17 01:28:39 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -166,6 +166,8 @@ void CallStack::clear ()
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.
 //
+//  Note: The symbol handler must be initialized prior to calling this function.
+//
 //  - showuselessframes (IN): If true, then all frames in the CallStack will be
 //      dumped. Otherwise, frames internal to the heap or Visual Leak Detector
 //      will not be included in the dump.
@@ -234,13 +236,10 @@ void CallStack::dump (bool showuselessframes) const
 
 // getstacktrace - Traces the stack, starting from this function, as far
 //   back as possible. Populates the current CallStack with one entry for each
-//   stack frame traced. Requires architecture-specific code for retrieving
-//   the current frame pointer and program counter.
+//   stack frame traced.
 //
-//  Note: This function assumes that the current CallStack is already empty.
-//   Calling this function on a CallStack that has already been populate with
-//   a stack trace will result in the new stack trace being appended to the
-//   existing stack trace.
+//  Note: This function relies upon architecture-specific code for retrieving
+//   the current frame pointer and program counter.
 //
 //  - maxdepth (IN): Specifies the maximum depth of the stack trace. The trace
 //      will stop when this number of frames has been trace, or when the end of
