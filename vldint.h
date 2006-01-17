@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.12 2006/01/16 03:53:10 db Exp $
+//  $Id: vldint.h,v 1.13 2006/01/17 01:37:24 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -106,10 +106,14 @@ private:
     inline void mapdestroy (HANDLE heap);
     inline void mapfree (HANDLE heap, LPVOID mem);
     inline void maprealloc (HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
-    static BOOL __stdcall patchheapapis (PTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static BOOL __stdcall patchheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context);
     void reportconfig ();
     void reportleaks ();
-    static BOOL __stdcall restoreheapapis (PTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static BOOL __stdcall restoreheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static void vldfree (void *mem);
+    static void vldfreedbg (void *mem, int type);
+    static void* vldmalloc (size_t size);
+    static void* vldmallocdbg (size_t size, int type, const char *file, int line);
 
     // Private Data
     CRITICAL_SECTION  m_heaplock;       // Serialzes access to the heap map

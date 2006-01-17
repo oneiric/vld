@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.29 2006/01/16 03:52:45 db Exp $
+//  $Id: vld.cpp,v 1.30 2006/01/17 01:36:12 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -50,8 +50,10 @@ extern vldblockheader_t *vldblocklist;
 extern HANDLE            vldheap;
 
 // Global variables.
-HANDLE currentprocess; // Pseudo-handle for the current process.
-HANDLE currentthread;  // Pseudo-handle for the current thread.
+HANDLE crtdllheap = (HANDLE)0xffffffff; // Pseudo-handle for the shared DLL CRT heap.
+HANDLE crtheap = NULL;                  // Handle to the static CRT heap.
+HANDLE currentprocess;                  // Pseudo-handle for the current process.
+HANDLE currentthread;                   // Pseudo-handle for the current thread.
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector visualleakdetector;
@@ -353,7 +355,7 @@ unsigned long VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &ele
     elementinfo = (*element).second;
 
     // Iteratate through all block maps, looking for blocks with the same size
-    // and callstack of the specified element.
+    // and callstack as the specified element.
     for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
         blockmap = (*heapit).second;
         for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
@@ -434,6 +436,11 @@ HANDLE VisualLeakDetector::heapcreate (DWORD options, SIZE_T initsize, SIZE_T ma
     HANDLE heap = HeapCreate(options, initsize, maxsize);
 
     EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    if (crtheap == NULL) {
+        // The static CRT heap is always the first one created.
+        crtheap = heap;
+    }
 
     visualleakdetector.mapcreate(heap);
 
@@ -546,10 +553,12 @@ LPVOID VisualLeakDetector::heaprealloc (HANDLE heap, DWORD flags, LPVOID mem, SI
 //
 void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
 {
-    BlockMap          *blockmap;
-    HeapMap::Iterator  heapit;
-    blockinfo_t       *info;
-    static SIZE_T      serialnumber = 0;
+    BlockMap::Iterator  blockit;
+    BlockMap           *blockmap;
+    _CrtMemBlockHeader *crtheader;
+    HeapMap::Iterator   heapit;
+    blockinfo_t        *info;
+    static SIZE_T       serialnumber = 0;
 
     if (!enabled()) {
         // Memory leak detection is disabled. Don't track allocations.
@@ -560,7 +569,16 @@ void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
     info = new blockinfo_t;
     info->callstack.getstacktrace(m_maxtraceframes);
     info->serialnumber = serialnumber++;
-    info->size = size;
+    if (heap == crtheap) {
+        // For CRT blocks, the address and size of the user-data section of the
+        // block are stored in the map.
+        crtheader = (_CrtMemBlockHeader*)mem;
+        mem = pbData(crtheader);
+        info->size = crtheader->nDataSize;
+    }
+    else {
+        info->size = size;
+    }
     try {
         heapit = m_heapmap->find(heap);
         if (heapit == m_heapmap->end()) {
@@ -574,7 +592,14 @@ void VisualLeakDetector::mapalloc (HANDLE heap, LPVOID mem, SIZE_T size)
     catch (exception_e e) {
         switch (e) {
         case duplicate_value:
-            report("WARNING: Visual Leak Detector detected a double allocation.\n");
+            // A block with this address has already been allocated. The
+            // previously allocated block must have been freed (probably by some
+            // mechanism unknown to VLD), or the heap wouldn't have allocated it
+            // again. Replace the previously allocated info with the new info.
+            blockit = blockmap->find(mem);
+            delete (*blockit).second;
+            blockmap->erase(blockit);
+            blockmap->insert(mem, info);
             break;
 
         default:
@@ -756,6 +781,60 @@ void VisualLeakDetector::maprealloc (HANDLE heap, LPVOID mem, LPVOID newmem, SIZ
     }
 }
 
+void VisualLeakDetector::vldfree (void *mem)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapfree(crtdllheap, mem);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    free(mem);
+}
+
+void VisualLeakDetector::vldfreedbg (void *mem, int type)
+{
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    visualleakdetector.mapfree(crtdllheap, mem);
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    _free_dbg(mem, type);
+}
+
+void* VisualLeakDetector::vldmalloc (size_t size)
+{
+    void *block;
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+    
+    block = malloc(size);
+    if (block != NULL) {
+        visualleakdetector.mapalloc(crtdllheap, block, size);
+    }
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return block;
+}
+
+void* VisualLeakDetector::vldmallocdbg (size_t size, int type, const char *file, int line)
+{
+    void *block;
+
+    EnterCriticalSection(&visualleakdetector.m_heaplock);
+
+    block = _malloc_dbg(size, type, file, line);
+    if (block != NULL) {
+        visualleakdetector.mapalloc(crtdllheap, block, size);
+    }
+
+    LeaveCriticalSection(&visualleakdetector.m_heaplock);
+
+    return block;
+}
+
 // patchheapapis - Callback function for EnumerateLoadedModules64 that patches
 //   key heap APIs for all modules loaded in the process (unless otherwise
 //   excepted). One notable exception is the VLD DLL's module. It is not
@@ -777,28 +856,47 @@ void VisualLeakDetector::maprealloc (HANDLE heap, LPVOID mem, LPVOID newmem, SIZ
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::patchheapapis (PTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::patchheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    if (_stricmp(modulename, "vld.dll") == 0) {
-        // Don't patch the VLD DLL's IAT. VLD's calls to the Windows heap APIs
-        // will go directly to the real APIs.
+    char   *lowername;
+    size_t  length = strlen(modulename) + 1;
+
+    lowername = new char [length];
+    strncpy(lowername, modulename, length);
+    _strlwr(lowername);
+    if (strstr("vld.dll dbghelp.dll msvcrt.dll", lowername) != NULL) {
+        // Don't patch vld.dll's, dbghelp.dll's, or msvcrt.dll's IATs. We want
+        // VLD's calls to the Windows heap APIs to go directly to the real APIs.
+        // Also, VLD's replacement heap APIs depend on certain Debug Help
+        // Library and CRT routines which may need to allocate memory so
+        // patching dbghelp.dll's or msvcrt.dll's IATs can result in infinite
+        // recursion.
+        delete lowername;
         return TRUE;
     }
-    _strlwr(modulename);
     if (visualleakdetector.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) {
         // Only patch this module if it is in the module list.
-        if (strstr(visualleakdetector.m_modulelist, modulename) == NULL) {
+        if (strstr(visualleakdetector.m_modulelist, lowername) == NULL) {
+            delete lowername;
             return TRUE;
         }
     }
     else {
         // Do not patch this module if it is in the module list.
-        if (strstr(visualleakdetector.m_modulelist, modulename) != NULL) {
+        if (strstr(visualleakdetector.m_modulelist, lowername) != NULL) {
+            delete lowername;
             return TRUE;
         }
     }
+    delete lowername;
 
     // Patch key Windows heap APIs to functions provided by VLD.
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXI@Z", vldmalloc);
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXIHPBDH@Z", vldmallocdbg);
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "malloc", vldmalloc);
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "_malloc_dbg", vldmallocdbg);
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "free", vldfree);
+    patchimport((HMODULE)modulebase, "msvcrtd.dll", "_free_dbg", vldfreedbg);
     patchimport((HMODULE)modulebase, "kernel32.dll", "HeapAlloc",  heapalloc);
     patchimport((HMODULE)modulebase, "kernel32.dll", "HeapCreate", heapcreate);
     patchimport((HMODULE)modulebase, "kernel32.dll", "HeapDestroy", heapdestroy);
@@ -854,11 +952,11 @@ void VisualLeakDetector::reportleaks ()
     BlockMap           *blockmap;
     _CrtMemBlockHeader *crtheader;
     unsigned long       duplicates;
+    HANDLE              heap;
     HeapMap::Iterator   heapit;
     blockinfo_t        *info;
     unsigned long       leaksfound = 0;
     LPVOID              mem;
-    SIZE_T              size;
     char               *symbolpath;
 
     // Initialize the symbol handler. We use it for obtaining source file/line
@@ -875,29 +973,29 @@ void VisualLeakDetector::reportleaks ()
 
     // Iterate through all blocks in all heaps.
     for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+        heap = (*heapit).first;
         blockmap = (*heapit).second;
         for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
             // Found a block which is still in the BlockMap. We've identified a
             // potential memory leak.
             mem = (*blockit).first;
             info = (*blockit).second;
-            size = info->size;
-            if (iscrtblock(mem, size)) {
-                crtheader = (_CrtMemBlockHeader*)mem;
+            if ((heap == crtheap) || (heap == crtdllheap)) {
+                // This block is allocated to a CRT heap, so the block has a CRT
+                // memory block header prepended to it.
+                crtheader = pHdr(mem);
                 if (_BLOCK_TYPE(crtheader->nBlockUse) == _CRT_BLOCK) {
-                    // This is a block allocated to the CRT heap and is marked
-                    // as a block used internally by the CRT. This is not a leak
-                    // because the CRT will free it after VLD is destroyed.
+                    // This block is marked as being used internally by the CRT.
+                    // The CRT will free the block after VLD is destroyed.
                     continue;
                 }
-                size = crtheader->nDataSize;
             }
             // It looks like a real memory leak.
             if (leaksfound == 0) {
                 report("WARNING: Visual Leak Detector detected memory leaks!\n");
             }
             leaksfound++;
-            report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", info->serialnumber, mem, size);
+            report("---------- Block %ld at "ADDRESSFORMAT": %u bytes ----------\n", info->serialnumber, mem, info->size);
             if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
                 // Aggregate all other leaks which are duplicates of this one
                 // under this same heading, to cut down on clutter.
@@ -913,7 +1011,7 @@ void VisualLeakDetector::reportleaks ()
             // Dump the data in the user data section of the memory block.
             if (m_maxdatadump != 0) {
                 report("  Data:\n");
-                dumpmemory(mem, (m_maxdatadump < info->size) ? m_maxdatadump : size);
+                dumpmemory(mem, (m_maxdatadump < info->size) ? m_maxdatadump : info->size);
             }
             report("\n");
         }
@@ -952,15 +1050,12 @@ void VisualLeakDetector::reportleaks ()
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::restoreheapapis (PTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::restoreheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    if (_stricmp(modulename, "vld.dll") == 0) {
-        // The IAT for the VLD DLL did not get patched, so it does not need to
-        // be restored.
-        return TRUE;
-    }
-
     // Restore the previously patched Windows heap APIs.
+    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "??2@YAPAXI@Z", vldmalloc);
+    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "free", vldfree);
+    restoreimport((HMODULE)modulebase, "msvcrtd.dll", "malloc", vldmalloc);
     restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapAlloc", heapalloc);
     restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapCreate", heapcreate);
     restoreimport((HMODULE)modulebase, "kernel32.dll", "HeapDestroy", heapdestroy);
