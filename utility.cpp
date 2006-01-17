@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.2 2006/01/17 01:30:48 dmouldin Exp $
+//  $Id: utility.cpp,v 1.3 2006/01/17 23:11:05 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -26,16 +26,6 @@
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #include <dbghelp.h>    // Provides PE executable image access functions.
-#define _CRTBLD
-#ifdef NDEBUG
-#define _DEBUG
-#endif // NDEBUG
-#include <dbgint.h>     // Provides access to the heap internals, specifically the memory block header structure.
-#ifdef NDEBUG
-#undef _DEBUG
-#endif // NDEBUG
-#undef _CRTBLD
-
 
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions.
@@ -149,8 +139,8 @@ void dumpmemory (const LPVOID address, SIZE_T size)
 //   function) and then retrieving the return address, which will be the program
 //   counter from where the function was called.
 //
-//  Note: Inlining of this function must be disabled. The whole purpose of this
-//    function's existence depends upon it being a *called* function.
+//   Note: Inlining of this function must be disabled. The whole purpose of this
+//     function's existence depends upon it being a *called* function.
 //
 //  Return Value:
 //
@@ -250,12 +240,12 @@ void patchimport (HMODULE importmodule, const char *exportmodulename, const char
 
 // report - Sends a printf-style formatted message to the debugger for display.
 //
+//   Note: A message longer than 512 characters will be truncated to 512 bytes.
+//
 //  - format (IN): Specifies a printf-compliant format string containing the
 //      message to be sent to the debugger.
 //
 //  - ... (IN): Arguments to be formatted using the specified format string.
-//
-//  Note: A message longer than 512 characters will be truncated to 512 bytes.
 //
 //  Return Value:
 //
