@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.1 2006/01/15 07:04:42 db Exp $
+//  $Id: vldheap.cpp,v 1.2 2006/01/17 23:16:53 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -29,7 +29,6 @@
 
 // Global variales.
 vldblockheader_t *vldblocklist = NULL; // List of internally allocated blocks on VLD's private heap.
-SIZE_T            serialnumber = 0;    // Each block allocted to VLD's private heap is assigned a unique serial number.
 HANDLE            vldheap;             // VLD's private heap.
 
 // Local helper functions.
@@ -177,6 +176,7 @@ static void vlddelete (void *block)
 static void* vldnew (unsigned int size, const char *file, int line)
 {
     vldblockheader_t *header = (vldblockheader_t*)HeapAlloc(vldheap, 0x0, size + sizeof(vldblockheader_t));
+    static SIZE_T     serialnumber = 0;
 
     if (header != NULL) {
         // Fill in the block's header information.
