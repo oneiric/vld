@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.1 2006/01/15 07:01:23 db Exp $
+//  $Id: utility.h,v 1.2 2006/01/17 01:31:05 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -58,7 +58,6 @@
 const char* booltostr (bool b);
 void dumpmemory (const LPVOID address, SIZE_T length);
 DWORD_PTR getprogramcounterx86x64 ();
-bool iscrtblock (LPVOID mem, SIZE_T size);
 void patchimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement);
 void report (const char *format, ...);
 void restoreimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement);

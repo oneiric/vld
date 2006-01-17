@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.1 2006/01/15 06:59:59 db Exp $
+//  $Id: utility.cpp,v 1.2 2006/01/17 01:30:48 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -169,37 +169,6 @@ DWORD_PTR getprogramcounterx86x64 ()
 }
 #pragma auto_inline(on)
 #endif // defined(_M_IX86) || defined(_M_X64)
-
-// iscrtblock - Determines if the specified memory block is allocated to the
-//   CRT heap.
-//
-//  - mem (IN): Pointer to the memory block to check.
-//
-//  - size (IN): Size of the memory block.
-//
-//  Return Value:
-//
-//    Returns true if the block is allocated to the CRT heap. Otherwise returns
-//    false.
-//
-bool iscrtblock (LPVOID mem, SIZE_T size)
-{
-    _CrtMemBlockHeader *header = (_CrtMemBlockHeader*)mem;
-
-    if (header->nLine < 0) {
-        return false;
-    }
-    if (header->nDataSize > (size - sizeof(_CrtMemBlockHeader))) {
-        return false;
-    }
-    if (!_BLOCK_TYPE_IS_VALID(header->nBlockUse)) {
-        return false;
-    }
-    if ((unsigned)header->lRequest >= serialnumber) {
-        return false;
-    }
-    return true;
-}
 
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
