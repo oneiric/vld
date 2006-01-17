@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.1 2006/01/15 06:55:11 db Exp $
+//  $Id: tree.h,v 1.2 2006/01/17 23:10:07 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -29,12 +29,6 @@
 #endif
 
 #define TREE_DEFAULT_RESERVE 32
-
-// Exceptions that the Tree class may throw.
-enum exception_e {
-    bad_value,      // An invalid value was passed as a parameter.
-    duplicate_value // An attempt was made to insert a key which is already in the tree.
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -355,8 +349,8 @@ public:
     //  Return Value:
     //
     //    Returns a pointer to the node corresponding to the newly inserted
-    //    key. "insert" throws the "duplicate_value" exception if an attempt
-    //    is made to insert a key which is already in the tree.
+    //    key. If an attempt is made to insert a key which is already in the
+    //    tree, then NULL is returned and the new key is not inserted.
     //
     Tree::node_t* insert (const T &key)
     {
@@ -378,7 +372,7 @@ public:
             }
             else {
                 // Keys in the tree must be unique.
-                throw duplicate_value;
+                return NULL;
             }
         }
 
@@ -481,7 +475,7 @@ public:
         Tree::node_t* cur;
 
         if (node == NULL) {
-            throw bad_value;
+            return NULL;
         }
 
         if (node->right != &m_nil) {
@@ -540,7 +534,7 @@ public:
         Tree::node_t* cur;
 
         if (node == NULL) {
-            throw bad_value;
+            return NULL;
         }
 
         if (node->left != &m_nil) {
@@ -608,9 +602,12 @@ public:
 
         if (count != m_reserve) {
             if (count < 1) {
-                throw bad_value;
+                // Minimum reserve size is 1.
+                m_reserve = 1;
             }
-            m_reserve = count;
+            else {
+                m_reserve = count;
+            }
         }
 
         if (m_freelist == NULL) {
