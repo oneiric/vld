@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.3 2006/01/17 01:28:39 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.4 2006/01/17 23:08:31 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -118,11 +118,11 @@ bool CallStack::operator == (const CallStack &other) const
 // operator [] - Random access operator. Retrieves the frame at the specified
 //   index.
 //
-//  Note: We give up a bit of efficiency here, in favor of efficiency of push
-//   operations. This is because walking of a CallStack is done infrequently
-//   (only if a leak is found), whereas pushing is done very frequently (for
-//   each frame in the program's call stack when the program allocates some
-//   memory).
+//   Note: We give up a bit of efficiency here, in favor of efficiency of push
+//     operations. This is because walking of a CallStack is done infrequently
+//     (only if a leak is found), whereas pushing is done very frequently (for
+//     each frame in the program's call stack when the program allocates some
+//     memory).
 //
 //  - index (IN): Specifies the index of the frame to retrieve.
 //
@@ -148,9 +148,9 @@ DWORD_PTR CallStack::operator [] (unsigned long index) const
 // clear - Resets the CallStack, returning it to a state where no frames have
 //   been pushed onto it, readying it for reuse.
 //
-//  Note: Calling this function does not release any memory allocated to the
-//   CallStack. We give up a bit of memory-usage efficiency here in favor of
-//   performance of push operations.
+//   Note: Calling this function does not release any memory allocated to the
+//     CallStack. We give up a bit of memory-usage efficiency here in favor of
+//     performance of push operations.
 //
 //  Return Value:
 //
@@ -166,7 +166,8 @@ void CallStack::clear ()
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.
 //
-//  Note: The symbol handler must be initialized prior to calling this function.
+//   Note: The symbol handler must be initialized prior to calling this
+//     function.
 //
 //  - showuselessframes (IN): If true, then all frames in the CallStack will be
 //      dumped. Otherwise, frames internal to the heap or Visual Leak Detector
@@ -238,8 +239,8 @@ void CallStack::dump (bool showuselessframes) const
 //   back as possible. Populates the current CallStack with one entry for each
 //   stack frame traced.
 //
-//  Note: This function relies upon architecture-specific code for retrieving
-//   the current frame pointer and program counter.
+//   Note: This function relies upon architecture-specific code for retrieving
+//     the current frame pointer and program counter.
 //
 //  - maxdepth (IN): Specifies the maximum depth of the stack trace. The trace
 //      will stop when this number of frames has been trace, or when the end of
@@ -300,8 +301,8 @@ void CallStack::getstacktrace (SIZE_T maxdepth)
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
 //   always appended to the back of the chunk list (aka the "top" chunk).
 //
-//  Note: This function will allocate additional memory as necessary to make
-//    room for new program counter addresses.
+//   Note: This function will allocate additional memory as necessary to make
+//     room for new program counter addresses.
 //
 //  - programcounter (IN): The program counter address of the frame to be pushed
 //      onto the CallStack.
