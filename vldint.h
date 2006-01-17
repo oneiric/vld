@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.13 2006/01/17 01:37:24 dmouldin Exp $
+//  $Id: vldint.h,v 1.14 2006/01/17 23:18:17 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -57,6 +57,15 @@ typedef struct blockinfo_s
     SIZE_T    size;
 } blockinfo_t;
 
+// This structure allows us to build a table of APIs which should be patched
+// through to replacement functions provided by VLD.
+typedef struct importpatchentry_s
+{
+    char *exportmodulename; // The name of the module exporting the patched API.
+    char *importname;       // The name of the imported API being patched.
+    void *replacement;      // Pointer to the function to which the imported API is patched through to.
+} importpatchentry_t;
+
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
 typedef Map<LPVOID, blockinfo_t*> BlockMap;
 
@@ -90,17 +99,22 @@ public:
     VisualLeakDetector();
     ~VisualLeakDetector();
 
+    static void __free_dbg (void *mem, int type);
+    static void* __malloc_dbg (size_t size, int type, const char *file, int line);
+    static void _free (void *mem);
+    static LPVOID __stdcall _HeapAlloc (HANDLE heap, DWORD flags, DWORD bytes);
+    static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
+    static BOOL __stdcall _HeapDestroy (HANDLE heap);
+    static BOOL __stdcall _HeapFree (HANDLE heap, DWORD flags, LPVOID mem);
+    static LPVOID __stdcall _HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T bytes);
+    static void* _malloc (size_t size);
+
 private:
     // Private Helper Functions - see each function definition for details.
     char* buildsymbolsearchpath ();
     void configure ();
     bool enabled ();
     unsigned long eraseduplicates (const BlockMap::Iterator &element);
-    static LPVOID __stdcall heapalloc (HANDLE heap, DWORD flags, DWORD bytes);
-    static HANDLE __stdcall heapcreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
-    static BOOL __stdcall heapdestroy (HANDLE heap);
-    static BOOL __stdcall heapfree (HANDLE heap, DWORD flags, LPVOID mem);
-    static LPVOID __stdcall heaprealloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T bytes);
     inline void mapalloc (HANDLE heap, LPVOID mem, SIZE_T size);
     inline void mapcreate (HANDLE heap);
     inline void mapdestroy (HANDLE heap);
@@ -110,10 +124,6 @@ private:
     void reportconfig ();
     void reportleaks ();
     static BOOL __stdcall restoreheapapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context);
-    static void vldfree (void *mem);
-    static void vldfreedbg (void *mem, int type);
-    static void* vldmalloc (size_t size);
-    static void* vldmallocdbg (size_t size, int type, const char *file, int line);
 
     // Private Data
     CRITICAL_SECTION  m_heaplock;       // Serialzes access to the heap map
