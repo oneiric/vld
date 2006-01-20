@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.5 2006/01/15 06:41:43 db Exp $
+//  $Id: vldapi.cpp,v 1.6 2006/01/20 01:22:54 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,8 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#define VLDBUILD    // Declares that we are building Visual Leak Detector.
-#include "vldint.h" // Provides access to the Visual Leak Detector internals.
+#define VLDBUILD     // Declares that we are building Visual Leak Detector.
+#include "vldint.h"  // Provides access to the Visual Leak Detector internals.
+#include "vldheap.h" // Provides internal new and delete operators.
 
 // Imported global variables.
 extern VisualLeakDetector visualleakdetector;
@@ -33,7 +34,7 @@ extern VisualLeakDetector visualleakdetector;
 //  Visual Leak Detector APIs - see vldapi.h for each function's details
 //
 
-extern "C" __declspec(dllexport) void VLDDisable ()
+extern "C" __declspec(dllexport) VOID VLDDisable ()
 {
     if (!visualleakdetector.enabled()) {
         // Already disabled for the current thread.
@@ -44,7 +45,7 @@ extern "C" __declspec(dllexport) void VLDDisable ()
     TlsSetValue(visualleakdetector.m_tlsindex, (LPVOID)VLD_TLS_DISABLED);
 }
 
-extern "C" __declspec(dllexport) void VLDEnable ()
+extern "C" __declspec(dllexport) VOID VLDEnable ()
 {
     if (visualleakdetector.enabled()) {
         // Already enabled for the current thread.
