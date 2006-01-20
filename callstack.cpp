@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.4 2006/01/17 23:08:31 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.5 2006/01/20 01:09:11 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -24,8 +24,11 @@
 
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
+#ifdef UNICODE
+#define DBGHELP_TRANSLATE_TCHAR
+#endif // UNICODE
 #include <dbghelp.h>    // Provides symbol handling services.
-
+#include <tchar.h>
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
 #include "utility.h"    // Provides various utility functions.
@@ -57,15 +60,15 @@ CallStack::CallStack ()
 CallStack::CallStack (const CallStack &source)
 {
     // Don't make copies of CallStacks!
-    assert(false);
+    assert(FALSE);
 }
 
 // Destructor - Frees all memory allocated to the CallStack.
 //
 CallStack::~CallStack ()
 {
-    CallStack::Chunk *chunk = m_store.next;
-    CallStack::Chunk *temp;
+    CallStack::chunk_t *chunk = m_store.next;
+    CallStack::chunk_t *temp;
 
     while (chunk) {
         temp = chunk;
@@ -85,16 +88,16 @@ CallStack::~CallStack ()
 //
 //    Returns true if the two CallStacks are equal. Otherwise returns false.
 //
-bool CallStack::operator == (const CallStack &other) const
+BOOL CallStack::operator == (const CallStack &other) const
 {
-    const CallStack::Chunk *chunk = &m_store;
-    unsigned long           index;
-    const CallStack::Chunk *otherchunk = &other.m_store;
-    const CallStack::Chunk *prevchunk = NULL;
+    const CallStack::chunk_t *chunk = &m_store;
+    UINT32                    index;
+    const CallStack::chunk_t *otherchunk = &other.m_store;
+    const CallStack::chunk_t *prevchunk = NULL;
 
     if (m_size != other.m_size) {
         // They can't be equal if the sizes are different.
-        return false;
+        return FALSE;
     }
 
     // Walk the chunk list and within each chunk walk the frames array until we
@@ -103,7 +106,7 @@ bool CallStack::operator == (const CallStack &other) const
         for (index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
             if (chunk->frames[index] != otherchunk->frames[index]) {
                 // Found a mismatch. They are not equal.
-                return false;
+                return FALSE;
             }
         }
         prevchunk = chunk;
@@ -112,7 +115,7 @@ bool CallStack::operator == (const CallStack &other) const
     }
 
     // Reached the end of the call stacks. They are equal.
-    return true;
+    return TRUE;
 }
 
 // operator [] - Random access operator. Retrieves the frame at the specified
@@ -132,11 +135,11 @@ bool CallStack::operator == (const CallStack &other) const
 //    specified index is out of range for the CallStack, the return value is
 //    undefined.
 //
-DWORD_PTR CallStack::operator [] (unsigned long index) const
+SIZE_T CallStack::operator [] (UINT32 index) const
 {
-    unsigned long           count;
-    const CallStack::Chunk *chunk = &m_store;
-    unsigned long           chunknumber = index / CALLSTACKCHUNKSIZE;
+    UINT32                    count;
+    const CallStack::chunk_t *chunk = &m_store;
+    UINT32                    chunknumber = index / CALLSTACKCHUNKSIZE;
 
     for (count = 0; count < chunknumber; count++) {
         chunk = chunk->next;
@@ -156,7 +159,7 @@ DWORD_PTR CallStack::operator [] (unsigned long index) const
 //
 //    None.
 //
-void CallStack::clear ()
+VOID CallStack::clear ()
 {
     m_size     = 0;
     m_topchunk = &m_store;
@@ -177,16 +180,16 @@ void CallStack::clear ()
 //
 //    None.
 //
-void CallStack::dump (bool showuselessframes) const
+VOID CallStack::dump (BOOL showuselessframes) const
 {
     DWORD            displacement;
     DWORD64          displacement64;
     BOOL             foundline;
-    unsigned long    frame;
+    UINT32           frame;
     SYMBOL_INFO     *functioninfo;
-    char            *functionname;
+    LPTSTR           functionname;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
-    unsigned char    symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(TCHAR)) - 1] = { 0 };
+    BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(TCHAR)) - 1] = { 0 };
 
     // Initialize structures passed to the symbol handler.
     functioninfo = (SYMBOL_INFO*)&symbolbuffer;
@@ -203,13 +206,13 @@ void CallStack::dump (bool showuselessframes) const
             // don't show frames that are internal to the heap or Visual
             // Leak Detector.
             if (!(showuselessframes)) {
-                _strlwr(sourceinfo.FileName);
-                if (strstr(sourceinfo.FileName, "afxmem.cpp") ||
-                    strstr(sourceinfo.FileName, "callstack.cpp") ||
-                    strstr(sourceinfo.FileName, "dbgheap.c") ||
-                    strstr(sourceinfo.FileName, "malloc.c") ||
-                    strstr(sourceinfo.FileName, "new.cpp") ||
-                    strstr(sourceinfo.FileName, "vld.cpp")) {
+                _tcslwr(sourceinfo.FileName);
+                if (_tcsstr(sourceinfo.FileName, _T("afxmem.cpp")) ||
+                    _tcsstr(sourceinfo.FileName, _T("callstack.cpp")) ||
+                    _tcsstr(sourceinfo.FileName, _T("dbgheap.c")) ||
+                    _tcsstr(sourceinfo.FileName, _T("malloc.c")) ||
+                    _tcsstr(sourceinfo.FileName, _T("new.cpp")) ||
+                    _tcsstr(sourceinfo.FileName, _T("vld.cpp"))) {
                     continue;
                 }
             }
@@ -221,16 +224,16 @@ void CallStack::dump (bool showuselessframes) const
             functionname = functioninfo->Name;
         }
         else {
-            functionname = "(Function name unavailable)";
+            functionname = _T("(Function name unavailable)");
         }
 
         // Display the current stack frame's information.
         if (foundline) {
-            report("    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
+            report(_T("    %s (%d): %s\n"), sourceinfo.FileName, sourceinfo.LineNumber, functionname);
         }
         else {
-            report("    "ADDRESSFORMAT" (File and line number not available): ", (*this)[frame]);
-            report("%s\n", functionname);
+            report(_T("    ") ADDRESSFORMAT _T(" (File and line number not available): "), (*this)[frame]);
+            report(_T("%s\n"), functionname);
         }
     }
 }
@@ -250,14 +253,15 @@ void CallStack::dump (bool showuselessframes) const
 //
 //    None.
 //
-void CallStack::getstacktrace (SIZE_T maxdepth)
+VOID CallStack::getstacktrace (UINT32 maxdepth)
 {
     DWORD        architecture;
     CONTEXT      context;
-    unsigned int count = 0;
+    UINT32       count = 0;
     STACKFRAME64 frame;
-    DWORD_PTR    framepointer;
-    DWORD_PTR    programcounter;
+    SIZE_T       framepointer;
+    SIZE_T       programcounter;
+    SIZE_T       stackpointer;
 
     // Get the required values for initialization of the STACKFRAME64 structure
     // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
@@ -265,20 +269,27 @@ void CallStack::getstacktrace (SIZE_T maxdepth)
     architecture = X86X64ARCHITECTURE;
     programcounter = getprogramcounterx86x64();
     __asm mov [framepointer], BPREG // Get the frame pointer (aka base pointer)
+    __asm mov [stackpointer], SPREG // Get the stack pointer
+
+    context.BPREG = framepointer;
+    context.IPREG = programcounter;
+    context.SPREG = stackpointer;
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide architecture-specific code to
 // retrieve the current frame pointer and program counter in order to initialize
 // the STACKFRAME64 structure below.
 #error "Visual Leak Detector is not supported on this architecture."
-#endif // defined(_M_IX86) || defined(_M_X64)
+#endif // _M_IX86 || _M_X64
 
     // Initialize the STACKFRAME64 structure.
     memset(&frame, 0x0, sizeof(frame));
-    frame.AddrPC.Offset    = programcounter;
-    frame.AddrPC.Mode      = AddrModeFlat;
     frame.AddrFrame.Offset = framepointer;
     frame.AddrFrame.Mode   = AddrModeFlat;
+    frame.AddrPC.Offset    = programcounter;
+    frame.AddrPC.Mode      = AddrModeFlat;
+    frame.AddrStack.Offset = stackpointer;
+    frame.AddrStack.Mode   = AddrModeFlat;
 
     // Walk the stack.
     while (count < maxdepth) {
@@ -294,7 +305,7 @@ void CallStack::getstacktrace (SIZE_T maxdepth)
         }
 
         // Push this frame's program counter onto the CallStack.
-        push_back((DWORD_PTR)frame.AddrPC.Offset);
+        push_back((SIZE_T)frame.AddrPC.Offset);
     }
 }
 
@@ -311,13 +322,13 @@ void CallStack::getstacktrace (SIZE_T maxdepth)
 //
 //    None.
 //
-void CallStack::push_back (const DWORD_PTR programcounter)
+VOID CallStack::push_back (SIZE_T programcounter)
 {
-    CallStack::Chunk *chunk;
+    CallStack::chunk_t *chunk;
 
     if (m_size == m_capacity) {
         // At current capacity. Allocate additional storage.
-        chunk = new CallStack::Chunk;
+        chunk = new CallStack::chunk_t;
         chunk->next = NULL;
         m_topchunk->next = chunk;
         m_topchunk = chunk;
@@ -347,7 +358,7 @@ void CallStack::push_back (const DWORD_PTR programcounter)
 //
 //    Returns the number of frames currently stored in the CallStack.
 //
-unsigned long CallStack::size () const
+UINT32 CallStack::size () const
 {
     return m_size;
 }
