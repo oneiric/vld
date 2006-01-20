@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.h,v 1.2 2006/01/17 01:28:54 dmouldin Exp $
+//  $Id: callstack.h,v 1.3 2006/01/20 01:10:22 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -60,31 +60,25 @@ public:
     ~CallStack ();
 
     // Public APIs - see each function definition for details.
-    void clear ();
-    void dump (bool showuselessframes) const;
-    void getstacktrace (SIZE_T maxdepth);
-    bool operator == (const CallStack &other) const;
-    DWORD_PTR operator [] (unsigned long index) const;
-    void push_back (const DWORD_PTR programcounter);
-    unsigned long size () const;
+    VOID clear ();
+    VOID dump (BOOL showuselessframes) const;
+    VOID getstacktrace (UINT32 maxdepth);
+    BOOL operator == (const CallStack &other) const;
+    SIZE_T operator [] (UINT32 index) const;
+    VOID push_back (const SIZE_T programcounter);
+    UINT32 size () const;
 
 private:
     // The chunk list is made of a linked list of Chunks.
-    class Chunk {
-    private:
-        Chunk () {}
-        Chunk (const Chunk &source) { assert(false); } // Do not make copies of Chunks!
-
-        Chunk     *next;
-        DWORD_PTR  frames [CALLSTACKCHUNKSIZE];
-
-        friend class CallStack;
-    };
+    typedef struct chunk_s {
+        struct chunk_s *next;
+        SIZE_T          frames [CALLSTACKCHUNKSIZE];
+    } chunk_t;
 
     // Private Data
-    unsigned long     m_capacity; // Current capacity limit (in frames)
-    unsigned long     m_size;     // Current size (in frames)
-    CallStack::Chunk  m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
-    CallStack::Chunk *m_topchunk; // Pointer to the Chunk at the top of the stack
-    unsigned long     m_topindex; // Index, within the top Chunk, of the top of the stack
+    UINT32              m_capacity; // Current capacity limit (in frames)
+    UINT32              m_size;     // Current size (in frames)
+    CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
+    CallStack::chunk_t *m_topchunk; // Pointer to the Chunk at the top of the stack
+    UINT32              m_topindex; // Index, within the top Chunk, of the top of the stack
 };
