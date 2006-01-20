@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.3 2006/01/17 23:11:05 dmouldin Exp $
+//  $Id: utility.cpp,v 1.4 2006/01/20 01:14:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,11 +22,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
 #include <cstdio>
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #include <dbghelp.h>    // Provides PE executable image access functions.
-
+#include <tchar.h>
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
@@ -35,6 +36,10 @@
 extern HANDLE currentprocess;
 extern HANDLE currentthread;
 extern SIZE_T serialnumber;
+
+// Global variables.
+static FILE *reportfile = NULL;
+static BOOL  reporttodebugger = TRUE;
 
 // booltostr - Converts boolean values to string values ("true" or "false").
 //
@@ -45,13 +50,13 @@ extern SIZE_T serialnumber;
 //  - String containing "true" if the input is true.
 //  - String containing "false" if the input is false.
 //
-const char* booltostr (bool b)
+LPCTSTR booltostr (BOOL b)
 {
-    if (b == true) {
-        return "true";
+    if (b == TRUE) {
+        return _T("true");
     }
     else {
-        return "false";
+        return _T("false");
     }
 }
 
@@ -67,7 +72,7 @@ const char* booltostr (bool b)
 //
 //    None.
 //
-void dumpmemory (const LPVOID address, SIZE_T size)
+VOID dumpmemory (LPCVOID address, SIZE_T size)
 {
     char          ascdump [18] = {0};
     size_t        ascindex;
@@ -115,7 +120,7 @@ void dumpmemory (const LPVOID address, SIZE_T size)
         if ((bytesdone % 16) == 0) {
             // Print one line of data for every 16 bytes. Include the
             // ASCII dump and the hex dump side-by-side.
-            report("    %s    %s\n", hexdump, ascdump);
+            report(_T("    %s    %s\n"), hexdump, ascdump);
         }
         else {
             if ((bytesdone % 8) == 0) {
@@ -148,9 +153,9 @@ void dumpmemory (const LPVOID address, SIZE_T size)
 //
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma auto_inline(off)
-DWORD_PTR getprogramcounterx86x64 ()
+SIZE_T getprogramcounterx86x64 ()
 {
-    DWORD_PTR programcounter;
+    SIZE_T programcounter;
 
     __asm mov AXREG, [BPREG + SIZEOFPTR] // Get the return address out of the current stack frame
     __asm mov [programcounter], AXREG    // Put the return address into the variable we'll return
@@ -169,11 +174,11 @@ DWORD_PTR getprogramcounterx86x64 ()
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be patched.
 //
-//  - exportmodulename (IN): String containing the name of the module that
+//  - exportmodulename (IN): ANSI string containing the name of the module that
 //      exports the function or variable to be patched.
 //
-//  - importname (IN): String containing the name of the imported function or
-//      variable to be patched.
+//  - importname (IN): ANSI string containing the name of the imported function
+//      or variable to be patched.
 //
 //  - replacement (IN): Address of the function or variable to which future
 //      calls or references should be patched through to. This function or
@@ -184,7 +189,7 @@ DWORD_PTR getprogramcounterx86x64 ()
 //
 //    None.
 //   
-void patchimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement)
+VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement)
 {
     HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
@@ -204,7 +209,7 @@ void patchimport (HMODULE importmodule, const char *exportmodulename, const char
         return;
     }
     while (idte->OriginalFirstThunk != 0x0) {
-        if (stricmp((char*)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
             // Found the IDT entry for the exporting module.
             break;
         }
@@ -218,8 +223,10 @@ void patchimport (HMODULE importmodule, const char *exportmodulename, const char
     
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found the entry that needs to be patched.
-    exportmodule = GetModuleHandle(exportmodulename);
+    exportmodule = GetModuleHandleA(exportmodulename);
+    assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
+    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
     // Locate the import's IAT entry.
     iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
@@ -240,7 +247,8 @@ void patchimport (HMODULE importmodule, const char *exportmodulename, const char
 
 // report - Sends a printf-style formatted message to the debugger for display.
 //
-//   Note: A message longer than 512 characters will be truncated to 512 bytes.
+//   Note: A message longer than MAXREPORTLENGTH characters will be truncated
+//     to MAXREPORTLENGTH.
 //
 //  - format (IN): Specifies a printf-compliant format string containing the
 //      message to be sent to the debugger.
@@ -251,19 +259,24 @@ void patchimport (HMODULE importmodule, const char *exportmodulename, const char
 //
 //    None.
 //
-void report (const char *format, ...)
+VOID report (LPCTSTR format, ...)
 {
     va_list args;
-#define MAXREPORTMESSAGESIZE 513
-    char    message [MAXREPORTMESSAGESIZE];
+    TCHAR   message [MAXREPORTLENGTH + 1];
 
     va_start(args, format);
-    _vsnprintf(message, MAXREPORTMESSAGESIZE, format, args);
+    _vsntprintf(message, MAXREPORTLENGTH, format, args);
     va_end(args);
-    message[MAXREPORTMESSAGESIZE - 1] = '\0';
+    message[MAXREPORTLENGTH] = '\0';
 
-    OutputDebugString(message);
-    Sleep(10);
+    if (reportfile != NULL) {
+        // Send the report to the previously specified file.
+        fwrite(message, sizeof(TCHAR), _tcslen(message), reportfile);
+    }
+    if (reporttodebugger) {
+        OutputDebugString(message);
+        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
+    }
 }
 
 // restoreimport - Restores the IAT entry for an import previously patched via
@@ -272,11 +285,11 @@ void report (const char *format, ...)
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be restored.
 //
-//  - exportmodulename (IN): String containing the name of the module that
+//  - exportmodulename (IN): ANSI string containing the name of the module that
 //      exports the function or variable to be restored.
 //
-//  - importname (IN): String containing the name of the imported function or
-//      variable to be restored.
+//  - importname (IN): ANSI string containing the name of the imported function
+//      or variable to be restored.
 //
 //  - replacement (IN): Address of the function or variable which the import was
 //      previously patched through to via a call to "patchimport".
@@ -285,7 +298,7 @@ void report (const char *format, ...)
 //
 //    None.
 //   
-void restoreimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement)
+VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement)
 {
     HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
@@ -305,7 +318,7 @@ void restoreimport (HMODULE importmodule, const char *exportmodulename, const ch
         return;
     }
     while (idte->OriginalFirstThunk != 0x0) {
-        if (stricmp((char*)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
             // Found the IDT entry for the exporting module.
             break;
         }
@@ -318,8 +331,10 @@ void restoreimport (HMODULE importmodule, const char *exportmodulename, const ch
     }
     
     // Get the *real* address of the import.
-    exportmodule = GetModuleHandle(exportmodulename);
+    exportmodule = GetModuleHandleA(exportmodulename);
+    assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
+    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
     // Locate the import's original IAT entry (it currently has the replacement
     // address in it).
@@ -338,6 +353,27 @@ void restoreimport (HMODULE importmodule, const char *exportmodulename, const ch
     }
 }
 
+// setreportfile - Sets a destination file to which all report messages should
+//   be sent. If this function is not called to set a destination file, then
+//   report messages will be sent to the debugger instead of to a file.
+//
+//  - file (IN): Pointer to an open file, to which future report messages should
+//      be sent.
+//
+//  - copydebugger (IN): If true, in addition to sending report messages to
+//      the specified file, a copy of each message will also be sent to the
+//      debugger.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID setreportfile (FILE *file, BOOL copydebugger)
+{
+    reportfile = file;
+    reporttodebugger = copydebugger;
+}
+
 // strapp - Appends the specified source string to the specified destination
 //   string. Allocates additional space so that the destination string "grows"
 //   as new strings are appended to it. This function is fairly infrequently
@@ -352,16 +388,16 @@ void restoreimport (HMODULE importmodule, const char *exportmodulename, const ch
 //
 //    None.
 //
-void strapp (char **dest, char *source)
+VOID strapp (LPTSTR *dest, LPCTSTR source)
 {
-    size_t  length;
-    char   *temp;
+    size_t length;
+    LPTSTR temp;
 
     temp = *dest;
-    length = strlen(*dest) + strlen(source);
-    *dest = new char [length + 1];
-    strncpy(*dest, temp, length);
-    strncat(*dest, source, length);
+    length = _tcslen(*dest) + _tcslen(source);
+    *dest = new TCHAR [length + 1];
+    _tcsncpy(*dest, temp, length);
+    _tcsncat(*dest, source, length);
     delete [] temp;
 }
 
@@ -375,13 +411,13 @@ void strapp (char **dest, char *source)
 //    Returns true if the string is recognized as a "true" string. Otherwise
 //    returns false.
 //
-bool strtobool (const char *s) {
-    char *end;
+BOOL strtobool (LPCTSTR s) {
+    TCHAR *end;
 
-    if ((_stricmp(s, "true") == 0) ||
-        (_stricmp(s, "yes") == 0) ||
-        (_stricmp(s, "on") == 0) ||
-        (strtol(s, &end, 10) == 1)) {
+    if ((_tcsicmp(s, _T("true")) == 0) ||
+        (_tcsicmp(s, _T("yes")) == 0) ||
+        (_tcsicmp(s, _T("on")) == 0) ||
+        (_tcstol(s, &end, 10) == 1)) {
         return true;
     }
     else {
