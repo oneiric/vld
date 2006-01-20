@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.h,v 1.1 2006/01/15 07:05:24 db Exp $
+//  $Id: vldheap.h,v 1.2 2006/01/20 01:26:02 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -40,12 +40,12 @@ typedef struct vldblockheader_s
     struct vldblockheader_s *next;
     struct vldblockheader_s *prev;
     SIZE_T                   serialnumber;
-    SIZE_T                   size;
+    unsigned int             size;
 } vldblockheader_t;
 
 // Data-to-Header and Header-to-Data conversion
-#define BLOCKHEADER(b) (vldblockheader_t*)(((char*)b) - sizeof(vldblockheader_t))
-#define BLOCKDATA(h) (void*)(((char*)h) + sizeof(vldblockheader_t))
+#define BLOCKHEADER(b) (vldblockheader_t*)(((PBYTE)b) - sizeof(vldblockheader_t))
+#define BLOCKDATA(h) (LPVOID)(((PBYTE)h) + sizeof(vldblockheader_t))
 
 // new and delete operators for allocating from VLD's private heap.
 void operator delete (void *block);
