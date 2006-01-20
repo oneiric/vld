@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.2 2006/01/17 01:31:05 dmouldin Exp $
+//  $Id: utility.h,v 1.3 2006/01/20 01:16:06 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,38 +28,45 @@
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
 #endif
 
-// Microsoft-specific headers
+#include <cstdio>
 #include <windows.h>
 
 #ifdef _WIN64
-#define ADDRESSFORMAT      "0x%.16X" // Format string for 64-bit addresses
+#define ADDRESSFORMAT   _T("0x%.16X") // Format string for 64-bit addresses
 #else
-#define ADDRESSFORMAT      "0x%.8X"  // Format string for 32-bit addresses
+#define ADDRESSFORMAT   _T("0x%.8X")  // Format string for 32-bit addresses
 #endif // _WIN64
-#define BLOCKMAPCHUNKSIZE  64        // Size, in Pairs, of each BlockMap Chunk
+#define MAXREPORTLENGTH 511        // Maximum length, in characters, of "report" messages.
 
 // Architecture-specific definitions for x86 and x64
 #if defined(_M_IX86)
 #define SIZEOFPTR 4
 #define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_I386
-#define AXREG eax
-#define BPREG ebp
+#define AXREG Eax
+#define BPREG Ebp
+#define IPREG Eip
+#define SPREG Esp
 #elif defined(_M_X64)
 #define SIZEOFPTR 8
 #define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
-#define AXREG rax
-#define BPREG rbp
+#define AXREG Rax
+#define BPREG Rbp
+#define IPREG Rip
+#define SPREG Rsp
 #endif // _M_IX86
 
 // Relative Virtual Address to Virtual Address conversion.
 #define R2VA(modulebase, rva) (((PBYTE)modulebase) + rva)
 
 // Utility functions. See function definitions for details.
-const char* booltostr (bool b);
-void dumpmemory (const LPVOID address, SIZE_T length);
-DWORD_PTR getprogramcounterx86x64 ();
-void patchimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement);
-void report (const char *format, ...);
-void restoreimport (HMODULE importmodule, const char *exportmodulename, const char *importname, void *replacement);
-void strapp (char **dest, char *source);
-bool strtobool (const char *s);
+LPCTSTR booltostr (BOOL b);
+VOID dumpmemory (LPCVOID address, SIZE_T length);
+#if defined(_M_IX86) || defined(_M_X64)
+SIZE_T getprogramcounterx86x64 ();
+#endif // _M_IX86 || _M_X64
+VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID report (LPCTSTR format, ...);
+VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID setreportfile (FILE *file, BOOL copydebugger);
+VOID strapp (LPTSTR *dest, LPCTSTR source);
+BOOL strtobool (LPCTSTR s);
