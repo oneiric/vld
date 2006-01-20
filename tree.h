@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.2 2006/01/17 23:10:07 dmouldin Exp $
+//  $Id: tree.h,v 1.3 2006/01/20 01:11:34 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -27,6 +27,8 @@
 #ifndef VLDBUILD
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
 #endif
+
+#include "vldheap.h" // Provides internal new and delete operators.
 
 #define TREE_DEFAULT_RESERVE 32
 
@@ -144,7 +146,7 @@ public:
     //
     //    None.
     //
-    void erase (Tree::node_t *node)
+    VOID erase (Tree::node_t *node)
     {
         Tree::node_t *child;
         Tree::node_t *cur;
@@ -282,7 +284,7 @@ public:
     //
     //    None.
     //
-    void erase (const T &key)
+    VOID erase (const T &key)
     {
         Tree::node_t *node = m_root;
 
@@ -594,11 +596,11 @@ public:
     //
     //    Returns the previously defined reserve value.
     //
-    size_t reserve (size_t count)
+    UINT32 reserve (UINT32 count)
     {
         Tree::chunk_t *chunk;
-        size_t         index;
-        size_t         oldreserve = m_reserve;
+        UINT32         index;
+        UINT32         oldreserve = m_reserve;
 
         if (count != m_reserve) {
             if (count < 1) {
@@ -645,7 +647,7 @@ private:
     //
     //    None.
     //
-    void _rotateleft (Tree::node_t *parent)
+    VOID _rotateleft (Tree::node_t *parent)
     {
         Tree::node_t *child = parent->right;
 
@@ -683,7 +685,7 @@ private:
     //
     //    None.
     //
-    void _rotateright (Tree::node_t *parent)
+    VOID _rotateright (Tree::node_t *parent)
     {
         Tree::node_t *child = parent->left;
 
@@ -715,7 +717,7 @@ private:
     // Private data members.
     Tree::node_t  *m_freelist;  // Pointer to the list of free nodes (reserve storage).
     Tree::node_t   m_nil;       // The tree's nil node. All leaf nodes point to this.
-    size_t         m_reserve;   // The size (in nodes) of the chunks of reserve storage.
+    UINT32         m_reserve;   // The size (in nodes) of the chunks of reserve storage.
     Tree::node_t  *m_root;      // Pointer to the tree's root node.
     Tree::chunk_t *m_store;     // Pointer to the start of the chunk list.
     Tree::chunk_t *m_storetail; // Pointer to the end of the chunk list.

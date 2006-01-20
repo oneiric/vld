@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: map.h,v 1.1 2006/01/15 06:52:33 db Exp $
+//  $Id: map.h,v 1.2 2006/01/20 01:11:11 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,7 +28,8 @@
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
 #endif
 
-#include "tree.h" // Provides access to the Tree template class.
+#include "tree.h"    // Provides access to the Tree template class.
+#include "vldheap.h" // Provides internal new and delete operators.
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -69,7 +70,7 @@ public:
     //    Returns true if this Pair is less than the other Pair. Otherwise
     //    returns false.
     //
-    bool operator < (const Pair &other) const
+    BOOL operator < (const Pair &other) const
     {
         return (first < other.first);
     }
@@ -116,7 +117,7 @@ public:
         //    Returns true if the specified Map Iterator is not equal to this
         //    Map Iterator; otherwise, returns false.
         //
-        bool operator != (const Iterator &other) const
+        BOOL operator != (const Iterator &other) const
         {
             return ((m_tree != other.m_tree) || (m_node != other.m_node));
         }
@@ -196,9 +197,9 @@ public:
         //    Returns an Iterator referencing the key/value pair that precedes
         //    the original Iterator by "num" pairs.
         //
-        Iterator operator - (int num)
+        Iterator operator - (SIZE_T num) const
         {
-            int                          count;
+            SIZE_T                       count;
             Tree<Pair<Tk, Tv> >::node_t *cur = m_node;
 
             cur = m_tree->prev(m_node);
@@ -222,7 +223,7 @@ public:
         //    Returns true if the specified Map Iterator is equal to this Map
         //    Iterator; otherwise returns false.
         //
-        bool operator == (const Iterator &other) const
+        BOOL operator == (const Iterator &other) const
         {
             return ((m_tree == other.m_tree) && (m_node == other.m_node));
         }
@@ -277,7 +278,7 @@ public:
     //
     //    None.
     //
-    void erase (Iterator& it)
+    VOID erase (Iterator& it)
     {
         m_tree.erase(it.m_node);
     }
@@ -291,7 +292,7 @@ public:
     //
     //    None.
     //
-    void erase (const Tk &key)
+    VOID erase (const Tk &key)
     {
         m_tree.erase(Pair<Tk, Tv>(key, Tv()));
     }
