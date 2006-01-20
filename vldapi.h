@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.h,v 1.4 2006/01/15 06:43:12 db Exp $
+//  $Id: vldapi.h,v 1.5 2006/01/20 01:23:21 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -57,7 +57,7 @@ extern "C" {
 //
 //    None.
 //
-__declspec(dllimport) void VLDDisable ();
+__declspec(dllimport) VOID VLDDisable ();
 
 // VLDEnable - Enables Visual Leak Detector's memory leak detection at runtime.
 //   If memory leak detection is already enabled, which it is by default, then
@@ -79,7 +79,7 @@ __declspec(dllimport) void VLDDisable ();
 //
 //    None.
 //
-__declspec(dllimport) void VLDEnable ();
+__declspec(dllimport) VOID VLDEnable ();
 
 #ifdef __cplusplus
 }

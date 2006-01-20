@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.2 2006/01/17 23:16:53 dmouldin Exp $
+//  $Id: vldheap.cpp,v 1.3 2006/01/20 01:24:08 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -140,7 +140,7 @@ void* operator new [] (unsigned int size, const char *file, int line)
 //
 static void vlddelete (void *block)
 {
-    vldblockheader_t *header = BLOCKHEADER(block);
+    vldblockheader_t *header = BLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
     if (header->prev) {
@@ -194,7 +194,7 @@ static void* vldnew (unsigned int size, const char *file, int line)
         vldblocklist         = header;
 
         // Return a pointer to the beginning of the data-portion of the block.
-        return BLOCKDATA(header);
+        return (void*)BLOCKDATA(header);
     }
 
     return NULL;
