@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.33 2006/01/22 04:33:02 db Exp $
+//  $Id: vld.cpp,v 1.34 2006/01/22 17:28:45 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -104,30 +104,38 @@ VisualLeakDetector::VisualLeakDetector ()
     if (m_optflags & VLD_OPT_SELF_TEST) {
         // Self-test mode has been enabled. Intentionally leak a small amount of
         // memory so that memory leak self-checking can be verified.
-        wcsncpy(new WCHAR [21], L"Memory Leak Self-Test", 21); m_selftestline = __LINE__;
+        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+            wcsncpy(new WCHAR [21], L"Memory Leak Self-Test", 21); m_selftestline = __LINE__;
+        }
+        else {
+            strncpy(new CHAR [21], "Memory Leak Self-Test", 21); m_selftestline = __LINE__;
+        }
     }
     if (m_optflags & VLD_OPT_START_DISABLED) {
         // Memory leak detection will initially be disabled.
         m_status |= VLD_STATUS_NEVER_ENABLED;
     }
     if (m_optflags & VLD_OPT_REPORT_TO_FILE) {
-        // Reporting to file enabled. Open the file for binary writing.
-        m_reportfile = _wfopen(m_reportfilepath, L"wb");
+        // Reporting to file enabled.
+        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+            // Unicode data encoding has been enabled. Write the byte-order
+            // mark before anything else gets written to the file. Open the
+            // file for binary writing.
+            m_reportfile = _wfopen(m_reportfilepath, L"wb");
+            if (m_reportfile != NULL) {
+                fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
+            }
+            setreportencoding(unicode);
+        }
+        else {
+            m_reportfile = _wfopen(m_reportfilepath, L"w");
+            setreportencoding(ascii);
+        }
         if (m_reportfile == NULL) {
             report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
                    L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
         }
         else {
-            if (m_optflags & VLD_OPT_UNICODE_REPORT) {
-                // Unicode data encoding has been enabled. Write the byte-order mark
-                // before anything else gets written to the file.
-                fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
-                setreportencoding(unicode);
-            }
-            else {
-                setreportencoding(ascii);
-            }
-
             // Set the "report" function to write to the file.
             setreportfile(m_reportfile, m_optflags & VLD_OPT_REPORT_TO_DEBUGGER);
         }
@@ -166,6 +174,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     HeapMap::Iterator   heapit;
     SIZE_T              internalleaks = 0;
     const char         *leakfile;
+    WCHAR               leakfilew [MAX_PATH];
     int                 leakline;
 
     if (m_status & VLD_STATUS_INSTALLED) {
@@ -209,12 +218,18 @@ VisualLeakDetector::~VisualLeakDetector ()
         internalleaks++;
         leakfile = header->file;
         leakline = header->line;
+        mbstowcs(leakfilew, leakfile, MAX_PATH);
         report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
         report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber, BLOCKDATA(header), header->size);
         report(L"  Call Stack:\n");
-        report(L"    %s (%d): Full call stack not available.\n", header->file, header->line);
+        report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
         report(L"  Data:\n");
-        dumpmemoryw(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+            dumpmemoryw(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+        }
+        else {
+            dumpmemorya(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+        }
         report(L"\n");
         header = header->next;
     }
