@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.5 2006/01/20 01:09:11 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.6 2006/01/22 04:23:31 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -23,12 +23,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <windows.h>
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
-#ifdef UNICODE
 #define DBGHELP_TRANSLATE_TCHAR
-#endif // UNICODE
 #include <dbghelp.h>    // Provides symbol handling services.
-#include <tchar.h>
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
 #include "utility.h"    // Provides various utility functions.
@@ -187,9 +183,9 @@ VOID CallStack::dump (BOOL showuselessframes) const
     BOOL             foundline;
     UINT32           frame;
     SYMBOL_INFO     *functioninfo;
-    LPTSTR           functionname;
+    LPWSTR           functionname;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
-    BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(TCHAR)) - 1] = { 0 };
+    BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
 
     // Initialize structures passed to the symbol handler.
     functioninfo = (SYMBOL_INFO*)&symbolbuffer;
@@ -206,13 +202,13 @@ VOID CallStack::dump (BOOL showuselessframes) const
             // don't show frames that are internal to the heap or Visual
             // Leak Detector.
             if (!(showuselessframes)) {
-                _tcslwr(sourceinfo.FileName);
-                if (_tcsstr(sourceinfo.FileName, _T("afxmem.cpp")) ||
-                    _tcsstr(sourceinfo.FileName, _T("callstack.cpp")) ||
-                    _tcsstr(sourceinfo.FileName, _T("dbgheap.c")) ||
-                    _tcsstr(sourceinfo.FileName, _T("malloc.c")) ||
-                    _tcsstr(sourceinfo.FileName, _T("new.cpp")) ||
-                    _tcsstr(sourceinfo.FileName, _T("vld.cpp"))) {
+                wcslwr(sourceinfo.FileName);
+                if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
+                    wcsstr(sourceinfo.FileName, L"callstack.cpp") ||
+                    wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
+                    wcsstr(sourceinfo.FileName, L"malloc.c") ||
+                    wcsstr(sourceinfo.FileName, L"new.cpp") ||
+                    wcsstr(sourceinfo.FileName, L"vld.cpp")) {
                     continue;
                 }
             }
@@ -224,16 +220,16 @@ VOID CallStack::dump (BOOL showuselessframes) const
             functionname = functioninfo->Name;
         }
         else {
-            functionname = _T("(Function name unavailable)");
+            functionname = L"(Function name unavailable)";
         }
 
         // Display the current stack frame's information.
         if (foundline) {
-            report(_T("    %s (%d): %s\n"), sourceinfo.FileName, sourceinfo.LineNumber, functionname);
+            report(L"    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
         }
         else {
-            report(_T("    ") ADDRESSFORMAT _T(" (File and line number not available): "), (*this)[frame]);
-            report(_T("%s\n"), functionname);
+            report(L"    " ADDRESSFORMAT L" (File and line number not available): ", (*this)[frame]);
+            report(L"%s\n", functionname);
         }
     }
 }
