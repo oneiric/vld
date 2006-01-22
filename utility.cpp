@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.4 2006/01/20 01:14:40 dmouldin Exp $
+//  $Id: utility.cpp,v 1.5 2006/01/22 04:26:37 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -25,9 +25,7 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #include <dbghelp.h>    // Provides PE executable image access functions.
-#include <tchar.h>
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
@@ -38,8 +36,9 @@ extern HANDLE currentthread;
 extern SIZE_T serialnumber;
 
 // Global variables.
-static FILE *reportfile = NULL;
-static BOOL  reporttodebugger = TRUE;
+static FILE       *reportfile = NULL;
+static BOOL        reporttodebugger = TRUE;
+static encoding_e  reportencoding = ascii;
 
 // booltostr - Converts boolean values to string values ("true" or "false").
 //
@@ -50,39 +49,39 @@ static BOOL  reporttodebugger = TRUE;
 //  - String containing "true" if the input is true.
 //  - String containing "false" if the input is false.
 //
-LPCTSTR booltostr (BOOL b)
+LPCWSTR booltostr (BOOL b)
 {
     if (b == TRUE) {
-        return _T("true");
+        return L"true";
     }
     else {
-        return _T("false");
+        return L"false";
     }
 }
 
-// dumpmemory - Dumps a nicely formatted rendition of a region of memory to the
-//   debugger's output window. Includes both the hex value of each byte and its
-//   ASCII equivalent (if printable).
+// dumpmemorya - Dumps a nicely formatted rendition of a region of memory and
+//   sends it to the debugger for output. Includes both the hex value of each
+//   byte and its ASCII equivalent (if printable).
 //
 //  - address (IN): Pointer to the beginning of the memory region to dump.
 //
-//  - size (IN): The size of the region to dump.
+//  - size (IN): The size, in bytes, of the region to dump.
 //
 //  Return Value:
 //
 //    None.
 //
-VOID dumpmemory (LPCVOID address, SIZE_T size)
+VOID dumpmemorya (LPCVOID address, SIZE_T size)
 {
-    char          ascdump [18] = {0};
-    size_t        ascindex;
-    unsigned long byte;
-    unsigned long bytesdone;
-    unsigned char datum;
-    unsigned long dumplen;
-    char          formatbuf [4];
-    char          hexdump [58] = {0};
-    size_t        hexindex;
+    WCHAR  ascdump [18] = {0};
+    SIZE_T ascindex;
+    BYTE   byte;
+    SIZE_T byteindex;
+    SIZE_T bytesdone;
+    SIZE_T dumplen;
+    WCHAR  formatbuf [4];
+    WCHAR  hexdump [58] = {0};
+    SIZE_T hexindex;
 
     // Each line of output is 16 bytes.
     if ((size % 16) == 0) {
@@ -97,39 +96,121 @@ VOID dumpmemory (LPCVOID address, SIZE_T size)
     // For each byte of data, get both the ASCII equivalent (if it is a
     // printable character) and the hex representation.
     bytesdone = 0;
-    for (byte = 0; byte < dumplen; byte++) {
-        hexindex = 3 * ((byte % 16) + ((byte % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        ascindex = (byte % 16) + (byte % 16) / 8; // 1 character per byte, plus a 1-character space after every 8 bytes.
-        if (byte < size) {
-            datum = ((unsigned char*)address)[byte];
-            sprintf(formatbuf, "%.2X ", datum);
-            strncpy(hexdump + hexindex, formatbuf, 4);
-            if (isprint(datum) && (datum != ' ')) {
-                ascdump[ascindex] = datum;
+    for (byteindex = 0; byteindex < dumplen; byteindex++) {
+        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        ascindex = (byteindex % 16) + (byteindex % 16) / 8; // 1 character per byte, plus a 1-character space after every 8 bytes.
+        if (byteindex < size) {
+            byte = ((PBYTE)address)[byteindex];
+            _snwprintf(formatbuf, 3, L"%.2X ", byte);
+            formatbuf[3] = '\0';
+            wcsncpy(hexdump + hexindex, formatbuf, 4);
+            if (isgraph(byte)) {
+                ascdump[ascindex] = (WCHAR)byte;
             }
             else {
-                ascdump[ascindex] = '.';
+                ascdump[ascindex] = L'.';
             }
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            strncpy(hexdump + hexindex, "   ", 4);
-            ascdump[ascindex] = '.';
+            wcsncpy(hexdump + hexindex, L"   ", 4);
+            ascdump[ascindex] = L'.';
         }
         bytesdone++;
         if ((bytesdone % 16) == 0) {
             // Print one line of data for every 16 bytes. Include the
             // ASCII dump and the hex dump side-by-side.
-            report(_T("    %s    %s\n"), hexdump, ascdump);
+            report(L"    %s    %s\n", hexdump, ascdump);
         }
         else {
             if ((bytesdone % 8) == 0) {
-                // Add a spacer in the ASCII dump after every two words.
-                ascdump[ascindex + 1] = ' ';
+                // Add a spacer in the ASCII dump after every 8 bytes.
+                ascdump[ascindex + 1] = L' ';
             }
             if ((bytesdone % 4) == 0) {
-                // Add a spacer in the hex dump after every word.
-                strncpy(hexdump + hexindex + 3, "   ", 4);
+                // Add a spacer in the hex dump after every 4 bytes.
+                wcsncpy(hexdump + hexindex + 3, L"   ", 4);
+            }
+        }
+    }
+}
+
+// dumpmemoryw - Dumps a nicely formatted rendition of a region of memory and
+//   sends it to the debugger for output. Includes both the hex value of each
+//   byte and its Unicode equivalent (if printable).
+//
+//  - address (IN): Pointer to the beginning of the memory region to dump.
+//
+//  - size (IN): The size, in bytes, of the region to dump.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID dumpmemoryw (LPCVOID address, SIZE_T size)
+{
+    BYTE   byte;
+    SIZE_T byteindex;
+    SIZE_T bytesdone;
+    SIZE_T dumplen;
+    WCHAR  formatbuf [4];
+    WCHAR  hexdump [58] = {0};
+    SIZE_T hexindex;
+    WORD   word;
+    WCHAR  unidump [18] = {0};
+    SIZE_T uniindex;
+
+    // Each line of output is 16 bytes.
+    if ((size % 16) == 0) {
+        // No padding needed.
+        dumplen = size;
+    }
+    else {
+        // We'll need to pad the last line out to 16 bytes.
+        dumplen = size + (16 - (size % 16));
+    }
+
+    // For each word of data, get both the Unicode equivalent and the hex
+    // representation.
+    bytesdone = 0;
+    for (byteindex = 0; byteindex < dumplen; byteindex++) {
+        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        uniindex = ((byteindex / 2) % 8) + ((byteindex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
+        if (byteindex < size) {
+            byte = ((PBYTE)address)[byteindex];
+            _snwprintf(formatbuf, 3, L"%.2X ", byte);
+            formatbuf[3] = '\0';
+            wcsncpy(hexdump + hexindex, formatbuf, 4);
+            if (((byteindex % 2) == 0) && ((byteindex + 1) < dumplen)) {
+                // On every even byte, print one character.
+                word = ((PWORD)address)[byteindex / 2];
+                if (word == 0x0000) {
+                    unidump[uniindex] = L'.';
+                }
+                else {
+                    unidump[uniindex] = word;
+                }
+            }
+        }
+        else {
+            // Add padding to fill out the last line to 16 bytes.
+            wcsncpy(hexdump + hexindex, L"   ", 4);
+            unidump[uniindex] = L'.';
+        }
+        bytesdone++;
+        if ((bytesdone % 16) == 0) {
+            // Print one line of data for every 16 bytes. Include the
+            // ASCII dump and the hex dump side-by-side.
+            report(L"    %s    %s\n", hexdump, unidump);
+        }
+        else {
+            if ((bytesdone % 8) == 0) {
+                // Add a spacer in the ASCII dump after every 8 bytes.
+                unidump[uniindex + 1] = L' ';
+            }
+            if ((bytesdone % 4) == 0) {
+                // Add a spacer in the hex dump after every 4 bytes.
+                wcsncpy(hexdump + hexindex + 3, L"   ", 4);
             }
         }
     }
@@ -259,23 +340,40 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
 //
 //    None.
 //
-VOID report (LPCTSTR format, ...)
+VOID report (LPCWSTR format, ...)
 {
     va_list args;
-    TCHAR   message [MAXREPORTLENGTH + 1];
+    CHAR    messagea [MAXREPORTLENGTH + 1];
+    WCHAR   messagew [MAXREPORTLENGTH + 1];
 
     va_start(args, format);
-    _vsntprintf(message, MAXREPORTLENGTH, format, args);
+    _vsnwprintf(messagew, MAXREPORTLENGTH, format, args);
     va_end(args);
-    message[MAXREPORTLENGTH] = '\0';
+    messagew[MAXREPORTLENGTH] = L'\0';
 
-    if (reportfile != NULL) {
-        // Send the report to the previously specified file.
-        fwrite(message, sizeof(TCHAR), _tcslen(message), reportfile);
+    if (reportencoding == unicode) {
+        if (reportfile != NULL) {
+            // Send the report to the previously specified file.
+            fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
+        }
+        if (reporttodebugger) {
+            OutputDebugStringW(messagew);
+            Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
+        }
     }
-    if (reporttodebugger) {
-        OutputDebugString(message);
-        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
+    else {
+        if (wcstombs(messagea, messagew, MAXREPORTLENGTH) == -1) {
+            // Failed to convert the Unicode message to ASCII.
+            return;
+        }
+        messagea[MAXREPORTLENGTH] = '\0';
+        if (reportfile != NULL) {
+            // Send the report to the previously specified file.
+            fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
+        }
+        if (reporttodebugger) {
+            OutputDebugStringA(messagea);
+        }
     }
 }
 
@@ -353,6 +451,28 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
     }
 }
 
+// setreportencoding - Sets the output encoding of for report messages to either
+//   ASCII (the default) or Unicode.
+//
+//  - unicode (IN): Specifies either "ascii" or "unicode".
+//
+//  Return Value:
+//
+//    None.
+//
+VOID setreportencoding (encoding_e encoding)
+{
+    switch (encoding) {
+    case ascii:
+    case unicode:
+        reportencoding = encoding;
+        break;
+
+    default:
+        assert(FALSE);
+    }
+}
+
 // setreportfile - Sets a destination file to which all report messages should
 //   be sent. If this function is not called to set a destination file, then
 //   report messages will be sent to the debugger instead of to a file.
@@ -388,16 +508,16 @@ VOID setreportfile (FILE *file, BOOL copydebugger)
 //
 //    None.
 //
-VOID strapp (LPTSTR *dest, LPCTSTR source)
+VOID strapp (LPWSTR *dest, LPCWSTR source)
 {
     size_t length;
-    LPTSTR temp;
+    LPWSTR temp;
 
     temp = *dest;
-    length = _tcslen(*dest) + _tcslen(source);
-    *dest = new TCHAR [length + 1];
-    _tcsncpy(*dest, temp, length);
-    _tcsncat(*dest, source, length);
+    length = wcslen(*dest) + wcslen(source);
+    *dest = new WCHAR [length + 1];
+    wcsncpy(*dest, temp, length);
+    wcsncat(*dest, source, length);
     delete [] temp;
 }
 
@@ -411,13 +531,13 @@ VOID strapp (LPTSTR *dest, LPCTSTR source)
 //    Returns true if the string is recognized as a "true" string. Otherwise
 //    returns false.
 //
-BOOL strtobool (LPCTSTR s) {
-    TCHAR *end;
+BOOL strtobool (LPCWSTR s) {
+    WCHAR *end;
 
-    if ((_tcsicmp(s, _T("true")) == 0) ||
-        (_tcsicmp(s, _T("yes")) == 0) ||
-        (_tcsicmp(s, _T("on")) == 0) ||
-        (_tcstol(s, &end, 10) == 1)) {
+    if ((wcsicmp(s, L"true") == 0) ||
+        (wcsicmp(s, L"yes") == 0) ||
+        (wcsicmp(s, L"on") == 0) ||
+        (wcstol(s, &end, 10) == 1)) {
         return true;
     }
     else {

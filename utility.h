@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.3 2006/01/20 01:16:06 dmouldin Exp $
+//  $Id: utility.h,v 1.4 2006/01/22 04:27:01 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -32,10 +32,11 @@
 #include <windows.h>
 
 #ifdef _WIN64
-#define ADDRESSFORMAT   _T("0x%.16X") // Format string for 64-bit addresses
+#define ADDRESSFORMAT   L"0x%.16X" // Format string for 64-bit addresses
 #else
-#define ADDRESSFORMAT   _T("0x%.8X")  // Format string for 32-bit addresses
+#define ADDRESSFORMAT   L"0x%.8X"  // Format string for 32-bit addresses
 #endif // _WIN64
+#define BOM             0xFEFF     // Unicode byte-order mark.
 #define MAXREPORTLENGTH 511        // Maximum length, in characters, of "report" messages.
 
 // Architecture-specific definitions for x86 and x64
@@ -58,15 +59,23 @@
 // Relative Virtual Address to Virtual Address conversion.
 #define R2VA(modulebase, rva) (((PBYTE)modulebase) + rva)
 
+// Reports can be encoded as either ASCII or Unicode (UTF-16).
+enum encoding_e {
+    ascii,
+    unicode
+};
+
 // Utility functions. See function definitions for details.
-LPCTSTR booltostr (BOOL b);
-VOID dumpmemory (LPCVOID address, SIZE_T length);
+LPCWSTR booltostr (BOOL b);
+VOID dumpmemorya (LPCVOID address, SIZE_T length);
+VOID dumpmemoryw (LPCVOID address, SIZE_T length);
 #if defined(_M_IX86) || defined(_M_X64)
 SIZE_T getprogramcounterx86x64 ();
 #endif // _M_IX86 || _M_X64
 VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
-VOID report (LPCTSTR format, ...);
+VOID report (LPCWSTR format, ...);
 VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
-VOID strapp (LPTSTR *dest, LPCTSTR source);
-BOOL strtobool (LPCTSTR s);
+VOID strapp (LPWSTR *dest, LPCWSTR source);
+BOOL strtobool (LPCWSTR s);
