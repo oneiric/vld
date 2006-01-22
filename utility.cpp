@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.5 2006/01/22 04:26:37 db Exp $
+//  $Id: utility.cpp,v 1.6 2006/01/22 17:22:10 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -184,7 +184,7 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
             if (((byteindex % 2) == 0) && ((byteindex + 1) < dumplen)) {
                 // On every even byte, print one character.
                 word = ((PWORD)address)[byteindex / 2];
-                if (word == 0x0000) {
+                if ((word == 0x0000) || (word == 0x0020)) {
                     unidump[uniindex] = L'.';
                 }
                 else {
