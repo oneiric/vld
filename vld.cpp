@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.32 2006/01/20 01:21:40 dmouldin Exp $
+//  $Id: vld.cpp,v 1.33 2006/01/22 04:33:02 db Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,15 +28,11 @@
 
 #include <cstdio>
 #include <windows.h>
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK
-#ifdef UNICODE
 #define DBGHELP_TRANSLATE_TCHAR
-#endif // UNICODE
 #include <dbghelp.h>    // Provides stack walking and symbol handling services.
 #define _CRTBLD         // Force dbgint.h to allow us to include it.
 #include <dbgint.h>     // Provides access to the heap internals, specifically the memory block header structure.
 #undef _CRTBLD
-#include <tchar.h>
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "callstack.h"  // Provides a custom class for handling call stacks
 #include "map.h"        // Provides a custom STL-like map template
@@ -83,6 +79,8 @@ __declspec(dllexport) VisualLeakDetector visualleakdetector;
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
+    WCHAR bom = BOM; // Unicode byte-order mark.
+
     currentprocess = GetCurrentProcess();
     currentthread = GetCurrentThread();
     vldheap = HeapCreate(0x0, 0, 0);
@@ -92,7 +90,7 @@ VisualLeakDetector::VisualLeakDetector ()
     m_heapmap        = new HeapMap;
     m_maxdatadump    = 0xffffffff;
     m_maxtraceframes = 0xffffffff;
-    _tcsnset(m_modulelist, _T('\0'), MAXMODULELISTLENGTH);
+    wcsnset(m_modulelist, L'\0', MAXMODULELISTLENGTH);
     m_modulespatched = 0;
     m_optflags       = 0x0;
     m_selftestfile   = __FILE__;
@@ -106,31 +104,52 @@ VisualLeakDetector::VisualLeakDetector ()
     if (m_optflags & VLD_OPT_SELF_TEST) {
         // Self-test mode has been enabled. Intentionally leak a small amount of
         // memory so that memory leak self-checking can be verified.
-        _tcsncpy(new TCHAR [21], _T("Memory Leak Self-Test"), 21); m_selftestline = __LINE__;
+        wcsncpy(new WCHAR [21], L"Memory Leak Self-Test", 21); m_selftestline = __LINE__;
     }
     if (m_optflags & VLD_OPT_START_DISABLED) {
         // Memory leak detection will initially be disabled.
         m_status |= VLD_STATUS_NEVER_ENABLED;
     }
     if (m_optflags & VLD_OPT_REPORT_TO_FILE) {
-        m_reportfile = _tfopen(m_reportfilepath, _T("w"));
+        // Reporting to file enabled. Open the file for binary writing.
+        m_reportfile = _wfopen(m_reportfilepath, L"wb");
         if (m_reportfile == NULL) {
-            report(_T("WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n")
-                   _T("  The report will be sent to the debugger instead.\n"), m_reportfilepath);
+            report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
+                   L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
         }
         else {
+            if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+                // Unicode data encoding has been enabled. Write the byte-order mark
+                // before anything else gets written to the file.
+                fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
+                setreportencoding(unicode);
+            }
+            else {
+                setreportencoding(ascii);
+            }
+
+            // Set the "report" function to write to the file.
             setreportfile(m_reportfile, m_optflags & VLD_OPT_REPORT_TO_DEBUGGER);
         }
     }
 
     if (m_tlsindex == TLS_OUT_OF_INDEXES) {
-        report(_T("ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n")
-               _T("Visual Leak Detector is NOT installed!\n"));
+        report(L"ERROR: Visual Leak Detector: Couldn't allocate thread local storage.\n"
+               L"Visual Leak Detector is NOT installed!\n");
     }
     else {
         // For each loaded module, patch the Windows heap APIs.
         EnumerateLoadedModules64(currentprocess, patchapis, NULL);
-        report(_T("Visual Leak Detector Version ") VLDVERSION _T(" installed.\n"));
+
+        report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
+        if (m_status & VLD_STATUS_FORCE_REPORT_TO_FILE) {
+            // The report is being forced to a file. Let the human know why.
+            report(L"NOTE: Visual Leak Detector: Unicode-encoded reporting has been enabled, but the\n"
+                   L"  debugger is the only selected report destination. The debugger cannot display\n"
+                   L"  Unicode characters, so the report will also be sent to a file. If no file has\n"
+                   L"  been specified, the default file name is \"" VLD_DEFAULT_REPORT_FILE_NAME L"\".\n");
+
+        }
         reportconfig();
         m_status |= VLD_STATUS_INSTALLED;
     }
@@ -155,14 +174,14 @@ VisualLeakDetector::~VisualLeakDetector ()
         if (m_status & VLD_STATUS_NEVER_ENABLED) {
             // Visual Leak Detector started with leak detection disabled and
             // it was never enabled at runtime. A lot of good that does.
-            report(_T("WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n"));
+            report(L"WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
         }
         else if (m_modulespatched == 0) {
             // No modules had any of their API's patched.
-            report(_T("WARNING: Visual Leak Detector did not attach to any loaded modules.\n")
-                   _T("  No memory leak detection was actually done. Please check the \"ModuleList\"\n")
-                   _T("  option in vld.ini and be sure that at least one module is being included,\n")
-                   _T("  and that no module names have been misspelt.\n"));
+            report(L"WARNING: Visual Leak Detector did not attach to any loaded modules.\n"
+                   L"  No memory leak detection was actually done. Please check the \"ModuleList\"\n"
+                   L"  option in vld.ini and be sure that at least one module is being included,\n"
+                   L"  and that no module names have been misspelt.\n");
         }
         else {
             // Generate a memory leak report.
@@ -190,30 +209,30 @@ VisualLeakDetector::~VisualLeakDetector ()
         internalleaks++;
         leakfile = header->file;
         leakline = header->line;
-        report(_T("ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n"));
-        report(_T("---------- Block %ld at ") ADDRESSFORMAT _T(": %u bytes ----------\n"), header->serialnumber, BLOCKDATA(header), header->size);
-        report(_T("  Call Stack:\n"));
-        report(_T("    %s (%d): Full call stack not available.\n"), header->file, header->line);
-        report(_T("  Data:\n"));
-        dumpmemory(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
-        report(_T("\n"));
+        report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
+        report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber, BLOCKDATA(header), header->size);
+        report(L"  Call Stack:\n");
+        report(L"    %s (%d): Full call stack not available.\n", header->file, header->line);
+        report(L"  Data:\n");
+        dumpmemoryw(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+        report(L"\n");
         header = header->next;
     }
     if (m_optflags & VLD_OPT_SELF_TEST) {
         if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
-            report(_T("Visual Leak Detector passed the memory leak self-test.\n"));
+            report(L"Visual Leak Detector passed the memory leak self-test.\n");
         }
         else {
-            report(_T("ERROR: Visual Leak Detector: Failed the memory leak self-test.\n"));
+            report(L"ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
         }
     }
 
     LeaveCriticalSection(&m_heaplock);
     DeleteCriticalSection(&m_heaplock);
 
-    report(_T("Visual Leak Detector is now exiting.\n"));
+    report(L"Visual Leak Detector is now exiting.\n");
 
-    if (m_optflags & VLD_OPT_REPORT_TO_FILE) {
+    if (m_reportfile != NULL) {
         fclose(m_reportfile);
     }
 }
@@ -522,16 +541,19 @@ void* VisualLeakDetector::_malloc (size_t size)
 //    Returns a string containing the search path. The caller is responsible for
 //    freeing the string.
 //
-LPTSTR VisualLeakDetector::buildsymbolsearchpath ()
+LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 {
-    TCHAR   directory [_MAX_DIR];
-    TCHAR   drive [_MAX_DRIVE];
-    LPTSTR  env;
+    WCHAR   directory [_MAX_DIR];
+    WCHAR   drive [_MAX_DRIVE];
+    LPWSTR  env;
+    DWORD   envlen;
     size_t  index;
     size_t  length;
     HMODULE module;
-    LPTSTR  path = new TCHAR [MAX_PATH];
+    LPWSTR  path = new WCHAR [MAX_PATH];
     size_t  pos = 0;
+    WCHAR   system [MAX_PATH];
+    WCHAR   windows [MAX_PATH];
 
     // The documentation says that executables with associated program database
     // (PDB) files have the absolute path to the PDB embedded in them and that,
@@ -539,10 +561,10 @@ LPTSTR VisualLeakDetector::buildsymbolsearchpath ()
     // case (at least not with Visual C++ 6.0). So we'll manually add the
     // location of the executable (which is where the PDB is located by default)
     // to the symbol search path.
-    path[0] = _T('\0');
+    path[0] = L'\0';
     module = GetModuleHandle(NULL);
     GetModuleFileName(module, path, MAX_PATH);
-    _tsplitpath(path, drive, directory, NULL, NULL);
+    _wsplitpath(path, drive, directory, NULL, NULL);
     strapp(&path, drive);
     strapp(&path, directory);
 
@@ -552,35 +574,47 @@ LPTSTR VisualLeakDetector::buildsymbolsearchpath ()
     // them to our custom search path.
     //
     // Append the working directory.
-    strapp(&path, _T(";.\\"));
+    strapp(&path, L";.\\");
 
-    // Append %SYSTEMROOT% and %SYSTEMROOT%\system32.
-    env = _tgetenv(_T("SYSTEMROOT"));
-    if (env) {
-        strapp(&path, _T(";"));
-        strapp(&path, env);
-        strapp(&path, _T(";"));
-        strapp(&path, env);
-        strapp(&path, _T("\\system32"));
+    // Append the Windows directory.
+    if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
+        strapp(&path, L";");
+        strapp(&path, windows);
     }
 
-    // Append %_NT_SYMBOL_PATH% and %_NT_ALT_SYMBOL_PATH%.
-    env = _tgetenv(_T("_NT_SYMBOL_PATH"));
-    if (env) {
-        strapp(&path, _T(";"));
-        strapp(&path, env);
+    // Append the system directory.
+    if (GetSystemDirectory(system, MAX_PATH) != 0) {
+        strapp(&path, L";");
+        strapp(&path, system);
     }
-    env = _tgetenv(_T("_NT_ALT_SYMBOL_PATH"));
-    if (env) {
-        strapp(&path, _T(";"));
-        strapp(&path, env);
+
+    // Append %_NT_SYMBOL_PATH%.
+    envlen = GetEnvironmentVariable(L"_NT_SYMBOL_PATH", NULL, 0);
+    if (envlen != 0) {
+        env = new WCHAR [envlen];
+        if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
+            strapp(&path, L";");
+            strapp(&path, env);
+        }
+        delete [] env;
+    }
+
+    //  Append %_NT_ALT_SYMBOL_PATH%.
+    envlen = GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", NULL, 0);
+    if (envlen != 0) {
+        env = new WCHAR [envlen];
+        if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
+            strapp(&path, L";");
+            strapp(&path, env);
+        }
+        delete [] env;
     }
 
     // Remove any quotes from the path. The symbol handler doesn't like them.
     pos = 0;
-    length = _tcslen(path);
+    length = wcslen(path);
     while (pos < length) {
-        if (path[pos] == '\"') {
+        if (path[pos] == L'\"') {
             for (index = pos; index < length; index++) {
                 path[index] = path[index + 1];
             }
@@ -600,65 +634,84 @@ LPTSTR VisualLeakDetector::buildsymbolsearchpath ()
 VOID VisualLeakDetector::configure ()
 {
 #define BSIZE 64
-    TCHAR    buffer [BSIZE];
-    LPCTSTR  defstate;
-    TCHAR    filename [MAX_PATH];
-    TCHAR    inipath [MAX_PATH];
+    WCHAR   buffer [BSIZE];
+    LPCWSTR defstate;
+    WCHAR   filename [MAX_PATH];
+    WCHAR   inipath [MAX_PATH];
 
-    _tfullpath(inipath, _T(".\\vld.ini"), MAX_PATH);
+    _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
 
     // Read the boolean options.
     defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_AGGREGATE_DUPLICATES);
-    GetPrivateProfileString(_T("Options"), _T("AggregateDuplicates"), defstate, buffer, BSIZE, inipath);
+    GetPrivateProfileString(L"Options", L"AggregateDuplicates", defstate, buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_optflags |= VLD_OPT_AGGREGATE_DUPLICATES;
     }
     defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SELF_TEST);
-    GetPrivateProfileString(_T("Options"), _T("SelfTest"), defstate, buffer, BSIZE, inipath);
+    GetPrivateProfileString(L"Options", L"SelfTest", defstate, buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_optflags |= VLD_OPT_SELF_TEST;
     }
     defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SHOW_USELESS_FRAMES);
-    GetPrivateProfileString(_T("Options"), _T("ShowUselessFrames"), defstate, buffer, BSIZE, inipath);
+    GetPrivateProfileString(L"Options", L"ShowUselessFrames", defstate, buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_optflags |= VLD_OPT_SHOW_USELESS_FRAMES;
     }
     defstate = booltostr(VLD_DEFAULT_OPT_FLAGS & VLD_OPT_START_DISABLED);
-    GetPrivateProfileString(_T("Options"), _T("StartDisabled"), defstate, buffer, BSIZE, inipath);
+    GetPrivateProfileString(L"Options", L"StartDisabled", defstate, buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_optflags |= VLD_OPT_START_DISABLED;
     }
 
     // Read the integer configuration options.
-    m_maxdatadump = GetPrivateProfileInt(_T("Options"), _T("MaxDataDump"), VLD_DEFAULT_MAX_DATA_DUMP, inipath);
-    m_maxtraceframes = GetPrivateProfileInt(_T("Options"), _T("MaxTraceFrames"), VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
+    m_maxdatadump = GetPrivateProfileInt(L"Options", L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
+    m_maxtraceframes = GetPrivateProfileInt(L"Options", L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
 
     // Read the module list and the module list mode (include/exclude).
-    GetPrivateProfileString(_T("Options"), _T("ModuleList"), _T(""), m_modulelist, MAXMODULELISTLENGTH, inipath);
-    _tcslwr(m_modulelist);
-    GetPrivateProfileString(_T("Options"), _T("ModuleListMode"), _T(""), buffer, BSIZE, inipath);
-    if (_tcslen(buffer) == 0) {
+    GetPrivateProfileString(L"Options", L"ModuleList", L"", m_modulelist, MAXMODULELISTLENGTH, inipath);
+    wcslwr(m_modulelist);
+    GetPrivateProfileString(L"Options", L"ModuleListMode", L"", buffer, BSIZE, inipath);
+    if (wcslen(buffer) == 0) {
         m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_MODULE_LIST_INCLUDE);
     }
-    else if (_tcsicmp(buffer, _T("include")) == 0) {
+    else if (wcsicmp(buffer, L"include") == 0) {
         m_optflags |= VLD_OPT_MODULE_LIST_INCLUDE;
     }
 
     // Read the report destination (debugger, file, or both).
-    GetPrivateProfileString(_T("Options"), _T("ReportFile"), _T(".\\memory_leak_report.txt"), filename, MAX_PATH, inipath);
-    _tfullpath(m_reportfilepath, filename, MAX_PATH);
-    GetPrivateProfileString(_T("Options"), _T("ReportTo"), _T(""), buffer, BSIZE, inipath);
-    if (_tcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE));
+    GetPrivateProfileString(L"Options", L"ReportFile", VLD_DEFAULT_REPORT_FILE_NAME, filename, MAX_PATH, inipath);
+    if (wcslen(filename) == 0) {
+        wcsncpy(filename, VLD_DEFAULT_REPORT_FILE_NAME, MAX_PATH);
     }
-    else if (_tcsicmp(buffer, _T("both")) == 0) {
+    _wfullpath(m_reportfilepath, filename, MAX_PATH);
+    GetPrivateProfileString(L"Options", L"ReportTo", L"", buffer, BSIZE, inipath);
+    if (wcsicmp(buffer, L"both") == 0) {
         m_optflags |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
     }
-    else if (_tcsicmp(buffer, _T("debugger")) == 0) {
+    else if (wcsicmp(buffer, L"debugger") == 0) {
         m_optflags |= VLD_OPT_REPORT_TO_DEBUGGER;
     }
-    else if (_tcsicmp(buffer, _T("file")) == 0) {
+    else if (wcsicmp(buffer, L"file") == 0) {
         m_optflags |= VLD_OPT_REPORT_TO_FILE;
+    }
+    else {
+        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE));
+    }
+
+    // Read the report file encoding
+    GetPrivateProfileString(L"Options", L"ReportEncoding", L"", buffer, BSIZE, inipath);
+    if (wcsicmp(buffer, L"unicode") == 0) {
+        m_optflags |= VLD_OPT_UNICODE_REPORT;
+    }
+    else {
+        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_UNICODE_REPORT);
+    }
+    if ((m_optflags & VLD_OPT_UNICODE_REPORT) && !(m_optflags & VLD_OPT_REPORT_TO_FILE)) {
+        // If Unicode report encoding is enabled, then the report needs to be
+        // sent to a file because the debugger will not display Unicode
+        // characters, it will display question marks in their place instead.
+        m_optflags |= VLD_OPT_REPORT_TO_FILE;
+        m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
     }
 }
 
@@ -823,7 +876,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
         // Somehow this heap has been created twice without being destroyed,
         // or at least it was destroyed without VLD's knowledge. Unmap the heap
         // from the existing block map, and remap it to the new one.
-        report(_T("WARNING: Visual Leak Detector detected a duplicate heap.\n"));
+        report(L"WARNING: Visual Leak Detector detected a duplicate heap.\n");
         heapit = m_heapmap->find(heap);
         unmapheap((*heapit).first);
         m_heapmap->insert(heap, blockmap);
@@ -848,23 +901,23 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::patchapis (PCTSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::patchapis (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
     LPCSTR  exportmodulename;
-    TCHAR   extension [_MAX_EXT];
-    TCHAR   filename [_MAX_FNAME];
+    WCHAR   extension [_MAX_EXT];
+    WCHAR   filename [_MAX_FNAME];
     LPCSTR  importname;
     UINT    index;
 #define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
-    TCHAR   modulename [MAXMODULENAME + 1];
+    WCHAR   modulename [MAXMODULENAME + 1];
     UINT    numpatchentries = sizeof(importpatchtable) / sizeof(importpatchentry_t);
     LPCVOID replacement;
 
-    _tsplitpath(modulepath, NULL, NULL, filename, extension);
-    _tcsncpy(modulename, filename, MAXMODULENAME);
-    _tcsncat(modulename, extension, MAXMODULENAME - _tcslen(modulename));
-    _tcslwr(modulename);
-    if (_tcsstr(_T("vld.dll dbghelp.dll msvcrt.dll msvcrtd.dll"), modulename)) {
+    _wsplitpath(modulepath, NULL, NULL, filename, extension);
+    wcsncpy(modulename, filename, MAXMODULENAME);
+    wcsncat(modulename, extension, MAXMODULENAME - wcslen(modulename));
+    wcslwr(modulename);
+    if (wcsstr(L"vld.dll dbghelp.dll msvcrt.dll msvcrtd.dll", modulename)) {
         // The above modules are hard-excluded from memory leak detection. VLD
         // itself must be excluded (though it has a separate self-checker that
         // does check VLD for memory leaks) to avoid infinite recursion.
@@ -872,23 +925,23 @@ BOOL VisualLeakDetector::patchapis (PCTSTR modulepath, DWORD64 modulebase, ULONG
         // dbghelp.dll, msvcrt.dll, and msvcrtd.dll, those too must be excluded
         // to avoid unwanted recursion.
         if ((visualleakdetector.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) &&
-            (_tcsstr(visualleakdetector.m_modulelist, modulename) != NULL)) {
+            (wcsstr(visualleakdetector.m_modulelist, modulename) != NULL)) {
             // This hard-excluded module was specified on the list of modules to be included.
-            report(_T("WARNING: Visual Leak Detector: A module, %s, specified to be included by the\n")
-                   _T("  \"ModuleList\" vld.ini option is hard-excluded by Visual Leak Detector.\n")
-                   _T("  The module will not be included in memory leak detection.\n"), modulename);
+            report(L"WARNING: Visual Leak Detector: A module, %s, specified to be included by the\n"
+                   L"  \"ModuleList\" vld.ini option is hard-excluded by Visual Leak Detector.\n"
+                   L"  The module will not be included in memory leak detection.\n", modulename);
         }
         return TRUE;
     }
     if (visualleakdetector.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) {
         // Only patch this module if it is in the module list.
-        if (_tcsstr(visualleakdetector.m_modulelist, modulename) == NULL) {
+        if (wcsstr(visualleakdetector.m_modulelist, modulename) == NULL) {
             return TRUE;
         }
     }
     else {
         // Do not patch this module if it is in the module list.
-        if (_tcsstr(visualleakdetector.m_modulelist, modulename) != NULL) {
+        if (wcsstr(visualleakdetector.m_modulelist, modulename) != NULL) {
             return TRUE;
         }
     }
@@ -980,27 +1033,27 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 VOID VisualLeakDetector::reportconfig ()
 {
     if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
-        report(_T("    Aggregating duplicate leaks.\n"));
+        report(L"    Aggregating duplicate leaks.\n");
     }
     if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
         if (m_maxdatadump == 0) {
-            report(_T("    Suppressing data dumps.\n"));
+            report(L"    Suppressing data dumps.\n");
         }
         else {
-            report(_T("    Limiting data dumps to %lu bytes.\n"), m_maxdatadump);
+            report(L"    Limiting data dumps to %lu bytes.\n", m_maxdatadump);
         }
     }
     if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
-        report(_T("    Limiting stack traces to %u frames.\n"), m_maxtraceframes);
+        report(L"    Limiting stack traces to %u frames.\n", m_maxtraceframes);
     }
     if (m_optflags & VLD_OPT_SELF_TEST) {
-        report(_T("    Perfoming a memory leak self-test.\n"));
+        report(L"    Perfoming a memory leak self-test.\n");
     }
     if (m_optflags & VLD_OPT_SHOW_USELESS_FRAMES) {
-        report(_T("    Showing useless frames.\n"));
+        report(L"    Showing useless frames.\n");
     }
     if (m_optflags & VLD_OPT_START_DISABLED) {
-        report(_T("    Starting with memory leak detection disabled.\n"));
+        report(L"    Starting with memory leak detection disabled.\n");
     }
 }
 
@@ -1021,15 +1074,15 @@ VOID VisualLeakDetector::reportleaks ()
     blockinfo_t        *info;
     SIZE_T              leaksfound = 0;
     LPCVOID             mem;
-    LPTSTR              symbolpath;
+    LPWSTR              symbolpath;
 
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
     symbolpath = buildsymbolsearchpath();
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS | SYMOPT_UNDNAME);
     if (!SymInitialize(currentprocess, symbolpath, TRUE)) {
-        report(_T("WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n")
-               _T("    File and function names will probably not be available in call stacks.\n"), GetLastError());
+        report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
+               L"    File and function names will probably not be available in call stacks.\n", GetLastError());
     }
     delete [] symbolpath;
 
@@ -1056,28 +1109,33 @@ VOID VisualLeakDetector::reportleaks ()
             }
             // It looks like a real memory leak.
             if (leaksfound == 0) {
-                report(_T("WARNING: Visual Leak Detector detected memory leaks!\n"));
+                report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
             }
             leaksfound++;
-            report(_T("---------- Block %ld at ") ADDRESSFORMAT _T(": %u bytes ----------\n"), info->serialnumber, mem, info->size);
+            report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, mem, info->size);
             if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
                 // Aggregate all other leaks which are duplicates of this one
                 // under this same heading, to cut down on clutter.
                 duplicates = eraseduplicates(blockit);
                 if (duplicates) {
-                    report(_T("A total of %lu leaks match this size and call stack. Showing only the first one.\n"), duplicates + 1);
+                    report(L"A total of %lu leaks match this size and call stack. Showing only the first one.\n", duplicates + 1);
                     leaksfound += duplicates;
                 }
             }
             // Dump the call stack.
-            report(_T("  Call Stack:\n"));
+            report(L"  Call Stack:\n");
             info->callstack.dump((m_optflags & VLD_OPT_SHOW_USELESS_FRAMES) != 0);
             // Dump the data in the user data section of the memory block.
             if (m_maxdatadump != 0) {
-                report(_T("  Data:\n"));
-                dumpmemory(mem, (m_maxdatadump < info->size) ? m_maxdatadump : info->size);
+                report(L"  Data:\n");
+                if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+                    dumpmemoryw(mem, (m_maxdatadump < info->size) ? m_maxdatadump : info->size);
+                }
+                else {
+                    dumpmemorya(mem, (m_maxdatadump < info->size) ? m_maxdatadump : info->size);
+                }
             }
-            report(_T("\n"));
+            report(L"\n");
         }
     }
 
@@ -1085,16 +1143,16 @@ VOID VisualLeakDetector::reportleaks ()
 
     // Show a summary.
     if (!leaksfound) {
-        report(_T("No memory leaks detected.\n"));
+        report(L"No memory leaks detected.\n");
     }
     else {
-        report(_T("Visual Leak Detector detected %lu memory leak"), leaksfound);
-        report((leaksfound > 1) ? _T("s.\n" ): _T(".\n"));
+        report(L"Visual Leak Detector detected %lu memory leak", leaksfound);
+        report((leaksfound > 1) ? L"s.\n" : L".\n");
     }
 
     // Free resources used by the symbol handler.
     if (!SymCleanup(currentprocess)) {
-        report(_T("WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n"), GetLastError());
+        report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
     }
 }
 
@@ -1113,7 +1171,7 @@ VOID VisualLeakDetector::reportleaks ()
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::restoreapis (PCTSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::restoreapis (PCWSTR modulename, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
     LPCSTR  exportmodulename;
     LPCSTR  importname;
