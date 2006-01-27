@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: map.h,v 1.2 2006/01/20 01:11:11 dmouldin Exp $
+//  $Id: map.h,v 1.3 2006/01/27 22:48:02 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -90,8 +90,8 @@ public:
 //  Note that while this is a STL-like class, it is not a full STL-compliant
 //  implementation of the STL map container. It contains just the bare minimum
 //  functionality required by Visual Leak Detector. Because of its "lightweight"
-//  nature, this map class has a noticeable performance advantage over the
-//  standard STL map class.
+//  nature, this map class has a noticeable performance advantage over most
+//  standard STL map implementations.
 //
 template <typename Tk, typename Tv>
 class Map {
