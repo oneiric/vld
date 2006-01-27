@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.3 2006/01/20 01:24:08 dmouldin Exp $
+//  $Id: vldheap.cpp,v 1.4 2006/01/27 23:06:58 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -138,7 +138,7 @@ void* operator new [] (unsigned int size, const char *file, int line)
 //
 //    None.
 //
-static void vlddelete (void *block)
+void vlddelete (void *block)
 {
     vldblockheader_t *header = BLOCKHEADER((LPVOID)block);
 
@@ -173,7 +173,7 @@ static void vlddelete (void *block)
 //    If the memory allocation succeeds, a pointer to the allocated memory
 //    block is returned. If the allocation fails, NULL is returned.
 //
-static void* vldnew (unsigned int size, const char *file, int line)
+void* vldnew (unsigned int size, const char *file, int line)
 {
     vldblockheader_t *header = (vldblockheader_t*)HeapAlloc(vldheap, 0x0, size + sizeof(vldblockheader_t));
     static SIZE_T     serialnumber = 0;
@@ -193,7 +193,7 @@ static void* vldnew (unsigned int size, const char *file, int line)
         header->prev         = NULL;
         vldblocklist         = header;
 
-        // Return a pointer to the beginning of the data-portion of the block.
+        // Return a pointer to the beginning of the data section of the block.
         return (void*)BLOCKDATA(header);
     }
 

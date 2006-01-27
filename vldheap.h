@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.h,v 1.2 2006/01/20 01:26:02 dmouldin Exp $
+//  $Id: vldheap.h,v 1.3 2006/01/27 23:07:23 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -30,9 +30,9 @@
 
 #include <windows.h>
 
-// Memory block header structure prepended to memory blocks allocated internally
-// by VLD. All internally allocated blocks are allocated from VLD's private heap
-// and have this header prepended to them.
+// Memory block header structure used internally by VLD. All internally
+// allocated blocks are allocated from VLD's private heap and have this header
+// prepended to them.
 typedef struct vldblockheader_s
 {
     const char              *file;
@@ -44,7 +44,7 @@ typedef struct vldblockheader_s
 } vldblockheader_t;
 
 // Data-to-Header and Header-to-Data conversion
-#define BLOCKHEADER(b) (vldblockheader_t*)(((PBYTE)b) - sizeof(vldblockheader_t))
+#define BLOCKHEADER(d) (vldblockheader_t*)(((PBYTE)d) - sizeof(vldblockheader_t))
 #define BLOCKDATA(h) (LPVOID)(((PBYTE)h) + sizeof(vldblockheader_t))
 
 // new and delete operators for allocating from VLD's private heap.
