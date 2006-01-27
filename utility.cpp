@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.6 2006/01/22 17:22:10 db Exp $
+//  $Id: utility.cpp,v 1.7 2006/01/27 22:54:01 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -25,43 +25,21 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
+#define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>    // Provides PE executable image access functions.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
-
-// Imported global variables.
-extern HANDLE currentprocess;
-extern HANDLE currentthread;
-extern SIZE_T serialnumber;
 
 // Global variables.
 static FILE       *reportfile = NULL;
 static BOOL        reporttodebugger = TRUE;
 static encoding_e  reportencoding = ascii;
 
-// booltostr - Converts boolean values to string values ("true" or "false").
-//
-//  - b (IN): Boolean value to convert.
-//
-//  Return Value:
-//
-//  - String containing "true" if the input is true.
-//  - String containing "false" if the input is false.
-//
-LPCWSTR booltostr (BOOL b)
-{
-    if (b == TRUE) {
-        return L"true";
-    }
-    else {
-        return L"false";
-    }
-}
-
-// dumpmemorya - Dumps a nicely formatted rendition of a region of memory and
-//   sends it to the debugger for output. Includes both the hex value of each
-//   byte and its ASCII equivalent (if printable).
+// dumpmemorya - Dumps a nicely formatted rendition of a region of memory.
+//   Includes both the hex value of each byte and its ASCII equivalent (if
+//   printable).
 //
 //  - address (IN): Pointer to the beginning of the memory region to dump.
 //
@@ -135,9 +113,9 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
     }
 }
 
-// dumpmemoryw - Dumps a nicely formatted rendition of a region of memory and
-//   sends it to the debugger for output. Includes both the hex value of each
-//   byte and its Unicode equivalent (if printable).
+// dumpmemoryw - Dumps a nicely formatted rendition of a region of memory.
+//   Includes both the hex value of each byte and its Unicode equivalent (if
+//   printable).
 //
 //  - address (IN): Pointer to the beginning of the memory region to dump.
 //
@@ -216,6 +194,7 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     }
 }
 
+#if defined(_M_IX86) || defined(_M_X64)
 // getprogramcounterx86x64 - Helper function that retrieves the program counter
 //   (aka the EIP (x86) or RIP (x64) register) for CallStack::getstacktrace() on
 //   Intel x86 or x64 architectures (x64 supports both AMD64 and Intel EM64T).
@@ -232,7 +211,6 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //
 //    Returns the caller's program address.
 //
-#if defined(_M_IX86) || defined(_M_X64)
 #pragma auto_inline(off)
 SIZE_T getprogramcounterx86x64 ()
 {
@@ -244,7 +222,7 @@ SIZE_T getprogramcounterx86x64 ()
     return programcounter;
 }
 #pragma auto_inline(on)
-#endif // defined(_M_IX86) || defined(_M_X64)
+#endif // _M_IX86 || _M_X64
 
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
@@ -326,6 +304,44 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
     }
 }
 
+// patchmodule - Patches all imports listed in the supplied patch table, and
+//   which are imported by the specified module, through to their respective
+//   replacement functions.
+//
+//   Note: If the specified module does not import any of the functions listed
+//     in the patch table, then nothing is changed for the specified module.
+//
+//  - importmodule (IN): Handle (base address) of the target module which is to
+//      have its imports patched.
+//
+//  - patchtable (IN): An array of patchentry_t structures specifying all of the
+//      imports to patch for the specified module.
+//
+//  - tablesize (IN): Size, in entries, of the specified patch table.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+{
+    patchentry_t *entry;
+    LPCSTR        exportmodulename;
+    LPCSTR        importname;
+    UINT          index;
+    LPCVOID       replacement;
+
+    // Loop through the import patch table, individually patching each import
+    // listed in the table.
+    for (index = 0; index < tablesize; index++) {
+        entry = &patchtable[index];
+        exportmodulename = entry->exportmodulename;
+        importname       = entry->importname;
+        replacement      = entry->replacement;
+        patchimport(importmodule, exportmodulename, importname, replacement);
+    }
+}
+
 // report - Sends a printf-style formatted message to the debugger for display.
 //
 //   Note: A message longer than MAXREPORTLENGTH characters will be truncated
@@ -358,7 +374,6 @@ VOID report (LPCWSTR format, ...)
         }
         if (reporttodebugger) {
             OutputDebugStringW(messagew);
-            Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
         }
     }
     else {
@@ -374,6 +389,10 @@ VOID report (LPCWSTR format, ...)
         if (reporttodebugger) {
             OutputDebugStringA(messagea);
         }
+    }
+
+    if (reporttodebugger) {
+        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
     }
 }
 
@@ -451,7 +470,44 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
     }
 }
 
-// setreportencoding - Sets the output encoding of for report messages to either
+// restoremodule - Restores all imports listed in the supplied patch table, and
+//   which are imported by the specified module, to their original functions.
+//
+//   Note: If the specified module does not import any of the functions listed
+//     in the patch table, then nothing is changed for the specified module.
+//
+//  - importmodule (IN): Handle (base address) of the target module which is to
+//      have its imports restored.
+//
+//  - patchtable (IN): Array of patchentry_t structures specifying all of the
+//      imports to restore for the specified module.
+//
+//  - tablesize (IN): Size, in entries, of the specified patch table.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+{
+    patchentry_t *entry;
+    LPCSTR        exportmodulename;
+    LPCSTR        importname;
+    UINT          index;
+    LPCVOID       replacement;
+
+    // Loop through the import patch table, individually restoring each import
+    // listed in the table.
+    for (index = 0; index < tablesize; index++) {
+        entry = &patchtable[index];
+        exportmodulename = entry->exportmodulename;
+        importname       = entry->importname;
+        replacement      = entry->replacement;
+        restoreimport(importmodule, exportmodulename, importname, replacement);
+    }
+}
+
+// setreportencoding - Sets the output encoding of report messages to either
 //   ASCII (the default) or Unicode.
 //
 //  - unicode (IN): Specifies either "ascii" or "unicode".
