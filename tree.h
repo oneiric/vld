@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.3 2006/01/20 01:11:34 dmouldin Exp $
+//  $Id: tree.h,v 1.4 2006/01/27 22:48:45 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -135,6 +135,31 @@ public:
         }
 
         return cur;
+    }
+
+    // clear - Erases all nodes from the tree.
+    //
+    //   Note: This function does not, indeed cannot, free any dynamically
+    //     allocated keys. Dynamically allocated keys must be manually
+    //     deleted. Also, this function doesn't actually release any memory
+    //     used by the tree, instead the memory is returned to the Tree's
+    //     internal free list where it will remain reserved for future use
+    //     by the tree.
+    //
+    //  Return Value:
+    //
+    //    None.
+    //
+    VOID clear ()
+    {
+        Tree::node_t *cur = begin();
+        Tree::node_t *tmp;
+
+        while (cur != NULL) {
+            tmp = cur;
+            cur = next(cur);
+            erase(tmp);
+        }
     }
 
     // erase - Erases the specified node from the tree. Note that this does
