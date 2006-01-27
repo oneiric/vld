@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.6 2006/01/22 04:23:31 db Exp $
+//  $Id: callstack.cpp,v 1.7 2006/01/27 22:47:24 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -23,18 +23,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <windows.h>
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>    // Provides symbol handling services.
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
+#include "vldint.h"     // Provides access to VLD internals.
 
 #define MAXSYMBOLNAMELENGTH 256
 
 // Imported global variables.
-extern HANDLE currentprocess;
-extern HANDLE currentthread;
+extern HANDLE             currentprocess;
+extern HANDLE             currentthread;
+extern VisualLeakDetector vld;
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
 //   Chunk of capacity.
@@ -184,6 +187,7 @@ VOID CallStack::dump (BOOL showuselessframes) const
     UINT32           frame;
     SYMBOL_INFO     *functioninfo;
     LPWSTR           functionname;
+    SIZE_T           programcounter;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
     BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
 
@@ -197,18 +201,19 @@ VOID CallStack::dump (BOOL showuselessframes) const
     for (frame = 0; frame < m_size; frame++) {
         // Try to get the source file and line number associated with
         // this program counter address.
-        if ((foundline = SymGetLineFromAddr64(currentprocess, (*this)[frame], &displacement, &sourceinfo)) == TRUE) {
-            // Unless the "show useless frames" option has been enabled,
-            // don't show frames that are internal to the heap or Visual
-            // Leak Detector.
-            if (!(showuselessframes)) {
+        programcounter = (*this)[frame];
+        if (!showuselessframes && vld.isvldaddress(programcounter)) {
+            // Don't show frames internal to Visual Leak Detector.
+            continue;
+        }
+        if ((foundline = SymGetLineFromAddr64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
+            if (!showuselessframes) {
                 wcslwr(sourceinfo.FileName);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
-                    wcsstr(sourceinfo.FileName, L"callstack.cpp") ||
                     wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
                     wcsstr(sourceinfo.FileName, L"malloc.c") ||
-                    wcsstr(sourceinfo.FileName, L"new.cpp") ||
-                    wcsstr(sourceinfo.FileName, L"vld.cpp")) {
+                    wcsstr(sourceinfo.FileName, L"new.cpp")) {
+                    // Don't show frames in files known to be useless.
                     continue;
                 }
             }
