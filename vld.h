@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.18 2006/01/15 06:39:37 db Exp $
+//  $Id: vld.h,v 1.19 2006/01/27 23:04:16 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -31,6 +31,6 @@
 // Force a symbolic reference to the global VisualLeakDetector class object from
 // the DLL. This enusres that the DLL is loaded and linked with the program,
 // even though no code otherwise imports any of the DLL's exports.
-#pragma comment(linker, "/include:__imp_?visualleakdetector@@3VVisualLeakDetector@@A")
+#pragma comment(linker, "/include:__imp_?vld@@3VVisualLeakDetector@@A")
 
 #endif // _DEBUG
