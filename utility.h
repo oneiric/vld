@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.4 2006/01/22 04:27:01 db Exp $
+//  $Id: utility.h,v 1.5 2006/01/27 22:58:24 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -30,6 +30,7 @@
 
 #include <cstdio>
 #include <windows.h>
+#include "set.h"
 
 #ifdef _WIN64
 #define ADDRESSFORMAT   L"0x%.16X" // Format string for 64-bit addresses
@@ -56,6 +57,15 @@
 #define SPREG Rsp
 #endif // _M_IX86
 
+#if defined(_M_IX86) || defined (_M_X64)
+#define RETURNADDRESS(ra) { \
+        __asm push AXREG \
+        __asm mov  AXREG, [BPREG + SIZEOFPTR] \
+        __asm mov  [ra], AXREG \
+        __asm pop  AXREG \
+    }
+#endif // _M_IX86 || _M_X64
+
 // Relative Virtual Address to Virtual Address conversion.
 #define R2VA(modulebase, rva) (((PBYTE)modulebase) + rva)
 
@@ -65,16 +75,26 @@ enum encoding_e {
     unicode
 };
 
+// This structure allows us to build a table of APIs which should be patched
+// through to replacement functions provided by VLD.
+typedef struct patchentry_s
+{
+    LPCSTR  exportmodulename; // The name of the module exporting the patched API.
+    LPCSTR  importname;       // The name of the imported API being patched.
+    LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
+} patchentry_t;
+
 // Utility functions. See function definitions for details.
-LPCWSTR booltostr (BOOL b);
 VOID dumpmemorya (LPCVOID address, SIZE_T length);
 VOID dumpmemoryw (LPCVOID address, SIZE_T length);
 #if defined(_M_IX86) || defined(_M_X64)
 SIZE_T getprogramcounterx86x64 ();
 #endif // _M_IX86 || _M_X64
 VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
 VOID report (LPCWSTR format, ...);
 VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
 VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
 VOID strapp (LPWSTR *dest, LPCWSTR source);
