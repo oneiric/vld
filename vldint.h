@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.17 2006/01/27 23:08:19 dmouldin Exp $
+//  $Id: vldint.h,v 1.18 2006/02/23 22:57:20 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -32,16 +32,12 @@
 #include <windows.h>
 #include "callstack.h" // Provides a custom class for handling call stacks.
 #include "map.h"       // Provides a custom STL-like map template.
+#include "ntapi.h"     // Provides access to NT APIs.
+#include "set.h"       // Provides a custom STL-like set template.
 #include "utility.h"   // Provides miscellaneous utility functions.
 
 #define MAXMODULELISTLENGTH 512     // Maximum module list length, in characters.
 #define VLDVERSION          L"1.9a"
-
-// Thread local storage status values
-#define VLD_TLS_UNINITIALIZED  0x0 // Thread local storage for the current thread is uninitialized.
-#define VLD_TLS_DISABLED       0x1 // Memory leak detection is disabled for the current thread.
-#define VLD_TLS_ENABLED        0x2 // Memory leak detection is enabled for the current thread.
-#define VLD_TLS_INITDLLCRTHEAP 0x4 // Indicates that the shared DLL CRT heap's handle needs to be initialized.
 
 // The Visual Leak Detector APIs.
 extern "C" __declspec(dllexport) VOID VLDDisable ();
@@ -52,16 +48,25 @@ extern "C" __declspec(dllexport) VOID VLDEnable ();
 // a BlockMap which maps each of these structures to its corresponding memory
 // block.
 typedef struct blockinfo_s {
-    CallStack callstack;
-    SIZE_T    serialnumber;
-    SIZE_T    size;
+    CallStack *callstack;
+    SIZE_T     serialnumber;
+    SIZE_T     size;
 } blockinfo_t;
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
 typedef Map<LPCVOID, blockinfo_t*> BlockMap;
 
+// Information about each heap in the process is kept in this map. Primarily
+// this is used for assigning mapping heaps to all of the blocks allocated
+// from those heaps.
+typedef struct heapinfo_s {
+    BlockMap blockmap;   // Map of all blocks allocated from this heap.
+    UINT32   flags;      // Heap status flags:
+#define VLD_HEAP_CRT 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
+} heapinfo_t;
+
 // HeapMaps map heaps (via their handles) to BlockMaps.
-typedef Map<HANDLE, BlockMap*> HeapMap;
+typedef Map<HANDLE, heapinfo_t*> HeapMap;
 
 // This structure stores information, primarily the virtual address range, about
 // a given module and can be used with the Set template because it supports the
@@ -77,32 +82,28 @@ typedef struct moduleinfo_s {
         }
     }
 
-    SIZE_T addrhigh;
-    SIZE_T addrlow;
-    UINT32 flags;
-#define VLD_MODULE_EXCLUDED    0x1 // This module is attached, but is excluded from leak detection.
-#define VLD_MODULE_NOTATTACHED 0x2 // VLD did not attach to this module
-#define VLD_MODULE_VLDDLL      0x4 // This is vld.dll's own module.
+    SIZE_T addrhigh;                 // Highest address within the module's virtual address space (i.e. base + size of module).
+    SIZE_T addrlow;                  // Lowest address within the module's virtual address space (i.e. base address).
+    UINT32 flags;                    // Module flags:
+#define VLD_MODULE_EXCLUDED      0x1 //   If set, this module is excluded from leak detection.
+#define VLD_MODULE_SYMBOLSLOADED 0x2 //   If set, this module's debug symbols have been loaded.
 } moduleinfo_t;
 
 // ModuleSets store information about modules loaded in the process.
 typedef Set<moduleinfo_t> ModuleSet;
 
-// Return code type used by LdrLoadDll.
-typedef ULONG NTSTATUS;
-
-// Thread-local storage.
+// Thread local storage structure. Every thread in the process gets its own copy
+// of this structure. Thread specific information, such as the currentl leak
+// detection status (enabled or disabled) and the address that initiated the
+// current allocation is stored here.
 typedef struct tls_s {
-    SIZE_T level;
-    UINT32 status;
+    SIZE_T addrfp;                // Frame pointer at the first call that entered VLD's code for the current allocation.
+    UINT32 flags;                 // Thread-local status flags:
+#define VLD_TLS_CRTALLOC      0x1 //   If set, the current allocation is a CRT allocation.
+#define VLD_TLS_DISABLED      0x2 //   If set, memory leak detection is disabled for the current thread.
+#define VLD_TLS_ENABLED       0x4 //   If set, memory leak detection is enabled for the current thread.
+#define VLD_TLS_MAPINPROGRESS 0x8 //   If set, the current thread is in the process of mapping a block.
 } tls_t;
-
-// Unicode string structure used by LdrLoadDll.
-typedef struct unicodestring_s {
-    USHORT length;
-    USHORT maxlength;
-    PWSTR  buffer;
-} unicodestring_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -137,7 +138,7 @@ public:
     ~VisualLeakDetector();
 
     // Public functions
-    BOOL isvldaddress (SIZE_T address);
+    /*BOOL isvldaddress (SIZE_T address);*/
 
     // Public IMalloc methods - for support of COM-based memory leak detection.
     ULONG __stdcall AddRef ();
@@ -152,28 +153,23 @@ public:
 
 private:
     // Import patching replacement functions - see each function definition for details.
-    static void __cdecl __free_dbg (void *mem, int type);
     static void* __cdecl __malloc_dbg (size_t size, int type, const char *file, int line);
     static void* __cdecl __realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
-    static void __cdecl _crt_delete (void *mem);
     static void* __cdecl _crt_new (unsigned int size);
     static void* __cdecl _crt_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void __cdecl _free (void *mem);
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID __stdcall _CoTaskMemAlloc (ULONG size);
     static LPVOID __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
-    static VOID __stdcall _CoTaskMemFree (LPVOID mem);
-    static LPVOID __stdcall _HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size);
     static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL __stdcall _HeapDestroy (HANDLE heap);
-    static BOOL __stdcall _HeapFree (HANDLE heap, DWORD flags, LPVOID mem);
-    static LPVOID __stdcall _HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
     static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename, PHANDLE modulehandle);
     static void* __cdecl _malloc (size_t size);
-    static void __cdecl _mfc42_delete (void *mem);
     static void* __cdecl _mfc42_new (unsigned int size);
     static void* __cdecl _mfc42_new_dbg (unsigned int size, const char *file, int line);
     static void* __cdecl _realloc (void *mem, size_t size);
+    static LPVOID __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
+    static BOOL __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
+    static LPVOID __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
     // Private functions - see each function definition for details.
     static BOOL __stdcall attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
@@ -181,45 +177,45 @@ private:
     VOID configure ();
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     BOOL enabled ();
-    inline VOID enter ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
-    inline VOID leave ();
-    VOID mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZE_T size);
+    VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size);
     VOID mapheap (HANDLE heap);
-    VOID remapblock (SIZE_T address, HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size);
+    VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size);
     VOID reportconfig ();
-    VOID reportleaks ();
+    VOID reportleaks (HANDLE heap);
+    inline VOID resettls ();
     VOID unmapblock (HANDLE heap, LPCVOID mem);
     VOID unmapheap (HANDLE heap);
 
     // Private data.
-    HeapMap             *m_heapmap;         // Map of all active heaps in the process.
-    IMalloc             *m_imalloc;         // Pointer to the *real* system implementation of IMalloc.
-    CRITICAL_SECTION     m_maplock;         // Serialzes access to the heap map.
-    SIZE_T               m_maxdatadump;     // Maximum number of user-data bytes to dump for each leaked block.
-    UINT32               m_maxtraceframes;  // Maximum number of frames per stack trace for each leaked block.
-    WCHAR                m_modulelist [MAXMODULELISTLENGTH]; // List of modules to be included or excluded from leak detection.
-    ModuleSet           *m_moduleset;       // Contains information about all modules loaded in the process.
-    UINT32               m_modulesincluded; // Number of modules included in leak detection.
-    UINT32               m_optflags;        // Configuration options:
-#define VLD_OPT_AGGREGATE_DUPLICATES 0x1    //   If set, aggregate duplicate leaks in the leak report.
-#define VLD_OPT_MODULE_LIST_INCLUDE  0x2    //   If set, modules in the module list are included, all others are excluded.
-#define VLD_OPT_REPORT_TO_DEBUGGER   0x4    //   If set, the memory leak report is sent to the debugger.
-#define VLD_OPT_REPORT_TO_FILE       0x8    //   If set, the memory leak report is sent to a file.
-#define VLD_OPT_SELF_TEST            0x10   //   If set, peform a self-test to verify memory leak self-checking.
-#define VLD_OPT_SHOW_USELESS_FRAMES  0x20   //   If set, include useless frames (e.g. internal to VLD) in call stacks.
-#define VLD_OPT_START_DISABLED       0x40   //   If set, memory leak detection will initially disabled.
-#define VLD_OPT_UNICODE_REPORT       0x80   //   If set, the leak report will be UTF-16 encoded instead of ASCII encoded.
-    static patchentry_t  m_patchtable [];   // Table of imports patched for attaching VLD to other modules.
-    FILE                *m_reportfile;      // File where the memory leak report may be sent to.
+    HeapMap             *m_heapmap;           // Map of all active heaps in the process.
+    IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
+    SIZE_T               m_leaksfound;        // Total number of leaks found.
+    CRITICAL_SECTION     m_lock;              // Serialzes access to the heap map and Debug Help Library APIs.
+    SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
+    UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
+    WCHAR                m_modulelist [MAXMODULELISTLENGTH]; // List of additional modules to be included in leak detection.
+    ModuleSet           *m_moduleset;         // Contains information about all modules loaded in the process.
+    UINT32               m_options;           // Configuration options:
+#define VLD_OPT_AGGREGATE_DUPLICATES    0x1   //   If set, aggregate duplicate leaks in the leak report.
+#define VLD_OPT_MODULE_LIST_INCLUDE     0x2   //   If set, modules in the module list are included, all others are excluded.
+#define VLD_OPT_REPORT_TO_DEBUGGER      0x4   //   If set, the memory leak report is sent to the debugger.
+#define VLD_OPT_REPORT_TO_FILE          0x8   //   If set, the memory leak report is sent to a file.
+#define VLD_OPT_SAFE_STACK_WALK         0x10  //   If set, the stack will be walked using the "safe" method (StackWalk64).
+#define VLD_OPT_SELF_TEST               0x20  //   If set, peform a self-test to verify memory leak self-checking.
+#define VLD_OPT_START_DISABLED          0x80  //   If set, memory leak detection will initially disabled.
+#define VLD_OPT_TRACE_INTERNAL_FRAMES   0x40  //   If set, include useless frames (e.g. internal to VLD) in call stacks.
+#define VLD_OPT_UNICODE_REPORT          0x100 //   If set, the leak report will be UTF-16 encoded instead of ASCII encoded.
+    static patchentry_t  m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
+    FILE                *m_reportfile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
-    const char          *m_selftestfile;    // Filename where the memory leak self-test block is leaked.
-    int                  m_selftestline;    // Line number where the memory leak self-test block is leaked.
-    UINT32               m_status;          // Status flags:
-#define VLD_STATUS_INSTALLED            0x1 //   If set, VLD was successfully installed.
-#define VLD_STATUS_NEVER_ENABLED        0x2 //   If set, VLD started disabled, and has not yet been manually enabled.
-#define VLD_STATUS_FORCE_REPORT_TO_FILE 0x4 //   If set, the leak report is being forced to a file.
-    //DWORD                m_tlsindex;        // Index for thread-local storage of VLD data.
+    const char          *m_selftestfile;      // Filename where the memory leak self-test block is leaked.
+    int                  m_selftestline;      // Line number where the memory leak self-test block is leaked.
+    UINT32               m_status;            // Status flags:
+#define VLD_STATUS_INSTALLED            0x1   //   If set, VLD was successfully installed.
+#define VLD_STATUS_NEVER_ENABLED        0x2   //   If set, VLD started disabled, and has not yet been manually enabled.
+#define VLD_STATUS_FORCE_REPORT_TO_FILE 0x4   //   If set, the leak report is being forced to a file.
+    static __declspec(thread) tls_t m_tls;    // Thread-local storage.
 
     // The Visual Leak Detector APIs are our friends.
     friend __declspec(dllexport) VOID VLDDisable ();
@@ -227,7 +223,6 @@ private:
 };
 
 // Configuration option default values
-#define VLD_DEFAULT_OPT_FLAGS        VLD_OPT_REPORT_TO_DEBUGGER
 #define VLD_DEFAULT_MAX_DATA_DUMP    0xffffffff
 #define VLD_DEFAULT_MAX_TRACE_FRAMES 0xffffffff
 #define VLD_DEFAULT_REPORT_FILE_NAME L".\\memory_leak_report.txt"
