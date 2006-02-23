@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.7 2006/01/27 22:47:24 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.8 2006/02/23 21:59:25 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #define DBGHELP_TRANSLATE_TCHAR
@@ -46,6 +47,7 @@ CallStack::CallStack ()
 {
     m_capacity   = CALLSTACKCHUNKSIZE;
     m_size       = 0;
+    m_status     = 0x0;
     m_store.next = NULL;
     m_topchunk   = &m_store;
     m_topindex   = 0;
@@ -56,7 +58,7 @@ CallStack::CallStack ()
 //   The sole purpose of this copy constructor is to ensure that no copying is
 //   being done inadvertently.
 //
-CallStack::CallStack (const CallStack &source)
+CallStack::CallStack (const CallStack &other)
 {
     // Don't make copies of CallStacks!
     assert(FALSE);
@@ -74,6 +76,18 @@ CallStack::~CallStack ()
         chunk = temp->next;
         delete temp;
     }
+}
+
+// operator = - Assignment operator. For efficiency, we want to avoid ever
+//   making copies of CallStacks (only pointer passing or reference passing
+//   should be performed). The sole purpose of this assignment operator is to
+//   ensure that no copying is being done inadvertently.
+//
+CallStack& CallStack::operator = (const CallStack &other)
+{
+    // Don't make copies of CallStacks!
+    assert(FALSE);
+    return *this;
 }
 
 // operator == - Equality operator. Compares the CallStack to another CallStack
@@ -171,15 +185,18 @@ VOID CallStack::clear ()
 //   Note: The symbol handler must be initialized prior to calling this
 //     function.
 //
-//  - showuselessframes (IN): If true, then all frames in the CallStack will be
-//      dumped. Otherwise, frames internal to the heap or Visual Leak Detector
-//      will not be included in the dump.
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
+//
+//  - showinternalframes (IN): If true, then all frames in the CallStack will be
+//      dumped. Otherwise, frames internal to the heap will not be dumped.
 //
 //  Return Value:
 //
 //    None.
 //
-VOID CallStack::dump (BOOL showuselessframes) const
+VOID CallStack::dump (BOOL showinternalframes) const
 {
     DWORD            displacement;
     DWORD64          displacement64;
@@ -190,6 +207,14 @@ VOID CallStack::dump (BOOL showuselessframes) const
     SIZE_T           programcounter;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
     BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+
+    if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
+        // This call stack appears to be incomplete. Using StackWalk64 may be
+        // more reliable.
+        report(L"    HINT: The following call stack may be incomplete. Setting \"StackWalkMethod\"\n"
+               L"      in the vld.ini file to \"safe\" instead of \"fast\" may result in a more\n"
+               L"      complete stack trace.\n");
+    }
 
     // Initialize structures passed to the symbol handler.
     functioninfo = (SYMBOL_INFO*)&symbolbuffer;
@@ -202,18 +227,14 @@ VOID CallStack::dump (BOOL showuselessframes) const
         // Try to get the source file and line number associated with
         // this program counter address.
         programcounter = (*this)[frame];
-        if (!showuselessframes && vld.isvldaddress(programcounter)) {
-            // Don't show frames internal to Visual Leak Detector.
-            continue;
-        }
         if ((foundline = SymGetLineFromAddr64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
-            if (!showuselessframes) {
+            if (!showinternalframes) {
                 wcslwr(sourceinfo.FileName);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
                     wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
                     wcsstr(sourceinfo.FileName, L"malloc.c") ||
                     wcsstr(sourceinfo.FileName, L"new.cpp")) {
-                    // Don't show frames in files known to be useless.
+                    // Don't show frames in files internal to the heap.
                     continue;
                 }
             }
@@ -239,77 +260,6 @@ VOID CallStack::dump (BOOL showuselessframes) const
     }
 }
 
-// getstacktrace - Traces the stack, starting from this function, as far
-//   back as possible. Populates the current CallStack with one entry for each
-//   stack frame traced.
-//
-//   Note: This function relies upon architecture-specific code for retrieving
-//     the current frame pointer and program counter.
-//
-//  - maxdepth (IN): Specifies the maximum depth of the stack trace. The trace
-//      will stop when this number of frames has been trace, or when the end of
-//      the stack is reached, whichever happens first.
-//
-//  Return Value:
-//
-//    None.
-//
-VOID CallStack::getstacktrace (UINT32 maxdepth)
-{
-    DWORD        architecture;
-    CONTEXT      context;
-    UINT32       count = 0;
-    STACKFRAME64 frame;
-    SIZE_T       framepointer;
-    SIZE_T       programcounter;
-    SIZE_T       stackpointer;
-
-    // Get the required values for initialization of the STACKFRAME64 structure
-    // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
-#if defined(_M_IX86) || defined(_M_X64)
-    architecture = X86X64ARCHITECTURE;
-    programcounter = getprogramcounterx86x64();
-    __asm mov [framepointer], BPREG // Get the frame pointer (aka base pointer)
-    __asm mov [stackpointer], SPREG // Get the stack pointer
-
-    context.BPREG = framepointer;
-    context.IPREG = programcounter;
-    context.SPREG = stackpointer;
-#else
-// If you want to retarget Visual Leak Detector to another processor
-// architecture then you'll need to provide architecture-specific code to
-// retrieve the current frame pointer and program counter in order to initialize
-// the STACKFRAME64 structure below.
-#error "Visual Leak Detector is not supported on this architecture."
-#endif // _M_IX86 || _M_X64
-
-    // Initialize the STACKFRAME64 structure.
-    memset(&frame, 0x0, sizeof(frame));
-    frame.AddrFrame.Offset = framepointer;
-    frame.AddrFrame.Mode   = AddrModeFlat;
-    frame.AddrPC.Offset    = programcounter;
-    frame.AddrPC.Mode      = AddrModeFlat;
-    frame.AddrStack.Offset = stackpointer;
-    frame.AddrStack.Mode   = AddrModeFlat;
-
-    // Walk the stack.
-    while (count < maxdepth) {
-        count++;
-        if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &context,
-                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
-            // Couldn't trace back through any more frames.
-            break;
-        }
-        if (frame.AddrFrame.Offset == 0) {
-            // End of stack.
-            break;
-        }
-
-        // Push this frame's program counter onto the CallStack.
-        push_back((SIZE_T)frame.AddrPC.Offset);
-    }
-}
-
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
 //   always appended to the back of the chunk list (aka the "top" chunk).
 //
@@ -323,7 +273,7 @@ VOID CallStack::getstacktrace (UINT32 maxdepth)
 //
 //    None.
 //
-VOID CallStack::push_back (SIZE_T programcounter)
+VOID CallStack::push_back (const SIZE_T programcounter)
 {
     CallStack::chunk_t *chunk;
 
@@ -349,17 +299,137 @@ VOID CallStack::push_back (SIZE_T programcounter)
     m_size++;
 }
 
-// size - Retrieves the current size of the CallStack. Size should not be
-//   confused with capacity. Capacity is an internal parameter that indicates
-//   the total reserved capacity of the CallStack, which includes any free
-//   space already allocated. Size represents only the number of frames that
-//   have been pushed onto the CallStack.
+// getstacktrace - Traces the stack as far back as possible, or until 'maxdepth'
+//   frames have been traced. Populates the CallStack with one entry for each
+//   stack frame traced.
+//
+//   Note: This function uses a very efficient method to walk the stack from
+//     frame to frame, so it is quite fast. However, unconventional stack frames
+//     (such as those created when frame pointer omission optimization is used)
+//     will not be successfully walked by this function and will cause the
+//     stack trace to terminate prematurely.
+//
+//  - framepointer (IN): Frame (base) pointer at which to begin the stack trace.
+//      If NULL, then the stack trace will begin at this function.
 //
 //  Return Value:
 //
-//    Returns the number of frames currently stored in the CallStack.
+//    None.
 //
-UINT32 CallStack::size () const
+VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
 {
-    return m_size;
+    UINT32  count = 0;
+
+    if (framepointer == NULL) {
+        // Begin the stack trace with the current frame. Obtain the current
+        // frame pointer.
+        FRAMEPOINTER(framepointer);
+    }
+
+    while (count < maxdepth) {
+        if ((SIZE_T*)*framepointer < framepointer) {
+            if ((SIZE_T*)*framepointer == NULL) {
+                // Looks like we reached the end of the stack.
+                break;
+            }
+            else {
+                // Invalid frame pointer. Frame pointer addresses should always
+                // increase as we move up the stack.
+                m_status |= CALLSTACK_STATUS_INCOMPLETE;
+                break;
+            }
+        }
+        if ((SIZE_T)*framepointer & (sizeof(SIZE_T*) - 1)) {
+            // Invalid frame pointer. Frame pointer addresses should always
+            // be aligned to the size of a pointer. This probably means that
+            // we've encountered a frame that was created by a module built with
+            // frame pointer omission (FPO) optimization turned on.
+            m_status |= CALLSTACK_STATUS_INCOMPLETE;
+            break;
+        }
+        if (IsBadReadPtr((SIZE_T*)*framepointer, sizeof(SIZE_T*))) {
+            // Bogus frame pointer. Again, this probably means that we've
+            // encountered a frame built with FPO optimization.
+            m_status |= CALLSTACK_STATUS_INCOMPLETE;
+            break;
+        }
+        count++;
+        push_back(*(framepointer + 1));
+        framepointer = (SIZE_T*)*framepointer;
+    }
+}
+
+// getstacktrace - Traces the stack as far back as possible, or until 'maxdepth'
+//   frames have been traced. Populates the CallStack with one entry for each
+//   stack frame traced.
+//
+//   Note: This function uses a documented Windows API to walk the stack. This
+//     API is supposed to be the most reliable way to walk the stack. It claims
+//     to be able to walk stack frames that do not follow the conventional stack
+//     frame layout. However, this robustness comes at a cost: it is *extremely*
+//     slow compared to walking frames by following frame (base) pointers.
+//
+//  - framepointer (IN): Frame (base) pointer at which to begin the stack trace.
+//      If NULL, then the stack trace will begin at this function.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
+{
+    DWORD        architecture;
+    CONTEXT      context;
+    UINT32       count = 0;
+    STACKFRAME64 frame;
+    SIZE_T       programcounter;
+    SIZE_T       stackpointer;
+
+    if (framepointer == NULL) {
+        // Begin the stack trace with the current frame. Obtain the current
+        // frame pointer.
+        FRAMEPOINTER(framepointer);
+    }
+
+    // Get the required values for initialization of the STACKFRAME64 structure
+    // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
+#if defined(_M_IX86) || defined(_M_X64)
+    architecture   = X86X64ARCHITECTURE;
+    programcounter = *(framepointer + 1);
+    stackpointer   = *framepointer;  // An approximation.
+    context.BPREG  = *framepointer;
+    context.IPREG  = programcounter;
+    context.SPREG  = stackpointer;
+#else
+// If you want to retarget Visual Leak Detector to another processor
+// architecture then you'll need to provide architecture-specific code to
+// obtain the program counter and stack pointer from the given frame pointer.
+#error "Visual Leak Detector is not supported on this architecture."
+#endif // _M_IX86 || _M_X64
+
+    // Initialize the STACKFRAME64 structure.
+    memset(&frame, 0x0, sizeof(frame));
+    frame.AddrFrame.Offset = *framepointer;
+    frame.AddrFrame.Mode   = AddrModeFlat;
+    frame.AddrPC.Offset    = programcounter;
+    frame.AddrPC.Mode      = AddrModeFlat;
+    frame.AddrStack.Offset = stackpointer;
+    frame.AddrStack.Mode   = AddrModeFlat;
+
+    // Walk the stack.
+    while (count < maxdepth) {
+        count++;
+        if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &context,
+                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            // Couldn't trace back through any more frames.
+            break;
+        }
+        if (frame.AddrFrame.Offset == 0) {
+            // End of stack.
+            break;
+        }
+
+        // Push this frame's program counter onto the CallStack.
+        push_back((SIZE_T)frame.AddrPC.Offset);
+    }
 }
