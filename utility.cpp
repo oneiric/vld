@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.7 2006/01/27 22:54:01 dmouldin Exp $
+//  $Id: utility.cpp,v 1.8 2006/02/23 22:20:38 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -27,15 +27,15 @@
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>    // Provides PE executable image access functions.
+#include <dbghelp.h>    // Provides portable executable (PE) image access functions.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
 
 // Global variables.
-static FILE       *reportfile = NULL;
-static BOOL        reporttodebugger = TRUE;
-static encoding_e  reportencoding = ascii;
+static FILE       *reportfile = NULL;       // Pointer to the file, if any, to send the memory leak report to.
+static BOOL        reporttodebugger = TRUE; // If TRUE, a copy of the memory leak report will be sent to the debugger for display.
+static encoding_e  reportencoding = ascii;  // Output encoding of the memory leak report.
 
 // dumpmemorya - Dumps a nicely formatted rendition of a region of memory.
 //   Includes both the hex value of each byte and its ASCII equivalent (if
@@ -194,41 +194,88 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     }
 }
 
-#if defined(_M_IX86) || defined(_M_X64)
-// getprogramcounterx86x64 - Helper function that retrieves the program counter
-//   (aka the EIP (x86) or RIP (x64) register) for CallStack::getstacktrace() on
-//   Intel x86 or x64 architectures (x64 supports both AMD64 and Intel EM64T).
+// findimport - Determines if the specified module imports the named import
+//   from the named exporting module.
 //
-//   There is no way for software to directly read the EIP/RIP register. But
-//   it's value can be obtained by calling into a function (in our case, this
-//   function) and then retrieving the return address, which will be the program
-//   counter from where the function was called.
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
-//   Note: Inlining of this function must be disabled. The whole purpose of this
-//     function's existence depends upon it being a *called* function.
+//  - importmodule (IN): Handle (base address) of the module to be searched to
+//      see if it imports the specified import.
+//
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      exports the import to be searched for.
+//
+//  - importname (IN): ANSI string containing the name of the import to search
+//      for.
 //
 //  Return Value:
 //
-//    Returns the caller's program address.
-//
-#pragma auto_inline(off)
-SIZE_T getprogramcounterx86x64 ()
+//    Returns TRUE if the module imports to the specified import. Otherwise
+//    returns FALSE.
+//   
+BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname)
 {
-    SIZE_T programcounter;
+    HMODULE                  exportmodule;
+    IMAGE_THUNK_DATA        *iate;
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    FARPROC                  import;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
+            
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE, IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return FALSE;
+    }
+    while (idte->OriginalFirstThunk != 0x0) {
+        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+            // Found the IDT entry for the exporting module.
+            break;
+        }
+        idte++;
+    }
+    if (idte->OriginalFirstThunk == 0x0) {
+        // The importing module does not import anything from the exporting
+        // module.
+        return FALSE;
+    }
+    
+    // Get the *real* address of the import. If we find this address in the IAT,
+    // then we've found the entry that needs to be patched.
+    exportmodule = GetModuleHandleA(exportmodulename);
+    assert(exportmodule != NULL);
+    import = GetProcAddress(exportmodule, importname);
+    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
-    __asm mov AXREG, [BPREG + SIZEOFPTR] // Get the return address out of the current stack frame
-    __asm mov [programcounter], AXREG    // Put the return address into the variable we'll return
+    // Locate the import's IAT entry.
+    iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+    while (iate->u1.Function != 0x0) {
+        if (iate->u1.Function == (DWORD_PTR)import) {
+            // Found the IAT entry. The module imports the named import.
+            return TRUE;
+        }
+        iate++;
+    }
 
-    return programcounter;
+    // The module does not import the named import.
+    return FALSE;
 }
-#pragma auto_inline(on)
-#endif // _M_IX86 || _M_X64
 
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
 //   module's Import Address Table (IAT) with the address of the replacement
 //   function or variable.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be patched.
@@ -308,6 +355,10 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
 //   which are imported by the specified module, through to their respective
 //   replacement functions.
 //
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
+//
 //   Note: If the specified module does not import any of the functions listed
 //     in the patch table, then nothing is changed for the specified module.
 //
@@ -342,7 +393,8 @@ VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesi
     }
 }
 
-// report - Sends a printf-style formatted message to the debugger for display.
+// report - Sends a printf-style formatted message to the debugger for display
+//   and/or to a file.
 //
 //   Note: A message longer than MAXREPORTLENGTH characters will be truncated
 //     to MAXREPORTLENGTH.
@@ -398,6 +450,10 @@ VOID report (LPCWSTR format, ...)
 
 // restoreimport - Restores the IAT entry for an import previously patched via
 //   a call to "patchimport" to the original address of the import.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be restored.
@@ -472,6 +528,10 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
 
 // restoremodule - Restores all imports listed in the supplied patch table, and
 //   which are imported by the specified module, to their original functions.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
 //   Note: If the specified module does not import any of the functions listed
 //     in the patch table, then nothing is changed for the specified module.
@@ -584,8 +644,8 @@ VOID strapp (LPWSTR *dest, LPCWSTR source)
 //
 //  Return Value:
 //
-//    Returns true if the string is recognized as a "true" string. Otherwise
-//    returns false.
+//    Returns TRUE if the string is recognized as a "true" string. Otherwise
+//    returns FALSE.
 //
 BOOL strtobool (LPCWSTR s) {
     WCHAR *end;
@@ -594,9 +654,9 @@ BOOL strtobool (LPCWSTR s) {
         (wcsicmp(s, L"yes") == 0) ||
         (wcsicmp(s, L"on") == 0) ||
         (wcstol(s, &end, 10) == 1)) {
-        return true;
+        return TRUE;
     }
     else {
-        return false;
+        return FALSE;
     }
 }
