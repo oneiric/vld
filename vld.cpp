@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.35 2006/01/27 23:02:37 dmouldin Exp $
+//  $Id: vld.cpp,v 1.36 2006/02/23 22:33:25 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -26,6 +26,7 @@
 #error "Visual Leak Detector must be dynamically linked with the debug C runtime library (compiler option /MDd)"
 #endif // _DEBUG
 
+#include <cassert>
 #include <cstdio>
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
@@ -36,115 +37,128 @@
 #include <winheap.h>    // Provides access to more heap internals, specifically the "paragraph" size.
 #undef _CRTBLD
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
-#include "callstack.h"  // Provides a custom class for handling call stacks
-#include "map.h"        // Provides a custom STL-like map template
+#include "callstack.h"  // Provides a class for handling call stacks.
+#include "map.h"        // Provides a custom STL-like map template.
+#include "ntapi.h"      // Provides access to NT APIs.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"     // Provides access to the Visual Leak Detector internals.
 
-#define BLOCKMAPRESERVE  64  // This should strike a balance between memory use and a desire to minimize heap hits.
-#define HEAPMAPRESERVE   2   // Usually there won't be more than a few heaps in the process, so this should be small.
-#define MODULESETRESERVE 16  // There are likely to be several modules loaded in the process.
+#define BLOCKMAPRESERVE     64  // This should strike a balance between memory use and a desire to minimize heap hits.
+#define HEAPMAPRESERVE      2   // Usually there won't be more than a few heaps in the process, so this should be small.
+#define MAXSYMBOLNAMELENGTH 256
+#define MODULESETRESERVE    16  // There are likely to be several modules loaded in the process.
 
 // Imported global variables.
 extern vldblockheader_t *vldblocklist;
 extern HANDLE            vldheap;
+extern CRITICAL_SECTION  vldheaplock;
 
 // Global variables.
-HANDLE crtheap = NULL;    // Handle to the static CRT heap.
-HANDLE dllcrtheap = NULL; // Handle to the shared DLL CRT heap.
-HANDLE currentprocess;    // Pseudo-handle for the current process.
-HANDLE currentthread;     // Pseudo-handle for the current thread.
-HANDLE processheap;       // Handle to the process's heap (COM allocations come from here).
+HANDLE currentprocess; // Pseudo-handle for the current process.
+HANDLE currentthread;  // Pseudo-handle for the current thread.
+HANDLE processheap;    // Handle to the process's heap (COM allocations come from here).
 
-// Function pointer types for explicit dynamic linking with functions that can't
-// be load-time linked.
-typedef void* (__cdecl *crtnewdbg_t)(unsigned int size, int type, const char *file, int line);
-typedef void (__cdecl *delete_t)(void *);
-typedef NTSTATUS (__stdcall *LdrLoadDll_t)(LPWSTR, PDWORD, unicodestring_t *, PHANDLE);
-typedef void* (__cdecl *mfc42newdbg_t)(unsigned int size, const char *file, int line);
-typedef void* (__cdecl *new_t)(unsigned int);
+// Function pointer types for explicit dynamic linking with functions listed in
+// the import patch table.
+typedef void* (__cdecl *_malloc_dbg_t) (size_t, int, const char *, int);
+typedef void* (__cdecl *_realloc_dbg_t) (void *, size_t, int, const char *, int);
+typedef HRESULT (__stdcall *CoGetMalloc_t) (DWORD, LPMALLOC *);
+typedef LPVOID (__stdcall *CoTaskMemAlloc_t) (ULONG);
+typedef LPVOID (__stdcall *CoTaskMemRealloc_t) (LPVOID, ULONG);
+typedef void* (__cdecl *crtnewdbg_t) (unsigned int, int, const char *, int);
+typedef void* (__cdecl *malloc_t) (size_t);
+typedef void* (__cdecl *mfc42newdbg_t) (unsigned int, const char *, int);
+typedef void* (__cdecl *new_t) (unsigned int);
+typedef void* (__cdecl *realloc_t) (void *, size_t);
 
-// Global function pointers for explicit dynamic linking with functions that
-// can't be load-time linked.
-static delete_t      crtdelete = NULL;
-static new_t         crtnew = NULL;
-static crtnewdbg_t   crtnewdbg = NULL;
-static LdrLoadDll_t  LdrLoadDll = NULL;
-static delete_t      mfc42delete = NULL;
-static new_t         mfc42new = NULL;
-static mfc42newdbg_t mfc42newdbg = NULL;
+// Global function pointers for explicit dynamic linking with functions listed
+// in the import patch table. Using explicit dynamic linking minimizes VLD's
+// footprint by loading only modules that are actually used. These pointers will
+// be linked to the real functions the first time they are used.
+static _malloc_dbg_t      p_malloc_dbg      = NULL;
+static _realloc_dbg_t     p_realloc_dbg     = NULL;
+static CoGetMalloc_t      pCoGetMalloc      = NULL;
+static CoTaskMemAlloc_t   pCoTaskMemAlloc   = NULL;
+static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
+static new_t              pcrtnew           = NULL;
+static crtnewdbg_t        pcrtnewdbg        = NULL;
+static malloc_t           pmalloc           = NULL;
+static new_t              pmfc42new         = NULL;
+static mfc42newdbg_t      pmfc42newdbg      = NULL;
+static realloc_t          prealloc          = NULL;
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector vld;
-
-// Thread-local storage
-__declspec(thread) static tls_t vldtls;
 
 // The import patch table: lists the heap-related API imports that VLD patches
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_patchtable [] = {
     // Win32 heap APIs
-    "kernel32.dll", "HeapAlloc",         _HeapAlloc,
+    "kernel32.dll", "HeapAlloc",         _RtlAllocateHeap,
     "kernel32.dll", "HeapCreate",        _HeapCreate,
     "kernel32.dll", "HeapDestroy",       _HeapDestroy,
-    "kernel32.dll", "HeapFree",          _HeapFree,
-    "kernel32.dll", "HeapReAlloc",       _HeapReAlloc,
+    "kernel32.dll", "HeapFree",          _RtlFreeHeap,
+    "kernel32.dll", "HeapReAlloc",       _RtlReAllocateHeap,
 
-    // MFC new and delete operators (exported by ordinal)
-    "mfc42d.dll",   (const char*)721,    _mfc42_delete,
+    // MFC new operators (exported by ordinal)
     "mfc42d.dll",   (const char*)711,    _mfc42_new,
     "mfc42d.dll",   (const char*)714,    _mfc42_new_dbg,
 
-    // CRT new and delete operators
+    // CRT new operators and heap APIs
     "msvcrtd.dll",  "??2@YAPAXI@Z",      _crt_new,
     "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z", _crt_new_dbg,
-    "msvcrtd.dll",  "??3@YAXPAX@Z",      _crt_delete,
-
-    // CRT heap APIs
-    "msvcrtd.dll",  "_free_dbg",         __free_dbg,
     "msvcrtd.dll",  "_malloc_dbg",       __malloc_dbg,
     "msvcrtd.dll",  "_realloc_dbg",      __realloc_dbg,
-    "msvcrtd.dll",  "free",              _free,
     "msvcrtd.dll",  "malloc",            _malloc,
-    "/msvcrtd.dll",  "realloc",           _realloc,
+    "msvcrtd.dll",  "realloc",           _realloc,
+
+    // NT APIs
+    "ntdll.dll",    "RtlAllocateHeap",   _RtlAllocateHeap,
+    "ntdll.dll",    "RtlFreeHeap",       _RtlFreeHeap,
+    "ntdll.dll",    "RtlReAllocateHeap", _RtlReAllocateHeap,
 
     // COM heap APIs
     "ole32.dll",    "CoGetMalloc",       _CoGetMalloc,
     "ole32.dll",    "CoTaskMemAlloc",    _CoTaskMemAlloc,
-    "ole32.dll",    "CoTaskMemFree",     _CoTaskMemFree,
     "ole32.dll",    "CoTaskMemRealloc",  _CoTaskMemRealloc
 };
 
 // Constructor - Initializes private data, loads configuration options, and
-//   attaches Visual Leak Detector to (almost) all modules loaded into the
-//   current process.
+//   attaches Visual Leak Detector to all other modules loaded into the current
+//   process.
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    WCHAR   bom = BOM; // Unicode byte-order mark.
-    HMODULE kernel32 = GetModuleHandle(L"kernel32.dll");
+    WCHAR   bom       = BOM; // Unicode byte-order mark.
+    HMODULE kernel32  = GetModuleHandle(L"kernel32.dll");
+    HMODULE ntdll     = GetModuleHandle(L"ntdll.dll");
     LPWSTR  symbolpath;
 
     // Initialize global variables.
-    currentprocess = GetCurrentProcess();
-    currentthread = GetCurrentThread();
-    processheap = GetProcessHeap();
-    vldheap = HeapCreate(0x0, 0, 0);
+    currentprocess    = GetCurrentProcess();
+    currentthread     = GetCurrentThread();
+    LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+    processheap       = GetProcessHeap();
+    RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
+    RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
+    RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+    vldheap           = HeapCreate(0x0, 0, 0);
+    InitializeCriticalSection(&vldheaplock);
 
     // Initialize private data.
     m_heapmap         = new HeapMap;
-    CoGetMalloc(1, &m_imalloc);
     m_heapmap->reserve(HEAPMAPRESERVE);
-    InitializeCriticalSection(&m_maplock);
+    m_imalloc         = NULL;
+    m_leaksfound      = 0;
+    InitializeCriticalSection(&m_lock);
     m_maxdatadump     = 0xffffffff;
     m_maxtraceframes  = 0xffffffff;
     wcsnset(m_modulelist, L'\0', MAXMODULELISTLENGTH);
-    m_modulesincluded = 0;
     m_moduleset       = new ModuleSet;
     m_moduleset->reserve(MODULESETRESERVE);
-    m_optflags        = 0x0;
+    m_options         = 0x0;
     m_reportfile      = NULL;
     wcsncpy(m_reportfilepath, VLD_DEFAULT_REPORT_FILE_NAME, MAX_PATH);
     m_selftestfile    = __FILE__;
@@ -153,23 +167,23 @@ VisualLeakDetector::VisualLeakDetector ()
 
     // Load configuration options.
     configure();
-    if (m_optflags & VLD_OPT_SELF_TEST) {
+    if (m_options & VLD_OPT_SELF_TEST) {
         // Self-test mode has been enabled. Intentionally leak a small amount of
         // memory so that memory leak self-checking can be verified.
-        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+        if (m_options & VLD_OPT_UNICODE_REPORT) {
             wcsncpy(new WCHAR [21], L"Memory Leak Self-Test", 21); m_selftestline = __LINE__;
         }
         else {
             strncpy(new CHAR [21], "Memory Leak Self-Test", 21); m_selftestline = __LINE__;
         }
     }
-    if (m_optflags & VLD_OPT_START_DISABLED) {
+    if (m_options & VLD_OPT_START_DISABLED) {
         // Memory leak detection will initially be disabled.
         m_status |= VLD_STATUS_NEVER_ENABLED;
     }
-    if (m_optflags & VLD_OPT_REPORT_TO_FILE) {
+    if (m_options & VLD_OPT_REPORT_TO_FILE) {
         // Reporting to file enabled.
-        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
+        if (m_options & VLD_OPT_UNICODE_REPORT) {
             // Unicode data encoding has been enabled. Write the byte-order
             // mark before anything else gets written to the file. Open the
             // file for binary writing.
@@ -190,14 +204,12 @@ VisualLeakDetector::VisualLeakDetector ()
         }
         else {
             // Set the "report" function to write to the file.
-            setreportfile(m_reportfile, m_optflags & VLD_OPT_REPORT_TO_DEBUGGER);
+            setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER);
         }
     }
 
-    // Initialize the symbol handler. We use it for obtaining source
-    // file/line number information and function names for the memory leak
-    // report, and for identifying modules with good debug information
-    // (suitable for memory leak debugging).
+    // Initialize the symbol handler. We use it for obtaining source file/line
+    // number information and function names for the memory leak report.
     symbolpath = buildsymbolsearchpath();
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
     if (!SymInitialize(currentprocess, symbolpath, FALSE)) {
@@ -210,8 +222,7 @@ VisualLeakDetector::VisualLeakDetector ()
     // dynamically attach to new modules loaded during runtime.
     patchimport(kernel32, "ntdll.dll", "LdrLoadDll", _LdrLoadDll);
 
-    // Attach Visual Leak Detector to each module loaded in the process. Any
-    // modules which are to be excluded will not be attached to.
+    // Attach Visual Leak Detector to every module loaded in the process.
     EnumerateLoadedModules64(currentprocess, attachtomodule, NULL);
 
     report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
@@ -226,8 +237,8 @@ VisualLeakDetector::VisualLeakDetector ()
     reportconfig();
 }
 
-// Destructor - Detaches Visual Leak Detector from all previously attached
-//   modules., frees internally allocated resources, and generates the memory
+// Destructor - Detaches Visual Leak Detector from all modules loaded in the
+//   process, frees internally allocated resources, and generates the memory
 //   leak report.
 //
 VisualLeakDetector::~VisualLeakDetector ()
@@ -235,38 +246,49 @@ VisualLeakDetector::~VisualLeakDetector ()
     BlockMap::Iterator  blockit;
     BlockMap           *blockmap;
     vldblockheader_t   *header;
+    HANDLE              heap;
     HeapMap::Iterator   heapit;
     SIZE_T              internalleaks = 0;
     const char         *leakfile;
     WCHAR               leakfilew [MAX_PATH];
     int                 leakline;
 
-    // Detach Visual Leak Detector from previously attached modules.
+    // Detach Visual Leak Detector from all previously attached modules.
     EnumerateLoadedModules64(currentprocess, detachfrommodule, NULL);
+    DeleteCriticalSection(&m_lock);
 
     if (m_status & VLD_STATUS_NEVER_ENABLED) {
         // Visual Leak Detector started with leak detection disabled and
         // it was never enabled at runtime. A lot of good that does.
         report(L"WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
     }
-    else if (m_modulesincluded == 0) {
-        // No modules were included in leak detection.
-        report(L"WARNING: No modules were ever included in memory leak detection.\n"
-               L"  No memory leak detection was actually done. Please check the \"ModuleList\"\n"
-               L"  option in vld.ini and be sure that at least one module is being included,\n"
-               L"  and that no module names have been misspelt.\n");
-    }
     else {
-        // Generate a memory leak report.
-        reportleaks();
+        // Generate a memory leak report for each heap in the process.
+        for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+            heap = (*heapit).first;
+            reportleaks(heap);
+        }
+
+        // Show a summary.
+        if (m_leaksfound == 0) {
+            report(L"No memory leaks detected.\n");
+        }
+        else {
+            report(L"Visual Leak Detector detected %lu memory leak", m_leaksfound);
+            report((m_leaksfound > 1) ? L"s.\n" : L".\n");
+        }
     }
 
-    EnterCriticalSection(&m_maplock);
+    // Free resources used by the symbol handler.
+    if (!SymCleanup(currentprocess)) {
+        report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
+    }
 
     // Free internally allocated resources.
     for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-        blockmap = (*heapit).second;
+        blockmap = &(*heapit).second->blockmap;
         for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+            delete (*blockit).second->callstack;
             delete (*blockit).second;
         }
         delete blockmap;
@@ -287,17 +309,19 @@ VisualLeakDetector::~VisualLeakDetector ()
         report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber, BLOCKDATA(header), header->size);
         report(L"  Call Stack:\n");
         report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
-        report(L"  Data:\n");
-        if (m_optflags & VLD_OPT_UNICODE_REPORT) {
-            dumpmemoryw(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
-        }
-        else {
-            dumpmemorya(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+        if (m_maxdatadump != 0) {
+            report(L"  Data:\n");
+            if (m_options & VLD_OPT_UNICODE_REPORT) {
+                dumpmemoryw(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+            }
+            else {
+                dumpmemorya(BLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+            }
         }
         report(L"\n");
         header = header->next;
     }
-    if (m_optflags & VLD_OPT_SELF_TEST) {
+    if (m_options & VLD_OPT_SELF_TEST) {
         if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
             report(L"Visual Leak Detector passed the memory leak self-test.\n");
         }
@@ -305,9 +329,7 @@ VisualLeakDetector::~VisualLeakDetector ()
             report(L"ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
         }
     }
-
-    LeaveCriticalSection(&m_maplock);
-    DeleteCriticalSection(&m_maplock);
+    HeapDestroy(vldheap);
 
     report(L"Visual Leak Detector is now exiting.\n");
 
@@ -316,37 +338,10 @@ VisualLeakDetector::~VisualLeakDetector ()
     }
 }
 
-// __free_dbg - Calls to _free_dbg are patched through to this function. This
-//   function calls VLD's free tracking function and then invokes the the real
-//   _free_dbg. All arguments passed to this function are passed on to _free_dbg
-//   without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import _free_dbg, so
-//     this function only frees blocks allocated to the shared DLL CRT heap.
-//
-//  - mem (IN): Pointer to the memory block to be freed.
-//
-//  - type (IN): CRT block "use type" of the block being freed.
-//
-//  Return Value:
-//
-//    None.
-//
-void VisualLeakDetector::__free_dbg (void *mem, int type)
-{
-    vld.enter();
-    vld.unmapblock(dllcrtheap, (LPVOID)pHdr(mem));
-    _free_dbg(mem, type);
-    vld.leave();
-}
-
 // __malloc_dbg - Calls to _malloc_dbg are patched through to this function.
-//   This function invokes the real _malloc_dbg and then calls VLD's allocation
-//   tracking function. All arguments passed to this function are passed on to
-//   the real _malloc_dbg without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import _malloc_dbg,
-//     so this function only allocates blocks from the shared DLL CRT heap.
+//   This function is just a wrapper around the real _malloc_dbg that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
@@ -363,37 +358,33 @@ void VisualLeakDetector::__free_dbg (void *mem, int type)
 //
 void* VisualLeakDetector::__malloc_dbg (size_t size, int type, const char *file, int line)
 {
-    void   *block;
-    SIZE_T  ra;
-    
-    vld.enter();
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = _malloc_dbg(size, type, file, line);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (DWORD)size);
-    }
-    vld.leave();
+    SIZE_T  fp;
+    HMODULE msvcrtd;
 
-    return block;
+    // _malloc_dbg is a CRT function and allocates from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
+
+    if (m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (p_malloc_dbg == NULL) {
+        // This is the first call to this function. Link to the real
+        // _malloc_dbg.
+        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
+        p_malloc_dbg = (_malloc_dbg_t)GetProcAddress(msvcrtd, "_malloc_dbg");
+    }
+
+    return p_malloc_dbg(size, type, file, line);
 }
 
 // __realloc_dbg - Calls to _realloc_dbg are patched through to this function.
-//   This function invokes the real _realloc_dbg and then calls VLD's
-//   reallocation tracking function. All areguments passed to this function are
-//   passed on to the real _realloc_dbg without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import _realloc_dbg,
-//     so this function only reallocates blocks from the shared DLL CRT heap.
+//   This function is just a wrapper around the real _realloc_dbg that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
 //
 //  - mem (IN): Pointer to the memory block to be reallocated.
 //
@@ -412,165 +403,27 @@ void* VisualLeakDetector::__malloc_dbg (size_t size, int type, const char *file,
 //
 void* VisualLeakDetector::__realloc_dbg (void *mem, size_t size, int type, const char *file, int line)
 {
-    void   *newmem;
-    SIZE_T  ra;
-    
-    vld.enter();
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    newmem = _realloc_dbg(mem, size, type, file, line);
-    if (newmem != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.remapblock(ra, dllcrtheap, (LPVOID)pHdr(mem), (LPVOID)pHdr(newmem), (SIZE_T)size);
-    }
-    vld.leave();
-
-    return newmem;
-}
-
-// _crt_delete - Calls to the CRT's delete operator are patched through to this
-//   function. This function calls VLD's free tracking function and then invokes
-//   the real CRT delete operator. All arguments passed to this function are
-//   passed on to the CRT delete operator without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import the CRT's
-//     delete operator, so this function only frees blocks allocated to the
-//     shared DLL CRT heap.
-//
-//  - mem (IN): Pointer to the memory block to be freed.
-//
-//  Return Value:
-//
-//    None.
-//
-void VisualLeakDetector::_crt_delete (void *mem)
-{
+    SIZE_T  fp;
     HMODULE msvcrtd;
-    
-    vld.enter();
-    vld.unmapblock(dllcrtheap, (LPVOID)pHdr(mem));
 
-    // "delete" is ambiguous. To call the specific delete operator exported by
-    // msvcrtd.dll, we need to make an explicit dynamic link.
-    if (crtdelete == NULL) {
+    // _realloc_dbg is a CRT function and allocates from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
+
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (p_realloc_dbg == NULL) {
+        // This is the first call to this function. Link to the real
+        // _realloc_dbg.
         msvcrtd = GetModuleHandle(L"msvcrtd.dll");
-        crtdelete = (delete_t)GetProcAddress(msvcrtd, "??3@YAXPAX@Z");
+        p_realloc_dbg = (_realloc_dbg_t)GetProcAddress(msvcrtd, "_realloc_dbg");
     }
-    crtdelete(mem);
-    vld.leave();
-}
 
-// _crt_new - Calls to the CRT's new operator are patched through to this
-//  function. This function invokes the real CRT new operator and then calls
-//  VLD's allocation tracking function. All arguments passed to this function
-//  are passed on to the CRT new operator without modification.
-//
-//  Note: Only modules dynamically linked to the CRT will import the CRT's new
-//    operator, so this function only allocates blocks from the shared DLL CRT
-//    heap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT new operator.
-//
-void* VisualLeakDetector::_crt_new (unsigned int size)
-{
-    void    *block;
-    HMODULE  msvcrtd;
-    SIZE_T   ra;
-
-    vld.enter();
-
-    // "new" is ambiguous. To call the specific new operator exported by
-    // msvcrtd.dll, we need to make an explicit dynamic link.
-    if (crtnew == NULL) {
-        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
-        crtnew = (new_t)GetProcAddress(msvcrtd, "??2@YAPAXI@Z");
-    }
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = crtnew(size);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (SIZE_T)size);
-    }
-    vld.leave();
-
-    return block;
-}
-
-// _crt_new_dbg - Calls to the CRT's debug new operator are patched through to
-//  this function. This function invokes the real CRT debug new operator and
-//  then calls VLD's allocation tracking function. All arguments passed to this
-//  function are passed on to the CRT debug new operator without modification.
-//
-//  Note: Only modules dynamically linked to the CRT will import the CRT's debug
-//    new operator, so this function only allocates blocks from the shared DLL
-//    CRT heap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - type (IN): The CRT "use type" of the block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT debug new operator.
-//
-void* VisualLeakDetector::_crt_new_dbg (unsigned int size, int type, const char *file, int line)
-{
-    void    *block;
-    HMODULE  msvcrtd;
-    SIZE_T   ra;
-
-    vld.enter();
-
-    // "new" is ambiguous. To call the specific new operator exported by
-    // msvcrtd.dll, we need to make an explicit dynamic link.
-    if (crtnewdbg == NULL) {
-        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
-        crtnewdbg = (crtnewdbg_t)GetProcAddress(msvcrtd, "??2@YAPAXIHPBDH@Z");
-    }
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = crtnewdbg(size, type, file, line);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (SIZE_T)size);
-    }
-    vld.leave();
-
-    return block;
+    return p_realloc_dbg(mem, size, type, file, line);
 }
 
 // _CoGetMalloc - Calls to CoGetMalloc are patched through to this function.
@@ -591,15 +444,26 @@ void* VisualLeakDetector::_crt_new_dbg (unsigned int size, int type, const char 
 //
 HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 {
+    HMODULE ole32;
+
     *imalloc = (LPMALLOC)&vld;
+
+    if (pCoGetMalloc == NULL) {
+        // This is the first call to this function. Link to the real
+        // CoGetMalloc and get a pointer to the system implementation of the
+        // IMalloc interface.
+        ole32 = GetModuleHandle(L"ole32.dll");
+        pCoGetMalloc = (CoGetMalloc_t)GetProcAddress(ole32, "CoGetMalloc");
+        pCoGetMalloc(1, &vld.m_imalloc);
+    }
 
     return S_OK;
 }
 
 // _CoTaskMemAlloc - Calls to CoTaskMemAlloc are patched through to this
-//   function. This function invokes the real CoTaskMemAlloc and then calls
-//   VLD's allocation tracking function. All parameters passed to this function
-//   are passed on to CoTaskMemAlloc without modification.
+//   function. This function is just a wrapper around the real CoTaskMemAlloc
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
 //
 //  - size (IN): Size of the memory block to allocate.
 //
@@ -609,43 +473,30 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 //
 LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
 {
-    LPVOID block;
-    SIZE_T ra;
-    
-    vld.enter();
-    block = CoTaskMemAlloc(size);
-    if (block != NULL) {
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, processheap, block, (SIZE_T)size);
+    SIZE_T  fp;
+    HMODULE ole32;
+
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
     }
-    vld.leave();
 
-    return block;
-}
+    if (pCoTaskMemAlloc == NULL) {
+        // This is the first call to this function. Link to the real
+        // CoTaskMemAlloc.
+        ole32 = GetModuleHandle(L"ole32.dll");
+        pCoTaskMemAlloc = (CoTaskMemAlloc_t)GetProcAddress(ole32, "CoTaskMemAlloc");
+    }
 
-// _CoTaskMemFree - Calls to CoTaskMemFree are patched through to this function.
-//   This function calls VLD's free tracking function and then invokes the real
-//   CoTaskMemFree. All arguments passed to this function are passed on to
-//   CoTaskMemFree without modification.
-//
-//  - mem (IN): Pointer to the memory block to be freed.
-//
-//  Return Value:
-//
-//    None.
-//
-VOID VisualLeakDetector::_CoTaskMemFree (LPVOID mem)
-{
-    vld.enter();
-    vld.unmapblock(processheap, mem);
-    CoTaskMemFree(mem);
-    vld.leave();
+    return pCoTaskMemAlloc(size);
 }
 
 // _CoTaskMemRealloc - Calls to CoTaskMemRealloc are patched through to this
-//   function. This function invokes the real CoTaskMemRealloc and then calls
-//   VLD's reallocation tracking function. All arguments passed to this function
-//   are passed on to CoTaskMemRealloc without modification.
+//   function. This function is just a wrapper around the real CoTaskMemRealloc
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
 //
 //  - mem (IN): Pointer to the memory block to reallocate.
 //
@@ -657,84 +508,108 @@ VOID VisualLeakDetector::_CoTaskMemFree (LPVOID mem)
 //
 LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, ULONG size)
 {
-    LPVOID newmem;
-    SIZE_T ra;
+    SIZE_T  fp;
+    HMODULE ole32;
 
-    vld.enter();
-    newmem = CoTaskMemRealloc(mem, size);
-    if (newmem != NULL) {
-        RETURNADDRESS(ra);
-        vld.remapblock(ra, processheap, mem, newmem, (SIZE_T)size);
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
     }
-    vld.leave();
 
-    return newmem;
+    if (pCoTaskMemRealloc == NULL) {
+        // This is the first call to this function. Link to the real
+        // CoTaskMemRealloc.
+        ole32 = GetModuleHandle(L"ole32.dll");
+        pCoTaskMemRealloc = (CoTaskMemRealloc_t)GetProcAddress(ole32, "CoTaskMemRealloc");
+    }
+
+    return pCoTaskMemRealloc(mem, size);
 }
 
-// _free - Calls to free are patched through to this function. This function
-//   calls VLD's free tracking function and then invokes the real "free". All
-//   arguments passed to this function are passed on to the real "free" without
-//   modification.
+// _crt_new - Calls to the CRT's new operator are patched through to this
+//   function. This function is just a wrapper around the real CRT new operator
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
 //
-//   Note: Only modules dynamically linked to the CRT will import free, so this
-//     function only frees blocks allocated to the shared DLL CRT heap.
-//
-//  - mem (IN): Pointer to the memory block to be freed. Passed on to "free"
-//      without modification.
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
 //  Return Value:
 //
-//    None.
+//    Returns the value returned by the CRT new operator.
 //
-void VisualLeakDetector::_free (void *mem)
+void* VisualLeakDetector::_crt_new (unsigned int size)
 {
-    vld.enter();
-    vld.unmapblock(dllcrtheap, (LPVOID)pHdr(mem));
-    free(mem);
-    vld.leave();
+    SIZE_T  fp;
+    HMODULE msvcrtd;
+
+    // The new operator is a CRT function and allocates from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
+
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (pcrtnew == NULL) {
+        // This is the first call to this function. Link to the real CRT new
+        // operator.
+        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
+        pcrtnew = (new_t)GetProcAddress(msvcrtd, "??2@YAPAXI@Z");
+    }
+
+    return pcrtnew(size);
 }
 
-// _HeapAlloc - Calls to HeapAlloc are patched through to this function. This
-//   function invokes the real HeapAlloc and then calls VLD's allocation
-//   tracking function. All arguments passed to this function are passed on to
-//   the real HeapAlloc without modification.
+// _crt_new_dbg - Calls to the CRT's debug new operator are patched through to
+//   this function. This function is just a wrapper around the real CRT debug
+//   new operator that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
 //
-//  - heap (IN): Handle to the heap from which to allocate memory.
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
-//  - flags (IN): Heap allocation control flags.
+//  - type (IN): The CRT "use type" of the block to be allocated.
 //
-//  - size (IN): Size, in bytes, of the block to allocate.
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
 //
 //  Return Value:
 //
-//    Returns the return value from HeapAlloc.
+//    Returns the value returned by the CRT debug new operator.
 //
-LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
+void* VisualLeakDetector::_crt_new_dbg (unsigned int size, int type, const char *file, int line)
 {
-    LPVOID block;
-    SIZE_T ra;
+    SIZE_T  fp;
+    HMODULE msvcrtd;
 
-    vld.enter();
-    if (vldtls.status & VLD_TLS_INITDLLCRTHEAP) {
-        // The current allocation is from the shared DLL CRT heap, and the
-        // caller at the CRT level requested that we initialize the handle.
-        dllcrtheap = heap;
-        vldtls.status &= ~VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = HeapAlloc(heap, flags, size);
-    if (block != NULL) {
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, heap, block, size);
-    }
-    vld.leave();
+    // The debug new operator is a CRT function and allocates from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
 
-    return block;
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (pcrtnewdbg == NULL) {
+        // This is the first call to this function. Link to the real CRT debug
+        // new operator.
+        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
+        pcrtnewdbg = (crtnewdbg_t)GetProcAddress(msvcrtd, "??2@YAPAXIHPBDH@Z");
+    }
+
+    return pcrtnewdbg(size, type, file, line);
 }
 
 // _HeapCreate - Calls to HeapCreate are patched through to this function. This
-//   function invokes the real HeapCreate and then calls VLD's heap creation
-//   tracking function. All arguments passed to this function are passed on to
-//   the real HeapCreate without modification.
+//   function is just a wrapper around the real HeapCreate that calls VLD's heap
+//   creation tracking function after the heap has been created.
 //
 //  - options (IN): Heap options.
 //
@@ -748,18 +623,46 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
 //
 HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
 {
-    HANDLE heap;
+    DWORD64            displacement;
+    SIZE_T             fp;
+    SYMBOL_INFO       *functioninfo;
+    HANDLE             heap;
+    HeapMap::Iterator  heapit;
+    SIZE_T             ra;
+    BYTE               symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+    BOOL               symfound;
 
     heap = HeapCreate(options, initsize, maxsize);
+
+    // Map the created heap handle to a new block map.
     vld.mapheap(heap);
+
+    // Get the return address within the calling function.
+    FRAMEPOINTER(fp);
+    ra = *((SIZE_T*)fp + 1);
+
+    // Try to get the name of the function containing the return address.
+    EnterCriticalSection(&vld.m_lock);
+    functioninfo = (SYMBOL_INFO*)&symbolbuffer;
+    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+    functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+    symfound = SymFromAddr(currentprocess, ra, &displacement, functioninfo);
+    LeaveCriticalSection(&vld.m_lock);
+    if (symfound == TRUE) {
+        if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
+            // HeapCreate was called by _heap_init. This is a static CRT heap.
+            heapit = vld.m_heapmap->find(heap);
+            assert(heapit != vld.m_heapmap->end());
+            (*heapit).second->flags |= VLD_HEAP_CRT;
+        }
+    }
 
     return heap;
 }
 
 // _HeapDestroy - Calls to HeapDestroy are patched through to this function.
-//   This function calls VLD's heap destruction tracking function and then
-//   invokes the real HeapDestroy. All arguments passed to this function are
-//   passed on to the real HeapDestroy without modification.
+//   This function is just a wrapper around the real HeapDestroy that calls
+//   VLD's heap destruction tracking function after the heap has been destroyed.
 //
 //  - heap (IN): Handle to the heap to be destroyed.
 //
@@ -771,68 +674,16 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 {
     BOOL ret;
 
+    // After this heap is destroyed, the heap's address space will be unmapped
+    // from the process's address space. So, we'd better generate a leak report
+    // for this heap now, while we can still read from the memory blocks
+    // allocated to it.
+    vld.reportleaks(heap);
+
     vld.unmapheap(heap);
     ret = HeapDestroy(heap);
 
     return ret;
-}
-
-// _HeapFree - Calls to HeapFree are patched through to this function. This
-//   function calls VLD's free tracking function and then invokes the real
-//   HeapFree. All arguments passed to this function are passed on to the real
-//   HeapFree without modification.
-//
-//  - heap (IN): Handle to the heap to which the block being freed belongs.
-//
-//  - flags (IN): Heap control flags.
-//
-//  - mem (IN): Pointer to the memory block being freed.
-//
-//  Return Value:
-//
-//    Returns the value returned by HeapFree.
-//
-BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
-{
-    BOOL ret;
-
-    vld.enter();
-    vld.unmapblock(heap, mem);
-    ret = HeapFree(heap, flags, mem);
-    vld.leave();
-
-    return ret;
-}
-
-// _HeapReAlloc - Calls to HeapReAlloc are patched through to this function.
-//   This function invokes the real HeapReAlloc and then calls VLD's
-//   reallocation tracking function. All arguments passed to this function are
-//   passed on to the real HeapReAlloc without modification.
-//
-//  - heap (IN): Handle to the heap to reallocate memory from.
-//
-//  - flags (IN): Heap control flags.
-//
-//  - size (IN): Size, in bytes, of the block to reallocate.
-//
-//  Return Value:
-//
-//    Returns the value returned by HeapReAlloc.
-//
-LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
-{
-    LPVOID newmem;
-    SIZE_T ra;
-
-    vld.enter();
-    newmem = HeapReAlloc(heap, flags, mem, size);
-    if (newmem != NULL) {
-        RETURNADDRESS(ra);
-        vld.remapblock(ra, heap, mem, newmem, size);
-    }
-    vld.leave();
-
-    return newmem;
 }
 
 // _LdrLoadDll - Calls to LdrLoadDll are patched through to this function. This
@@ -859,32 +710,25 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 //
 NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename, PHANDLE modulehandle)
 {
-    HMODULE  ntdll;
     NTSTATUS status;
 
-    if (LdrLoadDll == NULL) {
-        ntdll = GetModuleHandle(L"ntdll.dll");
-        LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
-    }
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
 
     // Reset the information we have stored about all loaded modules.
-    vld.m_modulesincluded = 0;
-    vld.m_moduleset->clear();
+    //vld.m_moduleset->clear();
     
     // Re-attach to all loaded modules.
+    EnterCriticalSection(&vld.m_lock);
     EnumerateLoadedModules64(currentprocess, attachtomodule, NULL);
+    LeaveCriticalSection(&vld.m_lock);
 
     return status;
 }
 
 // _malloc - Calls to malloc and operator new are patched through to this
-//   function. This function invokes the real malloc and then calls VLD's
-//   allocation tracking function. All arguments passed to this function are
-//   passed on to the real malloc without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import malloc, so
-//     this function only allocates blocks from the shared DLL CRT heap.
+//   function. This function is just a wrapper around the real malloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
@@ -894,70 +738,32 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
 //
 void* VisualLeakDetector::_malloc (size_t size)
 {
-    void   *block;
-    SIZE_T  ra;
+    SIZE_T  fp;
+    HMODULE msvcrtd;
 
-    vld.enter();
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
+    // malloc is a CRT function and allocates fro the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
+
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
     }
-    block = malloc(size);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (SIZE_T)size);
+
+    if (pmalloc == NULL) {
+        // This is the first call to this function. Link to the real malloc.
+        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
+        pmalloc = (malloc_t)GetProcAddress(msvcrtd, "malloc");
     }
-    vld.leave();
 
-    return block;
-}
-
-// _mfc42_delete - Calls to the MFC 4.2 delete operator are patched through to
-//   this function. This function calls VLD's free tracking function and then
-//   invokes the real MFC 4.2 delete operator. All arguments passed to this
-//   function are passed on to the MFC 4.2 delete operator without modification.
-//
-//   Note: Only modules dynamically linked to the MFC 4.2 libraries will import
-//     the MFC 4.2 delete operator, so this function only frees blocks allocated
-//     to the shared DLL CRT heap (MFC uses the CRT heap).
-//
-//  - mem (IN): Pointer to the memory block to be freed.
-//
-//  Return Value:
-//
-//    None.
-//
-void VisualLeakDetector::_mfc42_delete (void *mem)
-{
-    HMODULE mfc42d;
-
-    vld.enter();
-    vld.unmapblock(dllcrtheap, (LPVOID)pHdr(mem));
-
-    // "delete" is ambiguous. To call the specific delete operator exported by
-    // mfc42d.dll, we need to make an explicit dynamic link.
-    if (mfc42delete == NULL) {
-        mfc42d = GetModuleHandle(L"mfc42d.dll");
-        mfc42delete = (delete_t)GetProcAddress(mfc42d, (const char*)721);
-    }
-    mfc42delete(mem);
-    vld.leave();
+    return pmalloc(size);
 }
 
 // _mfc42_new - Calls to the MFC 4.2 new operator are patched through to this
-//  function. This function invokes the real MFC 4.2 new operator and then calls
-//  VLD's allocation tracking function. All arguments passed to this function
-//  are passed on to the MFC 4.2 new operator without modification.
-//
-//  Note: Only modules dynamically linked to the MFC 4.2 libraries will import
-//    the MFC 4.2 new operator, so this function only allocates blocks from the
-//    shared DLL CRT heap (MFC uses the CRT heap).
+//   function. This function is just a wrapper around the real MFC 4.2 new
+//   operator that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
@@ -967,47 +773,33 @@ void VisualLeakDetector::_mfc42_delete (void *mem)
 //
 void* VisualLeakDetector::_mfc42_new (unsigned int size)
 {
-    void    *block;
-    HMODULE  mfc42d;
-    SIZE_T   ra;
+    SIZE_T  fp;
+    HMODULE mfc42d;
 
-    vld.enter();
+    // The MFC new operators are CRT-based and allocate from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
 
-    // "new" is ambiguous. To call the specific new operator exported by
-    // mfc42d.dll, we need to make an explicit dynamic link.
-    if (mfc42new == NULL) {
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (pmfc42new == NULL) {
+        // This is the first call to this function. Link to the real MFC 4.2 new
+        // operator.
         mfc42d = GetModuleHandle(L"mfc42d.dll");
-        mfc42new = (new_t)GetProcAddress(mfc42d, (const char*)711);
+        pmfc42new = (new_t)GetProcAddress(mfc42d, (const char*)711);
     }
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = mfc42new(size);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (SIZE_T)size);
-    }
-    vld.leave();
 
-    return block;
+    return pmfc42new(size);
 }
 
 // _mfc42_new_dbg - Calls to the MFC 4.2 debug new operator are patched through
-//  to this function. This function invokes the real MFC 4.2 debug new operator
-//  and then calls VLD's allocation tracking function. All arguments passed to
-//  this  function are passed on to the MFC 4.2 debug new operator without
-//  modification.
-//
-//  Note: Only modules dynamically linked to the MFC 4.2 libraries will import
-//    the MFC 4.2 debug new operator, so this function only allocates blocks
-//    from the shared DLL CRT heap (MFC uses the CRT heap).
+//   to this function. This function is just a wrapper around the real MFC 4.2
+//   debug new operator that sets appropriate flags to be consulted when the
+//   memory is actually allocated by RtlAllocateHeap.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
 //
@@ -1022,45 +814,33 @@ void* VisualLeakDetector::_mfc42_new (unsigned int size)
 //
 void* VisualLeakDetector::_mfc42_new_dbg (unsigned int size, const char *file, int line)
 {
-    void    *block;
-    HMODULE  mfc42d;
-    SIZE_T   ra;
+    SIZE_T  fp;
+    HMODULE mfc42d;
 
-    vld.enter();
+    // The MFC new operators are CRT-based and allocate from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
 
-    // "new" is ambiguous. To call the specific new operator exported by
-    // mfc42d.dll, we need to make an explicit dynamic link.
-    if (mfc42newdbg == NULL) {
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
+    }
+
+    if (pmfc42newdbg == NULL) {
+        // This is the first call to this function. Link to the real MFC 4.2
+        // debug new operator.
         mfc42d = GetModuleHandle(L"mfc42d.dll");
-        mfc42newdbg = (mfc42newdbg_t)GetProcAddress(mfc42d, (const char*)714);
+        pmfc42newdbg = (mfc42newdbg_t)GetProcAddress(mfc42d, (const char*)714);
     }
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
-    }
-    block = mfc42newdbg(size, file, line);
-    if (block != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.mapblock(ra, dllcrtheap, (LPVOID)pHdr(block), (SIZE_T)size);
-    }
-    vld.leave();
 
-    return block;
+    return pmfc42newdbg(size, file, line);
 }
 
 // _realloc - Calls to realloc are patched through to this function. This
-//   function invokes the real realloc and then calls VLD's reallocation
-//   tracking function. All arguments passed to this function are passed on to
-//   the real realloc without modification.
-//
-//   Note: Only modules dynamically linked to the CRT will import realloc, so
-//     this function only reallocates blocks from the shared DLL CRT heap.
+//   function is just a wrapper around the real realloc that sets appropriate
+//   flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
 //
 //  - mem (IN): Pointer to the memory block to reallocate.
 //
@@ -1072,32 +852,129 @@ void* VisualLeakDetector::_mfc42_new_dbg (unsigned int size, const char *file, i
 //
 void* VisualLeakDetector::_realloc (void *mem, size_t size)
 {
-    void   *newmem;
-    SIZE_T  ra;
+    SIZE_T  fp;
+    HMODULE msvcrtd;
 
-    vld.enter();
-    if (dllcrtheap == NULL) {
-        // This is the first time that a CRT allocator has been invoked. Set
-        // a flag that _HeapAlloc will use to know that the current allocation
-        // is from the CRT heap so that the CRT heap handle can be initialized.
-        vldtls.status |= VLD_TLS_INITDLLCRTHEAP;
+    // realloc is a CRT function and allocates from the CRT heap.
+    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
+
+    if (vld.m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        vld.m_tls.addrfp = fp;
     }
-    newmem = realloc(mem, size);
+
+    if (prealloc == NULL) {
+        // This is the first call to this function. Link to the real realloc.
+        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
+        prealloc = (realloc_t)GetProcAddress(msvcrtd, "realloc");
+    }
+
+    return prealloc(mem, size);
+}
+
+// _RtlAllocateHeap - Calls to RtlAllocateHeap are patched through to this
+//   function. This function invokes the real RtlAllocateHeap and then calls
+//   VLD's allocation tracking function.
+//
+//  - heap (IN): Handle to the heap from which to allocate memory.
+//
+//  - flags (IN): Heap allocation control flags.
+//
+//  - size (IN): Size, in bytes, of the block to allocate.
+//
+//  Return Value:
+//
+//    Returns the return value from HeapAlloc.
+//
+LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size)
+{
+    SIZE_T fp;
+    LPVOID block;
+
+    block = RtlAllocateHeap(heap, flags, size);
+    if (block != NULL) {
+        if (vld.m_tls.addrfp == 0) {
+            // This is the first call to enter VLD for the current allocation.
+            // Record the current frame pointer.
+            FRAMEPOINTER(fp);
+            vld.m_tls.addrfp = fp;
+        }
+        // Map the block to the specified heap.
+        vld.mapblock(heap, block, size);
+    }
+    else {
+        // Reset thread local flags and variables for the next allocation.
+        vld.resettls();
+    }
+
+    return block;
+}
+
+// _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
+//   This function calls VLD's free tracking function and then invokes the real
+//   RtlFreeHeap.
+//
+//  - heap (IN): Handle to the heap to which the block being freed belongs.
+//
+//  - flags (IN): Heap control flags.
+//
+//  - mem (IN): Pointer to the memory block being freed.
+//
+//  Return Value:
+//
+//    Returns the value returned by HeapFree.
+//
+BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
+{
+    // Unmap the block from the specified heap.
+    vld.unmapblock(heap, mem);
+
+    return RtlFreeHeap(heap, flags, mem);
+}
+
+// _RtlReAllocateHeap - Calls to RtlReAllocateHeap are patched through to this
+//   function. This function invokes the real RtlReAllocateHeap and then calls
+//   VLD's reallocation tracking function. All arguments passed to this function
+//   are passed on to the real RtlReAllocateHeap without modification.
+//
+//  - heap (IN): Handle to the heap to reallocate memory from.
+//
+//  - flags (IN): Heap control flags.
+//
+//  - size (IN): Size, in bytes, of the block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned by HeapReAlloc.
+//
+LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
+{
+    SIZE_T fp;
+    LPVOID newmem;
+
+    newmem = RtlReAllocateHeap(heap, flags, mem, size);
     if (newmem != NULL) {
-        // The *real* memory block includes the CRT header, the user-data, an
-        // additional "no man's land" boundary, and any padding required to make
-        // the overall size a multiple of BYTES_PER_PARA.
-        size = sizeof(_CrtMemBlockHeader) + size + nNoMansLandSize + ((size + BYTES_PER_PARA - 1) & ~(BYTES_PER_PARA - 1));
-        RETURNADDRESS(ra);
-        vld.remapblock(ra, dllcrtheap, (LPVOID)pHdr(mem), (LPVOID)pHdr(newmem), (SIZE_T)size);
+        if (vld.m_tls.addrfp == 0) {
+            // This is the first call to enter VLD for the current allocation.
+            // Record the current frame pointer.
+            FRAMEPOINTER(fp);
+            vld.m_tls.addrfp = fp;
+        }
+        // Re-map the block to the new heap.
+        vld.remapblock(heap, mem, newmem, size);
     }
-    vld.leave();
+    else {
+        // Reset thread local flags and variables for the next allocation.
+        vld.resettls();
+    }
 
     return newmem;
 }
 
 // AddRef - Calls to IMalloc::AddRef end up here. This function is just a
-//   wrapper around the system implementation of IMalloc::AddRef.
+//   wrapper around the real IMalloc::AddRef implementation.
 //
 //  Return Value:
 //
@@ -1106,13 +983,13 @@ void* VisualLeakDetector::_realloc (void *mem, size_t size)
 //
 ULONG VisualLeakDetector::AddRef ()
 {
+    assert(m_imalloc != NULL);
     return m_imalloc->AddRef();
 }
 
-// Alloc - Calls to IMalloc::Alloc end up here. This function invokes the
-//   system's implementation of IMalloc::Alloc and then calls VLD's allocation
-//   tracking function. All arguments passed to this function are passed on to
-//   the system's IMalloc::Alloc implementation without modification.
+// Alloc - Calls to IMalloc::Alloc end up here. This function is just a wrapper
+//   around the real IMalloc::Alloc implementation that sets appropriate flags
+//   to be consulted when the memory is actually allocated by RtlAllocateHeap.
 //
 //  - size (IN): The size of the memory block to allocate.
 //
@@ -1122,26 +999,30 @@ ULONG VisualLeakDetector::AddRef ()
 //
 LPVOID VisualLeakDetector::Alloc (ULONG size)
 {
-    LPVOID block;
-    SIZE_T ra;
+    SIZE_T fp;
 
-    vld.enter();
-    block = m_imalloc->Alloc(size);
-    if (block != NULL) {
-        RETURNADDRESS(ra);
-        mapblock(ra, processheap, block, (SIZE_T)size);
+    if (m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        m_tls.addrfp = fp;
     }
-    vld.leave();
 
-    return block;
+    assert(m_imalloc != NULL);
+    return m_imalloc->Alloc(size);
 }
 
 // attachtomodule - Callback function for EnumerateLoadedModules64 that attaches
-//   Visual Leak Detector to the specified module. Certain modules may be
-//   excluded from attachment because they are either hard-excluded or because
-//   they have been listed (by the user) on the list of modules to exclude.
-//   If the specified module is excluded, then Visual Leak Detector will not
-//   attach to the module and will return without changing anything.
+//   Visual Leak Detector to the specified module. This provides a way for VLD
+//   to be attached to every module loaded in the process. However, even though
+//   it attaches to all modules, not all modules are actually included in leak
+//   detection. Only modules that import the global VisualLeakDetector class
+//   object, or those that are otherwise explicitly included in leak detection,
+//   will be checked for memory leaks.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
 //  - modulepath (IN): String containing the name, which may include a path, of
 //      the module to attach to.
@@ -1158,21 +1039,35 @@ LPVOID VisualLeakDetector::Alloc (ULONG size)
 //
 BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    WCHAR             extension [_MAX_EXT];
-    WCHAR             filename [_MAX_FNAME];
-    IMAGEHLP_MODULE64 moduleimageinfo;
-    moduleinfo_t      moduleinfo;
+    WCHAR               extension [_MAX_EXT];
+    WCHAR               filename [_MAX_FNAME];
+    IMAGEHLP_MODULE64   moduleimageinfo;
+    moduleinfo_t        moduleinfo;
+    ModuleSet::Iterator moduleit;
 #define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
-    WCHAR             modulename [MAXMODULENAME + 1];
-    CHAR              modulepatha [MAX_PATH];
-    BOOL              symbolsloaded = FALSE;
-    UINT              tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    WCHAR               modulename [MAXMODULENAME + 1];
+    CHAR                modulepatha [MAX_PATH];
+    UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
 
     // Extract just the filename and extension from the module path.
     _wsplitpath(modulepath, NULL, NULL, filename, extension);
     wcsncpy(modulename, filename, MAXMODULENAME);
     wcsncat(modulename, extension, MAXMODULENAME - wcslen(modulename));
     wcslwr(modulename);
+
+    // Find this module in our module set. The module set contains information
+    // about all modules loaded in the process that have already been attached.
+    // If we find that the module is not already in the module set, the try to
+    // load the module's symbols, add the module's information to the module
+    // set and then attach to the module.
+    moduleinfo.addrlow  = (SIZE_T)modulebase;
+    moduleinfo.addrhigh = (SIZE_T)modulebase + modulesize - 1;
+    moduleinfo.flags    = 0x0;
+    moduleit = vld.m_moduleset->find(moduleinfo);
+    if (moduleit != vld.m_moduleset->end()) {
+        // This module has already been attached.
+        return TRUE;
+    }
 
     // Try to load the module's symbols. This ensures that we have loaded the
     // symbols for every module that has ever been loaded into the process,
@@ -1182,72 +1077,37 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
     if ((SymGetModuleInfo64(currentprocess, modulebase, &moduleimageinfo) == TRUE) ||
         ((SymLoadModule64(currentprocess, NULL, modulepatha, NULL, modulebase, modulesize) == modulebase) &&
         (SymGetModuleInfo64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
-        symbolsloaded = TRUE;
+        moduleinfo.flags |= VLD_MODULE_SYMBOLSLOADED;
     }
 
-    // Record the address range where the module is loaded.
-    moduleinfo.addrlow = (SIZE_T)modulebase;
-    moduleinfo.addrhigh = (SIZE_T)modulebase + modulesize - 1;
-    moduleinfo.flags = 0x0;
-
-    if (wcsstr(L"vld.dll dbghelp.dll msvcrt.dll", modulename)) {
-        // VLD should not attach to the above hard-coded list of modules. If VLD
-        // attaches to itself it will result in infinite recurstion. VLD's
-        // allocation tracking functions depend on dbghelp.dll and msvcrt.dll,
-        // so those too must not be attached for the same reason.
-        if (wcsicmp(L"vld.dll", modulename) == 0) {
-            // Flag VLD's own module, so that VLD functions can easily be
-            // identified and excluded from the memory leak report.
-            moduleinfo.flags |= VLD_MODULE_VLDDLL;
-        }
-        if ((vld.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) &&
-            (wcsstr(vld.m_modulelist, modulename) != NULL)) {
-            // This hard-excluded module was specified on the list of modules to be included.
-            report(L"WARNING: Visual Leak Detector: A module, %s, specified to be included by the\n"
-                   L"  \"ModuleList\" vld.ini option is hard-excluded by Visual Leak Detector.\n"
-                   L"  The module will NOT be included in memory leak detection.\n", modulename);
-        }
-
-        // Insert the module's information into the module set.
-        moduleinfo.flags |= VLD_MODULE_NOTATTACHED;
-        vld.m_moduleset->insert(moduleinfo);
+    if (wcsicmp(L"vld.dll", modulename) == NULL) {
+        // What happens when a module goes through it's own portal? Bad things.
+        // Like infinite recursion. And ugly bald men wearing dresses. VLD
+        // should not, therefore, attach to itself.
         return TRUE;
     }
 
-    if (!(vld.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) &&
-        (wcsstr(vld.m_modulelist, modulename) != NULL)) {
-        // The module should be excluded from leak detection because it is
-        // listed on the "ModuleList" line in vld.ini and "ModuleListMode" is
-        // not set to "include".
+    if ((findimport((HMODULE)modulebase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
+        (wcsstr(vld.m_modulelist, modulename) == NULL)) {
+        // This module does not import VLD. This means that none of the module's
+        // sources #included vld.h. Exclude this module from leak detection.
         moduleinfo.flags |= VLD_MODULE_EXCLUDED;
     }
-
-    // Is the module specifically included in memory leak detection?
-    if (!(vld.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) ||
-        ((vld.m_optflags & VLD_OPT_MODULE_LIST_INCLUDE) && (wcsstr(vld.m_modulelist, modulename) == NULL))) {
-        // The module is neither spcifically excluded nor is it specifcally
-        // included. 
-        if ((symbolsloaded == TRUE) && (moduleimageinfo.SymType == SymExport)) {
-            // The only debugging information in the module was generated from a
-            // DLL export table. This is a good indication that the module is a
-            // system DLL and it is not likely that the user is interested in
-            // checking system DLLs for memory leaks.
-            moduleinfo.flags |= VLD_MODULE_EXCLUDED;
-        }
-
+    else if (!(moduleinfo.flags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
+        // This module is going to be included in leak detection, but complete
+        // symbols for this module couldn't be loaded. This means that any stack
+        // traces through this module may lack information, like line numbers
+        // and function names.
+        report(L"WARNING: Visual Leak Detector: A module, %s, included in memory leak detection\n"
+               L"  does not have any debugging symbols available, or they could not be located.\n"
+               L"  Function names and/or line numbers for this module may not be available.\n", modulename);
     }
 
-
-    // Insert the module's information into the module set and attach to the
-    // module.
+    // Insert the module's information into the module set.
     vld.m_moduleset->insert(moduleinfo);
-    patchmodule((HMODULE)modulebase, m_patchtable, tablesize);
 
-    if (!(moduleinfo.flags & VLD_MODULE_EXCLUDED)) {
-        // Keep a total of how many modules are actually being checked for
-        // leaks.
-        vld.m_modulesincluded++;
-    }
+    // Attach to the module.
+    patchmodule((HMODULE)modulebase, m_patchtable, tablesize);
 
     return TRUE;
 }
@@ -1359,86 +1219,70 @@ VOID VisualLeakDetector::configure ()
 
     // Read the boolean options.
     GetPrivateProfileString(L"Options", L"AggregateDuplicates", L"", buffer, BSIZE, inipath);
-    if (wcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_AGGREGATE_DUPLICATES);
-    }
-    else if (strtobool(buffer) == TRUE) {
-        m_optflags |= VLD_OPT_AGGREGATE_DUPLICATES;
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_AGGREGATE_DUPLICATES;
     }
 
     GetPrivateProfileString(L"Options", L"SelfTest", L"", buffer, BSIZE, inipath);
-    if (wcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SELF_TEST);
-    }
-    else if (strtobool(buffer) == TRUE) {
-        m_optflags |= VLD_OPT_SELF_TEST;
-    }
-
-    GetPrivateProfileString(L"Options", L"ShowUselessFrames", L"", buffer, BSIZE, inipath);
-    if (wcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_SHOW_USELESS_FRAMES);
-    }
-    else if (strtobool(buffer) == TRUE) {
-        m_optflags |= VLD_OPT_SHOW_USELESS_FRAMES;
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_SELF_TEST;
     }
 
     GetPrivateProfileString(L"Options", L"StartDisabled", L"", buffer, BSIZE, inipath);
-    if (wcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_START_DISABLED);
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_START_DISABLED;
     }
-    else if (strtobool(buffer) == TRUE) {
-        m_optflags |= VLD_OPT_START_DISABLED;
+
+    GetPrivateProfileString(L"Options", L"TraceInternalFrames", L"", buffer, BSIZE, inipath);
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_TRACE_INTERNAL_FRAMES;
     }
 
     // Read the integer configuration options.
     m_maxdatadump = GetPrivateProfileInt(L"Options", L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
     m_maxtraceframes = GetPrivateProfileInt(L"Options", L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
+    if (m_maxtraceframes < 1) {
+        m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
+    }
 
-    // Read the module list and the module list mode (include or exclude).
-    GetPrivateProfileString(L"Options", L"ModuleList", L"", m_modulelist, MAXMODULELISTLENGTH, inipath);
+    // Read the additional modules list.
+    GetPrivateProfileString(L"Options", L"AdditionalModules", L"", m_modulelist, MAXMODULELISTLENGTH, inipath);
     wcslwr(m_modulelist);
-    GetPrivateProfileString(L"Options", L"ModuleListMode", L"", buffer, BSIZE, inipath);
-    if (wcslen(buffer) == 0) {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_MODULE_LIST_INCLUDE);
-    }
-    else if (wcsicmp(buffer, L"include") == 0) {
-        m_optflags |= VLD_OPT_MODULE_LIST_INCLUDE;
-    }
 
     // Read the report destination (debugger, file, or both).
-    GetPrivateProfileString(L"Options", L"ReportFile", VLD_DEFAULT_REPORT_FILE_NAME, filename, MAX_PATH, inipath);
+    GetPrivateProfileString(L"Options", L"ReportFile", L"", filename, MAX_PATH, inipath);
     if (wcslen(filename) == 0) {
         wcsncpy(filename, VLD_DEFAULT_REPORT_FILE_NAME, MAX_PATH);
     }
     _wfullpath(m_reportfilepath, filename, MAX_PATH);
     GetPrivateProfileString(L"Options", L"ReportTo", L"", buffer, BSIZE, inipath);
     if (wcsicmp(buffer, L"both") == 0) {
-        m_optflags |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
-    }
-    else if (wcsicmp(buffer, L"debugger") == 0) {
-        m_optflags |= VLD_OPT_REPORT_TO_DEBUGGER;
+        m_options |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
     }
     else if (wcsicmp(buffer, L"file") == 0) {
-        m_optflags |= VLD_OPT_REPORT_TO_FILE;
+        m_options |= VLD_OPT_REPORT_TO_FILE;
     }
     else {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE));
+        m_options |= VLD_OPT_REPORT_TO_DEBUGGER;
     }
 
     // Read the report file encoding (ascii or unicode).
     GetPrivateProfileString(L"Options", L"ReportEncoding", L"", buffer, BSIZE, inipath);
     if (wcsicmp(buffer, L"unicode") == 0) {
-        m_optflags |= VLD_OPT_UNICODE_REPORT;
+        m_options |= VLD_OPT_UNICODE_REPORT;
     }
-    else {
-        m_optflags |= (VLD_DEFAULT_OPT_FLAGS & VLD_OPT_UNICODE_REPORT);
-    }
-    if ((m_optflags & VLD_OPT_UNICODE_REPORT) && !(m_optflags & VLD_OPT_REPORT_TO_FILE)) {
+    if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
         // If Unicode report encoding is enabled, then the report needs to be
         // sent to a file because the debugger will not display Unicode
         // characters, it will display question marks in their place instead.
-        m_optflags |= VLD_OPT_REPORT_TO_FILE;
+        m_options |= VLD_OPT_REPORT_TO_FILE;
         m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
+    }
+
+    // Read the stack walking method.
+    GetPrivateProfileString(L"Options", L"StackWalkMethod", L"", buffer, BSIZE, inipath);
+    if (wcsicmp(buffer, L"safe") == 0) {
+        m_options |= VLD_OPT_SAFE_STACK_WALK;
     }
 }
 
@@ -1446,6 +1290,10 @@ VOID VisualLeakDetector::configure ()
 //   detaches Visual Leak Detector from the specified module. If the specified
 //   module has not previously been attached to, then calling this function will
 //   not actually result in any changes.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
 //
 //  - modulepath (IN): String containing the name, which may inlcude a path, of
 //      the module to detach from (ignored).
@@ -1470,9 +1318,7 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR modulepath, DWORD64 modulebase
 }
 
 // DidAlloc - Calls to IMalloc::DidAlloc will end up here. This function is just
-//   a wrapper around the system implementation of IMalloc::DidAlloc. All
-//   arguments passed to this function are passed on to the system
-//   implementation of IMalloc::DidAlloc without modification.
+//   a wrapper around the system implementation of IMalloc::DidAlloc.
 //
 //  - mem (IN): Pointer to a memory block to inquire about.
 //
@@ -1483,6 +1329,7 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR modulepath, DWORD64 modulebase
 //
 INT VisualLeakDetector::DidAlloc (LPVOID mem)
 {
+    assert(m_imalloc != NULL);
     return m_imalloc->DidAlloc(mem);
 }
 
@@ -1496,27 +1343,18 @@ INT VisualLeakDetector::DidAlloc (LPVOID mem)
 //
 BOOL VisualLeakDetector::enabled ()
 {
-    UINT32 threadstatus;
-
-    threadstatus = vldtls.status;
-    if (threadstatus == VLD_TLS_UNINITIALIZED) {
-        // TLS is uninitialized for the current thread. Use the default state.
-        if (m_optflags & VLD_OPT_START_DISABLED) {
-            threadstatus = VLD_TLS_DISABLED;
+    if (!(m_tls.flags & VLD_TLS_DISABLED) && !(m_tls.flags & VLD_TLS_ENABLED)) {
+        // The enabled/disabled state for the current thread has not been 
+        // initialized yet. Use the default state.
+        if (m_options & VLD_OPT_START_DISABLED) {
+            m_tls.flags |= VLD_TLS_DISABLED;
         }
         else {
-            threadstatus = VLD_TLS_ENABLED;
+            m_tls.flags |= VLD_TLS_ENABLED;
         }
-        // Initialize TLS for this thread.
-        vldtls.status = threadstatus;
     }
 
-    return ((threadstatus & VLD_TLS_ENABLED) != 0);
-}
-
-VOID VisualLeakDetector::enter ()
-{    
-    vldtls.level++;
+    return ((m_tls.flags & VLD_TLS_ENABLED) != 0);
 }
 
 // eraseduplicates - Erases, from the block maps, blocks that appear to be
@@ -1544,7 +1382,7 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
     // Iteratate through all block maps, looking for blocks with the same size
     // and callstack as the specified element.
     for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-        blockmap = (*heapit).second;
+        blockmap = &(*heapit).second->blockmap;
         for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
             if (blockit == element) {
                 // Don't delete the element of which we are searching for
@@ -1552,8 +1390,9 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
                 continue;
             }
             info = (*blockit).second;
-            if ((info->size == elementinfo->size) && (info->callstack == elementinfo->callstack)) {
+            if ((info->size == elementinfo->size) && (*(info->callstack) == *(elementinfo->callstack))) {
                 // Found a duplicate. Erase it.
+                delete info->callstack;
                 delete info;
                 previt = blockit - 1;
                 blockmap->erase(blockit);
@@ -1566,10 +1405,8 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
     return erased;
 }
 
-// Free - Calls to IMalloc::Free will end up here. This function calls VLD's
-//   free tracking function and then invokes the system implementation of
-//   IMalloc::Free. All arguments passed to this function are passed on to the
-//   system implementation of IMalloc::Free without modification.
+// Free - Calls to IMalloc::Free will end up here. This function is just a
+//   wrapper around the real IMalloc::Free implementation.
 //
 //  - mem (IN): Pointer to the memory block to be freed.
 //
@@ -1579,16 +1416,12 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
 //
 VOID VisualLeakDetector::Free (LPVOID mem)
 {
-    vld.enter();
-    unmapblock(processheap, mem);
+    assert(m_imalloc != NULL);
     m_imalloc->Free(mem);
-    vld.leave();
 }
 
 // GetSize - Calls to IMalloc::GetSize will end up here. This function is just a
-//   wrapper around the system implementation of IMalloc::GetSize. All arguments
-//   passed to this function are passed on to the system implementation of
-//   IMalloc::GetSize without modification.
+//   wrapper around the real IMalloc::GetSize implementation.
 //
 //  - mem (IN): Pointer to the memory block to inquire about.
 //
@@ -1599,12 +1432,12 @@ VOID VisualLeakDetector::Free (LPVOID mem)
 //
 ULONG VisualLeakDetector::GetSize (LPVOID mem)
 {
+    assert(m_imalloc != NULL);
     return m_imalloc->GetSize(mem);
 }
 
 // HeapMinimize - Calls to IMalloc::HeapMinimize will end up here. This function
-//   is just a wrapper around the system implementation of
-//   IMalloc::HeapMinimize.
+//   is just a wrapper around the real IMalloc::HeapMinimize implementation.
 //
 //  Return Value:
 //
@@ -1612,36 +1445,29 @@ ULONG VisualLeakDetector::GetSize (LPVOID mem)
 //
 VOID VisualLeakDetector::HeapMinimize ()
 {
+    assert(m_imalloc != NULL);
     m_imalloc->HeapMinimize();
 }
 
-BOOL VisualLeakDetector::isvldaddress (SIZE_T address)
+/*BOOL VisualLeakDetector::isvldaddress (SIZE_T address)
 {
     moduleinfo_t        moduleinfo;
     ModuleSet::Iterator moduleit;
+    BOOL                vldaddr = FALSE;
 
     moduleinfo.addrhigh = address;
-    moduleinfo.addrlow = address;
+    moduleinfo.addrlow  = address;
     moduleit = m_moduleset->find(moduleinfo);
     if ((moduleit != m_moduleset->end()) && ((*moduleit).flags & VLD_MODULE_VLDDLL)) {
         // The address resides in VLD's virtual address space.
-        return TRUE;
+        vldaddr =  TRUE;
     }
-    return FALSE;
-}
 
-VOID VisualLeakDetector::leave ()
-{
-    vldtls.level--;
-}
+    return vldaddr;
+}*/
 
 // mapblock - Tracks memory allocations. Information about allocated blocks is
 //   collected and then the block is mapped to this information.
-//
-//  - address (IN): Address from the module which initiated this allocation
-//      request (e.g. return address from the original call). This parameter is
-//      used to identify the module allocating the block. Some modules may not
-//      be included in leak detection.
 //
 //  - heap (IN): Handle to the heap from which the block has been allocated.
 //
@@ -1653,7 +1479,7 @@ VOID VisualLeakDetector::leave ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZE_T size)
+VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size)
 {
     blockinfo_t         *blockinfo;
     BlockMap::Iterator   blockit;
@@ -1661,33 +1487,59 @@ VOID VisualLeakDetector::mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZ
     HeapMap::Iterator    heapit;
     moduleinfo_t         moduleinfo;
     ModuleSet::Iterator  moduleit;
+    SIZE_T               ra;
     static SIZE_T        serialnumber = 0;
 
+    if (m_tls.flags & VLD_TLS_MAPINPROGRESS) {
+        // Prevent threads which are already mapping a block from re-entering
+        // the mapping function. Otherwise infinite recursion could occur.
+        return;
+    }
+    m_tls.flags |= VLD_TLS_MAPINPROGRESS;
+    
     if (!enabled()) {
-        // Memory leak detection is disabled. Don't track allocations.
+        // Memory leak detection is disabled. Don't track any allocations.
+        // Before returning, reset thread local variables and flags for the
+        // next allocation.
+        resettls();
+        m_tls.flags &= ~VLD_TLS_MAPINPROGRESS;
         return;
     }
 
-    if (vldtls.level > 1) {
-        // Don't count nested calls as allocations, otherwise it leads to bogus
-        // double (or even more) allocations.
-        return;
-    }
-
-    moduleinfo.addrlow = address;
-    moduleinfo.addrhigh = address;
+    // Find the information for the module that initiated this allocation.
+    ra = *((SIZE_T*)m_tls.addrfp + 1);
+    moduleinfo.addrhigh = ra;
+    moduleinfo.addrlow  = ra;
     moduleit = m_moduleset->find(moduleinfo);
-    if ((moduleit != m_moduleset->end()) && ((*moduleit).flags & VLD_MODULE_EXCLUDED)) {
-        // The module that initiated this request is excluded from leak
-        // detection. Don't track this block.
+    assert(moduleit != m_moduleset->end());
+    if ((*moduleit).flags & VLD_MODULE_EXCLUDED) {
+        // The module that initiated this allocation is exlcuded from leak
+        // detection. Don't track this allocation. Before returning, reset
+        // thread local variables and flags for the next allocation.
+        resettls();
+        m_tls.flags &= ~VLD_TLS_MAPINPROGRESS;
         return;
     }
 
-    EnterCriticalSection(&m_maplock);
+    EnterCriticalSection(&m_lock);
 
     // Record the block's information.
     blockinfo = new blockinfo_t;
-    blockinfo->callstack.getstacktrace(m_maxtraceframes);
+    if (m_options & VLD_OPT_SAFE_STACK_WALK) {
+        blockinfo->callstack = new SafeCallStack;
+    }
+    else {
+        blockinfo->callstack = new FastCallStack;
+    }
+    if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
+        // Passing NULL for the frame pointer argument will force the stack
+        // trace to begin at the current frame.
+        blockinfo->callstack->getstacktrace(m_maxtraceframes, NULL);
+    }
+    else {
+        // Start the stack trace at the call that first entered VLD's code.
+        blockinfo->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)m_tls.addrfp);
+    }
     blockinfo->serialnumber = serialnumber++;
     blockinfo->size = size;
 
@@ -1697,8 +1549,13 @@ VOID VisualLeakDetector::mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZ
         // We haven't mapped this heap to a block map yet. Do it now.
         mapheap(heap);
         heapit = m_heapmap->find(heap);
+        assert(heapit != m_heapmap->end());
     }
-    blockmap = (*heapit).second;
+    if (m_tls.flags & VLD_TLS_CRTALLOC) {
+        // The heap that this block was allocated from is a CRT heap.
+        (*heapit).second->flags |= VLD_HEAP_CRT;
+    }
+    blockmap = &(*heapit).second->blockmap;
     blockit = blockmap->insert(mem, blockinfo);
     if (blockit == blockmap->end()) {
         // A block with this address has already been allocated. The
@@ -1706,12 +1563,18 @@ VOID VisualLeakDetector::mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZ
         // mechanism unknown to VLD), or the heap wouldn't have allocated it
         // again. Replace the previously allocated info with the new info.
         blockit = blockmap->find(mem);
+        delete (*blockit).second->callstack;
         delete (*blockit).second;
         blockmap->erase(blockit);
         blockmap->insert(mem, blockinfo);
     }
 
-    LeaveCriticalSection(&m_maplock);
+    LeaveCriticalSection(&m_lock);
+
+    // Before returning, reset thread local variables and flags for the next
+    // allocation.
+    resettls();
+    m_tls.flags &= ~VLD_TLS_MAPINPROGRESS;
 }
 
 // mapheap - Tracks heap creation. Creates a block map for tracking individual
@@ -1720,43 +1583,37 @@ VOID VisualLeakDetector::mapblock (SIZE_T address, HANDLE heap, LPCVOID mem, SIZ
 //
 //  - heap (IN): Handle to the newly created heap.
 //
+//  - crtheap (IN): Boolean value indicating if this heap is a CRT heap.
+//
 //  Return Value:
 //
 //    None.
 //
 VOID VisualLeakDetector::mapheap (HANDLE heap)
 {
-    BlockMap          *blockmap;
+    heapinfo_t        *heapinfo;
     HeapMap::Iterator  heapit;
 
-    EnterCriticalSection(&m_maplock);
-
-    if ((crtheap == NULL) && (heap != processheap)) {
-        // The static CRT heap is always the first one created. XXX is this reliable?
-        crtheap = heap;
-    }
 
     // Create a new block map for this heap and insert it into the heap map.
-    blockmap = new BlockMap;
-    blockmap->reserve(BLOCKMAPRESERVE);
-    heapit = m_heapmap->insert(heap, blockmap);
+    heapinfo = new heapinfo_t;
+    heapinfo->blockmap.reserve(BLOCKMAPRESERVE);
+    heapinfo->flags = 0x0;
+    heapit = m_heapmap->insert(heap, heapinfo);
     if (heapit == m_heapmap->end()) {
         // Somehow this heap has been created twice without being destroyed,
         // or at least it was destroyed without VLD's knowledge. Unmap the heap
-        // from the existing block map, and remap it to the new one.
-        report(L"WARNING: Visual Leak Detector detected a duplicate heap.\n");
+        // from the existing heapinfo, and remap it to the new one.
+        report(L"WARNING: Visual Leak Detector detected a duplicate heap (" ADDRESSFORMAT L").\n", heap);
         heapit = m_heapmap->find(heap);
         unmapheap((*heapit).first);
-        m_heapmap->insert(heap, blockmap);
+        m_heapmap->insert(heap, heapinfo);
     }
-
-    LeaveCriticalSection(&m_maplock);
 }
 
 // QueryInterface - Calls to IMalloc::QueryInterface will end up here. This
-//   function is just a wrapper around the system implementation of
-//   IMalloc::QueryInterface. All arguments passed to this function are
-//   passed on to IMalloc::QueryInterface without modification.
+//   function is just a wrapper around the real IMalloc::QueryInterface
+//   implementation.
 //
 //  - iid (IN): COM interface ID to query about.
 //
@@ -1770,14 +1627,14 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //
 HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 {
+    assert(m_imalloc != NULL);
     return m_imalloc->QueryInterface(iid, object);
 }
 
-// Realloc - Calls to IMalloc::Realloc will end up here. This function invokes
-//   the system implementation of IMalloc::Realloc and then calls VLD's
-//   reallocation tracking function. All arguments passed to this function are
-//   passed on to the system implementation of IMalloc::Realloc without
-//   modification.
+// Realloc - Calls to IMalloc::Realloc will end up here. This function is just a
+//   wrapper around the real IMalloc::Realloc implementation that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
 //
 //  - mem (IN): Pointer to the memory block to reallocate.
 //
@@ -1790,22 +1647,21 @@ HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 //
 LPVOID VisualLeakDetector::Realloc (LPVOID mem, ULONG size)
 {
-    LPVOID newmem;
-    SIZE_T ra;
+    SIZE_T fp;
 
-    vld.enter();
-    newmem = m_imalloc->Realloc(mem, size);
-    if (newmem != NULL) {
-        RETURNADDRESS(ra);
-        remapblock(ra, processheap, mem, newmem, (SIZE_T)size);
+    if (m_tls.addrfp == 0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        FRAMEPOINTER(fp);
+        m_tls.addrfp = fp;
     }
-    vld.leave();
 
-    return newmem;
+    assert(m_imalloc != NULL);
+    return m_imalloc->Realloc(mem, size);
 }
 
 // Release - Calls to IMalloc::Release will end up here. This function is just
-//   a wrapper around the system implementation of IMalloc::Release.
+//   a wrapper around the real IMalloc::Release implementation.
 //
 //  Return Value:
 //
@@ -1814,6 +1670,7 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, ULONG size)
 //
 ULONG VisualLeakDetector::Release ()
 {
+    assert(m_imalloc != NULL);
     return m_imalloc->Release();
 }
 
@@ -1838,64 +1695,104 @@ ULONG VisualLeakDetector::Release ()
 //
 //    None.
 //
-VOID VisualLeakDetector::remapblock (SIZE_T address, HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size)
+VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size)
 {
-    BlockMap::Iterator  blockit;
-    BlockMap           *blockmap;
-    HeapMap::Iterator   heapit;
-    blockinfo_t        *info;
+    BlockMap::Iterator   blockit;
+    BlockMap            *blockmap;
+    HeapMap::Iterator    heapit;
+    blockinfo_t         *info;
+    moduleinfo_t         moduleinfo;
+    ModuleSet::Iterator  moduleit;
+    SIZE_T               ra;
 
     if (!enabled()) {
-        // Memory leak detection is disabled. Don't track allocations.
+        // Memory leak detection is disabled. Don't track any allocations.
+        // Before returning, reset thread local variables for the next
+        // allocation.
+        resettls();
         return;
     }
 
-    if (vldtls.level > 1) {
-        // Don't count nested calls as allocations, otherwise it leads to bogus
-        // double (or even more) allocations.
+    // Find the information for the module that initiated this allocation.
+    ra = *((SIZE_T*)m_tls.addrfp + 1);
+    moduleinfo.addrhigh = ra;
+    moduleinfo.addrlow  = ra;
+    moduleit = m_moduleset->find(moduleinfo);
+    assert(moduleit != m_moduleset->end());
+    if ((*moduleit).flags & VLD_MODULE_EXCLUDED) {
+        // The module that initiated this allocation is excluded from leak
+        // detection. Don't track this allocation. Before returning, reset
+        // thread local variables for the next allocation.
+        resettls();
         return;
     }
-
-    EnterCriticalSection(&m_maplock);
 
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
         unmapblock(heap, mem);
-        mapblock(address, heap, newmem, size);
+        mapblock(heap, newmem, size);
     }
     else {
         // The block was reallocated in-place. Find the existing blockinfo_t
         // entry in the block map and update it with the new callstack and size.
+        EnterCriticalSection(&m_lock);
         heapit = m_heapmap->find(heap);
         if (heapit == m_heapmap->end()) {
             // We haven't mapped this heap to a block map yet. Obviously the
             // block has also not been mapped to a blockinfo_t entry yet either,
             // so treat this reallocation as a brand-new allocation (this will
             // also map the heap to a new block map).
-            mapblock(address, heap, newmem, size);
+            mapblock(heap, newmem, size);
         }
         else {
             // Find the block's blockinfo_t structure so that we can update it.
-            blockmap = (*heapit).second;
+            blockmap = &(*heapit).second->blockmap;
             blockit = blockmap->find(mem);
             if (blockit == blockmap->end()) {
                 // The block hasn't been mapped to a blockinfo_t entry yet.
                 // Treat this reallocation as a new allocation.
-                mapblock(address, heap, newmem, size);
+                mapblock(heap, newmem, size);
             }
             else {
+                if (m_tls.flags & VLD_TLS_MAPINPROGRESS) {
+                    // Prevent threads which are already mapping a block from
+                    // re-entering the mapping function. Otherwise infinite
+                    // recursion could occur.
+                    LeaveCriticalSection(&m_lock);
+                    return;
+                }
+                m_tls.flags |= VLD_TLS_MAPINPROGRESS;
+
                 // Found the blockinfo_t entry for this block. Update it with
                 // a new callstack and new size.
                 info = (*blockit).second;
-                info->callstack.clear();
-                info->callstack.getstacktrace(m_maxtraceframes);
+                info->callstack->clear();
+                if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
+                    // Passing NULL for the frame pointer argument will force
+                    // the stack trace to begin at the current frame.
+                    info->callstack->getstacktrace(m_maxtraceframes, NULL);
+                }
+                else {
+                    // Start the stack trace at the call that first entered
+                    // VLD's code.
+                    info->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)m_tls.addrfp);
+                }
                 info->size = size;
+                if (m_tls.flags & VLD_TLS_CRTALLOC) {
+                    // The heap that this block was allocated from is a CRT heap.
+                    (*heapit).second->flags |= VLD_HEAP_CRT;
+                }
+
+                m_tls.flags &= ~VLD_TLS_MAPINPROGRESS;
             }
         }
+        LeaveCriticalSection(&m_lock);
     }
 
-    LeaveCriticalSection(&m_maplock);
+    // Before returning, reset thread local variables and flags for the next
+    // allocation.
+    resettls();
 }
 
 // reportconfig - Generates a brief report summarizing Visual Leak Detector's
@@ -1907,7 +1804,10 @@ VOID VisualLeakDetector::remapblock (SIZE_T address, HANDLE heap, LPCVOID mem, L
 //
 VOID VisualLeakDetector::reportconfig ()
 {
-    if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
+    if (wcslen(m_modulelist) != 0) {
+        report(L"    Including these additional modules in leak detection: %s\n", m_modulelist);
+    }
+    if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
         report(L"    Aggregating duplicate leaks.\n");
     }
     if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
@@ -1921,24 +1821,45 @@ VOID VisualLeakDetector::reportconfig ()
     if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
         report(L"    Limiting stack traces to %u frames.\n", m_maxtraceframes);
     }
-    if (m_optflags & VLD_OPT_SELF_TEST) {
+    if (m_options & VLD_OPT_UNICODE_REPORT) {
+        report(L"    Generating a Unicode (UTF-16) encoded report.\n");
+    }
+    if (m_options & VLD_OPT_REPORT_TO_FILE) {
+        if (m_options & VLD_OPT_REPORT_TO_DEBUGGER) {
+            report(L"    Outputting the report to the debugger and to %s\n", m_reportfilepath);
+        }
+        else {
+            report(L"    Outputting the report to %s\n", m_reportfilepath);
+        }
+    }
+    if (m_options & VLD_OPT_SAFE_STACK_WALK) {
+        report(L"    Using the \"safe\" (but slow) stack walking method.\n");
+    }
+    if (m_options & VLD_OPT_SELF_TEST) {
         report(L"    Perfoming a memory leak self-test.\n");
     }
-    if (m_optflags & VLD_OPT_SHOW_USELESS_FRAMES) {
-        report(L"    Showing useless frames.\n");
-    }
-    if (m_optflags & VLD_OPT_START_DISABLED) {
+    if (m_options & VLD_OPT_START_DISABLED) {
         report(L"    Starting with memory leak detection disabled.\n");
+    }
+    if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
+        report(L"    Including heap and VLD internal frames in stack traces.\n");
     }
 }
 
-// reportleaks - Generates a memory leak report when the process terminates.
+// reportleaks - Generates a memory leak report for the specified heap.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
+//
+//  - heap (IN): Handle to the heap for which to generate a memory leak
+//      report.
 //
 //  Return Value:
 //
 //    None.
 //
-VOID VisualLeakDetector::reportleaks ()
+VOID VisualLeakDetector::reportleaks (HANDLE heap)
 {
     LPCVOID             address;
     LPCVOID             block;
@@ -1946,88 +1867,83 @@ VOID VisualLeakDetector::reportleaks ()
     BlockMap           *blockmap;
     _CrtMemBlockHeader *crtheader;
     SIZE_T              duplicates;
-    HANDLE              heap;
+    heapinfo_t         *heapinfo;
     HeapMap::Iterator   heapit;
     blockinfo_t        *info;
-    SIZE_T              leaksfound = 0;
     SIZE_T              size;
 
-    EnterCriticalSection(&m_maplock);
+    // Find the heap's information (blockmap, etc).
+    heapit = m_heapmap->find(heap);
+    if (heapit == m_heapmap->end()) {
+        // Nothing is allocated from this heap. No leaks.
+        return;
+    }
 
-    // Iterate through all blocks in all heaps.
-    for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-        heap = (*heapit).first;
-        blockmap = (*heapit).second;
-        for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-            // Found a block which is still in the BlockMap. We've identified a
-            // potential memory leak.
-            block = (*blockit).first;
-            info = (*blockit).second;
-            address = block;
-            size = info->size;
-            if ((heap == crtheap) || (heap == dllcrtheap)) {
-                // This block is allocated to a CRT heap, so the block has a CRT
-                // memory block header prepended to it.
-                crtheader = (_CrtMemBlockHeader*)block;
-                if (_BLOCK_TYPE(crtheader->nBlockUse) == _CRT_BLOCK) {
-                    // This block is marked as being used internally by the CRT.
-                    // The CRT will free the block after VLD is destroyed.
-                    continue;
-                }
-                // The CRT header is more or less transparent to the user, so
-                // the information about the contained block will probably be
-                // more useful to the user. Accordingly, that's the information
-                // we'll include in the report.
-                address = pbData(block);
-                size = crtheader->nDataSize;
+    heapinfo = (*heapit).second;
+    blockmap = &heapinfo->blockmap;
+    for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+        // Found a block which is still in the BlockMap. We've identified a
+        // potential memory leak.
+        block = (*blockit).first;
+        info = (*blockit).second;
+        address = block;
+        size = info->size;
+        if (heapinfo->flags & VLD_HEAP_CRT) {
+            // This block is allocated to a CRT heap, so the block has a CRT
+            // memory block header prepended to it.
+            crtheader = (_CrtMemBlockHeader*)block;
+            if (_BLOCK_TYPE(crtheader->nBlockUse) == _CRT_BLOCK) {
+                // This block is marked as being used internally by the CRT.
+                // The CRT will free the block after VLD is destroyed.
+                continue;
             }
-            // It looks like a real memory leak.
-            if (leaksfound == 0) {
-                report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
-            }
-            leaksfound++;
-            report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, address, size);
-            if (m_optflags & VLD_OPT_AGGREGATE_DUPLICATES) {
-                // Aggregate all other leaks which are duplicates of this one
-                // under this same heading, to cut down on clutter.
-                duplicates = eraseduplicates(blockit);
-                if (duplicates) {
-                    report(L"A total of %lu leaks match this size and call stack. Showing only the first one.\n", duplicates + 1);
-                    leaksfound += duplicates;
-                }
-            }
-            // Dump the call stack.
-            report(L"  Call Stack:\n");
-            info->callstack.dump((m_optflags & VLD_OPT_SHOW_USELESS_FRAMES) != 0);
-            // Dump the data in the user data section of the memory block.
-            if (m_maxdatadump != 0) {
-                report(L"  Data:\n");
-                if (m_optflags & VLD_OPT_UNICODE_REPORT) {
-                    dumpmemoryw(address, (m_maxdatadump < size) ? m_maxdatadump : size);
-                }
-                else {
-                    dumpmemorya(address, (m_maxdatadump < size) ? m_maxdatadump : size);
-                }
-            }
-            report(L"\n");
+            // The CRT header is more or less transparent to the user, so
+            // the information about the contained block will probably be
+            // more useful to the user. Accordingly, that's the information
+            // we'll include in the report.
+            address = pbData(block);
+            size = crtheader->nDataSize;
         }
+        // It looks like a real memory leak.
+        if (m_leaksfound == 0) {
+            report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
+        }
+        m_leaksfound++;
+        report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, address, size);
+        if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
+            // Aggregate all other leaks which are duplicates of this one
+            // under this same heading, to cut down on clutter.
+            duplicates = eraseduplicates(blockit);
+            if (duplicates) {
+                report(L"A total of %lu leaks match this size and call stack. Showing only the first one.\n", duplicates + 1);
+                m_leaksfound += duplicates;
+            }
+        }
+        // Dump the call stack.
+        report(L"  Call Stack:\n");
+        info->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+        // Dump the data in the user data section of the memory block.
+        if (m_maxdatadump != 0) {
+            report(L"  Data:\n");
+            if (m_options & VLD_OPT_UNICODE_REPORT) {
+                dumpmemoryw(address, (m_maxdatadump < size) ? m_maxdatadump : size);
+            }
+            else {
+                dumpmemorya(address, (m_maxdatadump < size) ? m_maxdatadump : size);
+            }
+        }
+        report(L"\n");
     }
 
-    LeaveCriticalSection(&m_maplock);
+    return;
+}
 
-    // Show a summary.
-    if (!leaksfound) {
-        report(L"No memory leaks detected.\n");
-    }
-    else {
-        report(L"Visual Leak Detector detected %lu memory leak", leaksfound);
-        report((leaksfound > 1) ? L"s.\n" : L".\n");
-    }
-
-    // Free resources used by the symbol handler.
-    if (!SymCleanup(currentprocess)) {
-        report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n", GetLastError());
-    }
+VOID VisualLeakDetector::resettls ()
+{
+    // Reset any thread local flags and variables that need to be in an
+    // initialized state for tracking new allocations.
+    m_tls.addrfp = 0;
+    m_tls.flags &= ~VLD_TLS_CRTALLOC;
 }
 
 // unmapblock - Tracks memory blocks that are freed. Unmaps the specified block
@@ -2048,37 +1964,31 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
     HeapMap::Iterator   heapit;
     blockinfo_t        *info;
 
-    if (vldtls.level > 1) {
-        // Don't count nested calls as frees, otherwise it may lead to bogus
-        // double (or even more) frees.
-        return;
-    }
-
-    EnterCriticalSection(&m_maplock);
-
     // Find this heap's block map.
+    EnterCriticalSection(&m_lock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We don't have a block map for this heap. We must not have monitored
         // this allocation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
+        LeaveCriticalSection(&m_lock);
         return;
     }
+
     // Find this block in the block map.
-    blockmap = (*heapit).second;
+    blockmap = &(*heapit).second->blockmap;
     blockit = blockmap->find(mem);
     if (blockit == blockmap->end()) {
         // This block is not in the block map. We must not have monitored this
         // allocation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
+        LeaveCriticalSection(&m_lock);
         return;
     }
     // Free the blockinfo_t structure and erase it from the block map.
     info = (*blockit).second;
+    delete info->callstack;
     delete info;
     blockmap->erase(blockit);
-
-    LeaveCriticalSection(&m_maplock);
+    LeaveCriticalSection(&m_lock);
 }
 
 // unmapheap - Tracks heap destruction. Unmaps the specified heap from its block
@@ -2095,28 +2005,29 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 {
     BlockMap::Iterator  blockit;
     BlockMap           *blockmap;
+    heapinfo_t         *heapinfo;
     HeapMap::Iterator   heapit;
 
-    EnterCriticalSection(&m_maplock);
-
     // Find this heap's block map.
+    EnterCriticalSection(&m_lock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // This heap hasn't been mapped. We must not have monitored this heap's
         // creation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
+        LeaveCriticalSection(&m_lock);
         return;
     }
 
-    blockmap = (*heapit).second;
     // Free all of the blockinfo_t structures stored in the block map.
+    heapinfo = (*heapit).second;
+    blockmap = &heapinfo->blockmap;
     for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+        delete (*blockit).second->callstack;
         delete (*blockit).second;
     }
-    delete blockmap;
+    delete heapinfo;
 
     // Remove this heap's block map from the heap map.
     m_heapmap->erase(heapit);
-
-    LeaveCriticalSection(&m_maplock);
+    LeaveCriticalSection(&m_lock);
 }
