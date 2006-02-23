@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.h,v 1.3 2006/01/20 01:10:22 dmouldin Exp $
+//  $Id: callstack.h,v 1.4 2006/02/23 22:01:00 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,7 +28,6 @@
 #error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
 #endif
 
-#include <cassert>
 #include <windows.h>
 
 #define CALLSTACKCHUNKSIZE 32
@@ -56,17 +55,22 @@ class CallStack
 {
 public:
     CallStack ();
-    CallStack (const CallStack &source);
+    CallStack (const CallStack &other);
     ~CallStack ();
 
     // Public APIs - see each function definition for details.
     VOID clear ();
-    VOID dump (BOOL showuselessframes) const;
-    VOID getstacktrace (UINT32 maxdepth);
+    VOID dump (BOOL showinternalframes) const;
+    virtual VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer) = 0;
+    CallStack& operator = (const CallStack &other);
     BOOL operator == (const CallStack &other) const;
     SIZE_T operator [] (UINT32 index) const;
     VOID push_back (const SIZE_T programcounter);
-    UINT32 size () const;
+
+protected:
+    // Protected Data
+    UINT32 m_status;                    // Status flags:
+#define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
 private:
     // The chunk list is made of a linked list of Chunks.
@@ -81,4 +85,31 @@ private:
     CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
     CallStack::chunk_t *m_topchunk; // Pointer to the Chunk at the top of the stack
     UINT32              m_topindex; // Index, within the top Chunk, of the top of the stack
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  The FastCallStack Class
+//
+//    This class is a specialization of the CallStack class which provides a
+//    very fast stack tracing function.
+//
+class FastCallStack : public CallStack
+{
+public:
+    VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer);
+};
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  The SafeCallStack Class
+//
+//    This class is a specialization of the CallStack class which provides a
+//    more robust, but quite slow, stack tracing function.
+//
+class SafeCallStack : public CallStack
+{
+public:
+    VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer);
 };
