@@ -99,6 +99,10 @@ SOURCE=.\callstack.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ntapi.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\utility.cpp
 # End Source File
 # Begin Source File
@@ -127,6 +131,10 @@ SOURCE=.\map.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ntapi.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\set.h
 # End Source File
 # Begin Source File
@@ -140,10 +148,6 @@ SOURCE=.\utility.h
 # Begin Source File
 
 SOURCE=.\vld.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\vldapi.h
 # End Source File
 # Begin Source File
 
