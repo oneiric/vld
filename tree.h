@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.4 2006/01/27 22:48:45 dmouldin Exp $
+//  $Id: tree.h,v 1.5 2006/02/23 22:14:30 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -81,6 +81,7 @@ public:
     Tree ()
     {
         m_freelist   = NULL;
+        InitializeCriticalSection(&m_lock);
         m_nil.color  = black;
         m_nil.key    = T();
         m_nil.left   = &m_nil;
@@ -102,16 +103,20 @@ public:
     // Destructor
     ~Tree ()
     {
-        Tree::chunk_t *cur = m_store;
+        Tree::chunk_t *cur;
         Tree::chunk_t *temp;
 
         // Free all the chunks in the chunk list.
+        EnterCriticalSection(&m_lock);
+        cur = m_store;
         while (cur != NULL) {
             temp = cur;
             cur = cur->next;
             delete [] temp->nodes;
             delete temp;
         }
+        LeaveCriticalSection(&m_lock);
+        DeleteCriticalSection(&m_lock);
     }
 
     // begin - Obtains a pointer to the first node (the node with the smallest
@@ -125,7 +130,9 @@ public:
     {
         Tree::node_t *cur;
 
+        EnterCriticalSection(&m_lock);
         if (m_root == &m_nil) {
+            LeaveCriticalSection(&m_lock);
             return NULL;
         }
 
@@ -133,6 +140,7 @@ public:
         while (cur->left != &m_nil) {
             cur = cur->left;
         }
+        LeaveCriticalSection(&m_lock);
 
         return cur;
     }
@@ -152,14 +160,17 @@ public:
     //
     VOID clear ()
     {
-        Tree::node_t *cur = begin();
+        Tree::node_t *cur;
         Tree::node_t *tmp;
 
+        EnterCriticalSection(&m_lock);
+        cur = begin();
         while (cur != NULL) {
             tmp = cur;
             cur = next(cur);
             erase(tmp);
         }
+        LeaveCriticalSection(&m_lock);
     }
 
     // erase - Erases the specified node from the tree. Note that this does
@@ -177,6 +188,8 @@ public:
         Tree::node_t *cur;
         Tree::node_t *erasure;
         Tree::node_t *sibling;
+
+        EnterCriticalSection(&m_lock);
 
         if ((node->left == &m_nil) || (node->right == &m_nil)) {
             // The node to be erased has less than two children. It can be directly
@@ -296,6 +309,8 @@ public:
         // Put the erased node onto the free list.
         erasure->next = m_freelist;
         m_freelist = erasure;
+
+        LeaveCriticalSection(&m_lock);
     }
 
     // erase - Erases the specified key from the tree. Note that this does not
@@ -311,9 +326,11 @@ public:
     //
     VOID erase (const T &key)
     {
-        Tree::node_t *node = m_root;
+        Tree::node_t *node;
 
         // Find the node to erase.
+        EnterCriticalSection(&m_lock);
+        nodex = m_root;
         while (node != &m_nil) {
             if (node->key < key) {
                 // Go right.
@@ -328,6 +345,7 @@ public:
                 erase(node);
             }
         }
+        LeaveCriticalSection(&m_lock);
 
         // 'key' is not in the tree.
         return;
@@ -346,8 +364,10 @@ public:
     //
     Tree::node_t* find (const T &key) const
     {
-        Tree::node_t *cur = m_root;
-
+        Tree::node_t *cur;
+        
+        EnterCriticalSection(&m_lock);
+        cur = m_root;
         while (cur != &m_nil) {
             if (cur->key < key) {
                 // Go right.
@@ -359,9 +379,11 @@ public:
             }
             else {
                 // Found it.
+                LeaveCriticalSection(&m_lock);
                 return cur;
             }
         }
+        LeaveCriticalSection(&m_lock);
 
         // 'key' is not in the tree.
         return NULL;
@@ -381,12 +403,16 @@ public:
     //
     Tree::node_t* insert (const T &key)
     {
-        Tree::node_t  *cur = m_root;
+        Tree::node_t  *cur;
         Tree::node_t  *node;
-        Tree::node_t  *parent = &m_nil;
+        Tree::node_t  *parent;
         Tree::node_t  *uncle;
 
+        EnterCriticalSection(&m_lock);
+
         // Find the location where the new node should be inserted..
+        cur = m_root;
+        parent = &m_nil;
         while (cur != &m_nil) {
             parent = cur;
             if (cur->key < key) {
@@ -399,6 +425,7 @@ public:
             }
             else {
                 // Keys in the tree must be unique.
+                LeaveCriticalSection(&m_lock);
                 return NULL;
             }
         }
@@ -483,6 +510,8 @@ public:
         // The root node is always colored black.
         m_root->color = black;
 
+        LeaveCriticalSection(&m_lock);
+
         return node;        
     }
 
@@ -505,6 +534,7 @@ public:
             return NULL;
         }
 
+        EnterCriticalSection(&m_lock);
         if (node->right != &m_nil) {
             // 'node' has a right child. Successor is the far left node in
             // the right subtree.
@@ -512,12 +542,14 @@ public:
             while (cur->left != &m_nil) {
                 cur = cur->left;
             }
+            LeaveCriticalSection(&m_lock);
             return cur;
         }
         else if (node->parent != &m_nil) {
             // 'node' has no right child, but does have a parent.
             if (node == node->parent->left) {
                 // 'node' is a left child; node's parent is successor.
+                LeaveCriticalSection(&m_lock);
                 return node->parent;
             }
             else {
@@ -530,17 +562,20 @@ public:
                         continue;
                     }
                     else {
+                        LeaveCriticalSection(&m_lock);
                         return cur->parent;
                     }
                 }
 
                 // There is no parent greater than 'node'. 'node' is the
                 // maximum node.
+                LeaveCriticalSection(&m_lock);
                 return NULL;
             }
         }
         else {
             // 'node' is root and root is the maximum node.
+            LeaveCriticalSection(&m_lock);
             return NULL;
         }
     }
@@ -564,6 +599,7 @@ public:
             return NULL;
         }
 
+        EnterCriticalSection(&m_lock);
         if (node->left != &m_nil) {
             // 'node' has left child. Predecessor is the far right node in the
             // left subtree.
@@ -571,12 +607,14 @@ public:
             while (cur->right != &m_nil) {
                 cur = cur->right;
             }
+            LeaveCriticalSection(&m_lock);
             return cur;
         }
         else if (node->parent != & m_nil) {
             // 'node' has no left child, but does have a parent.
             if (node == node->parent->right) {
                 // 'node' is a right child; node's parent is predecessor.
+                LeaveCriticalSection(&m_lock);
                 return node->parent;
             }
             else {
@@ -589,17 +627,20 @@ public:
                         continue;
                     }
                     else {
+                        LeaveCriticalSection(&m_lock);
                         return cur->parent;
                     }
                 }
 
                 // There is no parent less than 'node'. 'node' is the minimum
                 // node.
+                LeaveCriticalSection(&m_lock);
                 return NULL;
             }
         }
         else {
             // 'node' is root and root is the minimum node.
+            LeaveCriticalSection(&m_lock);
             return NULL;
         }
     }
@@ -637,6 +678,7 @@ public:
             }
         }
 
+        EnterCriticalSection(&m_lock);
         if (m_freelist == NULL) {
             // Allocate additional storage.
             // Link a new chunk into the chunk list.
@@ -658,6 +700,7 @@ public:
             chunk->nodes[index].next = NULL;
             m_freelist = chunk->nodes;
         }
+        LeaveCriticalSection(&m_lock);
 
         return oldreserve;
     }
@@ -740,10 +783,11 @@ private:
     }
 
     // Private data members.
-    Tree::node_t  *m_freelist;  // Pointer to the list of free nodes (reserve storage).
-    Tree::node_t   m_nil;       // The tree's nil node. All leaf nodes point to this.
-    UINT32         m_reserve;   // The size (in nodes) of the chunks of reserve storage.
-    Tree::node_t  *m_root;      // Pointer to the tree's root node.
-    Tree::chunk_t *m_store;     // Pointer to the start of the chunk list.
-    Tree::chunk_t *m_storetail; // Pointer to the end of the chunk list.
+    Tree::node_t             *m_freelist;  // Pointer to the list of free nodes (reserve storage).
+    mutable CRITICAL_SECTION  m_lock;      // Protects the tree's integrity against concurrent accesses.
+    Tree::node_t              m_nil;       // The tree's nil node. All leaf nodes point to this.
+    UINT32                    m_reserve;   // The size (in nodes) of the chunks of reserve storage.
+    Tree::node_t             *m_root;      // Pointer to the tree's root node.
+    Tree::chunk_t            *m_store;     // Pointer to the start of the chunk list.
+    Tree::chunk_t            *m_storetail; // Pointer to the end of the chunk list.
 };
