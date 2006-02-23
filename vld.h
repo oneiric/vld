@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.19 2006/01/27 23:04:16 dmouldin Exp $
+//  $Id: vld.h,v 1.20 2006/02/23 22:40:00 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -32,5 +32,62 @@
 // the DLL. This enusres that the DLL is loaded and linked with the program,
 // even though no code otherwise imports any of the DLL's exports.
 #pragma comment(linker, "/include:__imp_?vld@@3VVisualLeakDetector@@A")
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Visual Leak Detector APIs
+//
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+// VLDDisable - Disables Visual Leak Detector's memory leak detection at
+//   runtime. If memory leak detection is already disabled, then calling this
+//   function has no effect.
+//
+//  Note: In multithreaded programs, this function operates on a per-thread
+//    basis. In other words, if you call this function from one thread, then
+//    memory leak detection is only disabled for that thread. If memory leak
+//    detection is enabled for other threads, then it will remain enabled for
+//    those other threads. It was designed to work this way to insulate you,
+//    the programmer, from having to ensure thread synchronization when calling
+//    VLDEnable() and VLDDisable(). Without this, calling these two functions
+//    unsychronized could result in unpredictable and unintended behavior.
+//    But this also means that if you want to disable memory leak detection
+//    process-wide, then you need to call this function from every thread in
+//    the process.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) VOID VLDDisable ();
+
+// VLDEnable - Enables Visual Leak Detector's memory leak detection at runtime.
+//   If memory leak detection is already enabled, which it is by default, then
+//   calling this function has no effect.
+//
+//  Note: In multithreaded programs, this function operates on a per-thread
+//    basis. In other words, if you call this function from one thread, then
+//    memory leak detection is only enabled for that thread. If memory leak
+//    detection is disabled for other threads, then it will remain disabled for
+//    those other threads. It was designed to work this way to insulate you,
+//    the programmer, from having to ensure thread synchronization when calling
+//    VLDEnable() and VLDDisable(). Without this, calling these two functions
+//    unsychronized could result in unpredictable and unintended behavior.
+//    But this also means that if you want to enable memory leak detection
+//    process-wide, then you need to call this function from every thread in
+//    the process.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) VOID VLDEnable ();
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif // _DEBUG
