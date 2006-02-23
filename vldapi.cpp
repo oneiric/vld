@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.7 2006/01/27 23:06:12 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.8 2006/02/23 22:40:48 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.0)
 //  Copyright (c) 2005 Dan Moulding
@@ -28,7 +28,7 @@
 
 // Imported global variables.
 extern VisualLeakDetector vld;
-__declspec(thread) tls_t vldtls;
+__declspec(thread) tls_t VisualLeakDetector::m_tls;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -43,7 +43,7 @@ extern "C" __declspec(dllexport) VOID VLDDisable ()
     }
 
     // Disable memory leak detection for the current thread.
-    vldtls.status &= ~VLD_TLS_ENABLED;
+    vld.m_tls.flags &= ~VLD_TLS_ENABLED;
 }
 
 extern "C" __declspec(dllexport) VOID VLDEnable ()
@@ -54,6 +54,6 @@ extern "C" __declspec(dllexport) VOID VLDEnable ()
     }
 
     // Enable memory leak detection for the current thread.
-    vldtls.status |= VLD_TLS_ENABLED;
+    vld.m_tls.flags |= VLD_TLS_ENABLED;
     vld.m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
