@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.5 2006/02/23 22:14:30 dmouldin Exp $
+//  $Id: tree.h,v 1.6 2006/02/24 21:30:30 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - Red-black Tree Template
+//  Copyright (c) 2005-2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -25,28 +25,31 @@
 #pragma once
 
 #ifndef VLDBUILD
-#error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
+#error \
+"This header should only be included by Visual Leak Detector when building it from source. \
+Applications should never include this header."
 #endif
 
 #include "vldheap.h" // Provides internal new and delete operators.
 
-#define TREE_DEFAULT_RESERVE 32
+#define TREE_DEFAULT_RESERVE 32 // By default, trees reserve enough space, in advance, for this many nodes.
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  The Tree Template Class
 //
-//    This data structure is the internal data structure behind the Map class.
-//    This is a red-black tree which provides for fast insert, find, and erase
-//    operations.
+//    This data structure is the internal data structure behind the lightweight
+//    STL-like container classes. This is a red-black tree which provides for
+//    fast insert, find, and erase operations.
 //
 //    The binary tree nodes are overlaid on top of larger chunks of allocated
-//    memory (called Chunks) which are arranged in a simple linked list. This
+//    memory (called chunks) which are arranged in a simple linked list. This
 //    allows the tree to grow (add nodes) dynamically without incurring a heap
 //    hit each time a new node is added.
 //
-//    The Tree class provides member functions which make it adaptable to an
-//    STL-like interface so that it can be used by STL-like classes.
+//    The Tree class provides member functions which make it easily adaptable to
+//    an STL-like interface so that it can be used as the backend for STL-like
+//    container classes.
 //
 template <typename T>
 class Tree
@@ -60,7 +63,7 @@ public:
 
     // The node is the basic data structure which the tree is built from.
     typedef struct node_s {
-        color_e            color;  // The node's color, either red or black.
+        color_e            color;  // The node's color.
         T                  key;    // The node's value, by which nodes are sorted.
         union {
             struct node_s *left;   // For nodes in the tree, the node's left child.
@@ -73,8 +76,8 @@ public:
     // Reserve capacity for the tree is allocated in large chunks with room for
     // many nodes.
     typedef struct chunk_s {
-        struct chunk_s *next;
-        node_t         *nodes;
+        struct chunk_s *next;  // Pointer to the next node in the chunk list.
+        node_t         *nodes; // Pointer to an array (of variable size) where nodes are stored.
     } chunk_t;
 
     // Constructor
@@ -97,7 +100,7 @@ public:
     //   to ensure that trees are not being inadvertently copied.
     Tree (const Tree& source)
     {
-        assert(false); // Do not make copies of trees!
+        assert(FALSE); // Do not make copies of trees!
     }
 
     // Destructor
@@ -117,6 +120,18 @@ public:
         }
         LeaveCriticalSection(&m_lock);
         DeleteCriticalSection(&m_lock);
+    }
+
+    // operator = - Assignment operator. For efficiency, we want to avoid ever
+    //   making copies of Trees (only pointer passing or reference passing
+    //   should be performed). The sole purpose of this assignment operator is
+    //   to ensure that no copying is being done inadvertently.
+    //
+    Tree<T>& operator = (const Tree<T> &other)
+    {
+        // Don't make copies of Trees!
+        assert(FALSE);
+        return *this;
     }
 
     // begin - Obtains a pointer to the first node (the node with the smallest
@@ -145,36 +160,10 @@ public:
         return cur;
     }
 
-    // clear - Erases all nodes from the tree.
-    //
-    //   Note: This function does not, indeed cannot, free any dynamically
-    //     allocated keys. Dynamically allocated keys must be manually
-    //     deleted. Also, this function doesn't actually release any memory
-    //     used by the tree, instead the memory is returned to the Tree's
-    //     internal free list where it will remain reserved for future use
-    //     by the tree.
-    //
-    //  Return Value:
-    //
-    //    None.
-    //
-    VOID clear ()
-    {
-        Tree::node_t *cur;
-        Tree::node_t *tmp;
-
-        EnterCriticalSection(&m_lock);
-        cur = begin();
-        while (cur != NULL) {
-            tmp = cur;
-            cur = next(cur);
-            erase(tmp);
-        }
-        LeaveCriticalSection(&m_lock);
-    }
-
     // erase - Erases the specified node from the tree. Note that this does
-    //   cause the key associated with the erased node to be freed.
+    //   not cause the key associated with the erased node to be freed. The
+    //   caller is responsible for freeing any dynamically allocated memory
+    //   associated with the key.
     //
     //  - node (IN): Pointer to the node to erase from the tree.
     //
@@ -313,8 +302,10 @@ public:
         LeaveCriticalSection(&m_lock);
     }
 
-    // erase - Erases the specified key from the tree. Note that this does not
-    //   cause the actual key to be freed, but only removes it from the tree.
+    // erase - Erases the specified key from the tree. Note that this does
+    //   not cause the key associated with the erased node to be freed. The
+    //   caller is responsible for freeing any dynamically allocated memory
+    //   associated with the key.
     //
     //  - key (IN): The key to erase from the tree. This value is treated as
     //      the key for sorting within the tree. It must therefore be of a type
@@ -580,7 +571,7 @@ public:
         }
     }
 
-    // next - Obtains a pointer to the in-order predecessor of the specified
+    // prev - Obtains a pointer to the in-order predecessor of the specified
     //   node.
     //
     //  - node (IN): Pointer to the node whose in-order predecessor to retrieve.
