@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.5 2006/02/23 22:46:58 dmouldin Exp $
+//  $Id: vldheap.cpp,v 1.6 2006/02/24 21:44:20 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - Internal C++ Heap Management
+//  Copyright (c) 2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -25,8 +25,8 @@
 #include <cassert>
 #define VLDBUILD     // Declares that we are building Visual Leak Detector.
 #include "ntapi.h"   // Provides access to NT APIs.
-#include "vldheap.h" // Provides access to VLD's internal heap datastructures.
-#undef new           // VLD's new operator does not apply in this file
+#include "vldheap.h" // Provides access to VLD's internal heap data structures.
+#undef new           // Do not map "new" to VLD's new operator in this file
 
 // Global variables.
 vldblockheader_t *vldblocklist = NULL; // List of internally allocated blocks on VLD's private heap.
@@ -37,8 +37,8 @@ CRITICAL_SECTION  vldheaplock;         // Serializes access to VLD's private hea
 static inline void vlddelete (void *block);
 static inline void* vldnew (unsigned int size, const char *file, int line);
 
-// scalar delete operator - Delete operator used to free memory used internally by
-//   VLD to VLD's private heap.
+// scalar delete operator - Delete operator used to free internally used memory
+//   back to VLD's private heap.
 //
 //  - block (IN): Pointer to the scalar memory block to free.
 //
@@ -51,8 +51,8 @@ void operator delete (void *block)
     vlddelete(block);
 }
 
-// vector delete operator - Delete operator used to free memory used internally
-//   by VLD to VLD's private heap.
+// vector delete operator - Delete operator used to free internally used memory
+//   back to VLD's private heap.
 //
 //  - block (IN): Pointer to the vector memory block to free.
 //
@@ -165,8 +165,11 @@ void vlddelete (void *block)
 }
 
 // vldnew - Local helper function that actually allocates memory from VLD's
-//   private heap. Appends a header to the returned block used for bookeeping
-//   information that allows VLD to detect and report internal memory leaks.
+//   private heap. Prepends a header, which is used for bookeeping information
+//   that allows VLD to detect and report internal memory leaks, to the returned
+//   block, but the header is transparent to the caller because the returned
+//   pointer points to the useable section of memory requested by the caller, it
+//   does not point to the block header.
 //
 //  - size (IN): Size of the memory block to be allocated.
 //
