@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.18 2006/02/23 22:57:20 dmouldin Exp $
+//  $Id: vldint.h,v 1.19 2006/02/24 21:48:15 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Definition
+//  Copyright (c) 2005-2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -25,7 +25,9 @@
 #pragma once
 
 #ifndef VLDBUILD
-#error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
+#error \
+"This header should only be included by Visual Leak Detector when building it from source. \
+Applications should never include this header."
 #endif
 
 #include <cstdio>
@@ -110,12 +112,12 @@ typedef struct tls_s {
 // The VisualLeakDetector Class
 //
 //   One global instance of this class is instantiated. Upon construction it
-//   patches the import address table (IAT) of (almost) every module loaded in
-//   the process (see the "patchimport" utility function) to allow key Windows
-//   heap APIs to be patched through to, or redirected to, certain functions
-//   provided by VLD. Patching the IATs in this manner allows VLD to be made
-//   aware of all relevant heap activity, making it possible for VLD to detect
-//   and trace memory leaks.
+//   patches the import address table (IAT) of every other module loaded in the
+//   process (see the "patchimport" utility function) to allow key Windows heap
+//   APIs to be patched through to, or redirected to, functions provided by VLD.
+//   Patching the IATs in this manner allows VLD to be made aware of all
+//   relevant heap activity, making it possible for VLD to detect and trace
+//   memory leaks.
 //
 //   The one global instance of this class is constructed within the context of
 //   the process' main thread during process initialization and is destroyed in
@@ -136,9 +138,6 @@ class VisualLeakDetector : public IMalloc
 public:
     VisualLeakDetector();
     ~VisualLeakDetector();
-
-    // Public functions
-    /*BOOL isvldaddress (SIZE_T address);*/
 
     // Public IMalloc methods - for support of COM-based memory leak detection.
     ULONG __stdcall AddRef ();
@@ -183,18 +182,17 @@ private:
     VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size);
     VOID reportconfig ();
     VOID reportleaks (HANDLE heap);
-    inline VOID resettls ();
     VOID unmapblock (HANDLE heap, LPCVOID mem);
     VOID unmapheap (HANDLE heap);
 
     // Private data.
+    WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
     SIZE_T               m_leaksfound;        // Total number of leaks found.
     CRITICAL_SECTION     m_lock;              // Serialzes access to the heap map and Debug Help Library APIs.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
-    WCHAR                m_modulelist [MAXMODULELISTLENGTH]; // List of additional modules to be included in leak detection.
     ModuleSet           *m_moduleset;         // Contains information about all modules loaded in the process.
     UINT32               m_options;           // Configuration options:
 #define VLD_OPT_AGGREGATE_DUPLICATES    0x1   //   If set, aggregate duplicate leaks in the leak report.
