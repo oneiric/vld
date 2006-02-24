@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.8 2006/02/23 22:20:38 dmouldin Exp $
+//  $Id: utility.cpp,v 1.9 2006/02/24 21:31:24 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - Various Utility Functions
+//  Copyright (c) 2005-2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -29,7 +29,7 @@
 #define DBGHELP_TRANSLATE_TCHAR
 #include <dbghelp.h>    // Provides portable executable (PE) image access functions.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
-#include "utility.h"    // Provides various utility functions.
+#include "utility.h"    // Provides various utility functions and macros.
 #include "vldheap.h"    // Provides internal new and delete operators.
 
 // Global variables.
@@ -114,8 +114,7 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
 }
 
 // dumpmemoryw - Dumps a nicely formatted rendition of a region of memory.
-//   Includes both the hex value of each byte and its Unicode equivalent (if
-//   printable).
+//   Includes both the hex value of each byte and its Unicode equivalent.
 //
 //  - address (IN): Pointer to the beginning of the memory region to dump.
 //
@@ -247,7 +246,7 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     }
     
     // Get the *real* address of the import. If we find this address in the IAT,
-    // then we've found the entry that needs to be patched.
+    // then we've found that the module does import the named import.
     exportmodule = GetModuleHandleA(exportmodulename);
     assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
@@ -377,19 +376,13 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
 VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
 {
     patchentry_t *entry;
-    LPCSTR        exportmodulename;
-    LPCSTR        importname;
     UINT          index;
-    LPCVOID       replacement;
 
     // Loop through the import patch table, individually patching each import
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        exportmodulename = entry->exportmodulename;
-        importname       = entry->importname;
-        replacement      = entry->replacement;
-        patchimport(importmodule, exportmodulename, importname, replacement);
+        patchimport(importmodule, entry->exportmodulename, entry->importname, entry->replacement);
     }
 }
 
@@ -431,6 +424,7 @@ VOID report (LPCWSTR format, ...)
     else {
         if (wcstombs(messagea, messagew, MAXREPORTLENGTH) == -1) {
             // Failed to convert the Unicode message to ASCII.
+            assert(FALSE);
             return;
         }
         messagea[MAXREPORTLENGTH] = '\0';
@@ -551,26 +545,20 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
 VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
 {
     patchentry_t *entry;
-    LPCSTR        exportmodulename;
-    LPCSTR        importname;
     UINT          index;
-    LPCVOID       replacement;
 
     // Loop through the import patch table, individually restoring each import
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        exportmodulename = entry->exportmodulename;
-        importname       = entry->importname;
-        replacement      = entry->replacement;
-        restoreimport(importmodule, exportmodulename, importname, replacement);
+        restoreimport(importmodule, entry->exportmodulename, entry->importname, entry->replacement);
     }
 }
 
 // setreportencoding - Sets the output encoding of report messages to either
 //   ASCII (the default) or Unicode.
 //
-//  - unicode (IN): Specifies either "ascii" or "unicode".
+//  - encoding (IN): Specifies either "ascii" or "unicode".
 //
 //  Return Value:
 //
