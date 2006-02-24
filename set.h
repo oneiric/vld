@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: set.h,v 1.1 2006/01/27 23:09:56 dmouldin Exp $
+//  $Id: set.h,v 1.2 2006/02/24 21:29:26 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - Lightweight STL-like Set Template
+//  Copyright (c) 2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -25,24 +25,25 @@
 #pragma once
 
 #ifndef VLDBUILD
-#error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
+#error \
+"This header should only be included by Visual Leak Detector when building it from source. \
+Applications should never include this header."
 #endif
 
-#include "tree.h"    // Provides access to the Tree template class.
-#include "vldheap.h" // Provides internal new and delete operators.
+#include "tree.h" // Provides access to the Tree template class.
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  The Set Template Class
 //
-//  This is a STL-like set template. It makes use of the Tree class template to
-//  enable fast insert, find, and erase operations.
+//  This is a lightweight STL-like set template. It makes use of the Tree class
+//  template to enable fast insert, find, and erase operations.
 //
 //  Note that while this is a STL-like class, it is not a full STL-compliant
 //  implementation of the STL set container. It contains just the bare minimum
 //  functionality required by Visual Leak Detector. Because of its "lightweight"
-//  nature, this set class has a noticeable performance advantage over most
-//  standard STL set implementations.
+//  nature, this set class has a noticeable performance advantage over some
+//  other standard STL set implementations.
 //
 template <typename Tk>
 class Set {
@@ -209,27 +210,15 @@ public:
         return Iterator(&m_tree, m_tree.begin());
     }
 
-    // clear - Erases all keys from the Set.
-    //
-    //   Note: This function does not, indeed cannot, free any dynamically
-    //     allocated keys. Dynamically allocated keys must be manually
-    //     deleted. Also, this function doesn't actually release any memory
-    //     used by the Set, instead the memory remains reserved for future use
-    //     by the Set.
-    //
-    //  Return Value:
-    //
-    //    None.
-    //
-    VOID clear ()
-    {
-        m_tree.clear();
-    }
-
     // end - Obtains an Iterator referencing the end of the Set. The end of
     //   the Set does not reference an actual key. Instead it represents a
     //   "null" key which signifies the end (i.e. just beyond largest key
     //   currently stored in the Set). Also known as the "NULL" Iterator.
+    //
+    //  Return Value:
+    //
+    //    Returns the "NULL" Iterator, signifying the end of the Set.
+    //
     Iterator end () const
     {
         return Iterator(&m_tree, NULL);
