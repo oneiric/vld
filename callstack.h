@@ -1,22 +1,22 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.h,v 1.4 2006/02/23 22:01:00 dmouldin Exp $
+//  $Id: callstack.h,v 1.5 2006/02/24 21:27:22 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.0)
-//  Copyright (c) 2005 Dan Moulding
+//  Visual Leak Detector (Version 1.9a) - CallStack Class Definitions
+//  Copyright (c) 2005-2006 Dan Moulding
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation; either version 2.1 of the License, or
-//  (at your option) any later version.
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
 //
-//  This program is distributed in the hope that it will be useful,
+//  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //  See COPYING.txt for the full terms of the GNU Lesser General Public License.
 //
@@ -25,12 +25,14 @@
 #pragma once
 
 #ifndef VLDBUILD
-#error "This header should only be included by Visual Leak Detector when building it from source. Applications should never include this header."
+#error \
+"This header should only be included by Visual Leak Detector when building it from source. \
+Applications should never include this header."
 #endif
 
 #include <windows.h>
 
-#define CALLSTACKCHUNKSIZE 32
+#define CALLSTACKCHUNKSIZE 32 // Number of frame slots in each CallStack chunk.
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -43,13 +45,13 @@
 //    a STL vector, but is specifically tailored for use by VLD, making it more
 //    efficient than a standard STL vector.
 //
-//    Inside the CallStack are a number of "Chunks" which are arranged in a
-//    linked list. Each Chunk contains an array of frames (each frame is
+//    Inside the CallStack are a number of "chunks" which are arranged in a
+//    linked list. Each chunk contains an array of frames (each frame is
 //    represented by a program counter address). If we run out of space when
-//    pushing new frames onto an existing chunk in the CallStack Chunk list,
-//    then a new Chunk is allocated and appended to the end of the list. In this
+//    pushing new frames onto an existing chunk in the CallStack chunk list,
+//    then a new chunk is allocated and appended to the end of the list. In this
 //    way, the CallStack can grow dynamically as needed. New frames are always
-//    pushed onto the Chunk at the end of the list known as the "top" Chunk.
+//    pushed onto the chunk at the end of the list known as the "top" chunk.
 //
 class CallStack
 {
@@ -68,23 +70,23 @@ public:
     VOID push_back (const SIZE_T programcounter);
 
 protected:
-    // Protected Data
+    // Protected data.
     UINT32 m_status;                    // Status flags:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
 private:
     // The chunk list is made of a linked list of Chunks.
     typedef struct chunk_s {
-        struct chunk_s *next;
-        SIZE_T          frames [CALLSTACKCHUNKSIZE];
+        struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.
+        SIZE_T          frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
     } chunk_t;
 
-    // Private Data
+    // Private data.
     UINT32              m_capacity; // Current capacity limit (in frames)
     UINT32              m_size;     // Current size (in frames)
-    CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the Chunk list)
-    CallStack::chunk_t *m_topchunk; // Pointer to the Chunk at the top of the stack
-    UINT32              m_topindex; // Index, within the top Chunk, of the top of the stack
+    CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
+    CallStack::chunk_t *m_topchunk; // Pointer to the chunk at the top of the stack
+    UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
 };
 
 
