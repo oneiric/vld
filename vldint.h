@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.19 2006/02/24 21:48:15 dmouldin Exp $
+//  $Id: vldint.h,v 1.20 2006/03/08 22:44:02 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -159,6 +159,7 @@ private:
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID __stdcall _CoTaskMemAlloc (ULONG size);
     static LPVOID __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
+    static FARPROC __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
     static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL __stdcall _HeapDestroy (HANDLE heap);
     static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename, PHANDLE modulehandle);
