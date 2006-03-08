@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.20 2006/03/08 22:44:02 dmouldin Exp $
+//  $Id: vldint.h,v 1.21 2006/03/08 22:49:07 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -59,8 +59,8 @@ typedef struct blockinfo_s {
 typedef Map<LPCVOID, blockinfo_t*> BlockMap;
 
 // Information about each heap in the process is kept in this map. Primarily
-// this is used for assigning mapping heaps to all of the blocks allocated
-// from those heaps.
+// this is used for mapping heaps to all of the blocks allocated from those
+// heaps.
 typedef struct heapinfo_s {
     BlockMap blockmap;   // Map of all blocks allocated from this heap.
     UINT32   flags;      // Heap status flags:
