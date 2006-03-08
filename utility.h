@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.7 2006/02/24 21:32:15 dmouldin Exp $
+//  $Id: utility.h,v 1.8 2006/03/08 22:41:22 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Various Utility Definitions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -82,7 +82,7 @@ enum encoding_e {
 typedef struct patchentry_s
 {
     LPCSTR  exportmodulename; // The name of the module exporting the patched API.
-    LPCSTR  importname;       // The name of the imported API being patched.
+    LPCSTR  importname;       // The name (or ordinal) of the imported API being patched.
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 } patchentry_t;
 
