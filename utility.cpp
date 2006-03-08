@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.9 2006/02/24 21:31:24 dmouldin Exp $
+//  $Id: utility.cpp,v 1.10 2006/03/08 22:40:58 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -207,7 +207,8 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //      exports the import to be searched for.
 //
 //  - importname (IN): ANSI string containing the name of the import to search
-//      for.
+//      for. May be an integer cast to a string if the import is exported by
+//      ordinal.
 //
 //  Return Value:
 //
@@ -283,7 +284,8 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
 //      exports the function or variable to be patched.
 //
 //  - importname (IN): ANSI string containing the name of the imported function
-//      or variable to be patched.
+//      or variable to be patched. May be an integer cast to a string if the
+//      import is exported by ordinal.
 //
 //  - replacement (IN): Address of the function or variable to which future
 //      calls or references should be patched through to. This function or
@@ -456,7 +458,8 @@ VOID report (LPCWSTR format, ...)
 //      exports the function or variable to be restored.
 //
 //  - importname (IN): ANSI string containing the name of the imported function
-//      or variable to be restored.
+//      or variable to be restored. May be an integer cast to a string if the
+//      import is exported by ordinal.
 //
 //  - replacement (IN): Address of the function or variable which the import was
 //      previously patched through to via a call to "patchimport".
