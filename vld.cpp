@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.37 2006/02/24 21:37:35 dmouldin Exp $
+//  $Id: vld.cpp,v 1.38 2006/03/08 22:42:36 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -97,6 +97,7 @@ __declspec(dllexport) VisualLeakDetector vld;
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_patchtable [] = {
     // Win32 heap APIs.
+    "kernel32.dll", "GetProcAddress",    _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
     "kernel32.dll", "HeapAlloc",         _RtlAllocateHeap,
     "kernel32.dll", "HeapCreate",        _HeapCreate,
     "kernel32.dll", "HeapDestroy",       _HeapDestroy,
@@ -104,15 +105,15 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "kernel32.dll", "HeapReAlloc",       _RtlReAllocateHeap,
 
     // MFC new operators (exported by ordinal).
-    "mfc42d.dll",   (const char*)711,    _mfc42_new,
-    "mfc42d.dll",   (const char*)714,    _mfc42_new_dbg,
+    "mfc42d.dll",   (LPCSTR)711,         _mfc42_new,
+    "mfc42d.dll",   (LPCSTR)714,         _mfc42_new_dbg,
     // XXX 7.x and 8.x MFC DLL new operators still need to be added to this
     //   table, but I currently don't know their ordinals (they won't
     //   necessarily be the same as they were in MFC 4.2).
 
     // CRT new operators and heap APIs.
-    "msvcrtd.dll",  "??2@YAPAXI@Z",      _crt_new,
-    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z", _crt_new_dbg,
+    "msvcrtd.dll",  "??2@YAPAXI@Z",      _crt_new,     // operator new
+    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z", _crt_new_dbg, // debug operator new
     "msvcrtd.dll",  "_malloc_dbg",       __malloc_dbg,
     "msvcrtd.dll",  "_realloc_dbg",      __realloc_dbg,
     "msvcrtd.dll",  "malloc",            _malloc,
@@ -659,6 +660,55 @@ void* VisualLeakDetector::_crt_new_dbg (unsigned int size, int type, const char 
     return block;
 }
 
+// _GetProcAddress - Calls to GetProcAddress are patched through to this
+//   function. If the requested function is a function that has been patched
+//   through to one of VLD's handlers, then the address of VLD's handler
+//   function is returned instead of the real address. Otherwise, this 
+//   function is just a wrapper around the real GetProcAddress.
+//
+//  - module (IN): Handle (base address) of the module from which to retrieve
+//      the address of an exported function.
+//
+//  - procname (IN): ANSI string containing the name of the exported function
+//      whose address is to be retrieved.
+//
+//  Return Value:
+//
+//    Returns a pointer to the requested function, or VLD's replacement for
+//    the function, if there is a replacement function.
+//
+FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
+{
+    patchentry_t *entry;
+    HMODULE       exportmodule;
+    UINT          index;
+    UINT          tablesize = sizeof(vld.m_patchtable) / sizeof(patchentry_t);
+
+    // See if there is an entry in the patch table that matches the requested
+    // function.
+    for (index = 0; index < tablesize; ++index) {
+        entry = &vld.m_patchtable[index];
+        exportmodule = GetModuleHandleA(entry->exportmodulename);
+        if (exportmodule != module) {
+            // This patch table entry is for a different module.
+            continue;
+        }
+
+        // This patch table entry is for the specified module.
+        if (strcmp(entry->importname, procname) == 0) {
+            // The function name in the patch entry is the same as the requested
+            // function name. This means a request for a patched function's
+            // address has been made. Return tha address of the replacement
+            // function, not the address of the real function.
+            return (FARPROC)entry->replacement;
+        }
+    }
+
+    // The requested function is not a patched function. Just return the real
+    // address of the requested function.
+    return GetProcAddress(module, procname);
+}
+
 // _HeapCreate - Calls to HeapCreate are patched through to this function. This
 //   function is just a wrapper around the real HeapCreate that calls VLD's heap
 //   creation tracking function after the heap has been created.
@@ -844,7 +894,7 @@ void* VisualLeakDetector::_mfc42_new (unsigned int size)
         // This is the first call to this function. Link to the real MFC 4.2 new
         // operator.
         mfc42d = GetModuleHandle(L"mfc42d.dll");
-        pmfc42new = (new_t)GetProcAddress(mfc42d, (const char*)711);
+        pmfc42new = (new_t)GetProcAddress(mfc42d, (LPCSTR)711);
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -893,7 +943,7 @@ void* VisualLeakDetector::_mfc42_new_dbg (unsigned int size, const char *file, i
         // This is the first call to this function. Link to the real MFC 4.2
         // debug new operator.
         mfc42d = GetModuleHandle(L"mfc42d.dll");
-        pmfc42newdbg = (mfc42newdbg_t)GetProcAddress(mfc42d, (const char*)714);
+        pmfc42newdbg = (mfc42newdbg_t)GetProcAddress(mfc42d, (LPCSTR)714);
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -965,7 +1015,7 @@ void* VisualLeakDetector::_realloc (void *mem, size_t size)
 //
 //  Return Value:
 //
-//    Returns the return value from HeapAlloc.
+//    Returns the return value from RtlAllocateHeap.
 //
 LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size)
 {
@@ -1005,7 +1055,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 //
 //  Return Value:
 //
-//    Returns the value returned by HeapFree.
+//    Returns the value returned by RtlFreeHeap.
 //
 BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 {
@@ -1033,7 +1083,7 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 //
 //  Return Value:
 //
-//    Returns the value returned by HeapReAlloc.
+//    Returns the value returned by RtlReAllocateHeap.
 //
 LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
 {
