@@ -1,6 +1,43 @@
-Visual Leak Detector (VLD) Version 1.0
+Visual Leak Detector (VLD) Version 1.9a (beta)
 
   Change Log / Release Notes
+
+1.9a beta (9 March 2006)
+------------------------
+  New Features/Enhancments:
+  + All new leak detection engine detects most, if not all, in-process memory
+    leaks, not just leaks from "new" or "malloc", including COM-based leaks.
+
+  + Packaged as an easier-to-use DLL. There's no longer any need to carefully
+    decide which modules should be linked with the VLD library. Instead, you
+    just include the vld.h header file in at least one source file from each
+    module (DLL or EXE) to be included in memory leak detection.
+
+  + Configuration is done from an INI file instead of using preprocessor macros.
+    This allows VLD's configuration to be changed without needing to recompile
+    the program.
+
+  + Many new configuration options have been added. One of the most often
+    requested option that has been added is the option to save the leak report
+    to a file instead of, or in addition to, the debugger.
+
+  Bugs Fixed:
+  + The improved design of the new leak detection engine has resolved all of the
+    previously known restrictions in version 1.0.
+
+  Known Restrictions in this Release:
+  + Memory allocations made through calls to functions loaded from a DLL using
+    delayed loading may not be detected.
+
+  + Support for programs that use MFC 7.0, MFC 7.1, or MFC 8.0 is not complete
+    yet. Some memory leaks from such MFC-based programs may not be detected. A
+    workaround for this restriction is to forcefully include the MFC DLLs in
+    memory leak detection, by setting the "ForceIncludeModules" configuration
+    option to: "mfc70d.dll mfc71d.dll mfc80d.dll" and explicitly adding vld.lib
+    as an input file on the linker command line (can be added through project
+    settings by adding it to the list of library modules in the linker options).
+    This restriction does not apply to programs that use MFC 4.2, which is fully
+    supported.
 
 
 1.0 (5 August 2005)
@@ -52,8 +89,8 @@ Visual Leak Detector (VLD) Version 1.0
     while freeing resources used internally by VLD.
 
 
-0.9i (30 April 2005)
---------------------
+0.9i beta (30 April 2005)
+-------------------------
   New Features/Enhancements:
   + Added support in the source code for x64 architecture. The pre-built
     libraries will continue to support 32-bit only. If you need 64-bit support
@@ -73,16 +110,16 @@ Visual Leak Detector (VLD) Version 1.0
     VLD to print "File and line number not available" for that call stack entry.
 
 
-0.9h (22 April 2005)
---------------------
+0.9h beta (22 April 2005)
+-------------------------
   Bugs Fixed:
   + Access Violations occur at random places within the VLD code when using
     VLD version 0.9g.
   + When using VLD version 0.9g, VLD may fail to report some memory leaks.
 
 
-0.9g (22 April 2005)
---------------------
+0.9g beta (22 April 2005)
+-------------------------
   New Features/Enhancements:
   + Replaced the temporary internal search algorithm with a permanent search
     algorithm that is much faster. Programs that dynamically allocate a large
@@ -91,8 +128,8 @@ Visual Leak Detector (VLD) Version 1.0
     version. Overall, this is the fastest version of VLD released to date.
 
 
-0.9f (13 April 2005)
---------------------
+0.9f beta (13 April 2005)
+-------------------------
   New Features/Enhancements:
   + Changed the internal search algorithm to a temporary simpler, but
     more stable algorithm. A permanent algorithm which should be much
@@ -103,8 +140,8 @@ Visual Leak Detector (VLD) Version 1.0
     program linked with the VLD library.
 
 
-0.9e (12 April 2005)
---------------------
+0.9e beta (12 April 2005)
+-------------------------
   New Features/Enhancements:
   + VLD no longer uses any STL containers or STL strings. This solves all of the
     compatibility problems with Visual Studio .NET when using the pre-built
@@ -141,8 +178,8 @@ Visual Leak Detector (VLD) Version 1.0
     window.
 
 
-0.9d (30 March 2005)
---------------------
+0.9d beta (30 March 2005)
+-------------------------
   New Features/Enhancements:
   + This version of VLD brings with it some major changes to the way VLD
     interfaces with programs that use it. Instead of requiring that VLD be built
@@ -158,16 +195,16 @@ Visual Leak Detector (VLD) Version 1.0
     with the VLD distribution.
 
 
-0.9c (17 March 2005)
---------------------
+0.9c beta (17 March 2005)
+-------------------------
   Bugs Fixed:
   + Compile error, "error C2039: 'size' : is not a member of '_CrtMemBlockHeader'"
     occurs at line 644 of vld.cpp when building VLD with the VLD_MAX_DATA_DUMP
     preprocessor macro defined.
 
 
-0.9b (15 March 2005)
---------------------
+0.9b beta (15 March 2005)
+-------------------------
   Bugs Fixed:
   + VLD fails to detect memory leaks in class constructors if the objects
     constructed are global objects.
@@ -178,8 +215,8 @@ Visual Leak Detector (VLD) Version 1.0
     fail to produce stack traces altogether.
 
 
-0.9a (12 March 2005)
---------------------
+0.9a beta (12 March 2005)
+-------------------------
   Initial Public Release
 
 
