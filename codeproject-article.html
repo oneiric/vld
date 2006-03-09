@@ -15,10 +15,11 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <!----------------------------- Article Starts ----------------------------->
 
 <UL class=download>
-<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10.zip">Download Visual Leak Detector - 476 Kb</A> 
+<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10.zip">Download Visual Leak Detector 1.0 - 476 Kb</A> 
+<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-19a.zip">Download the 1.9a beta version of Visual Leak Detector (includes source) - 526 Kb</A>
 <LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10-vc6-console-project.zip">Download a demo console project - 479 Kb</A> 
 <LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10-vc6-mfc-project.zip">Download a demo MFC project - 486 Kb</A> 
-<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10-src.zip">Download the source code - 50.3 Kb</A> </LI></UL>
+<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10-src.zip">Download the source code (version 1.0) - 50.3 Kb</A> </LI></UL>
 <P><IMG height=436 alt="Screenshot of Visual Studio 6.0 &#13;&#10;with Visual Leak Detector's memory leak report displayed." src="http://www.codeproject.com/tools/visualleakdetector/screenshot.png" width=600></P>
 <H2>Table of Contents</H2>
 <UL>
@@ -33,16 +34,9 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <LI><A href="#license">License</A> 
 <LI><A href="#history">History</A> </LI></UL>
 <H2><A name=new></A>What's New?</H2>
-<P><B>5 August 2005:</B> Visual Leak Detector 1.0 has finally arrived. If you are currently using an older version, this release should definitely be worth an upgrade. A couple of new features have been added, and a few bugs have been fixed:</P>
-<UL>
-<LI>Memory leak detection can now be selectively disabled and enabled at runtime, using the provided APIs. This provides a straightforward way of allowing VLD to selectively "ignore" certain allocations. It can also be used to disable VLD altogether at runtime, improving application performance without needing to recompile. 
-<LI>If there are multiple identical memory leaks (i.e., leaks that originate from the same call stack and that leak the same size memory block) then VLD can optionally aggregate all of the repeated leaks, showing only the first such leaked block in detail in the memory leak report. A tally of the total number of leaks that match that particular size and call stack accompanies the information for that leak. 
-<LI>Several other minor enhancements, too many to list here, have also been made. </LI></UL>
-<P>Bugs fixed since the last release include:</P>
-<UL>
-<LI>If the MFC libraries are statically linked to the program being debugged, then MFC will erroneously report memory leaks in the Visual Leak Detector code and may cause an access violation while attempting to report the false memory leaks. These bogus leaks are always reported as "client block at &lt;address&gt;, subtype bf42" and are claimed to be "invalid objects". 
-<LI>VLD will leak a fixed-sized block of memory when the program exits, if VLD failed to initialize because the Debug Help library (<I>dbghelp.dll</I>) could not be loaded. 
-<LI>In multithreaded programs, if the program's main thread terminates before other threads in the same process, then VLD may cause an access violation while freeing resources used internally by VLD. </LI></UL>
+<P><B>9 March 2006:</B> The first beta version of the next release of Visual Leak Detector has been posted. Though this is still considered a beta, it should be very stable. This version introduces an all-new leak detection engine that does not have any of the restrictions of the 1.0 version. The most prominent improvement is that the new design is not limited to only detecting leaks from <CODE>new</CODE> or <CODE>malloc</CODE>. For example, COM-based leaks are now detected as well as many other types of leaks.</P>
+<P>Using this new version is slightly different from using the older versions, but is still very easy to do, so if you decide to give the beta a try, be sure to do a quick read of the installation and use instructions in the <I>README.html</I> file included in the ZIP download.</P>
+<P>Note that the article below describes the inner workings of the 1.0 version. Because the beta version might change significantly before the next official release, the article will not be updated to reflect the design of the beta version until the official release is complete.</P>
 <H2><A name=intro></A>Introduction</H2>
 <P>Visual C++ provides built-in memory leak detection, but its capabilities are minimal at best. This memory leak detector was created as a free alternative to the built-in memory leak detector provided with Visual C++. Here are some of Visual Leak Detector's features, none of which exist in the built-in detector:</P>
 <UL>
@@ -323,16 +317,17 @@ void VisualLeakDetector::reportleaks ()
 <H2><A name=history></A>History</H2>
 <P>This list gives a brief overview of the changes made from release to release. For a detailed description of changes made in each release, please see the change log, <I>CHANGES.txt</I>, in the downloadable ZIP files.</P>
 <UL>
+<LI><B>9 March 2006:</B> Version 1.9a beta - Entirely new leak detection engine detects most, if not all, in-process memory leaks not just leaks from <CODE>new</CODE> or <CODE>malloc</CODE>. Added many other new convenience features as well.
 <LI><B>5 August 2005:</B> Version 1.0 - A couple of new features have been added, and a few bugs have been fixed. Major revisions have been made to this article to bring it up to date with respect to the 1.0 release. 
-<LI><B>2 May 2005:</B> Version 0.9i - This release fixed several bugs. It also includes support for Windows x64. 
-<LI><B>22 April 2005:</B> Version 0.9h - This release contains a crucial fix for an internal logic bug in version 0.9g. 
-<LI><B>22 April 2005:</B> Version 0.9g - This release contains a vastly improved internal search/sort algorithm that results in a significant overall performance boost. 
-<LI><B>13 April 2005:</B> Version 0.9f - This provides a quick fix for a bug in 0.9e that can cause crashes. 
-<LI><B>12 April 2005:</B> - Version 0.9e - Solves compatibility problems between the pre-built libraries and Visual Studio .NET by removing the use of STL components (the pre-built libraries are built in Visual Studio 6.0 and the STL is not compatible between .NET and 6.0). 
-<LI><B>30 March 2005:</B> - Version 0.9d - First release of VLD as a set of pre-built libraries. 
-<LI><B>17 March 2005:</B> - Version 0.9c - Fixed a compilation error if <CODE>VLD_MAX_DATA_DUMP</CODE> is defined. 
-<LI><B>15 March 2005:</B> - Version 0.9b - Improved ability to detect leaks in global C++ object constructors. 
-<LI><B>12 March 2005:</B> - Version 0.9a - Initial public release. </LI></UL>
+<LI><B>2 May 2005:</B> Version 0.9i beta - This release fixed several bugs. It also includes support for Windows x64. 
+<LI><B>22 April 2005:</B> Version 0.9h beta - This release contains a crucial fix for an internal logic bug in version 0.9g. 
+<LI><B>22 April 2005:</B> Version 0.9g beta - This release contains a vastly improved internal search/sort algorithm that results in a significant overall performance boost. 
+<LI><B>13 April 2005:</B> Version 0.9f beta - This provides a quick fix for a bug in 0.9e that can cause crashes. 
+<LI><B>12 April 2005:</B> Version 0.9e beta - Solves compatibility problems between the pre-built libraries and Visual Studio .NET by removing the use of STL components (the pre-built libraries are built in Visual Studio 6.0 and the STL is not compatible between .NET and 6.0). 
+<LI><B>30 March 2005:</B> Version 0.9d beta - First release of VLD as a set of pre-built libraries. 
+<LI><B>17 March 2005:</B> Version 0.9c beta - Fixed a compilation error if <CODE>VLD_MAX_DATA_DUMP</CODE> is defined. 
+<LI><B>15 March 2005:</B> Version 0.9b beta - Improved ability to detect leaks in global C++ object constructors. 
+<LI><B>12 March 2005:</B> Version 0.9a beta - Initial public release. </LI></UL>
 
 
 
