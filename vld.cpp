@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.38 2006/03/08 22:42:36 dmouldin Exp $
+//  $Id: vld.cpp,v 1.39 2006/03/09 16:38:01 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -28,6 +28,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <sys/stat.h>
 #include <windows.h>
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #define DBGHELP_TRANSLATE_TCHAR
@@ -1355,11 +1356,15 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 VOID VisualLeakDetector::configure ()
 {
 #define BSIZE 64
-    WCHAR   buffer [BSIZE];
-    WCHAR   filename [MAX_PATH];
-    WCHAR   inipath [MAX_PATH];
+    WCHAR        buffer [BSIZE];
+    WCHAR        filename [MAX_PATH];
+    WCHAR        inipath [MAX_PATH];
+    struct _stat s;
 
     _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
+    if (_wstat(inipath, &s) != 0) {
+        wcsncpy(inipath, L"vld.ini", MAX_PATH);
+    }
 
     // Read the boolean options.
     GetPrivateProfileString(L"Options", L"AggregateDuplicates", L"", buffer, BSIZE, inipath);
