@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.h,v 1.4 2006/02/24 21:44:44 dmouldin Exp $
+//  $Id: vldheap.h,v 1.5 2006/10/26 23:05:19 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Internal C++ Heap Management Defs.
 //  Copyright (c) 2006 Dan Moulding
@@ -39,9 +39,9 @@ typedef struct vldblockheader_s
 {
     const char              *file;         // Name of the file where this block was allocated.
     int                      line;         // Line number within the above file where this block was allocated.
-    struct vldblockheader_s *next;         // Pointer to the next block in the list of all internally allocated blocks.
-    struct vldblockheader_s *prev;         // Pointer to the preceding block in the list of all internall allocated blocks.
-    SIZE_T                   serialnumber; // Each block is assigned a unique serial number, starting at zero and incrementing from there.
+    struct vldblockheader_s *next;         // Pointer to the next block in the list of internally allocated blocks.
+    struct vldblockheader_s *prev;         // Pointer to the preceding block in the list of internally allocated blocks.
+    SIZE_T                   serialnumber; // Each block is assigned a unique serial number, starting from zero.
     unsigned int             size;         // The size of this memory block, not including this header.
 } vldblockheader_t;
 
