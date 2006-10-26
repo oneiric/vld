@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.10 2006/03/08 22:40:58 dmouldin Exp $
+//  $Id: utility.cpp,v 1.11 2006/10/26 22:58:54 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -57,8 +57,8 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
     SIZE_T byteindex;
     SIZE_T bytesdone;
     SIZE_T dumplen;
-    WCHAR  formatbuf [4];
-    WCHAR  hexdump [58] = {0};
+    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
     SIZE_T hexindex;
 
     // Each line of output is 16 bytes.
@@ -76,12 +76,12 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
     bytesdone = 0;
     for (byteindex = 0; byteindex < dumplen; byteindex++) {
         hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        ascindex = (byteindex % 16) + (byteindex % 16) / 8; // 1 character per byte, plus a 1-character space after every 8 bytes.
+        ascindex = (byteindex % 16) + (byteindex % 16) / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
             byte = ((PBYTE)address)[byteindex];
-            _snwprintf(formatbuf, 3, L"%.2X ", byte);
+            _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
             formatbuf[3] = '\0';
-            wcsncpy(hexdump + hexindex, formatbuf, 4);
+            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
             if (isgraph(byte)) {
                 ascdump[ascindex] = (WCHAR)byte;
             }
@@ -91,7 +91,7 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            wcsncpy(hexdump + hexindex, L"   ", 4);
+            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, L"   ", 4);
             ascdump[ascindex] = L'.';
         }
         bytesdone++;
@@ -107,7 +107,7 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
             }
             if ((bytesdone % 4) == 0) {
                 // Add a spacer in the hex dump after every 4 bytes.
-                wcsncpy(hexdump + hexindex + 3, L"   ", 4);
+                wcsncpy_s(hexdump + hexindex + 3, HEXDUMPLINELENGTH - hexindex - 3, L"   ", 4);
             }
         }
     }
@@ -130,8 +130,8 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     SIZE_T byteindex;
     SIZE_T bytesdone;
     SIZE_T dumplen;
-    WCHAR  formatbuf [4];
-    WCHAR  hexdump [58] = {0};
+    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
     SIZE_T hexindex;
     WORD   word;
     WCHAR  unidump [18] = {0};
@@ -151,13 +151,13 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     // representation.
     bytesdone = 0;
     for (byteindex = 0; byteindex < dumplen; byteindex++) {
-        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4));   // 3 characters per byte, plus a 3-character space after every 4 bytes.
         uniindex = ((byteindex / 2) % 8) + ((byteindex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
             byte = ((PBYTE)address)[byteindex];
-            _snwprintf(formatbuf, 3, L"%.2X ", byte);
-            formatbuf[3] = '\0';
-            wcsncpy(hexdump + hexindex, formatbuf, 4);
+            _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
+            formatbuf[BYTEFORMATBUFFERLENGTH - 1] = '\0';
+            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
             if (((byteindex % 2) == 0) && ((byteindex + 1) < dumplen)) {
                 // On every even byte, print one character.
                 word = ((PWORD)address)[byteindex / 2];
@@ -171,7 +171,7 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            wcsncpy(hexdump + hexindex, L"   ", 4);
+            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, L"   ", 4);
             unidump[uniindex] = L'.';
         }
         bytesdone++;
@@ -187,7 +187,7 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
             }
             if ((bytesdone % 4) == 0) {
                 // Add a spacer in the hex dump after every 4 bytes.
-                wcsncpy(hexdump + hexindex + 3, L"   ", 4);
+                wcsncpy_s(hexdump + hexindex + 3, HEXDUMPLINELENGTH - hexindex - 3, L"   ", 4);
             }
         }
     }
@@ -228,7 +228,8 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE, IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -310,7 +311,8 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE, IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;
@@ -406,11 +408,12 @@ VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesi
 VOID report (LPCWSTR format, ...)
 {
     va_list args;
+    size_t  count;
     CHAR    messagea [MAXREPORTLENGTH + 1];
     WCHAR   messagew [MAXREPORTLENGTH + 1];
 
     va_start(args, format);
-    _vsnwprintf(messagew, MAXREPORTLENGTH, format, args);
+    _vsnwprintf_s(messagew, MAXREPORTLENGTH + 1, _TRUNCATE, format, args);
     va_end(args);
     messagew[MAXREPORTLENGTH] = L'\0';
 
@@ -424,7 +427,7 @@ VOID report (LPCWSTR format, ...)
         }
     }
     else {
-        if (wcstombs(messagea, messagew, MAXREPORTLENGTH) == -1) {
+        if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
             // Failed to convert the Unicode message to ASCII.
             assert(FALSE);
             return;
@@ -482,7 +485,8 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE, IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing)..
         return;
@@ -623,8 +627,8 @@ VOID strapp (LPWSTR *dest, LPCWSTR source)
     temp = *dest;
     length = wcslen(*dest) + wcslen(source);
     *dest = new WCHAR [length + 1];
-    wcsncpy(*dest, temp, length);
-    wcsncat(*dest, source, length);
+    wcsncpy_s(*dest, length + 1, temp, _TRUNCATE);
+    wcsncat_s(*dest, length + 1, source, _TRUNCATE);
     delete [] temp;
 }
 
@@ -641,9 +645,9 @@ VOID strapp (LPWSTR *dest, LPCWSTR source)
 BOOL strtobool (LPCWSTR s) {
     WCHAR *end;
 
-    if ((wcsicmp(s, L"true") == 0) ||
-        (wcsicmp(s, L"yes") == 0) ||
-        (wcsicmp(s, L"on") == 0) ||
+    if ((_wcsicmp(s, L"true") == 0) ||
+        (_wcsicmp(s, L"yes") == 0) ||
+        (_wcsicmp(s, L"on") == 0) ||
         (wcstol(s, &end, 10) == 1)) {
         return TRUE;
     }
