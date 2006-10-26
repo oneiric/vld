@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: map.h,v 1.4 2006/02/24 21:27:49 dmouldin Exp $
+//  $Id: map.h,v 1.5 2006/10/26 22:53:05 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Lightweight STL-like Map Template
 //  Copyright (c) 2006 Dan Moulding
@@ -181,7 +181,7 @@ public:
         // 
         Iterator operator ++ ()
         {
-            Tree<Pair<Tk, Tv> >::node_t *cur = m_node;
+            typename Tree<Pair<Tk, Tv> >::node_t *cur = m_node;
 
             m_node = m_tree->next(m_node);
             return Iterator(m_tree, cur);
@@ -201,8 +201,8 @@ public:
         //
         Iterator operator - (SIZE_T num) const
         {
-            SIZE_T                       count;
-            Tree<Pair<Tk, Tv> >::node_t *cur = m_node;
+            SIZE_T                                count;
+            typename Tree<Pair<Tk, Tv> >::node_t *cur = m_node;
 
             cur = m_tree->prev(m_node);
             for (count = 0; count < num; count++)  {
@@ -234,14 +234,14 @@ public:
         // Private constructor. Only the Map class itself may use this
         //   constructor. It is used for constructing Iterators which reference
         //   specific nodes in the internal tree's structure.
-        Iterator (const Tree<Pair<Tk, Tv> > *tree, Tree<Pair<Tk, Tv> >::node_t *node)
+        Iterator (const Tree<Pair<Tk, Tv> > *tree, typename Tree<Pair<Tk, Tv> >::node_t *node)
         {
             m_node = node;
             m_tree = tree;
         }
 
-        Tree<Pair<Tk, Tv> >::node_t *m_node; // Pointer to the node referenced by the Map Iterator.
-        const Tree<Pair<Tk, Tv> >   *m_tree; // Pointer to the tree containing the referenced node.
+        typename Tree<Pair<Tk, Tv> >::node_t *m_node; // Pointer to the node referenced by the Map Iterator.
+        const Tree<Pair<Tk, Tv> >            *m_tree; // Pointer to the tree containing the referenced node.
 
         // The Map class is a friend of Map Iterators.
         friend class Map<Tk, Tv>;

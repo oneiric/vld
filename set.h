@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: set.h,v 1.2 2006/02/24 21:29:26 dmouldin Exp $
+//  $Id: set.h,v 1.3 2006/10/26 22:54:23 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Lightweight STL-like Set Template
 //  Copyright (c) 2006 Dan Moulding
@@ -131,7 +131,7 @@ public:
         // 
         Iterator operator ++ ()
         {
-            Tree<Tk>::node_t *cur = m_node;
+            typename Tree<Tk>::node_t *cur = m_node;
 
             m_node = m_tree->next(m_node);
             return Iterator(m_tree, cur);
@@ -151,8 +151,8 @@ public:
         //
         Iterator operator - (SIZE_T num) const
         {
-            SIZE_T            count;
-            Tree<Tk>::node_t *cur = m_node;
+            SIZE_T                     count;
+            typename Tree<Tk>::node_t *cur = m_node;
 
             cur = m_tree->prev(m_node);
             for (count = 0; count < num; count++)  {
@@ -184,14 +184,14 @@ public:
         // Private constructor. Only the Set class itself may use this
         //   constructor. It is used for constructing Iterators which reference
         //   specific nodes in the internal tree's structure.
-        Iterator (const Tree<Tk> *tree, Tree<Tk>::node_t *node)
+        Iterator (const Tree<Tk> *tree, typename Tree<Tk>::node_t *node)
         {
             m_node = node;
             m_tree = tree;
         }
 
-        Tree<Tk>::node_t *m_node; // Pointer to the node referenced by the Set Iterator.
-        const Tree<Tk>   *m_tree; // Pointer to the tree containing the referenced node.
+        typename Tree<Tk>::node_t *m_node; // Pointer to the node referenced by the Set Iterator.
+        const Tree<Tk>            *m_tree; // Pointer to the tree containing the referenced node.
 
         // The Set class is a friend of Set Iterators.
         friend class Set<Tk>;

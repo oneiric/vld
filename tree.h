@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.6 2006/02/24 21:30:30 dmouldin Exp $
+//  $Id: tree.h,v 1.7 2006/10/26 22:54:51 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Red-black Tree Template
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -106,8 +106,8 @@ public:
     // Destructor
     ~Tree ()
     {
-        Tree::chunk_t *cur;
-        Tree::chunk_t *temp;
+        chunk_t *cur;
+        chunk_t *temp;
 
         // Free all the chunks in the chunk list.
         EnterCriticalSection(&m_lock);
@@ -141,9 +141,9 @@ public:
     //
     //    Returns a pointer to the first node in the tree.
     //    
-    Tree::node_t* begin () const
+    typename Tree::node_t* begin () const
     {
-        Tree::node_t *cur;
+        node_t *cur;
 
         EnterCriticalSection(&m_lock);
         if (m_root == &m_nil) {
@@ -171,12 +171,12 @@ public:
     //
     //    None.
     //
-    VOID erase (Tree::node_t *node)
+    VOID erase (typename Tree::node_t *node)
     {
-        Tree::node_t *child;
-        Tree::node_t *cur;
-        Tree::node_t *erasure;
-        Tree::node_t *sibling;
+        node_t *child;
+        node_t *cur;
+        node_t *erasure;
+        node_t *sibling;
 
         EnterCriticalSection(&m_lock);
 
@@ -317,7 +317,7 @@ public:
     //
     VOID erase (const T &key)
     {
-        Tree::node_t *node;
+        node_t *node;
 
         // Find the node to erase.
         EnterCriticalSection(&m_lock);
@@ -353,9 +353,9 @@ public:
     //    Returns a pointer to the node corresponding to the specified key. If
     //    the key is not in the tree, then "find" returns NULL.
     //
-    Tree::node_t* find (const T &key) const
+    typename Tree::node_t* find (const T &key) const
     {
-        Tree::node_t *cur;
+        node_t *cur;
         
         EnterCriticalSection(&m_lock);
         cur = m_root;
@@ -392,12 +392,12 @@ public:
     //    key. If an attempt is made to insert a key which is already in the
     //    tree, then NULL is returned and the new key is not inserted.
     //
-    Tree::node_t* insert (const T &key)
+    typename Tree::node_t* insert (const T &key)
     {
-        Tree::node_t  *cur;
-        Tree::node_t  *node;
-        Tree::node_t  *parent;
-        Tree::node_t  *uncle;
+        node_t  *cur;
+        node_t  *node;
+        node_t  *parent;
+        node_t  *uncle;
 
         EnterCriticalSection(&m_lock);
 
@@ -517,9 +517,9 @@ public:
     //    node corresponds to the largest value in the tree, then the specified
     //    node has no successor and "next" will return NULL.
     //
-    Tree::node_t* next (Tree::node_t *node) const
+    typename Tree::node_t* next (typename Tree::node_t *node) const
     {
-        Tree::node_t* cur;
+        node_t* cur;
 
         if (node == NULL) {
             return NULL;
@@ -582,9 +582,9 @@ public:
     //    node corresponds to the smallest value in the tree, then the specified
     //    node has no predecessor and "prev" will return NULL.
     //
-    Tree::node_t* prev (Tree::node_t *node) const
+    typename Tree::node_t* prev (typename Tree::node_t *node) const
     {
-        Tree::node_t* cur;
+        node_t* cur;
 
         if (node == NULL) {
             return NULL;
@@ -655,9 +655,9 @@ public:
     //
     UINT32 reserve (UINT32 count)
     {
-        Tree::chunk_t *chunk;
-        UINT32         index;
-        UINT32         oldreserve = m_reserve;
+        chunk_t *chunk;
+        UINT32   index;
+        UINT32   oldreserve = m_reserve;
 
         if (count != m_reserve) {
             if (count < 1) {
@@ -706,9 +706,9 @@ private:
     //
     //    None.
     //
-    VOID _rotateleft (Tree::node_t *parent)
+    VOID _rotateleft (typename Tree::node_t *parent)
     {
-        Tree::node_t *child = parent->right;
+        node_t *child = parent->right;
 
         // Reassign the child's left subtree to the parent.
         parent->right = child->left;
@@ -744,9 +744,9 @@ private:
     //
     //    None.
     //
-    VOID _rotateright (Tree::node_t *parent)
+    VOID _rotateright (typename Tree::node_t *parent)
     {
-        Tree::node_t *child = parent->left;
+        node_t *child = parent->left;
 
         // Reassign the child's right subtree to the parent.
         parent->left = child->right;
@@ -774,11 +774,11 @@ private:
     }
 
     // Private data members.
-    Tree::node_t             *m_freelist;  // Pointer to the list of free nodes (reserve storage).
+    node_t                   *m_freelist;  // Pointer to the list of free nodes (reserve storage).
     mutable CRITICAL_SECTION  m_lock;      // Protects the tree's integrity against concurrent accesses.
-    Tree::node_t              m_nil;       // The tree's nil node. All leaf nodes point to this.
+    node_t                    m_nil;       // The tree's nil node. All leaf nodes point to this.
     UINT32                    m_reserve;   // The size (in nodes) of the chunks of reserve storage.
-    Tree::node_t             *m_root;      // Pointer to the tree's root node.
-    Tree::chunk_t            *m_store;     // Pointer to the start of the chunk list.
-    Tree::chunk_t            *m_storetail; // Pointer to the end of the chunk list.
+    node_t                   *m_root;      // Pointer to the tree's root node.
+    chunk_t                  *m_store;     // Pointer to the start of the chunk list.
+    chunk_t                  *m_storetail; // Pointer to the end of the chunk list.
 };
