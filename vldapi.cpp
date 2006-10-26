@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.9 2006/02/24 21:43:50 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.10 2006/10/26 23:04:41 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -35,7 +35,7 @@ __declspec(thread) tls_t VisualLeakDetector::m_tls;
 //  Visual Leak Detector APIs - see vldapi.h for each function's details.
 //
 
-extern "C" __declspec(dllexport) VOID VLDDisable ()
+extern "C" __declspec(dllexport) void VLDDisable ()
 {
     if (!vld.enabled()) {
         // Already disabled for the current thread.
@@ -46,7 +46,7 @@ extern "C" __declspec(dllexport) VOID VLDDisable ()
     vld.m_tls.flags &= ~VLD_TLS_ENABLED;
 }
 
-extern "C" __declspec(dllexport) VOID VLDEnable ()
+extern "C" __declspec(dllexport) void VLDEnable ()
 {
     if (vld.enabled()) {
         // Already enabled for the current thread.
