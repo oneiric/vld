@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.9 2006/02/24 21:26:49 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.10 2006/10/26 22:52:41 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -229,7 +229,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         programcounter = (*this)[frame];
         if ((foundline = SymGetLineFromAddr64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
             if (!showinternalframes) {
-                wcslwr(sourceinfo.FileName);
+                _wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
                     wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
                     wcsstr(sourceinfo.FileName, L"malloc.c") ||
