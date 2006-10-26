@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: ntapi.h,v 1.3 2006/10/26 22:54:01 dmouldin Exp $
+//  $Id: ntapi.h,v 1.4 2006/10/26 23:30:08 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9a) - NT API Definitions
+//  Visual Leak Detector (Version 1.9b) - NT API Definitions
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

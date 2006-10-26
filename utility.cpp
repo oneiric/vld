@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.11 2006/10/26 22:58:54 dmouldin Exp $
+//  $Id: utility.cpp,v 1.12 2006/10/26 23:30:08 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9a) - Various Utility Functions
+//  Visual Leak Detector (Version 1.9b) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

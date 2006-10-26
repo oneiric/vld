@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.40 2006/10/26 23:02:57 dmouldin Exp $
+//  $Id: vld.cpp,v 1.41 2006/10/26 23:30:09 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Impl.
+//  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
