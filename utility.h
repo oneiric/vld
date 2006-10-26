@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.8 2006/03/08 22:41:22 dmouldin Exp $
+//  $Id: utility.h,v 1.9 2006/10/26 22:59:37 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - Various Utility Definitions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -68,8 +68,10 @@ Applications should never include this header."
 #error "Visual Leak Detector is not supported on this architecture."
 #endif // _M_IX86 || _M_X64
 
-// Relative Virtual Address to Virtual Address conversion.
-#define R2VA(modulebase, rva) (((PBYTE)modulebase) + rva)
+// Miscellaneous definitions
+#define R2VA(modulebase, rva)  (((PBYTE)modulebase) + rva) // Relative Virtual Address to Virtual Address conversion.
+#define BYTEFORMATBUFFERLENGTH 4
+#define HEXDUMPLINELENGTH      58
 
 // Reports can be encoded as either ASCII or Unicode (UTF-16).
 enum encoding_e {
