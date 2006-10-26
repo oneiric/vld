@@ -1,6 +1,27 @@
-Visual Leak Detector (VLD) Version 1.9a (beta)
+Visual Leak Detector (VLD) Version 1.9b (beta)
 
   Change Log / Release Notes
+
+1.9b beta (26 October 2006)
+---------------------------
+  Bugs Fixed:
+  + Source compiles under Visual Studio 2005 and the binaries are compatible
+    with applications that link with the Visual Studio 2005 C Runtime Library
+    (msvcr80d.dll).
+
+  Known Restrictions in this Release:
+  + Memory allocations made through calls to functions loaded from a DLL using
+    delayed loading may not be detected.
+
+  + Support for programs that use MFC 7.0, MFC 7.1, or MFC 8.0 is not complete
+    yet. Some memory leaks from such MFC-based programs may not be detected. A
+    workaround for this restriction is to forcefully include the MFC DLLs in
+    memory leak detection, by setting the "ForceIncludeModules" configuration
+    option to: "mfc70d.dll mfc71d.dll mfc80d.dll" and explicitly adding vld.lib
+    as an input file on the linker command line (can be added through project
+    settings by adding it to the list of library modules in the linker options).
+    This restriction does not apply to programs that use MFC 4.2, which is fully
+    supported.
 
 1.9a beta (9 March 2006)
 ------------------------
