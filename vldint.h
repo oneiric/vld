@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.21 2006/03/08 22:49:07 dmouldin Exp $
+//  $Id: vldint.h,v 1.22 2006/10/26 23:03:56 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9a) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -39,11 +39,13 @@ Applications should never include this header."
 #include "utility.h"   // Provides miscellaneous utility functions.
 
 #define MAXMODULELISTLENGTH 512     // Maximum module list length, in characters.
+#define SELFTESTTEXTA       "Memory Leak Self-Test"
+#define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDVERSION          L"1.9a"
 
 // The Visual Leak Detector APIs.
-extern "C" __declspec(dllexport) VOID VLDDisable ();
-extern "C" __declspec(dllexport) VOID VLDEnable ();
+extern "C" __declspec(dllexport) void VLDDisable ();
+extern "C" __declspec(dllexport) void VLDEnable ();
 
 // Data is collected for every block allocated from any heap in the process.
 // The data is stored in this structure and these structures are stored in
@@ -84,7 +86,7 @@ typedef struct moduleinfo_s {
         }
     }
 
-    SIZE_T addrhigh;                 // Highest address within the module's virtual address space (i.e. base + size of module).
+    SIZE_T addrhigh;                 // Highest address within the module's virtual address space (i.e. base + size).
     SIZE_T addrlow;                  // Lowest address within the module's virtual address space (i.e. base address).
     UINT32 flags;                    // Module flags:
 #define VLD_MODULE_EXCLUDED      0x1 //   If set, this module is excluded from leak detection.
@@ -153,20 +155,29 @@ public:
 private:
     // Import patching replacement functions - see each function definition for details.
     static void* __cdecl __malloc_dbg (size_t size, int type, const char *file, int line);
+    static void* __cdecl __malloc_dbg80 (size_t size, int type, const char *file, int line);
     static void* __cdecl __realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
+    static void* __cdecl __realloc_dbg80 (void *mem, size_t size, int type, const char *file, int line);
     static void* __cdecl _crt_new (unsigned int size);
+    static void* __cdecl _crt_new80 (unsigned int size);
     static void* __cdecl _crt_new_dbg (unsigned int size, int type, const char *file, int line);
+    static void* __cdecl _crt_new_dbg80 (unsigned int size, int type, const char *file, int line);
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID __stdcall _CoTaskMemAlloc (ULONG size);
     static LPVOID __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
     static FARPROC __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
     static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL __stdcall _HeapDestroy (HANDLE heap);
-    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename, PHANDLE modulehandle);
+    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename,
+                                           PHANDLE modulehandle);
     static void* __cdecl _malloc (size_t size);
+    static void* __cdecl _malloc80 (size_t size);
     static void* __cdecl _mfc42_new (unsigned int size);
     static void* __cdecl _mfc42_new_dbg (unsigned int size, const char *file, int line);
+    static void* __cdecl _mfc80_new (unsigned int size);
+    static void* __cdecl _mfc80_new_dbg (unsigned int size, const char *file, int line);
     static void* __cdecl _realloc (void *mem, size_t size);
+    static void* __cdecl _realloc80 (void *mem, size_t size);
     static LPVOID __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
     static BOOL __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
     static LPVOID __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
@@ -200,11 +211,11 @@ private:
 #define VLD_OPT_MODULE_LIST_INCLUDE     0x2   //   If set, modules in the module list are included, all others are excluded.
 #define VLD_OPT_REPORT_TO_DEBUGGER      0x4   //   If set, the memory leak report is sent to the debugger.
 #define VLD_OPT_REPORT_TO_FILE          0x8   //   If set, the memory leak report is sent to a file.
-#define VLD_OPT_SAFE_STACK_WALK         0x10  //   If set, the stack will be walked using the "safe" method (StackWalk64).
+#define VLD_OPT_SAFE_STACK_WALK         0x10  //   If set, the stack is walked using the "safe" method (StackWalk64).
 #define VLD_OPT_SELF_TEST               0x20  //   If set, peform a self-test to verify memory leak self-checking.
 #define VLD_OPT_START_DISABLED          0x80  //   If set, memory leak detection will initially disabled.
 #define VLD_OPT_TRACE_INTERNAL_FRAMES   0x40  //   If set, include useless frames (e.g. internal to VLD) in call stacks.
-#define VLD_OPT_UNICODE_REPORT          0x100 //   If set, the leak report will be UTF-16 encoded instead of ASCII encoded.
+#define VLD_OPT_UNICODE_REPORT          0x100 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
     static patchentry_t  m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportfile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
@@ -217,8 +228,8 @@ private:
     static __declspec(thread) tls_t m_tls;    // Thread-local storage.
 
     // The Visual Leak Detector APIs are our friends.
-    friend __declspec(dllexport) VOID VLDDisable ();
-    friend __declspec(dllexport) VOID VLDEnable ();
+    friend __declspec(dllexport) void VLDDisable ();
+    friend __declspec(dllexport) void VLDEnable ();
 };
 
 // Configuration option default values
