@@ -50,7 +50,7 @@
 				InlineFunctionExpansion="2"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;UNICODE;_USRDLL;VLD_EXPORTS"
 				StringPooling="true"
-				RuntimeLibrary="3"
+				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile=".\Release/vld.pch"
 				AssemblerListingLocation=".\Release/"
