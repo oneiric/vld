@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.7 2006/10/26 23:30:09 dmouldin Exp $
+//  $Id: vldheap.cpp,v 1.8 2006/10/29 20:33:42 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - Internal C++ Heap Management
 //  Copyright (c) 2006 Dan Moulding
@@ -143,7 +143,7 @@ void* operator new [] (unsigned int size, const char *file, int line)
 void vlddelete (void *block)
 {
     BOOL              freed;
-    vldblockheader_t *header = BLOCKHEADER((LPVOID)block);
+    vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
     EnterCriticalSection(&vldheaplock);
@@ -187,26 +187,27 @@ void* vldnew (unsigned int size, const char *file, int line)
     vldblockheader_t *header = (vldblockheader_t*)RtlAllocateHeap(vldheap, 0x0, size + sizeof(vldblockheader_t));
     static SIZE_T     serialnumber = 0;
 
-    if (header != NULL) {
-        // Fill in the block's header information.
-        header->file         = file;
-        header->line         = line;
-        header->serialnumber = serialnumber++;
-        header->size         = size;
-
-        // Link the block into the block list.
-        EnterCriticalSection(&vldheaplock);
-        header->next         = vldblocklist;
-        if (header->next != NULL) {
-            header->next->prev = header;
-        }
-        header->prev         = NULL;
-        vldblocklist         = header;
-        LeaveCriticalSection(&vldheaplock);
-
-        // Return a pointer to the beginning of the data section of the block.
-        return (void*)BLOCKDATA(header);
+    if (header == NULL) {
+        // Out of memory.
+        return NULL;
     }
 
-    return NULL;
+    // Fill in the block's header information.
+    header->file         = file;
+    header->line         = line;
+    header->serialnumber = serialnumber++;
+    header->size         = size;
+
+    // Link the block into the block list.
+    EnterCriticalSection(&vldheaplock);
+    header->next         = vldblocklist;
+    if (header->next != NULL) {
+        header->next->prev = header;
+    }
+    header->prev         = NULL;
+    vldblocklist         = header;
+    LeaveCriticalSection(&vldheaplock);
+
+    // Return a pointer to the beginning of the data section of the block.
+    return (void*)VLDBLOCKDATA(header);
 }
