@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.11 2006/10/26 23:30:08 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.12 2006/10/29 19:51:11 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -233,7 +233,8 @@ VOID CallStack::dump (BOOL showinternalframes) const
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
                     wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
                     wcsstr(sourceinfo.FileName, L"malloc.c") ||
-                    wcsstr(sourceinfo.FileName, L"new.cpp")) {
+                    wcsstr(sourceinfo.FileName, L"new.cpp") ||
+                    wcsstr(sourceinfo.FileName, L"newaop.cpp")) {
                     // Don't show frames in files internal to the heap.
                     continue;
                 }
