@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.42 2006/10/29 20:27:51 dmouldin Exp $
+//  $Id: vld.cpp,v 1.43 2006/10/29 21:51:55 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2201,6 +2201,7 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
 #define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
     WCHAR               modulename [MAXMODULENAME + 1];
     CHAR                modulepatha [MAX_PATH];
+    BOOL                refresh = FALSE;
     UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
 
     // Extract just the filename and extension from the module path.
@@ -2219,14 +2220,19 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
     moduleinfo.flags    = 0x0;
     moduleit = vld.m_moduleset->find(moduleinfo);
     if (moduleit != vld.m_moduleset->end()) {
-        // This module has previously been attached. Discard any prior knowledge
-        // that we have about this module, in case anything about it has changed
-        // (address range or symbols) since the last time we attached to it.
+        // This module has previously been attached. We will want to discard any
+        // prior data that we have about this module, in case anything about it
+        // has changed (address range or symbols) since the last time we
+        // attached to it.
+        refresh = TRUE;
+    }
+
+    if ((refresh == TRUE) && ((*moduleit).flags & VLD_MODULE_SYMBOLSLOADED)) {
+        // Discard the previously loaded symbols, so that we can refresh them.
         if (SymUnloadModule64(currentprocess, (*moduleit).addrlow) == FALSE) {
             report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
                    L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
         }
-        vld.m_moduleset->erase(moduleit);
     }
 
     // Try to load the module's symbols. This ensures that we have loaded the
@@ -2261,6 +2267,12 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
         report(L"WARNING: Visual Leak Detector: A module, %s, included in memory leak detection\n"
                L"  does not have any debugging symbols available, or they could not be located.\n"
                L"  Function names and/or line numbers for this module may not be available.\n", modulename);
+    }
+
+    if (refresh == TRUE) {
+        // Discard the module's previously recorded information so that we can
+        // refresh it.
+        vld.m_moduleset->erase(moduleit);
     }
 
     // Insert the module's information into the module set.
