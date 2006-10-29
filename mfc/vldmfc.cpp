@@ -1,4 +1,4 @@
-//  $Id: vldmfc.cpp,v 1.3 2005/03/31 02:13:54 db Exp $
+//  $Id: vldmfc.cpp,v 1.4 2006/10/29 21:56:32 dmouldin Exp $
 //
 
 #include "stdafx.h"
@@ -48,12 +48,6 @@ BOOL CMFCExampleApp::InitInstance()
     // If you are not using these features and wish to reduce the size
     //  of your final executable, you should remove from the following
     //  the specific initialization routines you do not need.
-
-#ifdef _AFXDLL
-    Enable3dControls();         // Call this when using MFC in a shared DLL
-#else
-    Enable3dControlsStatic();   // Call this when linking to MFC statically
-#endif
 
     CMFCExampleDlg dlg;
     m_pMainWnd = &dlg;
