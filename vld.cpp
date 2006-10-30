@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.43 2006/10/29 21:51:55 dmouldin Exp $
+//  $Id: vld.cpp,v 1.44 2006/10/30 14:13:14 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -90,16 +90,12 @@ static _calloc_dbg_t      pcrtd__calloc_dbg       = NULL;
 static _malloc_dbg_t      pcrtd__malloc_dbg       = NULL;
 static _realloc_dbg_t     pcrtd__realloc_dbg      = NULL;
 static crt_new_dbg_t      pcrtd__scalar_new_dbg   = NULL;
-static crt_new_dbg_t      pcrtd__vector_new_dbg   = NULL;
 static calloc_t           pcrtd_calloc            = NULL;
 static malloc_t           pcrtd_malloc            = NULL;
 static realloc_t          pcrtd_realloc           = NULL;
 static new_t              pcrtd_scalar_new        = NULL;
-static new_t              pcrtd_vector_new        = NULL;
 static mfc_new_dbg_t      pmfc42d__scalar_new_dbg = NULL;
-static mfc_new_dbg_t      pmfc42d__vector_new_dbg = NULL;
 static new_t              pmfc42d_scalar_new      = NULL;
-static new_t              pmfc42d_vector_new      = NULL;
 static mfc_new_dbg_t      pmfc80d__scalar_new_dbg = NULL;
 static mfc_new_dbg_t      pmfc80d__vector_new_dbg = NULL;
 static new_t              pmfc80d_scalar_new      = NULL;
@@ -122,10 +118,8 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
 
     // MFC new operators (exported by ordinal).
     "mfc42d.dll",   (LPCSTR)714,          _mfc42d__scalar_new_dbg,
-    //"mfc42d.dll",   (LPCSTR)???,          _mfc42d__vector_new_dbg, // XXX need the ordinal
     "mfc42d.dll",   (LPCSTR)711,          _mfc42d_scalar_new,
-    //"mfc42d.dll",   (LPCSTR)???,          _mfc42d_vector_new, // XXX need the ordinal
-    // XXX 7.x MFC DLL new operators still need to be added to this
+    // XXX MFC 7.x DLL new operators still need to be added to this
     //   table, but I don't know their ordinals.
     "mfc80d.dll",   (LPCSTR)895,          _mfc80d__scalar_new_dbg,
     "mfc80d.dll",   (LPCSTR)269,          _mfc80d__vector_new_dbg,
@@ -146,13 +140,11 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "msvcrtd.dll",  "_calloc_dbg",        _crtd__calloc_dbg,
     "msvcrtd.dll",  "_malloc_dbg",        _crtd__malloc_dbg,
     "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z",  _crtd__scalar_new_dbg,
-    "msvcrtd.dll",  "??_U@YAPAXIHPBDH@Z", _crtd__vector_new_dbg,
     "msvcrtd.dll",  "_realloc_dbg",       _crtd__realloc_dbg,
     "msvcrtd.dll",  "calloc",             _crtd_calloc,
     "msvcrtd.dll",  "malloc",             _crtd_malloc,
     "msvcrtd.dll",  "realloc",            _crtd_realloc,
     "msvcrtd.dll",  "??2@YAPAXI@Z",       _crtd_scalar_new,
-    "msvcrtd.dll",  "??_U@YAPAXI@Z",      _crtd_vector_new,
 
     // NT APIs.
     "ntdll.dll",    "RtlAllocateHeap",    _RtlAllocateHeap,
@@ -1198,58 +1190,6 @@ void* VisualLeakDetector::_crtd__scalar_new_dbg (unsigned int size, int type, co
     return block;
 }
 
-// _crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
-//   msvcrtd.dll are patched through to this function. This function is just a
-//   wrapper around the real CRT debug vector new operator that sets appropriate
-//   flags to be consulted when the memory is actually allocated by
-//   RtlAllocateHeap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - type (IN): The CRT "use type" of the block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT debug vector new operator.
-//
-void* VisualLeakDetector::_crtd__vector_new_dbg (unsigned int size, int type, const char *file, int line)
-{
-    void    *block;
-    SIZE_T   fp;
-    HMODULE  msvcrtd;
-
-    // The debug new operator is a CRT function and allocates from the CRT heap.
-    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
-
-    if (vld.m_tls.addrfp == 0) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        vld.m_tls.addrfp = fp;
-    }
-
-    if (pcrtd__vector_new_dbg == NULL) {
-        // This is the first call to this function. Link to the real CRT debug
-        // new operator.
-        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
-        pcrtd__vector_new_dbg = (crt_new_dbg_t)GetProcAddress(msvcrtd, "??_U@YAPAXIHPBDH@Z");
-    }
-
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pcrtd__vector_new_dbg(size, type, file, line);
-
-    // Reset thread local flags and variables for the next allocation.
-    vld.m_tls.addrfp = 0x0;
-    vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
-
-    return block;
-}
-
 // _crtd_calloc - Calls to calloc from msvcrtd.dll are patched through to this
 //   function. This function is just a wrapper around the real calloc that sets
 //   appropriate flags to be consulted when the memory is actually allocated by
@@ -1419,50 +1359,6 @@ void* VisualLeakDetector::_crtd_scalar_new (unsigned int size)
 
     // Do tha allocation. The block will be mapped by _RtlAllocateHeap.
     block = pcrtd_scalar_new(size);
-
-    // Reset thread local flags and variables for the next allocation.
-    vld.m_tls.addrfp = 0x0;
-    vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
-
-    return block;
-}
-
-// _crtd_vector_new - Calls to the CRT's vector new operator from msvcrtd.dll
-//   are patched through to this function. This function is just a wrapper
-//   around the real CRT vector new operator that sets appropriate flags to be
-//   consulted when the memory is actually allocated by RtlAllocateHeap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT vector new operator.
-//
-void* VisualLeakDetector::_crtd_vector_new (unsigned int size)
-{
-    void    *block;
-    SIZE_T   fp;
-    HMODULE  msvcrtd;
-
-    // The new operator is a CRT function and allocates from the CRT heap.
-    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
-
-    if (vld.m_tls.addrfp == 0) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        vld.m_tls.addrfp = fp;
-    }
-
-    if (pcrtd_vector_new == NULL) {
-        // This is the first call to this function. Link to the real CRT new
-        // operator.
-        msvcrtd = GetModuleHandle(L"msvcrtd.dll");
-        pcrtd_vector_new = (new_t)GetProcAddress(msvcrtd, "??_U@YAPAXI@Z");
-    }
-
-    // Do tha allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pcrtd_vector_new(size);
 
     // Reset thread local flags and variables for the next allocation.
     vld.m_tls.addrfp = 0x0;
@@ -1684,56 +1580,6 @@ void* VisualLeakDetector::_mfc42d__scalar_new_dbg (unsigned int size, const char
     return block;
 }
 
-// _mfc42d__vector_new_dbg - Calls to the MFC debug vector new operator from
-//   mfc42d.dll are patched through to this function. This function is just a
-//   wrapper around the real MFC debug vector new operator that sets appropriate
-//   flags to be consulted when the memory is actually allocated by
-//   RtlAllocateHeap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the MFC debug vector new operator.
-//
-void* VisualLeakDetector::_mfc42d__vector_new_dbg (unsigned int size, const char *file, int line)
-{
-    void    *block;
-    SIZE_T   fp;
-    HMODULE  mfc42d;
-
-    // The MFC new operators are CRT-based and allocate from the CRT heap.
-    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
-
-    if (vld.m_tls.addrfp == 0) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        vld.m_tls.addrfp = fp;
-    }
-
-    if (pmfc42d__vector_new_dbg == NULL) {
-        // This is the first call to this function. Link to the real MFC debug
-        // new operator.
-        mfc42d = GetModuleHandle(L"mfc42d.dll");
-        pmfc42d__vector_new_dbg = (mfc_new_dbg_t)GetProcAddress(mfc42d, (LPCSTR)714); // XXX Need the correct ordinal
-    }
-
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pmfc42d__vector_new_dbg(size, file, line);
-
-    // Reset thread local flags and variables for the next allocation.
-    vld.m_tls.addrfp = 0x0;
-    vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
-
-    return block;
-}
-
 // _mfc42d_scalar_new - Calls to the MFC scalar new operator from mfc42d.dll are
 //   patched through to this function. This function is just a wrapper around
 //   the real MFC scalar new operator that sets appropriate flags to be
@@ -1770,50 +1616,6 @@ void* VisualLeakDetector::_mfc42d_scalar_new (unsigned int size)
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pmfc42d_scalar_new(size);
-
-    // Reset thread local flags and variables for the next allocation.
-    vld.m_tls.addrfp = 0x0;
-    vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
-
-    return block;
-}
-
-// _mfc42d_vector_new - Calls to the MFC vector new operator from mfc42d.dll are
-//   patched through to this function. This function is just a wrapper around
-//   the real MFC vector new operator that sets appropriate flags to be
-//   consulted when the memory is actually allocated by RtlAllocateHeap.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  Return Value:
-//
-//    Returns the value returned by the MFC vector new operator.
-//
-void* VisualLeakDetector::_mfc42d_vector_new (unsigned int size)
-{
-    void    *block;
-    SIZE_T   fp;
-    HMODULE  mfc42d;
-
-    // The MFC new operators are CRT-based and allocate from the CRT heap.
-    vld.m_tls.flags |= VLD_TLS_CRTALLOC;
-
-    if (vld.m_tls.addrfp == 0) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        vld.m_tls.addrfp = fp;
-    }
-
-    if (pmfc42d_vector_new == NULL) {
-        // This is the first call to this function. Link to the real MFC new
-        // operator.
-        mfc42d = GetModuleHandle(L"mfc42d.dll");
-        pmfc42d_vector_new = (new_t)GetProcAddress(mfc42d, (LPCSTR)711); // XXX Need the correct ordinal
-    }
-
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pmfc42d_vector_new(size);
 
     // Reset thread local flags and variables for the next allocation.
     vld.m_tls.addrfp = 0x0;

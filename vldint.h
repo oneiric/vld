@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.24 2006/10/29 20:34:51 dmouldin Exp $
+//  $Id: vldint.h,v 1.25 2006/10/30 14:13:30 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -171,21 +171,17 @@ private:
     static void* __cdecl _crtd__malloc_dbg (size_t size, int type, const char *file, int line);
     static void* __cdecl _crtd__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
     static void* __cdecl _crtd__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl _crtd__vector_new_dbg (unsigned int size, int type, const char *file, int line);
     static void* __cdecl _crtd_calloc (size_t num, size_t size);
     static void* __cdecl _crtd_malloc (size_t size);
     static void* __cdecl _crtd_realloc (void *mem, size_t size);
     static void* __cdecl _crtd_scalar_new (unsigned int size);
-    static void* __cdecl _crtd_vector_new (unsigned int size);
     static FARPROC __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
     static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL __stdcall _HeapDestroy (HANDLE heap);
     static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename,
                                            PHANDLE modulehandle);
     static void* __cdecl _mfc42d__scalar_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl _mfc42d__vector_new_dbg (unsigned int size, const char *file, int line);
     static void* __cdecl _mfc42d_scalar_new (unsigned int size);
-    static void* __cdecl _mfc42d_vector_new (unsigned int size);
     static void* __cdecl _mfc80d__scalar_new_dbg (unsigned int size, const char *file, int line);
     static void* __cdecl _mfc80d__vector_new_dbg (unsigned int size, const char *file, int line);
     static void* __cdecl _mfc80d_scalar_new (unsigned int size);
