@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.25 2006/10/30 14:13:30 db Exp $
+//  $Id: vldint.h,v 1.26 2006/10/31 05:03:06 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -41,6 +41,7 @@ Applications should never include this header."
 #define MAXMODULELISTLENGTH 512     // Maximum module list length, in characters.
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
+#define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
 #define VLDVERSION          L"1.9b (unofficial release)"
 
 // The Visual Leak Detector APIs.

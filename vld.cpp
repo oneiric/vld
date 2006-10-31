@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.44 2006/10/30 14:13:14 db Exp $
+//  $Id: vld.cpp,v 1.45 2006/10/31 05:01:58 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2187,11 +2187,30 @@ VOID VisualLeakDetector::configure ()
 #define BSIZE 64
     WCHAR        buffer [BSIZE];
     WCHAR        filename [MAX_PATH];
-    WCHAR        inipath [MAX_PATH];
+    WCHAR        inipath [MAX_PATH] = { 0 };
+    DWORD        length;
+    HKEY         productkey;
     struct _stat s;
+    LONG         status;
+    DWORD        valuetype;
 
-    _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
+    status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+    if (status == ERROR_SUCCESS) {
+        status = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
+        if (status != ERROR_SUCCESS) {
+            inipath[0] = L'\0';
+        }
+    }
+
+    if (wcslen(inipath) == 0) {
+        // Default vld.ini in the installation directory isn't there. Try using
+        // one from the current directory.
+        _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
+    }
+
     if (_wstat(inipath, &s) != 0) {
+        // Still no vld.ini found. As a last resort, look in the Windows
+        // directory.
         wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
     }
 
