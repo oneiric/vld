@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="vld"
 	ProjectGUID="{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}"
+	RootNamespace="vld"
 	>
 	<Platforms>
 		<Platform
@@ -73,7 +74,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="dbghelp.lib"
 				OutputFile=".\Release/vld.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -169,7 +169,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="dbghelp.lib"
 				OutputFile=".\Debug/vld.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -233,6 +232,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dbghelpapi.cpp"
+				>
 			</File>
 			<File
 				RelativePath="ntapi.cpp"
@@ -341,6 +344,10 @@
 			>
 			<File
 				RelativePath="callstack.h"
+				>
+			</File>
+			<File
+				RelativePath=".\dbghelpapi.h"
 				>
 			</File>
 			<File
