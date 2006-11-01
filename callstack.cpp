@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.12 2006/10/29 19:51:11 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.13 2006/11/01 21:52:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -24,11 +24,9 @@
 
 #include <cassert>
 #include <windows.h>
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
-#define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>    // Provides symbol handling services.
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
+#include "dbghelpapi.h" // Provides symbol handling services.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"     // Provides access to VLD internals.
@@ -227,7 +225,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         // Try to get the source file and line number associated with
         // this program counter address.
         programcounter = (*this)[frame];
-        if ((foundline = SymGetLineFromAddr64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
+        if ((foundline = pSymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
             if (!showinternalframes) {
                 _wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
@@ -243,7 +241,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
 
         // Try to get the name of the function containing this program
         // counter address.
-        if (SymFromAddr(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
+        if (pSymFromAddrW(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
             functionname = functioninfo->Name;
         }
         else {
@@ -424,8 +422,8 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
     // Walk the stack.
     while (count < maxdepth) {
         count++;
-        if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &context,
-                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+        if (!pStackWalk64(architecture, currentprocess, currentthread, &frame, &context, NULL,
+                          pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)) {
             // Couldn't trace back through any more frames.
             break;
         }

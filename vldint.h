@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.26 2006/10/31 05:03:06 dmouldin Exp $
+//  $Id: vldint.h,v 1.27 2006/11/01 21:52:41 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -198,6 +198,7 @@ private:
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     BOOL enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
+    BOOL linkdebughelplibrary ();
     VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size);
     VOID mapheap (HANDLE heap);
     VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size);
@@ -207,6 +208,7 @@ private:
     VOID unmapheap (HANDLE heap);
 
     // Private data.
+    HMODULE              m_dbghelp;           // Handle to the Debug Help Library.
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
@@ -231,9 +233,10 @@ private:
     const char          *m_selftestfile;      // Filename where the memory leak self-test block is leaked.
     int                  m_selftestline;      // Line number where the memory leak self-test block is leaked.
     UINT32               m_status;            // Status flags:
-#define VLD_STATUS_INSTALLED            0x1   //   If set, VLD was successfully installed.
-#define VLD_STATUS_NEVER_ENABLED        0x2   //   If set, VLD started disabled, and has not yet been manually enabled.
-#define VLD_STATUS_FORCE_REPORT_TO_FILE 0x4   //   If set, the leak report is being forced to a file.
+#define VLD_STATUS_DBGHELPLINKED        0x1   //   If set, the explicit dynamic link to the Debug Help Library succeeded.
+#define VLD_STATUS_INSTALLED            0x2   //   If set, VLD was successfully installed.
+#define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
+#define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
     static __declspec(thread) tls_t m_tls;    // Thread-local storage.
 
     // The Visual Leak Detector APIs are our friends.

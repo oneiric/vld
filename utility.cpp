@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.12 2006/10/26 23:30:08 dmouldin Exp $
+//  $Id: utility.cpp,v 1.13 2006/11/01 21:52:41 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -25,10 +25,8 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
-#define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>    // Provides portable executable (PE) image access functions.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
+#include "dbghelpapi.h" // Provides portable executable (PE) image access functions.
 #include "utility.h"    // Provides various utility functions and macros.
 #include "vldheap.h"    // Provides internal new and delete operators.
 
@@ -228,8 +226,8 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -311,8 +309,8 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;
@@ -485,8 +483,8 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR import
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                 IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing)..
         return;
