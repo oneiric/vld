@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.13 2006/11/01 21:52:40 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.14 2006/11/02 23:07:55 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -58,6 +58,9 @@ CallStack::CallStack ()
 //
 CallStack::CallStack (const CallStack &other)
 {
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    other;
+
     // Don't make copies of CallStacks!
     assert(FALSE);
 }
@@ -83,6 +86,9 @@ CallStack::~CallStack ()
 //
 CallStack& CallStack::operator = (const CallStack &other)
 {
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    other;
+
     // Don't make copies of CallStacks!
     assert(FALSE);
     return *this;

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.8 2006/10/29 20:33:42 dmouldin Exp $
+//  $Id: vldheap.cpp,v 1.9 2006/11/02 23:08:09 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - Internal C++ Heap Management
 //  Copyright (c) 2006 Dan Moulding
@@ -74,6 +74,10 @@ void operator delete [] (void *block)
 //
 void operator delete (void *block, const char *file, int line)
 {
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    file;
+    line;
+
     vlddelete(block);
 }
 
@@ -86,6 +90,10 @@ void operator delete (void *block, const char *file, int line)
 //
 void operator delete [] (void *block, const char *file, int line)
 {
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    file;
+    line;
+
     vlddelete(block);
 }
 
