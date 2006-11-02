@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld", "vld.vcproj", "{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld", "vld.vcproj", "{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\testsuite.vcproj", "{66DCACCA-BB1E-480F-A236-7D24B833B486}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\testsuite.vcproj", "{EE4A829C-5FD8-460B-8A90-B518B9BABB70}"
 	ProjectSection(ProjectDependencies) = postProject
-		{EF97ADD5-3169-4214-A7DB-BFE0D34DF757} = {EF97ADD5-3169-4214-A7DB-BFE0D34DF757}
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
 	EndProjectSection
 EndProject
 Global
@@ -14,14 +14,14 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}.Debug|Win32.ActiveCfg = Debug|Win32
-		{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}.Debug|Win32.Build.0 = Debug|Win32
-		{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}.Release|Win32.ActiveCfg = Release|Win32
-		{EF97ADD5-3169-4214-A7DB-BFE0D34DF757}.Release|Win32.Build.0 = Release|Win32
-		{66DCACCA-BB1E-480F-A236-7D24B833B486}.Debug|Win32.ActiveCfg = Debug|Win32
-		{66DCACCA-BB1E-480F-A236-7D24B833B486}.Debug|Win32.Build.0 = Debug|Win32
-		{66DCACCA-BB1E-480F-A236-7D24B833B486}.Release|Win32.ActiveCfg = Release|Win32
-		{66DCACCA-BB1E-480F-A236-7D24B833B486}.Release|Win32.Build.0 = Release|Win32
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Debug|Win32.Build.0 = Debug|Win32
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Release|Win32.ActiveCfg = Release|Win32
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Release|Win32.Build.0 = Release|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Debug|Win32.Build.0 = Debug|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|Win32.ActiveCfg = Debug|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|Win32.Build.0 = Debug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
