@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.2 2006/10/31 17:16:36 db Exp $
+#  $Id: vld-setup.nsi,v 1.3 2006/11/02 00:35:52 dmouldin Exp $
 #  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -98,9 +98,10 @@ Section "Uninstaller"
 SectionEnd
 
 Section "Registry Keys"
+	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "BinPath" "${BIN_PATH}"
+	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "IniFile" "$INSTDIR\vld.ini"
 	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstallPath" "$INSTDIR"
 	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstalledVersion" "${VLD_VERSION}"
-	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "IniFile" "$INSTDIR\vld.ini"
 SectionEnd
 
 Section "Header File"
