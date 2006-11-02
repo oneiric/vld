@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.46 2006/11/01 21:52:41 dmouldin Exp $
+//  $Id: vld.cpp,v 1.47 2006/11/02 16:49:55 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -297,9 +297,9 @@ VisualLeakDetector::~VisualLeakDetector ()
     HANDLE              heap;
     HeapMap::Iterator   heapit;
     SIZE_T              internalleaks = 0;
-    const char         *leakfile;
+    const char         *leakfile = NULL;
     WCHAR               leakfilew [MAX_PATH];
-    int                 leakline;
+    int                 leakline = 0;
 
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
@@ -422,7 +422,7 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
         // IMalloc interface.
         ole32 = GetModuleHandle(L"ole32.dll");
         pCoGetMalloc = (CoGetMalloc_t)GetProcAddress(ole32, "CoGetMalloc");
-        pCoGetMalloc(1, &vld.m_imalloc);
+        pCoGetMalloc(context, &vld.m_imalloc);
     }
 
     return S_OK;
@@ -2017,6 +2017,9 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
     BOOL                refresh = FALSE;
     UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
 
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    context;
+
     // Extract just the filename and extension from the module path.
     _wsplitpath_s(modulepath, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
     wcsncpy_s(modulename, MAXMODULENAME + 1, filename, _TRUNCATE);
@@ -2320,6 +2323,11 @@ VOID VisualLeakDetector::configure ()
 BOOL VisualLeakDetector::detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
     UINT tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+
+    // Satisfy the compiler's worries about unreferenced formal parameters.
+    context;
+    modulepath;
+    modulesize;
 
     restoremodule((HMODULE)modulebase, m_patchtable, tablesize);
 
