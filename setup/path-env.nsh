@@ -1,3 +1,5 @@
+#  $Id: path-env.nsh,v 1.2 2006/11/03 23:50:38 dmouldin Exp $
+
 ;----------------------------------------
 ; based upon a script of "Written by KiCHiK 2003-01-18 05:57:02"
 ;----------------------------------------
@@ -9,21 +11,21 @@
 ;     Returns: the selected environment
 ;     Output : head of the stack
 ;====================================================
-!macro select_NT_profile UN
-Function ${UN}select_NT_profile
-   MessageBox MB_YESNO|MB_ICONQUESTION "Change the environment for all users?$\r$\nSaying no here will change the envrironment for the current user only.$\r$\n(Administrator permissions required for all users)" \
-      IDNO environment_single
-      DetailPrint "Selected environment for all users"
-      Push "all"
-      Return
-   environment_single:
-      DetailPrint "Selected environment for current user only."
-      Push "current"
-      Return
-FunctionEnd
-!macroend
-!insertmacro select_NT_profile ""
-!insertmacro select_NT_profile "un."
+#!macro select_NT_profile UN
+#Function ${UN}select_NT_profile
+#   MessageBox MB_YESNO|MB_ICONQUESTION "Change the environment for all users?$\r$\nSaying no here will change the envrironment for the current user only.$\r$\n(Administrator permissions required for all users)" \
+#      IDNO environment_single
+#      DetailPrint "Selected environment for all users"
+#      Push "all"
+#      Return
+#   environment_single:
+#      DetailPrint "Selected environment for current user only."
+#      Push "current"
+#      Return
+#FunctionEnd
+#!macroend
+#!insertmacro select_NT_profile ""
+#!insertmacro select_NT_profile "un."
 ;----------------------------------------------------
 !define NT_current_env 'HKCU "Environment"'
 !define NT_all_env     'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
@@ -74,8 +76,9 @@ Function AddToPath
  
    AddToPath_NT:
       Push $4
-      Call select_NT_profile
-      Pop  $4
+      #Call select_NT_profile
+      #Pop  $4
+      StrCpy $4 "all"
  
       AddToPath_NT_selection_done:
       StrCmp $4 "current" read_path_NT_current
@@ -164,8 +167,9 @@ Function un.RemoveFromPath
  
    unRemoveFromPath_NT:
       StrLen $2 $0
-      Call un.select_NT_profile
-      Pop  $4
+      #Call un.select_NT_profile
+      #Pop  $4
+      StrCpy $4 "all"
  
       StrCmp $4 "current" un_read_path_NT_current
          ReadRegStr $1 ${NT_all_env} "PATH"
