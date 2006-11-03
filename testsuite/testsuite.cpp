@@ -2,35 +2,50 @@
 #include <cstdio>
 #include <windows.h>
 
-#include "vld.h"
+#include <vld.h>
 
 enum action_e {
+    a_calloc,
+    a_comalloc,
+    a_getprocmalloc,
+    a_heapalloc,
+    a_icomalloc,
     a_malloc,
     a_new,
     numactions
 };
 
-#define MAXALLOC     1000
-#define MAXBLOCKS    (MAXALLOC * numactions)
-#define MAXDEPTH     10
-#define MAXSIZE      64
-#define NUMTHREADS   16
-#define ONCEINAWHILE 10
+#define CRTDLLNAME   "msvcr80d.dll"          // Name of the debug C Runtime Library DLL on this system
+#define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
+#define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
+#define MAXDEPTH     10                      // Maximum depth of the allocation call stack
+#define MAXSIZE      64                      // Maximum block size to allocate
+#define MINSIZE      16                      // Minimum block size to allocate
+#define NUMTHREADS   64                      // Number of threads to run simultaneously
+#define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 typedef struct blockholder_s {
     action_e action;
     PVOID    block;
 } blockholder_t;
 
+typedef void* (__cdecl *free_t) (void* mem);
+typedef void* (__cdecl *malloc_t) (size_t size);
+
 typedef struct threadcontext_s {
-    UINT index;
-    BOOL leaky;
-    BOOL terminated;
+    UINT  index;
+    BOOL  leaky;
+    DWORD seed;
+    BOOL  terminated;
 } threadcontext_t;
 
-__declspec(thread) blockholder_t blocks [MAXBLOCKS];
-__declspec(thread) ULONG         counts [numactions] = { 0 };
-__declspec(thread) ULONG         total_allocs = 0;
+__declspec(thread) blockholder_t  blocks [MAXBLOCKS];
+__declspec(thread) ULONG          counts [numactions] = { 0 };
+__declspec(thread) free_t         pfree = NULL;
+__declspec(thread) IMalloc       *imalloc = NULL;
+__declspec(thread) malloc_t       pmalloc = NULL;
+__declspec(thread) HANDLE         threadheap;
+__declspec(thread) ULONG          total_allocs = 0;
 
 ULONG random (ULONG max)
 {
@@ -53,7 +68,11 @@ ULONG random (ULONG max)
 
 VOID allocateblock (action_e action, SIZE_T size)
 {
-    ULONG index;
+    HMODULE  crt;
+    ULONG    index;
+    LPCSTR   name;
+    PVOID   *pblock;
+    HRESULT  status;
 
     // Find the first unused index.
     for (index = 0; index < MAXBLOCKS; index++) {
@@ -64,29 +83,108 @@ VOID allocateblock (action_e action, SIZE_T size)
     blocks[index].action = action;
 
     // Now do the randomized allocation.        
+    pblock = &blocks[index].block;
     switch (action) {
+        case a_calloc:
+            name = "calloc";
+            *pblock = calloc(1, size);
+            break;
+
+        case a_comalloc:
+            name = "CoTaskMemAlloc";
+            *pblock = CoTaskMemAlloc(size);
+            break;
+
+        case a_getprocmalloc:
+            name = "GetProcAddress";
+            if (pmalloc == NULL) {
+                crt = LoadLibrary(CRTDLLNAME);
+                assert(crt != NULL);
+                pmalloc = (malloc_t)GetProcAddress(crt, "malloc");
+                assert(pmalloc !=  NULL);
+            }
+            *pblock = pmalloc(size);
+            break;
+
+        case a_heapalloc:
+            name = "HeapAlloc";
+            if (threadheap == NULL) {
+                threadheap = HeapCreate(0x0, 0, 0);
+            }
+            *pblock = HeapAlloc(threadheap, 0x0, size);
+            break;
+
+        case a_icomalloc:
+            name = "IMalloc";
+            if (imalloc == NULL) {
+                status = CoGetMalloc(1, &imalloc);
+                assert(status == S_OK);
+            }
+            *pblock = imalloc->Alloc(size);
+            break;
+
         case a_malloc:
-            blocks[index].block = malloc(size);
+            name = "malloc";
+            *pblock = malloc(size);
             break;
 
         case a_new:
-            blocks[index].block = new BYTE [size];
+            name = "new";
+            *pblock = new BYTE [size];
             break;
+
+        default:
+            assert(FALSE);
     }
     counts[action]++;
     total_allocs++;
+
+    strncpy_s((char*)*pblock, size, name, _TRUNCATE);
 }
 
 VOID freeblock (ULONG index)
 {
+    PVOID   block;
+    HMODULE crt;
+
+    block = blocks[index].block;
     switch (blocks[index].action) {
+        case a_calloc:
+            free(block);
+            break;
+
+        case a_comalloc:
+            CoTaskMemFree(block);
+            break;
+
+        case a_getprocmalloc:
+            if (pfree == NULL) {
+                crt = GetModuleHandle(CRTDLLNAME);
+                assert(crt != NULL);
+                pfree = (free_t)GetProcAddress(crt, "free");
+                assert(pfree != NULL);
+            }
+            pfree(block);
+            break;
+
+        case a_heapalloc:
+            HeapFree(threadheap, 0x0, block);
+            break;
+
+        case a_icomalloc:
+            imalloc->Free(block);
+            break;
+            
         case a_malloc:
-            free(blocks[index].block);
+            free(block);
             break;
 
         case a_new:
-            delete [] blocks[index].block;
+            delete [] block;
             break;
+
+        default:
+            assert(FALSE);
     }
     blocks[index].block = NULL;
     counts[blocks[index].action]--;
@@ -112,6 +210,8 @@ DWORD __stdcall runtestsuite (LPVOID param)
     ULONG            index;
     SIZE_T           size;
 
+    srand(context->seed);
+
     for (index = 0; index < MAXBLOCKS; index++) {
         blocks[index].block = NULL;
     }
@@ -120,6 +220,9 @@ DWORD __stdcall runtestsuite (LPVOID param)
         // Select a random allocation action and a random size.
         action = (action_e)random(numactions - 1);
         size = random(MAXSIZE);
+        if (size < MINSIZE) {
+            size = MINSIZE;
+        }
         if (counts[action] == MAXALLOC) {
             // We've done enough of this type of allocation. Select another.
             continue;
@@ -185,9 +288,9 @@ int main (int argc, char *argv [])
 
     start = GetTickCount();
 
-    //srand(start);
-    srand(0);
+    srand(start);
 
+    // Select a random thread to be the leaker.
     leakythread = random(NUMTHREADS - 1);
 
     for (index = 0; index < NUMTHREADS; ++index) {
@@ -195,6 +298,7 @@ int main (int argc, char *argv [])
         if (index == leakythread) {
             contexts[index].leaky = TRUE;
         }
+        contexts[index].seed = random(RAND_MAX);
         contexts[index].terminated = FALSE;
         CreateThread(NULL, 0, runtestsuite, &contexts[index], 0, NULL);
     }
