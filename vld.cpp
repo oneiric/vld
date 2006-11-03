@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.47 2006/11/02 16:49:55 db Exp $
+//  $Id: vld.cpp,v 1.48 2006/11/03 01:46:26 db Exp $
 //
 //  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2483,7 +2483,7 @@ BOOL VisualLeakDetector::linkdebughelplibrary ()
 {
     WCHAR  dbghelppath [MAX_PATH] = { 0 };
     LPCSTR functionname;
-    DWORD  length;
+    DWORD  length = MAX_PATH;
     HKEY   productkey;
     LONG   regstatus;
     DWORD  valuetype;
