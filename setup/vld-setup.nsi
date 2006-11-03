@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.3 2006/11/02 00:35:52 dmouldin Exp $
+#  $Id: vld-setup.nsi,v 1.4 2006/11/03 18:01:55 db Exp $
 #  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -36,6 +36,7 @@
 !define BIN_PATH     "$INSTDIR\bin"
 !define INCLUDE_PATH "$INSTDIR\include"
 !define LIB_PATH     "$INSTDIR\lib"
+!define LNK_PATH     "$SMPROGRAMS\Visual Leak Detector"
 !define SRC_PATH     "$INSTDIR\src"
 
 # Define registry keys
@@ -78,9 +79,9 @@ Function .onInit
 	${IF} $INSTALLED_VERSION = ${VLD_VERSION}
 		MessageBox MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
 			IDOK continue IDCANCEL abort
-        abort:
+abort:
 			Abort
-        continue:
+continue:
 	${ENDIF}
 FunctionEnd
 
@@ -119,10 +120,10 @@ Section "Dynamic Link Libraries"
 	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
 	MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
 		IDYES addtopath IDNO skipaddtopath
-	addtopath:
+addtopath:
 	Push "${BIN_PATH}"
 	Call AddToPath
-	skipaddtopath:
+skipaddtopath:
 	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\dbghelp.dll" "${BIN_PATH}\dbghelp.dll" $INSTDIR
 SectionEnd
 
@@ -143,6 +144,15 @@ Section "Documentation"
 	File "..\CHANGES.txt"
 	File "..\COPYING.txt"
 	File "..\README.html"
+SectionEnd
+
+Section "Start Menu Shortcuts"
+	SetOutPath "$INSTDIR"
+	SetShellVarContext all
+	CreateDirectory "${LNK_PATH}"
+	CreateShortcut "${LNK_PATH}\Configure.lnk"     "$INSTDIR\vld.ini"
+	CreateShortcut "${LNK_PATH}\Documentation.lnk" "$INSTDIR\README.html"
+	CreateShortcut "${LNK_PATH}\License.lnk"       "$INSTDIR\COPYING.txt"
 SectionEnd
 
 
@@ -187,6 +197,14 @@ Section "un.Documentation"
 	Delete "$INSTDIR\CHANGES.txt"
 	Delete "$INSTDIR\COPYING.txt"
 	Delete "$INSTDIR\README.html"
+SectionEnd
+
+Section "un.Start Menu Shortcuts"
+	SetShellVarContext all
+	Delete "${LNK_PATH}\Configure.lnk"
+	Delete "${LNK_PATH}\Documentation.lnk"
+	Delete "${LNK_PATH}\License.lnk"
+	RMDir "${LNK_PATH}"
 SectionEnd
 
 Section "un.Uninstaller"
