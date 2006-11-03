@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+//  $Id: testsuite.cpp,v 1.3 2006/11/03 18:03:00 db Exp $
+//
+//  Test suite for Visual Leak Detector
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
@@ -27,6 +34,7 @@ enum action_e {
 typedef struct blockholder_s {
     action_e action;
     PVOID    block;
+    BOOL     leak;
 } blockholder_t;
 
 typedef void* (__cdecl *free_t) (void* mem);
@@ -204,16 +212,19 @@ VOID recursivelyallocate (UINT depth, action_e action, SIZE_T size)
 DWORD __stdcall runtestsuite (LPVOID param)
 {
     action_e         action;
+    USHORT           action_index;
     BOOL             allocate_more = TRUE;
     threadcontext_t *context = (threadcontext_t*)param;
     UINT             depth;
     ULONG            index;
+    BOOL             leak_selected;
     SIZE_T           size;
 
     srand(context->seed);
 
     for (index = 0; index < MAXBLOCKS; index++) {
         blocks[index].block = NULL;
+        blocks[index].leak = FALSE;
     }
 
     while (allocate_more == TRUE) {
@@ -242,8 +253,8 @@ DWORD __stdcall runtestsuite (LPVOID param)
         }
 
         // See if we have allocated enough blocks using each type of action.
-        for (index = 0; index < (numactions - 1); index++) {
-            if (counts[index] < MAXALLOC) {
+        for (action_index = 0; action_index < numactions; action_index++) {
+            if (counts[action_index] < MAXALLOC) {
                 allocate_more = TRUE;
                 break;
             }
@@ -252,23 +263,32 @@ DWORD __stdcall runtestsuite (LPVOID param)
     }
 
     if (context->leaky == TRUE) {
-        // This is the leaky thread. Free all blocks, except for one from each
-        // action type.
-        for (index = 0; index < MAXBLOCKS; index++) {
-            if ((counts[blocks[index].action] > 1) &&
-                (blocks[index].block != NULL)) {
-                    freeblock(index);
-            }
+        // This is the leaky thread. Randomly select one block to be leaked from
+        // each type of allocation action.
+        for (action_index = 0; action_index < numactions; action_index++) {
+            leak_selected = FALSE;
+            do {
+                index = random(MAXBLOCKS);
+                if ((blocks[index].block != NULL) && (blocks[index].action == (action_e)action_index)) {
+                    blocks[index].leak = TRUE;
+                    leak_selected = TRUE;
+                }
+            } while (leak_selected == FALSE);
         }
+    }
+
+    // Free all blocks except for those marked as leaks.
+    for (index = 0; index < MAXBLOCKS; index++) {
+        if ((blocks[index].block != NULL) && (blocks[index].leak == FALSE)) {
+            freeblock(index);
+        }
+    }
+
+    // Do a sanity check.
+    if (context->leaky == TRUE) {
         assert(total_allocs == numactions);
     }
     else {
-        // Free all blocks.
-        for (index = 0; index < MAXBLOCKS; index++) {
-            if (blocks[index].block != NULL) {
-                freeblock(index);
-            }
-        }
         assert(total_allocs == 0);
     }
 
