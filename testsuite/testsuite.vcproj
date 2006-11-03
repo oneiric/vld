@@ -38,9 +38,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".."
-				RuntimeLibrary="3"
-				EnableFunctionLevelLinking="true"
+				AdditionalIncludeDirectories="$(SolutionDir)"
+				PreprocessorDefinitions="WIN32"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				EnableFunctionLevelLinking="false"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
