@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.24 2006/11/03 17:57:14 db Exp $
+//  $Id: vld.h,v 1.25 2006/11/03 23:49:27 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Import Library Header
 //  Copyright (c) 2006 Dan Moulding
@@ -89,5 +89,10 @@ __declspec(dllimport) void VLDEnable ();
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
+#else // !_DEBUG
+
+#define VLDEnable(x)
+#define VLDDisable(x)
 
 #endif // _DEBUG
