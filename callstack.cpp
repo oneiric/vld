@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.14 2006/11/02 23:07:55 db Exp $
+//  $Id: callstack.cpp,v 1.15 2006/11/03 17:57:49 db Exp $
 //
-//  Visual Leak Detector (Version 1.9b) - CallStack Class Implementations
+//  Visual Leak Detector (Version 1.9c) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -56,11 +56,8 @@ CallStack::CallStack ()
 //   The sole purpose of this copy constructor is to ensure that no copying is
 //   being done inadvertently.
 //
-CallStack::CallStack (const CallStack &other)
+CallStack::CallStack (const CallStack &)
 {
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    other;
-
     // Don't make copies of CallStacks!
     assert(FALSE);
 }
@@ -84,11 +81,8 @@ CallStack::~CallStack ()
 //   should be performed). The sole purpose of this assignment operator is to
 //   ensure that no copying is being done inadvertently.
 //
-CallStack& CallStack::operator = (const CallStack &other)
+CallStack& CallStack::operator = (const CallStack &)
 {
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    other;
-
     // Don't make copies of CallStacks!
     assert(FALSE);
     return *this;

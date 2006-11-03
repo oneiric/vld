@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.9 2006/11/02 23:08:09 db Exp $
+//  $Id: vldheap.cpp,v 1.10 2006/11/03 17:57:49 db Exp $
 //
-//  Visual Leak Detector (Version 1.9b) - Internal C++ Heap Management
+//  Visual Leak Detector (Version 1.9c) - Internal C++ Heap Management
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -72,12 +72,8 @@ void operator delete [] (void *block)
 //  Note: This version of the delete operator should never be called directly.
 //    The compiler automatically generates calls to this function as needed.
 //
-void operator delete (void *block, const char *file, int line)
+void operator delete (void *block, const char *, int)
 {
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    file;
-    line;
-
     vlddelete(block);
 }
 
@@ -88,12 +84,8 @@ void operator delete (void *block, const char *file, int line)
 //  Note: This version of the delete operator should never be called directly.
 //    The compiler automatically generates calls to this function as needed.
 //
-void operator delete [] (void *block, const char *file, int line)
+void operator delete [] (void *block, const char *, int)
 {
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    file;
-    line;
-
     vlddelete(block);
 }
 

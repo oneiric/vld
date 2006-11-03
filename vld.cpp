@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.48 2006/11/03 01:46:26 db Exp $
+//  $Id: vld.cpp,v 1.49 2006/11/03 17:57:49 db Exp $
 //
-//  Visual Leak Detector (Version 1.9b) - VisualLeakDetector Class Impl.
+//  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -2003,7 +2003,7 @@ LPVOID VisualLeakDetector::Alloc (ULONG size)
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID /*context*/)
 {
     size_t              count;
     WCHAR               extension [_MAX_EXT];
@@ -2016,9 +2016,6 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
     CHAR                modulepatha [MAX_PATH];
     BOOL                refresh = FALSE;
     UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
-
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    context;
 
     // Extract just the filename and extension from the module path.
     _wsplitpath_s(modulepath, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
@@ -2320,14 +2317,10 @@ VOID VisualLeakDetector::configure ()
 //
 //    Always returns TRUE.
 //
-BOOL VisualLeakDetector::detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
+BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 modulebase, ULONG /*modulesize*/,
+                                           PVOID /*context*/)
 {
     UINT tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
-
-    // Satisfy the compiler's worries about unreferenced formal parameters.
-    context;
-    modulepath;
-    modulesize;
 
     restoremodule((HMODULE)modulebase, m_patchtable, tablesize);
 
