@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.23 2006/10/26 23:30:09 dmouldin Exp $
+//  $Id: vld.h,v 1.24 2006/11/03 17:57:14 db Exp $
 //
-//  Visual Leak Detector (Version 1.9b) - Import Library Header
+//  Visual Leak Detector (Version 1.9c) - Import Library Header
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

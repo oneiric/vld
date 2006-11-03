@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: dbghelpapi.cpp,v 1.1 2006/11/01 21:52:41 dmouldin Exp $
+//  $Id: dbghelpapi.cpp,v 1.2 2006/11/03 17:57:13 db Exp $
 //
-//  Visual Leak Detector (Version 1.9b) - Global DbgHelp API Function Pointers
+//  Visual Leak Detector (Version 1.9c) - Global DbgHelp API Function Pointers
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
