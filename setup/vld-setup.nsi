@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.4 2006/11/03 18:01:55 db Exp $
+#  $Id: vld-setup.nsi,v 1.5 2006/11/03 23:52:15 dmouldin Exp $
 #  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -36,30 +36,42 @@
 !define BIN_PATH     "$INSTDIR\bin"
 !define INCLUDE_PATH "$INSTDIR\include"
 !define LIB_PATH     "$INSTDIR\lib"
-!define LNK_PATH     "$SMPROGRAMS\Visual Leak Detector"
+!define LNK_PATH     "$SMPROGRAMS\$SM_PATH"
 !define SRC_PATH     "$INSTDIR\src"
 
 # Define registry keys
 !define REG_KEY_PRODUCT   "Software\Visual Leak Detector"
 !define REG_KEY_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall\Visual Leak Detector"
 
+# Define page settings
+!define MUI_FINISHPAGE_NOAUTOCLOSE
+!define MUI_FINISHPAGE_SHOWREADME            "$INSTDIR\README.html"
+!define MUI_FINISHPAGE_SHOWREADME_TEXT       "View Documentation"
+!define MUI_STARTMENUPAGE_DEFAULTFOLDER      "Visual Leak Detector"
+!define MUI_STARTMENUPAGE_REGISTRY_ROOT      HKLM
+!define MUI_STARTMENUPAGE_REGISTRY_KEY       "${REG_KEY_PRODUCT}"
+!define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "LnkPath"
+!define MUI_UNFINISHPAGE_NOAUTOCLOSE
+
 # Define installer attributes
-InstallDir       "$PROGRAMFILES\Visual Leak Detector"
-InstallDirRegKey HKLM "${REG_KEY_PRODUCT}" "InstallPath"
-Name             "Visual Leak Detector ${VLD_VERSION}"
-OutFile          "vld-${VLD_VERSION}-setup.exe"
-SetCompressor    /SOLID lzma
+InstallDir        "$PROGRAMFILES\Visual Leak Detector"
+InstallDirRegKey  HKLM "${REG_KEY_PRODUCT}" "InstallPath"
+Name              "Visual Leak Detector ${VLD_VERSION}"
+OutFile           "vld-${VLD_VERSION}-setup.exe"
+SetCompressor     /SOLID lzma
+ShowInstDetails   show
+ShowUninstDetails show
 
 # Declare global variables
 Var INSTALLED_VERSION
+Var SM_PATH
 	
 # Define the installer pages
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\COPYING.txt"
 !insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_STARTMENU "Shortcuts" $SM_PATH
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_SHOWREADME      "$INSTDIR\README.html"
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "View Documentation"
 !insertmacro MUI_PAGE_FINISH
 
 # Define the uninstaller pages
@@ -76,13 +88,18 @@ Var INSTALLED_VERSION
 #
 Function .onInit
 	ReadRegStr $INSTALLED_VERSION HKLM "${REG_KEY_PRODUCT}" "InstalledVersion"
-	${IF} $INSTALLED_VERSION = ${VLD_VERSION}
-		MessageBox MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
-			IDOK continue IDCANCEL abort
+	${UNLESS} $INSTALLED_VERSION == ""
+		${IF} $INSTALLED_VERSION = ${VLD_VERSION}
+			MessageBox MB_ICONINFORMATION|MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
+				IDOK continue IDCANCEL abort
+		${ELSE}
+			MessageBox MB_ICONEXCLAMATION|MB_YESNO "Setup has detected that a different version of Visual Leak Detector is already installed on this computer.$\nIt is highly recommended that you first uninstall the version currently installed before proceeding.$\n$\nAre you sure you want to continue installing?" \
+				IDOK continue IDCANCEL abort
+		${ENDIF}
 abort:
-			Abort
+		Abort
 continue:
-	${ENDIF}
+	${ENDUNLESS}
 FunctionEnd
 
 Section "Uninstaller"
@@ -121,6 +138,7 @@ Section "Dynamic Link Libraries"
 	MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
 		IDYES addtopath IDNO skipaddtopath
 addtopath:
+	DetailPrint "Adding ${BIN_PATH} to the PATH system environment variable."
 	Push "${BIN_PATH}"
 	Call AddToPath
 skipaddtopath:
@@ -147,12 +165,15 @@ Section "Documentation"
 SectionEnd
 
 Section "Start Menu Shortcuts"
+	!insertmacro MUI_STARTMENU_WRITE_BEGIN "Shortcuts"
 	SetOutPath "$INSTDIR"
 	SetShellVarContext all
 	CreateDirectory "${LNK_PATH}"
 	CreateShortcut "${LNK_PATH}\Configure.lnk"     "$INSTDIR\vld.ini"
 	CreateShortcut "${LNK_PATH}\Documentation.lnk" "$INSTDIR\README.html"
 	CreateShortcut "${LNK_PATH}\License.lnk"       "$INSTDIR\COPYING.txt"
+	CreateShortcut "${LNK_PATH}\Uninstall.lnk"     "$INSTDIR\uninstall.exe"
+	!insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
 
@@ -160,10 +181,6 @@ SectionEnd
 #
 # Uninstallation
 #
-Section "un.Registry Keys"
-	DeleteRegKey HKLM "${REG_KEY_PRODUCT}"
-SectionEnd
-
 Section "un.Header File"
 	Delete "${INCLUDE_PATH}\vld.h"
 	RMDir "${INCLUDE_PATH}"
@@ -178,6 +195,7 @@ Section "un.Dynamic Link Library"
 	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
 	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\dbghelp.dll"
 	RMDir "${BIN_PATH}"
+	DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
 	Push "${BIN_PATH}"
 	Call un.RemoveFromPath
 SectionEnd
@@ -200,11 +218,17 @@ Section "un.Documentation"
 SectionEnd
 
 Section "un.Start Menu Shortcuts"
+	!insertmacro MUI_STARTMENU_GETFOLDER "Shortcuts" $SM_PATH
 	SetShellVarContext all
 	Delete "${LNK_PATH}\Configure.lnk"
 	Delete "${LNK_PATH}\Documentation.lnk"
 	Delete "${LNK_PATH}\License.lnk"
+	Delete "${LNK_PATH}\Uninstall.lnk"
 	RMDir "${LNK_PATH}"
+SectionEnd
+
+Section "un.Registry Keys"
+	DeleteRegKey HKLM "${REG_KEY_PRODUCT}"
 SectionEnd
 
 Section "un.Uninstaller"
