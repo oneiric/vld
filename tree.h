@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.9 2006/11/03 17:57:14 db Exp $
+//  $Id: tree.h,v 1.10 2006/11/05 20:42:36 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Red-black Tree Template
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -321,7 +321,7 @@ public:
 
         // Find the node to erase.
         EnterCriticalSection(&m_lock);
-        nodex = m_root;
+        node = m_root;
         while (node != &m_nil) {
             if (node->key < key) {
                 // Go right.
@@ -332,8 +332,10 @@ public:
                 node = node->left;
             }
             else {
-                // Found it
+                // Found it.
                 erase(node);
+                LeaveCriticalSection(&m_lock);
+                return;
             }
         }
         LeaveCriticalSection(&m_lock);
