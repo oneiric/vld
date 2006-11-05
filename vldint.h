@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.28 2006/11/03 17:57:14 db Exp $
+//  $Id: vldint.h,v 1.29 2006/11/05 23:05:47 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -102,12 +102,11 @@ typedef Set<moduleinfo_t> ModuleSet;
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 typedef struct tls_s {
-    SIZE_T addrfp;                // Frame pointer at the first call that entered VLD's code for the current allocation.
-    UINT32 flags;                 // Thread-local status flags:
-#define VLD_TLS_CRTALLOC      0x1 //   If set, the current allocation is a CRT allocation.
-#define VLD_TLS_DISABLED      0x2 //   If set, memory leak detection is disabled for the current thread.
-#define VLD_TLS_ENABLED       0x4 //   If set, memory leak detection is enabled for the current thread.
-#define VLD_TLS_MAPINPROGRESS 0x8 //   If set, the current thread is in the process of mapping a block.
+    SIZE_T addrfp;           // Frame pointer at the first call that entered VLD's code for the current allocation.
+    UINT32 flags;            // Thread-local status flags:
+#define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
+#define VLD_TLS_DISABLED 0x2 //   If set, memory leak detection is disabled for the current thread.
+#define VLD_TLS_ENABLED  0x4 //   If set, memory leak detection is enabled for the current thread.
 } tls_t;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -199,9 +198,9 @@ private:
     BOOL enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
     BOOL linkdebughelplibrary ();
-    VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size);
+    VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID mapheap (HANDLE heap);
-    VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size);
+    VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID reportconfig ();
     VOID reportleaks (HANDLE heap);
     VOID unmapblock (HANDLE heap, LPCVOID mem);
