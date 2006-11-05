@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.14 2006/11/03 17:57:14 db Exp $
+//  $Id: utility.cpp,v 1.15 2006/11/05 20:45:27 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -266,6 +266,74 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     return FALSE;
 }
 
+BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement)
+{
+    IMAGE_THUNK_DATA        *iate;
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
+            
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return FALSE;
+    }
+    while (idte->OriginalFirstThunk != 0x0) {
+        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+            // Found the IDT entry for the exporting module.
+            break;
+        }
+        idte++;
+    }
+    if (idte->OriginalFirstThunk == 0x0) {
+        // The importing module does not import anything from the exporting
+        // module.
+        return FALSE;
+    }
+    
+    // Locate the replacement's IAT entry.
+    iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+    while (iate->u1.Function != 0x0) {
+        if (iate->u1.Function == (DWORD_PTR)replacement) {
+            // Found the IAT entry for the replacement. This patch has been
+            // installed.
+            return TRUE;
+        }
+        iate++;
+    }
+
+    // The module does not import the replacement. The patch has not been
+    // installed.
+    return FALSE;
+}
+
+BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+{
+    patchentry_t *entry;
+    BOOL          found = FALSE;
+    UINT          index;
+
+    // Loop through the import patch table, individually checking each patch
+    // entry to see if it is installed in the import module. If any patch entry
+    // is installed in the import module, then the module has been patched.
+    for (index = 0; index < tablesize; index++) {
+        entry = &patchtable[index];
+        found = findpatch(importmodule, entry->exportmodulename, entry->replacement);
+        if (found == TRUE) {
+            // Found one of the listed patches installed in the import module.
+            return TRUE;
+        }
+    }
+
+    // No patches listed in the patch table were found in the import module.
+    return FALSE;
+}
+
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
@@ -293,9 +361,11 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
 //
 //  Return Value:
 //
-//    None.
+//    Returns TRUE if the patch was installed into the import module. If the
+//    import module does not import the specified export, so nothing changed,
+//    then FALSE will be returned.
 //   
-VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement)
+BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement)
 {
     HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
@@ -313,7 +383,7 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
-        return;
+        return FALSE;
     }
     while (idte->OriginalFirstThunk != 0x0) {
         if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
@@ -325,7 +395,7 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
     if (idte->OriginalFirstThunk == 0x0) {
         // The importing module does not import anything from the exporting
         // module.
-        return;
+        return FALSE;
     }
     
     // Get the *real* address of the import. If we find this address in the IAT,
@@ -346,10 +416,16 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
             VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
             iate->u1.Function = (DWORD_PTR)replacement;
             VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-            break;
+
+            // The patch has been installed in the import module.
+            return TRUE;
         }
         iate++;
     }
+
+    // The import's IAT entry was not found. The importing module does not
+    // import the specified import.
+    return FALSE;
 }
 
 // patchmodule - Patches all imports listed in the supplied patch table, and
@@ -373,19 +449,25 @@ VOID patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importna
 //
 //  Return Value:
 //
-//    None.
+//    Returns TRUE if at least one of the patches listed in the patch table was
+//    installed in the importmodule. Otherwise returns FALSE.
 //
-VOID patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
 {
     patchentry_t *entry;
     UINT          index;
+    BOOL          patched = FALSE;
 
     // Loop through the import patch table, individually patching each import
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        patchimport(importmodule, entry->exportmodulename, entry->importname, entry->replacement);
+        if (patchimport(importmodule, entry->exportmodulename, entry->importname, entry->replacement) == TRUE) {
+            patched = TRUE;
+        }
     }
+
+    return patched;
 }
 
 // report - Sends a printf-style formatted message to the debugger for display
