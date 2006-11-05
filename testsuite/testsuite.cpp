@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: testsuite.cpp,v 1.3 2006/11/03 18:03:00 db Exp $
+//  $Id: testsuite.cpp,v 1.4 2006/11/05 21:05:32 dmouldin Exp $
 //
 //  Test suite for Visual Leak Detector
 //
@@ -25,7 +25,7 @@ enum action_e {
 #define CRTDLLNAME   "msvcr80d.dll"          // Name of the debug C Runtime Library DLL on this system
 #define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
 #define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
-#define MAXDEPTH     10                      // Maximum depth of the allocation call stack
+#define MAXDEPTH     32                      // Maximum depth of the allocation call stack
 #define MAXSIZE      64                      // Maximum block size to allocate
 #define MINSIZE      16                      // Minimum block size to allocate
 #define NUMTHREADS   64                      // Number of threads to run simultaneously
@@ -45,6 +45,7 @@ typedef struct threadcontext_s {
     BOOL  leaky;
     DWORD seed;
     BOOL  terminated;
+    DWORD threadid;
 } threadcontext_t;
 
 __declspec(thread) blockholder_t  blocks [MAXBLOCKS];
@@ -320,7 +321,7 @@ int main (int argc, char *argv [])
         }
         contexts[index].seed = random(RAND_MAX);
         contexts[index].terminated = FALSE;
-        CreateThread(NULL, 0, runtestsuite, &contexts[index], 0, NULL);
+        CreateThread(NULL, 0, runtestsuite, &contexts[index], 0, &contexts[index].threadid);
     }
 
     // Wait for all threads to terminate.
