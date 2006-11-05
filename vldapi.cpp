@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.12 2006/11/03 17:57:14 db Exp $
+//  $Id: vldapi.cpp,v 1.13 2006/11/05 21:02:25 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -42,8 +42,12 @@ extern "C" __declspec(dllexport) void VLDDisable ()
         return;
     }
 
-    // Disable memory leak detection for the current thread.
+    // Disable memory leak detection for the current thread. There are two flags
+    // because if neither flag is set, it means that we are in the default or
+    // "starting" state, which could be either enabled or disabled depending on
+    // the configuration.
     vld.m_tls.flags &= ~VLD_TLS_ENABLED;
+    vld.m_tls.flags |= VLD_TLS_DISABLED;
 }
 
 extern "C" __declspec(dllexport) void VLDEnable ()
@@ -54,6 +58,7 @@ extern "C" __declspec(dllexport) void VLDEnable ()
     }
 
     // Enable memory leak detection for the current thread.
+    vld.m_tls.flags &= ~VLD_TLS_DISABLED;
     vld.m_tls.flags |= VLD_TLS_ENABLED;
     vld.m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
