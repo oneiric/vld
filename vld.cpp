@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.49 2006/11/03 17:57:49 db Exp $
+//  $Id: vld.cpp,v 1.50 2006/11/05 21:01:09 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2033,11 +2033,18 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
     moduleinfo.flags    = 0x0;
     moduleit = vld.m_moduleset->find(moduleinfo);
     if (moduleit != vld.m_moduleset->end()) {
-        // This module has previously been attached. We will want to discard any
-        // prior data that we have about this module, in case anything about it
-        // has changed (address range or symbols) since the last time we
-        // attached to it.
-        refresh = TRUE;
+        if (moduleispatched((HMODULE)modulebase, m_patchtable, tablesize)) {
+            // This module is already attached.
+            return TRUE;
+        }
+        else {
+            // This module was attached before, but is now detached. It must
+            // have been unloaded, then subsequently reloaded. We will want to
+            // discard any prior data that we have about this module, in case
+            // anything about it has changed (address range or symbols) since
+            // the last time we attached to it.
+            refresh = TRUE;
+        }
     }
 
     if ((refresh == TRUE) && ((*moduleit).flags & VLD_MODULE_SYMBOLSLOADED)) {
@@ -2059,7 +2066,7 @@ BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, 
         moduleinfo.flags |= VLD_MODULE_SYMBOLSLOADED;
     }
 
-    if (_wcsicmp(L"vld.dll", modulename) == NULL) {
+    if (_wcsicmp(L"vld.dll", modulename) == 0) {
         // What happens when a module goes through it's own portal? Bad things.
         // Like infinite recursion. And ugly bald men wearing dresses. VLD
         // should not, therefore, attach to itself.
