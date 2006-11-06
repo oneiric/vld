@@ -324,9 +324,9 @@
 
 <p>There are a several configuration options that control specific aspects of VLD's operation. These configuration
    options are stored in the <span class="filename">vld.ini</span> configuration file. By default, the configuration
-   file should be in the Windows directory. However, the configuration file can be copied to the program's working
-   directory, in which case the configuration settings in that copy of <span class="filename">vld.ini</span> will apply
-   only when debugging that one program.</p>
+   file should be in the Visual Leak Detector installation directory. However, the configuration file can be copied to
+   the program's working directory, in which case the configuration settings in that copy of
+   <span class="filename">vld.ini</span> will apply only when debugging that one program.</p>
 
 <dl>
     <dt class="option">AggregateDuplicates</dt>
@@ -401,6 +401,15 @@
            the text "Memory Leak Self-Test". This provides a way to test VLD's ability to check itself for memory leaks
            and verify that this capability is working correctly. This option is usually only useful for debugging VLD
            itself.</p>
+    </dd>
+    
+    <dt class="option">SlowDebuggerDump</dt>
+    <dd>
+        <p>If enabled, this option causes Visual Leak Detector to write the memory leak report to the debugger's output
+           window at a slower than normal rate. This option is specifically designed to work around a known issue with
+           some older versions of Visual Studio where some data sent to the output window might be lost if it is sent
+           too quickly. If you notice that some information seems to be missing from the memory leak report, try turning
+           this on.</p>
     </dd>
 
     <dt class="option">StackWalkMethod</dt>
@@ -521,13 +530,9 @@
         are not installed with a default installation).</li>
 
     <li>Visual&nbsp;C++ will need to be made aware of where it can find the Debug Help Library header and library files.
-        Add the <span class="filename">sdk\inc</span> and <span class="filename">sdk\lib</span>subdirectories from the
+        Add the <span class="filename">sdk\inc</span> and <span class="filename">sdk\lib</span> subdirectories from the
         DTfW installation directory to the include and library search paths in Visual&nbsp;C++. (See the section above
         on <a href="#use">using Visual Leak Detector</a> on instructions for adding to these search paths).
-
-        Likewise, add the <span class="filename">sdk\lib</span> subdirectory to the library search path using the same
-        procedure as above, but adding to the Library directory search path instead of the Include directory search
-        path.
     </li>
 
     <li>VLD also requires a reasonably up-to-date Platform&nbsp;SDK. It is known to work with the latest SDK (as of this
@@ -536,8 +541,7 @@
         <a href="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en">update
         your Platform&nbsp;SDK</a> to the latest version.</li>
 
-    <li>Again, Visual&nbsp;C++ will need to know where to find the Platform&nbsp;SDK headers and libraries. Refer to
-        step 2 for instructions on how to add directories to the include and library search paths and add the
+    <li>Again, Visual&nbsp;C++ will need to know where to find the Platform&nbsp;SDK headers and libraries. Add the
         <span class="filename">Include</span> and <span class="filename">Lib</span> subdirectories from the
         Platform&nbsp;SDK installation directory to the Include and Library search paths, respectively. The
         Platform&nbsp;SDK directories should be placed just after the DTfW directories.</li>
@@ -551,6 +555,8 @@
    <li>C:\Program&nbsp;Files\Microsoft&nbsp;Platform&nbsp;SDK\Include</li>
 
    <li>C:\Program&nbsp;Files\Microsoft&nbsp;Visual&nbsp;Studio\VCx\Include</li>
+   
+   <li>...</li>
 </ul>
 
 <p>And your Visual&nbsp;C++ library search path should look like this:</p>
@@ -561,9 +567,11 @@
    <li>C:\Program&nbsp;Files\Microsoft&nbsp;Platform&nbsp;SDK\Lib</li>
 
    <li>C:\Program&nbsp;Files\Microsoft&nbsp;Visual&nbsp;Studio\VCx\Lib</li>
+   
+   <li>...</li>
 </ul>
 
-<p>In the above examples, "VCx" could be "VC", "VC7", or "VC98" (or possible other values) depending on which version of
+<p>In the above examples, "VCx" could be "VC", "VC7", or "VC98" (or possibly other values) depending on which version of
    Visual Studio you have installed. Also, the name of your Platform&nbsp;SDK directory will probably be different from
    the example depending on which version of the Platform&nbsp;SDK you have installed.</p>
 
@@ -593,23 +601,27 @@
 <h2 id="faq">Frequently Asked Questions</h2>
 
 <dl>
-    <dt>In the memory leak report, the callstack contains many lines that say "File and line number unvailable" or
-        "Function name unavailable".</dt>
+    <dt>When I try to compile my program with VLD, it fails and the compiler gives this error: <strong>Cannot open include file:
+    'vld.h': No such file or directory</strong>.</dt>
+    <dd>
+        <p>The compiler can't find the header file that VLD installed. This probably means that VLD's include
+        subdirectory has not been added to the Visual C++ include search path. See the section above about
+        <a href="#use">Using Visual Leak Detector</a> for instructions on how to add VLD's directories to the search
+        path.</p>
+    </dd>
+    <dt>In the memory leak report, the callstack contains many lines that say
+        <strong>"File and line number unvailable"</strong> or <strong>"Function name unavailable"</strong>.</dt>
     <dd>
         <p>This may mean that VLD couldn't find the symbol database for your program. The symbol database is ususally in
            a file named <span class="filename">[my-program-name].pdb</span>. If this file is not located in the same
            directory as the program itself, then VLD will probably not find it and can't show any file or function
            names.</p>
-        <p>There is also a known restriction where file and function names may fail to be found if the program is linked
-           against the DLL version of the C Runtime Library. This seems to be a problem only under Visual Studio 2005.
-           Try linking the program statically with the C Runtime Library instead (use the /MTd compiler option instead
-           of the /MDd compiler option).</p>
     </dd>
-    <dt>When running my program with VLD, I get an error message saying, "The procedure entry point SymInitializeW could
-        not be located in the dynamic link library dbghelp.dll".</dt>
+    <dt>When running my program with VLD, I get an error message saying, "<strong>ERROR: Visual Leak Detector: Unable to load
+        dbghelp.dll</strong>".</dt>
     <dd>
-        <p>This will happen if Visual Leak Detectory can't find the proper version of the Debug Help Library. This
-           probably indicates that there is something wrong with your installation. Try re-installing VLD.</p>
+        <p> VLD can't find the copy of the Debug Help Library that was installed with it. Your installation might be
+        corrupt. Try uninstalling and reinstalling VLD.</p>
     </dd>
 </dl>
 
@@ -621,15 +633,18 @@
 <p>Known restrictions/limitations in this version of VLD include:</p>
 
 <ul>
+   <li>Some, but not all, multithreaded programs that dynamically load and unload many DLLs have been known to
+       experience problems, such as deadlocks or exceptions, when used with VLD.</li>
+       
    <li>Memory allocations made through calls to functions loaded from a DLL using delayed loading may not be
        detected.</li> 
 
    <li>Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some memory leaks from such MFC-based
-       programs may not be detected. A workaround for this restriction is to forcefully include the MFC DLLs in memory
-       leak detection, by setting the <span class="option">ForceIncludeModules</span> configuration option to:
-       "mfc70d.dll mfc71d.dll" and explicitly adding <span class="filename">vld.lib</span> as an input file on the
-       linker command line (can be added through project settings by adding it to the list of library modules in the
-       linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
+       programs may not be detected. A possible workaround for this restriction is to try forcefully including the MFC
+       DLLs in memory leak detection, by setting the <span class="option">ForceIncludeModules</span> configuration
+       option to: "mfc70d.dll mfc71d.dll" and explicitly adding <span class="filename">vld.lib</span> as an input file
+       on the linker command line (can be added through project settings by adding it to the list of library modules in
+       the linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
        supported.</li>
 </ul>
 
