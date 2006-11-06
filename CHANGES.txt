@@ -2,6 +2,30 @@ Visual Leak Detector (VLD) Version 1.9b (beta)
 
   Change Log / Release Notes
 
+1.9c beta (6 November 2006)
+---------------------------
+  New Features/Enhancments:
+  + New NSIS installer makes setting up and using VLD much easier.
+  + No need to manually copy dbghelp.dll to the right location, VLD will always
+    find the right version.
+  + MFC 8.0 is now fully supported.
+  + The memory leak report is now written to the output window much faster.
+    Support has been added, through a new configuration option, to slow down
+    the report output for older versions of Visual Studio that have trouble
+    when it is written too quickly.
+  
+  Bugs Fixed:
+  + All known compatibilities with Visual Studio 2005 have been eliminated.
+  + Leaks from calloc may go undetected.
+  + Leaks from vector new operator may go undetected.
+  + VLDDisable and VLDEnable do not work as expected; some memory leaks that
+    should be ignored by VLD due to a previous call to VLDDisable are still
+    reported.
+  + Unloading and reloading a previously loaded module may cause leaks that
+    occur in the module after it was reloaded to go undetected.
+  + If vld.h is included in a release build, then the compiler will generate
+    errors if the VLDEnable or VLDDisable APIs have been used.
+
 1.9b beta (26 October 2006)
 ---------------------------
   Bugs Fixed:
