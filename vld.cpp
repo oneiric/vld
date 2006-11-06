@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.51 2006/11/05 23:05:27 dmouldin Exp $
+//  $Id: vld.cpp,v 1.52 2006/11/06 02:32:25 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -246,6 +246,12 @@ VisualLeakDetector::VisualLeakDetector ()
             // Set the "report" function to write to the file.
             setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER);
         }
+    }
+    if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
+        // Insert a slight delay between messages sent to the debugger for
+        // output. (For working around a bug in VC6 where data sent to the
+        // debugger gets lost if it's sent too fast).
+        insertreportdelay();
     }
 
     // Do an explicit link with the Debug Help Library.
@@ -2290,7 +2296,7 @@ VOID VisualLeakDetector::configure ()
 
     if (wcslen(inipath) == 0) {
         // Couldn't read the location of the INI file from the registry. Try
-        // looking in the current directory.
+        // looking in the process' working directory.
         _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
     }
 
@@ -2309,6 +2315,11 @@ VOID VisualLeakDetector::configure ()
     GetPrivateProfileString(L"Options", L"SelfTest", L"", buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_options |= VLD_OPT_SELF_TEST;
+    }
+
+    GetPrivateProfileString(L"Options", L"SlowDebuggerDump", L"", buffer, BSIZE, inipath);
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_SLOW_DEBUGGER_DUMP;
     }
 
     GetPrivateProfileString(L"Options", L"StartDisabled", L"", buffer, BSIZE, inipath);
@@ -2935,6 +2946,9 @@ VOID VisualLeakDetector::reportconfig ()
         else {
             report(L"    Outputting the report to %s\n", m_reportfilepath);
         }
+    }
+    if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
+        report(L"    Outputting the report to the debugger at a slower rate.\n");
     }
     if (m_options & VLD_OPT_SAFE_STACK_WALK) {
         report(L"    Using the \"safe\" (but slow) stack walking method.\n");

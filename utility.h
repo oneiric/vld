@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.12 2006/11/05 20:45:50 dmouldin Exp $
+//  $Id: utility.h,v 1.13 2006/11/06 02:32:05 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Various Utility Definitions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -93,6 +93,7 @@ VOID dumpmemorya (LPCVOID address, SIZE_T length);
 VOID dumpmemoryw (LPCVOID address, SIZE_T length);
 BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname);
 BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement);
+VOID insertreportdelay ();
 BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
 BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
 BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);

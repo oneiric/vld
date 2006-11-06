@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.29 2006/11/05 23:05:47 dmouldin Exp $
+//  $Id: vldint.h,v 1.30 2006/11/06 02:33:07 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -223,9 +223,10 @@ private:
 #define VLD_OPT_REPORT_TO_FILE          0x8   //   If set, the memory leak report is sent to a file.
 #define VLD_OPT_SAFE_STACK_WALK         0x10  //   If set, the stack is walked using the "safe" method (StackWalk64).
 #define VLD_OPT_SELF_TEST               0x20  //   If set, peform a self-test to verify memory leak self-checking.
+#define VLD_OPT_SLOW_DEBUGGER_DUMP      0x40  //   If set, inserts a slight delay between sending output to the debugger.
 #define VLD_OPT_START_DISABLED          0x80  //   If set, memory leak detection will initially disabled.
-#define VLD_OPT_TRACE_INTERNAL_FRAMES   0x40  //   If set, include useless frames (e.g. internal to VLD) in call stacks.
-#define VLD_OPT_UNICODE_REPORT          0x100 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
+#define VLD_OPT_TRACE_INTERNAL_FRAMES   0x100 //   If set, include useless frames (e.g. internal to VLD) in call stacks.
+#define VLD_OPT_UNICODE_REPORT          0x200 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
     static patchentry_t  m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportfile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.

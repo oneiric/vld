@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.15 2006/11/05 20:45:27 dmouldin Exp $
+//  $Id: utility.cpp,v 1.16 2006/11/06 02:31:54 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -31,6 +31,7 @@
 #include "vldheap.h"    // Provides internal new and delete operators.
 
 // Global variables.
+static BOOL        reportdelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
 static FILE       *reportfile = NULL;       // Pointer to the file, if any, to send the memory leak report to.
 static BOOL        reporttodebugger = TRUE; // If TRUE, a copy of the memory leak report will be sent to the debugger for display.
 static encoding_e  reportencoding = ascii;  // Output encoding of the memory leak report.
@@ -212,7 +213,7 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //
 //    Returns TRUE if the module imports to the specified import. Otherwise
 //    returns FALSE.
-//   
+//
 BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname)
 {
     HMODULE                  exportmodule;
@@ -266,6 +267,28 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     return FALSE;
 }
 
+// findpatch - Determines if the specified module has been patched to use the
+//   specified replacement.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
+//
+//  - importmodule (IN): Handle (base address) of the module to be searched to
+//      see if it imports the specified replacement export.
+//
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      normally exports that import that would have been patched to use the
+//      replacement export.
+//
+//  - replacement (IN): Address of the replacement, or destination, function or
+//      variable to search for.
+//
+//  Return Value:
+//
+//    Returns TRUE if the module has been patched to use the specified
+//    replacement export.
+//
 BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement)
 {
     IMAGE_THUNK_DATA        *iate;
@@ -312,6 +335,38 @@ BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replaceme
     return FALSE;
 }
 
+// insertreportdelay - Sets the report function to sleep for a bit after each
+//   call to OutputDebugString, in order to allow the debugger to catch up.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID insertreportdelay ()
+{
+    reportdelay = TRUE;
+}
+
+// moduleispatched - Checks to see if any of the imports listed in the specified
+//   patch table have been patched into the specified importmodule.
+//
+//   Caution: This function is not thread-safe. It calls into the Debug Help
+//     Library which is single-threaded. Therefore, calls to this function must
+//     be synchronized.
+//
+//  - importmodule (IN): Handle (base address) of the module to be queried to
+//      determine if it has been patched.
+//
+//  - patchtable (IN): An array of patchentry_t structures specifying all of the
+//      import patches to search for.
+//
+//  - tablesize (IN): Size, in entries, of the specified patch table.
+//
+//  Return Value:
+//
+//    Returns TRUE if at least one of the patches listed in the patch table is
+//    installed in the importmodule. Otherwise returns FALSE.
+//
 BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
 {
     patchentry_t *entry;
@@ -522,8 +577,8 @@ VOID report (LPCWSTR format, ...)
         }
     }
 
-    if (reporttodebugger) {
-        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost.
+    if (reporttodebugger && (reportdelay == TRUE)) {
+        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
     }
 }
 
