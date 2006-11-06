@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: testsuite.cpp,v 1.4 2006/11/05 21:05:32 dmouldin Exp $
+//  $Id: testsuite.cpp,v 1.5 2006/11/06 02:36:38 dmouldin Exp $
 //
 //  Test suite for Visual Leak Detector
 //
@@ -17,6 +17,7 @@ enum action_e {
     a_getprocmalloc,
     a_heapalloc,
     a_icomalloc,
+    a_ignored,
     a_malloc,
     a_new,
     numactions
@@ -27,8 +28,10 @@ enum action_e {
 #define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
 #define MAXDEPTH     32                      // Maximum depth of the allocation call stack
 #define MAXSIZE      64                      // Maximum block size to allocate
-#define MINSIZE      16                      // Minimum block size to allocate
-#define NUMTHREADS   64                      // Number of threads to run simultaneously
+#define MINDEPTH     0                       // Minimum depth of the allocation call stack
+#define MINSIZE      1                       // Minimum block size to allocate
+#define NUMDUPLEAKS  2                       // Number of times to duplicate each leak
+#define NUMTHREADS   1                      // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 typedef struct blockholder_s {
@@ -107,7 +110,7 @@ VOID allocateblock (action_e action, SIZE_T size)
         case a_getprocmalloc:
             name = "GetProcAddress";
             if (pmalloc == NULL) {
-                crt = LoadLibrary(CRTDLLNAME);
+                crt = GetModuleHandle(CRTDLLNAME);
                 assert(crt != NULL);
                 pmalloc = (malloc_t)GetProcAddress(crt, "malloc");
                 assert(pmalloc !=  NULL);
@@ -130,6 +133,13 @@ VOID allocateblock (action_e action, SIZE_T size)
                 assert(status == S_OK);
             }
             *pblock = imalloc->Alloc(size);
+            break;
+
+        case a_ignored:
+            name = "Ignored";
+            VLDDisable();
+            *pblock = malloc(size);
+            VLDEnable();
             break;
 
         case a_malloc:
@@ -183,6 +193,10 @@ VOID freeblock (ULONG index)
         case a_icomalloc:
             imalloc->Free(block);
             break;
+
+        case a_ignored:
+            free(block);
+            break;
             
         case a_malloc:
             free(block);
@@ -218,7 +232,7 @@ DWORD __stdcall runtestsuite (LPVOID param)
     threadcontext_t *context = (threadcontext_t*)param;
     UINT             depth;
     ULONG            index;
-    BOOL             leak_selected;
+    UINT             leaks_selected;
     SIZE_T           size;
 
     srand(context->seed);
@@ -243,6 +257,9 @@ DWORD __stdcall runtestsuite (LPVOID param)
         // Allocate a block, using recursion to build up a stack of random
         // depth.
         depth = random(MAXDEPTH);
+        if (depth < MINDEPTH) {
+            depth = MINDEPTH;
+        }
         recursivelyallocate(depth, action, size);
 
         // Every once in a while, free a random block.
@@ -267,14 +284,14 @@ DWORD __stdcall runtestsuite (LPVOID param)
         // This is the leaky thread. Randomly select one block to be leaked from
         // each type of allocation action.
         for (action_index = 0; action_index < numactions; action_index++) {
-            leak_selected = FALSE;
+            leaks_selected = 0;
             do {
                 index = random(MAXBLOCKS);
                 if ((blocks[index].block != NULL) && (blocks[index].action == (action_e)action_index)) {
                     blocks[index].leak = TRUE;
-                    leak_selected = TRUE;
+                    leaks_selected++;
                 }
-            } while (leak_selected == FALSE);
+            } while (leaks_selected < 2);
         }
     }
 
@@ -287,7 +304,7 @@ DWORD __stdcall runtestsuite (LPVOID param)
 
     // Do a sanity check.
     if (context->leaky == TRUE) {
-        assert(total_allocs == numactions);
+        assert(total_allocs == (numactions * NUMDUPLEAKS));
     }
     else {
         assert(total_allocs == 0);
