@@ -4,22 +4,23 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld", "vld.vcproj", "{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\testsuite.vcproj", "{EE4A829C-5FD8-460B-8A90-B518B9BABB70}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Release(testsuite)|Win32 = Release(testsuite)|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Debug|Win32.ActiveCfg = Debug|Win32
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Debug|Win32.Build.0 = Debug|Win32
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Release(testsuite)|Win32.ActiveCfg = Release|Win32
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Release|Win32.ActiveCfg = Release|Win32
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}.Release|Win32.Build.0 = Release|Win32
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Debug|Win32.ActiveCfg = Debug|Win32
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Debug|Win32.Build.0 = Debug|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release(testsuite)|Win32.ActiveCfg = Release(testsuite)|Win32
+		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release(testsuite)|Win32.Build.0 = Release(testsuite)|Win32
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|Win32.ActiveCfg = Debug|Win32
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|Win32.Build.0 = Debug|Win32
 	EndGlobalSection
