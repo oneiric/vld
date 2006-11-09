@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.53 2006/11/09 00:11:04 dmouldin Exp $
+//  $Id: vld.cpp,v 1.54 2006/11/09 01:01:03 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2576,7 +2576,15 @@ BOOL VisualLeakDetector::linkdebughelplibrary ()
             dbghelppath[0] = L'\0';
         }
     }
-    wcsncat_s(dbghelppath, MAX_PATH, L"\\dbghelp.dll", _TRUNCATE);
+    if (wcslen(dbghelppath) == 0) {
+        // Couldn't read the BinPath value, or it doesn't exist. Let the OS
+        // search for dbghelp.dll, hopefully it will find a compatible version.
+        wcsncpy_s(dbghelppath, MAX_PATH, L"dbghelp.dll", _TRUNCATE);
+    }
+    else {
+        // Use the copy of dbghelp.dll installed in the 'bin' directory.
+        wcsncat_s(dbghelppath, MAX_PATH, L"\\dbghelp.dll", _TRUNCATE);
+    }
 
     // Load the copy of dbghelp.dll installed by Visual Leak Detector.
     m_dbghelp = LoadLibrary(dbghelppath);
