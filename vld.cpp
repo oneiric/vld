@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.52 2006/11/06 02:32:25 dmouldin Exp $
+//  $Id: vld.cpp,v 1.53 2006/11/09 00:11:04 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -178,11 +178,12 @@ VisualLeakDetector::VisualLeakDetector ()
     InitializeCriticalSection(&vldheaplock);
 
     // Initialize private data.
+    InitializeCriticalSection(&m_heaplock);
     m_heapmap         = new HeapMap;
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
     m_leaksfound      = 0;
-    InitializeCriticalSection(&m_lock);
+    InitializeCriticalSection(&m_loaderlock);
     m_maxdatadump     = 0xffffffff;
     m_maxtraceframes  = 0xffffffff;
     _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, L'\0', _TRUNCATE);
@@ -385,7 +386,8 @@ VisualLeakDetector::~VisualLeakDetector ()
                 report(L"ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
             }
         }
-        DeleteCriticalSection(&m_lock);
+        DeleteCriticalSection(&m_heaplock);
+        DeleteCriticalSection(&m_loaderlock);
         HeapDestroy(vldheap);
 
         report(L"Visual Leak Detector is now exiting.\n");
@@ -1458,7 +1460,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     BYTE               symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
     BOOL               symfound;
 
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_heaplock);
 
     // Get the return address within the calling function.
     FRAMEPOINTER(fp);
@@ -1484,7 +1486,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
         }
     }
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_heaplock);
     return heap;
 }
 
@@ -1500,7 +1502,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 //
 BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 {
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_heaplock);
 
     // After this heap is destroyed, the heap's address space will be unmapped
     // from the process's address space. So, we'd better generate a leak report
@@ -1510,7 +1512,7 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 
     vld.unmapheap(heap);
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_heaplock);
     return HeapDestroy(heap);
 }
 
@@ -1541,7 +1543,7 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
 {
     NTSTATUS status;
 
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_loaderlock);
 
     // Load the DLL.
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
@@ -1551,7 +1553,7 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         pEnumerateLoadedModulesW64(currentprocess, attachtomodule, NULL);
     }
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_loaderlock);
     return status;
 }
 
@@ -1862,7 +1864,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     ModuleSet::Iterator moduleit;
     SIZE_T              returnaddress;
 
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_heaplock);
 
     // Allocate the block.
     block = RtlAllocateHeap(heap, flags, size);
@@ -1899,7 +1901,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     vld.m_tls.addrfp = 0x0;
     vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_heaplock);
     return block;
 }
 
@@ -1922,14 +1924,14 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 {
     BOOL status;
 
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_heaplock);
 
     // Unmap the block from the specified heap.
     vld.unmapblock(heap, mem);
 
     status = RtlFreeHeap(heap, flags, mem);
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_heaplock);
     return status;
 }
 
@@ -1962,7 +1964,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     LPVOID              newmem;
     SIZE_T              returnaddress;
 
-    EnterCriticalSection(&vld.m_lock);
+    EnterCriticalSection(&vld.m_heaplock);
 
     // Reallocate the block.
     newmem = RtlReAllocateHeap(heap, flags, mem, size);
@@ -2000,7 +2002,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     vld.m_tls.addrfp = 0x0;
     vld.m_tls.flags &= ~VLD_TLS_CRTALLOC;
 
-    LeaveCriticalSection(&vld.m_lock);
+    LeaveCriticalSection(&vld.m_heaplock);
     return newmem;
 }
 
