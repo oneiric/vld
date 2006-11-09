@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.5 2006/11/03 23:52:15 dmouldin Exp $
+#  $Id: vld-setup.nsi,v 1.6 2006/11/09 00:13:16 dmouldin Exp $
 #  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -94,7 +94,7 @@ Function .onInit
 				IDOK continue IDCANCEL abort
 		${ELSE}
 			MessageBox MB_ICONEXCLAMATION|MB_YESNO "Setup has detected that a different version of Visual Leak Detector is already installed on this computer.$\nIt is highly recommended that you first uninstall the version currently installed before proceeding.$\n$\nAre you sure you want to continue installing?" \
-				IDOK continue IDCANCEL abort
+				IDYES continue IDNO abort
 		${ENDIF}
 abort:
 		Abort
