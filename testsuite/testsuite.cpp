@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: testsuite.cpp,v 1.5 2006/11/06 02:36:38 dmouldin Exp $
+//  $Id: testsuite.cpp,v 1.6 2006/11/09 00:27:24 dmouldin Exp $
 //
 //  Test suite for Visual Leak Detector
 //
@@ -29,9 +29,9 @@ enum action_e {
 #define MAXDEPTH     32                      // Maximum depth of the allocation call stack
 #define MAXSIZE      64                      // Maximum block size to allocate
 #define MINDEPTH     0                       // Minimum depth of the allocation call stack
-#define MINSIZE      1                       // Minimum block size to allocate
-#define NUMDUPLEAKS  2                       // Number of times to duplicate each leak
-#define NUMTHREADS   1                      // Number of threads to run simultaneously
+#define MINSIZE      16                      // Minimum block size to allocate
+#define NUMDUPLEAKS  0                       // Number of times to duplicate each leak
+#define NUMTHREADS   64                      // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 typedef struct blockholder_s {
@@ -53,8 +53,8 @@ typedef struct threadcontext_s {
 
 __declspec(thread) blockholder_t  blocks [MAXBLOCKS];
 __declspec(thread) ULONG          counts [numactions] = { 0 };
-__declspec(thread) free_t         pfree = NULL;
 __declspec(thread) IMalloc       *imalloc = NULL;
+__declspec(thread) free_t         pfree = NULL;
 __declspec(thread) malloc_t       pmalloc = NULL;
 __declspec(thread) HANDLE         threadheap;
 __declspec(thread) ULONG          total_allocs = 0;
@@ -110,7 +110,7 @@ VOID allocateblock (action_e action, SIZE_T size)
         case a_getprocmalloc:
             name = "GetProcAddress";
             if (pmalloc == NULL) {
-                crt = GetModuleHandle(CRTDLLNAME);
+                crt = LoadLibrary(CRTDLLNAME);
                 assert(crt != NULL);
                 pmalloc = (malloc_t)GetProcAddress(crt, "malloc");
                 assert(pmalloc !=  NULL);
@@ -291,7 +291,7 @@ DWORD __stdcall runtestsuite (LPVOID param)
                     blocks[index].leak = TRUE;
                     leaks_selected++;
                 }
-            } while (leaks_selected < 2);
+            } while (leaks_selected < (1 + NUMDUPLEAKS));
         }
     }
 
@@ -304,7 +304,7 @@ DWORD __stdcall runtestsuite (LPVOID param)
 
     // Do a sanity check.
     if (context->leaky == TRUE) {
-        assert(total_allocs == (numactions * NUMDUPLEAKS));
+        assert(total_allocs == (numactions * (1 + NUMDUPLEAKS)));
     }
     else {
         assert(total_allocs == 0);
@@ -325,7 +325,6 @@ int main (int argc, char *argv [])
     UINT            leakythread;
 
     start = GetTickCount();
-
     srand(start);
 
     // Select a random thread to be the leaker.
