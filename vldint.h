@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.30 2006/11/06 02:33:07 dmouldin Exp $
+//  $Id: vldint.h,v 1.31 2006/11/09 00:12:05 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -42,7 +42,7 @@ Applications should never include this header."
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
-#define VLDVERSION          L"1.9c"
+#define VLDVERSION          L"1.9c(p1)"
 
 // The Visual Leak Detector APIs.
 extern "C" __declspec(dllexport) void VLDDisable ();
@@ -209,10 +209,11 @@ private:
     // Private data.
     HMODULE              m_dbghelp;           // Handle to the Debug Help Library.
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
+    CRITICAL_SECTION     m_heaplock;          // Serialzes access to the heap map.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
     SIZE_T               m_leaksfound;        // Total number of leaks found.
-    CRITICAL_SECTION     m_lock;              // Serialzes access to the heap map and Debug Help Library APIs.
+    CRITICAL_SECTION     m_loaderlock;        // Serializes access to module loading activites (enumerating and attaching to modules).
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     ModuleSet           *m_moduleset;         // Contains information about all modules loaded in the process.
