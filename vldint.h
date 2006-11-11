@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.32 2006/11/09 01:01:54 dmouldin Exp $
+//  $Id: vldint.h,v 1.33 2006/11/11 00:49:45 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -109,6 +109,10 @@ typedef struct tls_s {
 #define VLD_TLS_ENABLED  0x4 //   If set, memory leak detection is enabled for the current thread.
 } tls_t;
 
+// The TlsSet allows VLD to keep track of all thread local storage structures
+// allocated in the process.
+typedef Set<tls_t*> TlsSet;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The VisualLeakDetector Class
@@ -197,9 +201,11 @@ private:
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     BOOL enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
+    tls_t* gettls ();
     BOOL linkdebughelplibrary ();
     VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID mapheap (HANDLE heap);
+    static BOOL __stdcall recordmodulepaths (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID reportconfig ();
     VOID reportleaks (HANDLE heap);
@@ -238,7 +244,8 @@ private:
 #define VLD_STATUS_INSTALLED            0x2   //   If set, VLD was successfully installed.
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
-    static __declspec(thread) tls_t m_tls;    // Thread-local storage.
+    static DWORD         m_tlsindex;          // Thread-local storage index.
+    TlsSet              *m_tlsset;
 
     // The Visual Leak Detector APIs are our friends.
     friend __declspec(dllexport) void VLDDisable ();
