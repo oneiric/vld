@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.6 2006/11/09 00:13:16 dmouldin Exp $
+#  $Id: vld-setup.nsi,v 1.7 2006/11/11 01:15:38 dmouldin Exp $
 #  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -27,7 +27,7 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9c"
+!define VLD_VERSION "1.9c(p3)"
 
 # Define build system paths
 !define DTFW_PATH "C:\Program Files\Debugging Tools for Windows"
