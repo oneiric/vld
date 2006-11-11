@@ -113,6 +113,8 @@
 				EnableFiberSafeOptimizations="true"
 				PreprocessorDefinitions="UNICODE, _UNICODE"
 				StringPooling="true"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
 				DebugInformationFormat="3"
 			/>
 			<Tool
