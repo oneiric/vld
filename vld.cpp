@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.55 2006/11/11 00:47:57 dmouldin Exp $
+//  $Id: vld.cpp,v 1.56 2006/11/11 00:56:45 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -259,6 +259,14 @@ VisualLeakDetector::VisualLeakDetector ()
         insertreportdelay();
     }
 
+    // This is highly unlikely to happen, but just in case, check to be sure
+    // we got a valid TLS index.
+    if (m_tlsindex == TLS_OUT_OF_INDEXES) {
+        report(L"ERROR: Visual Leak Detector could not be installed because thread local"
+               L"  storage could not be allocated.");
+        return;
+    }
+
     // Do an explicit link with the Debug Help Library.
     if (linkdebughelplibrary() == FALSE) {
         report(L"ERROR: Visual Leak Detector could not be installed.\n");
@@ -432,6 +440,10 @@ VisualLeakDetector::~VisualLeakDetector ()
 
     if (m_dbghelp != NULL) {
         FreeLibrary(m_dbghelp);
+    }
+
+    if (m_tlsindex != TLS_OUT_OF_INDEXES) {
+        TlsFree(m_tlsindex);
     }
 
     if (m_reportfile != NULL) {
