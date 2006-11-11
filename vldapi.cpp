@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.13 2006/11/05 21:02:25 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.14 2006/11/11 00:50:31 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -28,7 +28,6 @@
 
 // Imported global variables.
 extern VisualLeakDetector vld;
-__declspec(thread) tls_t VisualLeakDetector::m_tls;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -37,6 +36,8 @@ __declspec(thread) tls_t VisualLeakDetector::m_tls;
 
 extern "C" __declspec(dllexport) void VLDDisable ()
 {
+    tls_t *tls;
+
     if (!vld.enabled()) {
         // Already disabled for the current thread.
         return;
@@ -46,19 +47,23 @@ extern "C" __declspec(dllexport) void VLDDisable ()
     // because if neither flag is set, it means that we are in the default or
     // "starting" state, which could be either enabled or disabled depending on
     // the configuration.
-    vld.m_tls.flags &= ~VLD_TLS_ENABLED;
-    vld.m_tls.flags |= VLD_TLS_DISABLED;
+    tls = vld.gettls();
+    tls->flags &= ~VLD_TLS_ENABLED;
+    tls->flags |= VLD_TLS_DISABLED;
 }
 
 extern "C" __declspec(dllexport) void VLDEnable ()
 {
+    tls_t *tls;
+
     if (vld.enabled()) {
         // Already enabled for the current thread.
         return;
     }
 
     // Enable memory leak detection for the current thread.
-    vld.m_tls.flags &= ~VLD_TLS_DISABLED;
-    vld.m_tls.flags |= VLD_TLS_ENABLED;
+    tls = vld.gettls();
+    tls->flags &= ~VLD_TLS_DISABLED;
+    tls->flags |= VLD_TLS_ENABLED;
     vld.m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
