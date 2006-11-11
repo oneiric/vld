@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.33 2006/11/11 00:49:45 dmouldin Exp $
+//  $Id: vldint.h,v 1.34 2006/11/11 01:04:32 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -42,7 +42,7 @@ Applications should never include this header."
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
-#define VLDVERSION          L"1.9c(p2)"
+#define VLDVERSION          L"1.9c(p3)"
 
 // The Visual Leak Detector APIs.
 extern "C" __declspec(dllexport) void VLDDisable ();
