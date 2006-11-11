@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.13 2006/11/06 02:32:05 dmouldin Exp $
+//  $Id: utility.h,v 1.14 2006/11/11 00:33:25 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9c) - Various Utility Definitions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -85,6 +85,7 @@ typedef struct patchentry_s
 {
     LPCSTR  exportmodulename; // The name of the module exporting the patched API.
     LPCSTR  importname;       // The name (or ordinal) of the imported API being patched.
+    LPSTR   modulepath;       // (Optional) module path. If the module is loaded, then VLD will fill this in at startup.
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 } patchentry_t;
 
@@ -95,10 +96,12 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
 BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement);
 VOID insertreportdelay ();
 BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
-BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR exportmodulepath, LPCSTR importname,
+                  LPCVOID replacement);
 BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
 VOID report (LPCWSTR format, ...);
-VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname, LPCVOID replacement);
+VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR exportmodulepath, LPCSTR importname,
+                    LPCVOID replacement);
 VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
 VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
