@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.h,v 1.14 2006/11/11 00:33:25 dmouldin Exp $
+//  $Id: utility.h,v 1.15 2006/11/12 18:09:20 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - Various Utility Definitions
+//  Visual Leak Detector (Version 1.9d) - Various Utility Definitions
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.10 2006/11/05 20:42:36 dmouldin Exp $
+//  $Id: tree.h,v 1.11 2006/11/12 18:09:19 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - Red-black Tree Template
+//  Visual Leak Detector (Version 1.9d) - Red-black Tree Template
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

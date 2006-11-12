@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: map.h,v 1.7 2006/11/03 17:57:13 db Exp $
+//  $Id: map.h,v 1.8 2006/11/12 18:09:19 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - Lightweight STL-like Map Template
+//  Visual Leak Detector (Version 1.9d) - Lightweight STL-like Map Template
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

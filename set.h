@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: set.h,v 1.5 2006/11/03 17:57:14 db Exp $
+//  $Id: set.h,v 1.6 2006/11/12 18:09:19 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - Lightweight STL-like Set Template
+//  Visual Leak Detector (Version 1.9d) - Lightweight STL-like Set Template
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: dbghelpapi.h,v 1.2 2006/11/03 17:57:13 db Exp $
+//  $Id: dbghelpapi.h,v 1.3 2006/11/12 18:09:19 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - DbgHelp API Definitions
+//  Visual Leak Detector (Version 1.9d) - DbgHelp API Definitions
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
