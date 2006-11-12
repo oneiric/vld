@@ -1,6 +1,6 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.7 2006/11/11 01:15:38 dmouldin Exp $
-#  Visual Leak Detector (Version 1.9c) - NSIS Installation Script
+#  $Id: vld-setup.nsi,v 1.8 2006/11/12 18:32:28 dmouldin Exp $
+#  Visual Leak Detector (Version 1.9d) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
 #  This program is free software; you can redistribute it and/or
@@ -27,13 +27,15 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9c(p3)"
+!define VLD_VERSION "1.9d"
 
 # Define build system paths
+!define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT"
 !define DTFW_PATH "C:\Program Files\Debugging Tools for Windows"
 
 # Define installer paths
 !define BIN_PATH     "$INSTDIR\bin"
+!define CRT_PA_PATH  "${BIN_PATH}\Microsoft.VC80.CRT"
 !define INCLUDE_PATH "$INSTDIR\include"
 !define LIB_PATH     "$INSTDIR\lib"
 !define LNK_PATH     "$SMPROGRAMS\$SM_PATH"
@@ -89,7 +91,7 @@ Var SM_PATH
 Function .onInit
 	ReadRegStr $INSTALLED_VERSION HKLM "${REG_KEY_PRODUCT}" "InstalledVersion"
 	${UNLESS} $INSTALLED_VERSION == ""
-		${IF} $INSTALLED_VERSION = ${VLD_VERSION}
+		${IF} $INSTALLED_VERSION == ${VLD_VERSION}
 			MessageBox MB_ICONINFORMATION|MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
 				IDOK continue IDCANCEL abort
 		${ELSE}
@@ -145,6 +147,12 @@ skipaddtopath:
 	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\dbghelp.dll" "${BIN_PATH}\dbghelp.dll" $INSTDIR
 SectionEnd
 
+Section "Microsoft C Runtime Library (8.0)"
+	SetOutPath "${CRT_PA_PATH}"
+	File "${CRT_PATH}\Microsoft.VC80.CRT.manifest"	
+	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\msvcr80.dll" "${CRT_PA_PATH}\msvcr80.dll" $INSTDIR
+SectionEnd
+
 Section "Configuration File"
 	SetOutPath "$INSTDIR"
 	File "..\vld.ini"
@@ -191,7 +199,13 @@ Section "un.Import Library"
 	RMDir "${LIB_PATH}"
 SectionEnd
 
-Section "un.Dynamic Link Library"
+Section "un.Microsoft C Runtime Library (8.0)"
+	Delete "${CRT_PA_PATH}\Microsoft.VC80.CRT.manifest"
+	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PA_PATH}\msvcr80.dll"
+	RMDir "${CRT_PA_PATH}"
+SectionEnd
+
+Section "un.Dynamic Link Libraries"
 	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
 	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\dbghelp.dll"
 	RMDir "${BIN_PATH}"
