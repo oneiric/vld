@@ -1,6 +1,21 @@
 Visual Leak Detector (VLD) Version 1.9b (beta)
 
   Change Log / Release Notes
+  
+1.9d beta (12 November 2006)
+----------------------------
+  Bugs Fixed:
+  + Failed assertion "freed == TRUE" pops up when running a program with VLD
+    without the debugger attached.
+  + Some, but not all, multithreaded programs that dynamically load and unload
+    many DLLs have been known to experience problems, such as deadlocks or
+    exceptions, when used with VLD.
+  + Failed assertion "exportmodule != NULL" pops up when running some programs
+    with VLD.
+  + VLD fails to show file names or function names in the memory leak report for
+    some programs that are linked with the dynamic CRT library.
+  + Access violation exceptions are thrown, but caught by the operating system,
+    when running some programs with VLD.
 
 1.9c beta (6 November 2006)
 ---------------------------

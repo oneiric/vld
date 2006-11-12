@@ -179,7 +179,7 @@
 
 <div id="masthead">
 
-<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9c (Beta)</h1>
+<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9d (Beta)</h1>
 
 <p id="slogan">Enhanced Memory Leak Detection for Visual&nbsp;C++</p>
 
@@ -633,9 +633,6 @@
 <p>Known restrictions/limitations in this version of VLD include:</p>
 
 <ul>
-   <li>Some, but not all, multithreaded programs that dynamically load and unload many DLLs have been known to
-       experience problems, such as deadlocks or exceptions, when used with VLD.</li>
-       
    <li>Memory allocations made through calls to functions loaded from a DLL using delayed loading may not be
        detected.</li> 
 
@@ -646,6 +643,11 @@
        on the linker command line (can be added through project settings by adding it to the list of library modules in
        the linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
        supported.</li>
+       
+   <li>On Windows 2000 and earlier operating systems, you may need to manually add the <span class="filename">[Visual
+       Leak Detector Installation Directory]\bin\Microsoft.VC80.CRT</span> directory to the system PATH environment
+       variable. Otherwise the system may not find the required <span class="filename">msvcr80.dll</span> DLL when
+       running VLD.</li>
 </ul>
 
 
