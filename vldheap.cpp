@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.10 2006/11/03 17:57:49 db Exp $
+//  $Id: vldheap.cpp,v 1.11 2006/11/12 18:05:52 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9c) - Internal C++ Heap Management
+//  Visual Leak Detector (Version 1.9d) - Internal C++ Heap Management
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -161,7 +161,7 @@ void vlddelete (void *block)
 
     // Free the block.
     freed = RtlFreeHeap(vldheap, 0x0, header);
-    assert(freed == TRUE);
+    assert(freed != FALSE);
 }
 
 // vldnew - Local helper function that actually allocates memory from VLD's
