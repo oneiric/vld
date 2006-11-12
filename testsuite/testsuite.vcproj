@@ -159,7 +159,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug(Release)|Win32"
-			OutputDirectory="$(SolutionDir)Debug"
+			OutputDirectory="$(SolutionDir)Release"
 			IntermediateDirectory="Debug"
 			ConfigurationType="1"
 			>
