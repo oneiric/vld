@@ -2,6 +2,13 @@ Visual Leak Detector (VLD) Version 1.9b (beta)
 
   Change Log / Release Notes
   
+1.9x beta
+---------
+  Bugs Fixed:
+  + The copy of vld.ini installed in VLD's installation directory overrides any
+    other copies of vld.ini that are created, even copies placed in the
+    working directory of the program being debugged.
+  
 1.9d beta (12 November 2006)
 ----------------------------
   Bugs Fixed:

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.57 2006/11/12 18:09:20 dmouldin Exp $
+//  $Id: vld.cpp,v 1.58 2006/11/13 22:54:30 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -2358,32 +2358,28 @@ VOID VisualLeakDetector::configure ()
 #define BSIZE 64
     WCHAR        buffer [BSIZE];
     WCHAR        filename [MAX_PATH];
-    WCHAR        inipath [MAX_PATH] = { 0 };
+    WCHAR        inipath [MAX_PATH];
     DWORD        length;
     HKEY         productkey;
     LONG         regstatus;
     struct _stat s;
     DWORD        valuetype;
 
-    // Get the location of the vld.ini file from the registry.
-    regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-    if (regstatus == ERROR_SUCCESS) {
-        regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-        if (regstatus != ERROR_SUCCESS) {
-            inipath[0] = L'\0';
+    if (_wstat(L".\\vld.ini", &s) == 0) {
+        // Found a copy of vld.ini in the working directory. Use it.
+        wcsncpy_s(inipath, MAX_PATH, L".\\vld.ini", _TRUNCATE);
+    }
+    else {
+        // Get the location of the vld.ini file from the registry.
+        regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+        if (regstatus == ERROR_SUCCESS) {
+            regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
         }
-    }
-
-    if (wcslen(inipath) == 0) {
-        // Couldn't read the location of the INI file from the registry. Try
-        // looking in the process' working directory.
-        _wfullpath(inipath, L".\\vld.ini", MAX_PATH);
-    }
-
-    if (_wstat(inipath, &s) != 0) {
-        // The location of vld.ini could not be found. As a last resort, look in
-        // the Windows directory.
-        wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
+        if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
+            // The location of vld.ini could not be read from the registry. As a
+            // last resort, look in the Windows directory.
+            wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
+        }
     }
 
     // Read the boolean options.
