@@ -16,7 +16,7 @@ File | Save to save this file to your hard drive for editing.</b></p>
 
 <UL class=download>
 <LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10.zip">Download Visual Leak Detector 1.0 - 535 Kb</A> 
-<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld19csetup.zip">Download the 1.9c beta version of Visual Leak Detector (includes source) - 534 Kb</A> 
+<LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-19d-setup.zip">Download the 1.9d beta version of Visual Leak Detector (includes source) - 729 Kb</A> 
 <LI><A href="http://www.codeproject.com/tools/visualleakdetector/vld-10-src.zip">Download the source code (version 1.0) - 50.3 Kb</A> </LI></UL>
 <P><IMG height=436 alt="Screenshot of Visual Studio 6.0 &#13;&#10;with Visual Leak Detector's memory leak report displayed." src="http://www.codeproject.com/tools/visualleakdetector/screenshot.png" width=600></P>
 <H2>Table of Contents</H2>
@@ -45,9 +45,9 @@ File | Save to save this file to your hard drive for editing.</b></p>
 <LI>The full source code to the library is included and it is well documented, so it is easy to customize it to suit your needs. </LI></UL>
 <P>Visual Leak Detector is <A href="#license">licensed</A> free of charge as a service to the Windows developer community.</P>
 <H2><A name=new></A>What's New?</H2>
-<P><B>6 November 2006:</B> The second beta version of the next major release of Visual Leak Detector has been posted. This new beta has been thoroughly tested with Visual Studio 2005, so those of you who had problems with the first beta and VS2005, this new version is definitely worth checking out. This version introduces an installer package that makes using VLD for the first time even easier than before. Also, this beta version features the new leak detection engine that does not have any of the restrictions of the 1.0 version. The most prominent improvement is that the new design is not limited to only detecting leaks from <CODE>new</CODE> or <CODE>malloc</CODE>. For example, COM-based leaks are now detected as well as many other types of leaks.</P>
-<P>Using this version is different, but easier, than before. Just install using the new setup package. After that you just need to tell Visual Studio where to find the installed libraries and headers and you're all set. See the <I>README.html</I> file included in the ZIP download for the details.</P>
-<P>Note that the article below describes the inner workings of the 1.0 version. Because the beta version might change significantly before the next official release, the article will not be updated to reflect the design of the beta version until the official release is complete.</P>
+<P><B>14 November 2006:</B> A new beta version of has been posted. This version fixes a few bugs, most notably a deadlock bug and a couple of failed assertion bugs, that were identified in the 1.9c beta.</P>
+<P>Note that the beta version does not have the same limitations of the 1.0 version. Whereas 1.0 can only detect leaks resulting from <CODE>new</CODE> or <CODE>malloc</CODE>, the beta can detect many different classes of leaks.</P>
+<P>Please also note that the article below describes the inner workings of the 1.0 version. Because the beta version might change significantly before the next official release, the article will not be updated to reflect the design of the beta version until the official release is complete.</P>
 <H2><A name=use></A>Using Visual Leak Detector</H2>
 <P>This section briefly describes the basics of using Visual Leak Detector (VLD). For a more in-depth discussion of the configuration options, runtime APIs, and a discussion of the more advanced usage scenarios (such as using VLD with DLLs), please see the full documentation included in the downloadable Zip files.</P>
 <P>To use VLD with your project, follow these simple steps:</P>
@@ -315,6 +315,7 @@ void VisualLeakDetector::reportleaks ()
 <H2><A name=history></A>History</H2>
 <P>This list gives a brief overview of the changes made from release to release. For a detailed description of changes made in each release, please see the change log, <I>CHANGES.txt</I>, in the downloadable ZIP files.</P>
 <UL>
+<LI><B>14 November 2006:</B> Version 1.9d beta - Fixed a deadlock bug that may occur in multithreaded programs. Also fixed a two failed assertion bugs.</LI>
 <LI><B>6 November 2006:</B> Version 1.9c beta - New installer to make starting out with VLD easier. All known incompatibilities with Visual Studio 2005 have been fixed. 
 <LI><B>9 March 2006:</B> Version 1.9a beta - Entirely new leak detection engine detects most, if not all, in-process memory leaks not just leaks from <CODE>new</CODE> or <CODE>malloc</CODE>. Added many other new convenience features as well. 
 <LI><B>5 August 2005:</B> Version 1.0 - A couple of new features have been added, and a few bugs have been fixed. Major revisions have been made to this article to bring it up to date with respect to the 1.0 release. 
