@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.15 2006/11/12 18:09:20 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.16 2006/11/15 01:09:47 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -38,11 +38,6 @@ extern "C" __declspec(dllexport) void VLDDisable ()
 {
     tls_t *tls;
 
-    if (!vld.enabled()) {
-        // Already disabled for the current thread.
-        return;
-    }
-
     // Disable memory leak detection for the current thread. There are two flags
     // because if neither flag is set, it means that we are in the default or
     // "starting" state, which could be either enabled or disabled depending on
@@ -55,11 +50,6 @@ extern "C" __declspec(dllexport) void VLDDisable ()
 extern "C" __declspec(dllexport) void VLDEnable ()
 {
     tls_t *tls;
-
-    if (vld.enabled()) {
-        // Already enabled for the current thread.
-        return;
-    }
 
     // Enable memory leak detection for the current thread.
     tls = vld.gettls();
