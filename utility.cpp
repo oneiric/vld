@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.18 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: utility.cpp,v 1.19 2006/11/15 01:08:22 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -402,15 +402,11 @@ BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tab
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be patched.
 //
-//  - exportmodulename (IN): ANSI string containing the name of the module that
-//      exports the function of variable to be patched. This parameter must not
-//      be NULL.
+//  - exportmodule (IN): Handle (base address) of the module that exports the
+//      the function or variable to be patched.
 //
-//  - exportmodulepath (IN): (Optional) ANSI string containing the fully
-//      qualified path of the module that exports the function or variable to be
-//      patched. This parameter may be NULL. However, it is recommended that
-//      this parameter be provided if possible, especially for any DLLs that may
-//      reside in the side-by-side cache.
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      exports the function or variable to be patched.
 //
 //  - importname (IN): ANSI string containing the name of the imported function
 //      or variable to be patched. May be an integer cast to a string if the
@@ -427,18 +423,15 @@ BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tab
 //    import module does not import the specified export, so nothing changed,
 //    then FALSE will be returned.
 //   
-BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR exportmodulepath, LPCSTR importname,
+BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
                   LPCVOID replacement)
 {
-    HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
     IMAGE_IMPORT_DESCRIPTOR *idte;
     FARPROC                  import;
     DWORD                    protect;
     IMAGE_SECTION_HEADER    *section;
     ULONG                    size;
-
-    assert(exportmodulename != NULL);
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
@@ -465,18 +458,6 @@ BOOL patchimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR exportmo
     
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found the entry that needs to be patched.
-    if (exportmodulepath != NULL) {
-        // Always try to use the full path if available. There seems to be a bug
-        // (or is this a new feature of the "side-by-side" kruft?) where
-        // GetModuleHandle sometimes fails if the full path is not supplied for
-        // DLLs in the side-by-side cache.
-        exportmodule = GetModuleHandleA(exportmodulepath);
-    }
-    else {
-        // No full path available. Try using just the module name by itself.
-        exportmodule = GetModuleHandleA(exportmodulename);
-    }
-    assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
     assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
@@ -537,7 +518,7 @@ BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesi
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        if (patchimport(importmodule, entry->exportmodulename, entry->modulepath, entry->importname,
+        if (patchimport(importmodule, (HMODULE)entry->modulebase, entry->exportmodulename, entry->importname,
                         entry->replacement) == TRUE) {
             patched = TRUE;
         }
@@ -613,15 +594,11 @@ VOID report (LPCWSTR format, ...)
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be restored.
 //
-//  - exportmodulename (IN): ANSI string containing the name of the module that
-//      exports the function of variable to be patched. This prarameter must not
-//      be NULL.
+//  - exportmodule (IN): Handle (base address) of the module that exports the
+//      function or variable to be patched.
 //
-//  - exportmodulepath (IN): (Optional) ANSI string containing the fully
-//      qualified path of the module that exports the function or variable to be
-//      patched. This parameter may be NULL. However, it is recommended that
-//      this parameter be provided if possible, especially for any DLLs that may
-//      reside in the side-by-side cache.
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      exports the function or variable to be patched.
 //
 //  - importname (IN): ANSI string containing the name of the imported function
 //      or variable to be restored. May be an integer cast to a string if the
@@ -634,18 +611,15 @@ VOID report (LPCWSTR format, ...)
 //
 //    None.
 //   
-VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR exportmodulepath, LPCSTR importname,
+VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
                     LPCVOID replacement)
 {
-    HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
     IMAGE_IMPORT_DESCRIPTOR *idte;
     FARPROC                  import;
     DWORD                    protect;
     IMAGE_SECTION_HEADER    *section;
     ULONG                    size;
-
-    assert(exportmodulename != NULL);
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
@@ -671,18 +645,6 @@ VOID restoreimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR export
     }
     
     // Get the *real* address of the import.
-    if (exportmodulepath != NULL) {
-        // Always try to use the full path if it'savailable. There seems to be a
-        // bug (or is this a new feature of the "side-by-side" kruft?) where
-        // GetModuleHandle sometimes fails if the full path is not supplied for
-        // DLLs in the side-by-side cache.
-        exportmodule = GetModuleHandleA(exportmodulepath);
-    }
-    else {
-        // No full path available. Try using just the module name by itself.
-        exportmodule = GetModuleHandleA(exportmodulename);
-    }
-    assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
     assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
@@ -734,7 +696,8 @@ VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT table
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        restoreimport(importmodule, entry->exportmodulename, entry->modulepath, entry->importname, entry->replacement);
+        restoreimport(importmodule, (HMODULE)entry->modulebase, entry->exportmodulename, entry->importname,
+                      entry->replacement);
     }
 }
 
