@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.36 2006/11/15 01:29:00 dmouldin Exp $
+//  $Id: vldint.h,v 1.37 2006/11/15 01:48:14 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -247,7 +247,8 @@ private:
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
     DWORD                m_tlsindex;          // Thread-local storage index.
-    TlsSet              *m_tlsset;
+    TlsSet              *m_tlsset;            // Set of all all thread-local storage structres for the process.
+    HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
 
     // The Visual Leak Detector APIs are our friends.
     friend __declspec(dllexport) void VLDDisable ();

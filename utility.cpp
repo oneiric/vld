@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.19 2006/11/15 01:08:22 dmouldin Exp $
+//  $Id: utility.cpp,v 1.20 2006/11/15 01:48:14 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -202,6 +202,9 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //  - importmodule (IN): Handle (base address) of the module to be searched to
 //      see if it imports the specified import.
 //
+//  - exportmodule (IN): Handle (base address) of the module that exports the
+//      import to be searched for.
+//
 //  - exportmodulename (IN): ANSI string containing the name of the module that
 //      exports the import to be searched for.
 //
@@ -214,9 +217,8 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //    Returns TRUE if the module imports to the specified import. Otherwise
 //    returns FALSE.
 //
-BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importname)
+BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname)
 {
-    HMODULE                  exportmodule;
     IMAGE_THUNK_DATA        *iate;
     IMAGE_IMPORT_DESCRIPTOR *idte;
     FARPROC                  import;
@@ -248,8 +250,6 @@ BOOL findimport (HMODULE importmodule, LPCSTR exportmodulename, LPCSTR importnam
     
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found that the module does import the named import.
-    exportmodule = GetModuleHandleA(exportmodulename);
-    assert(exportmodule != NULL);
     import = GetProcAddress(exportmodule, importname);
     assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 

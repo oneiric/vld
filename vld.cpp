@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.59 2006/11/15 01:29:00 dmouldin Exp $
+//  $Id: vld.cpp,v 1.60 2006/11/15 01:48:14 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -1458,7 +1458,6 @@ void* VisualLeakDetector::_crtd_scalar_new (unsigned int size)
 FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
     patchentry_t *entry;
-    HMODULE       exportmodule;
     UINT          index;
     UINT          tablesize = sizeof(vld.m_patchtable) / sizeof(patchentry_t);
 
@@ -1466,8 +1465,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
     // function.
     for (index = 0; index < tablesize; index++) {
         entry = &vld.m_patchtable[index];
-        exportmodule = GetModuleHandleA(entry->exportmodulename);
-        if (exportmodule != module) {
+        if ((HMODULE)entry->modulebase != module) {
             // This patch table entry is for a different module.
             continue;
         }
@@ -2185,12 +2183,18 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
     strncat_s(modulenamea, size, extension, _TRUNCATE);
     _strlwr_s(modulenamea, size);
 
-    // See if this is a module listed in the patch table. If it is, update the
-    // corresponding patch table entries' module base address.
-    for (index = 0; index < tablesize; index++) {
-        entry = &m_patchtable[index];
-        if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
-            entry->modulebase = (SIZE_T)modulebase;
+    if (_stricmp(modulenamea, "vld.dll") == 0) {
+        // Record Visual Leak Detector's own base address.
+        vld.m_vldbase = (HMODULE)modulebase;
+    }
+    else {
+        // See if this is a module listed in the patch table. If it is, update
+        // the corresponding patch table entries' module base address.
+        for (index = 0; index < tablesize; index++) {
+            entry = &m_patchtable[index];
+            if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
+                entry->modulebase = (SIZE_T)modulebase;
+            }
         }
     }
 
@@ -2295,7 +2299,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         }
 
         mbstowcs_s(&count, modulenamew, MAXMODULENAME, modulename, _TRUNCATE);
-        if ((findimport((HMODULE)modulebase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
+        if ((findimport((HMODULE)modulebase, m_vldbase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
             (wcsstr(vld.m_forcedmodulelist, modulenamew) == NULL)) {
             // This module does not import VLD. This means that none of the module's
             // sources #included vld.h. Exclude this module from leak detection.
