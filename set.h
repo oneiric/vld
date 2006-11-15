@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: set.h,v 1.6 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: set.h,v 1.7 2006/11/15 01:05:27 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Lightweight STL-like Set Template
 //  Copyright (c) 2006 Dan Moulding
@@ -190,11 +190,49 @@ public:
             m_tree = tree;
         }
 
+    protected:
         typename Tree<Tk>::node_t *m_node; // Pointer to the node referenced by the Set Iterator.
         const Tree<Tk>            *m_tree; // Pointer to the tree containing the referenced node.
 
         // The Set class is a friend of Set Iterators.
         friend class Set<Tk>;
+    };
+
+    // Muterator class - This class provides a mutable Iterator (the regular
+    // Iterators are const Iterators). By dereferencing a Muterator, you get
+    // a modifiable element.
+    //
+    //   Caution: Modifing an element in a way that changes its sorting value
+    //     will corrupt the Set container. Muterators should only be used when
+    //     you are absolutely certain you will not be using it to make a
+    //     modification that changes the sort order of the referenced element.
+    //
+    class Muterator : public Iterator
+    {
+    public:
+        // operator = - Assignment operator for Set Muterators. Can be used to
+        //   copy a Muterator from an existing Iterator, such that the Muterator
+        //   references the same element referenced by the Iterator.
+        Muterator& operator = (const Iterator& other) {
+            *(Iterator*)this = other;
+            return *this;
+        }
+
+        // operator * - Dereference operator for Set Muterators.
+        //
+        //  Note: Dereferencing a Muterator which does not reference a valid
+        //    value in the Set is undefined and will almost certainly cause a
+        //    crash.
+        //
+        //  Return Value:
+        //
+        //    Returns a reference to the key in the Map referenced by the
+        //    Muterator.
+        //
+        Tk& operator * ()
+        {
+            return m_node->key;
+        }
     };
 
     // begin - Obtains an Iterator referencing the beginning of the Set (i.e.
@@ -271,7 +309,8 @@ public:
     //  Return Value:
     //
     //    Returns an Iterator referencing the key after it has been inserted
-    //    into the Set.
+    //    into the Set. If an element with an identical key value already exists
+    //    in the Set, then the NULL Iterator is returned.
     //
     Iterator insert (const Tk &key)
     {
