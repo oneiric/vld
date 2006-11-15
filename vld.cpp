@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.58 2006/11/13 22:54:30 dmouldin Exp $
+//  $Id: vld.cpp,v 1.59 2006/11/15 01:29:00 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -107,55 +107,53 @@ __declspec(dllexport) VisualLeakDetector vld;
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_patchtable [] = {
     // Win32 heap APIs.
-    "kernel32.dll", "GetProcAddress",     NULL, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
-    "kernel32.dll", "HeapAlloc",          NULL, _RtlAllocateHeap,
-    "kernel32.dll", "HeapCreate",         NULL, _HeapCreate,
-    "kernel32.dll", "HeapDestroy",        NULL, _HeapDestroy,
-    "kernel32.dll", "HeapFree",           NULL, _RtlFreeHeap,
-    "kernel32.dll", "HeapReAlloc",        NULL, _RtlReAllocateHeap,
+    "kernel32.dll", "GetProcAddress",     0x0, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+    "kernel32.dll", "HeapAlloc",          0x0, _RtlAllocateHeap,
+    "kernel32.dll", "HeapCreate",         0x0, _HeapCreate,
+    "kernel32.dll", "HeapDestroy",        0x0, _HeapDestroy,
+    "kernel32.dll", "HeapFree",           0x0, _RtlFreeHeap,
+    "kernel32.dll", "HeapReAlloc",        0x0, _RtlReAllocateHeap,
 
     // MFC new operators (exported by ordinal).
-    "mfc42d.dll",   (LPCSTR)714,          NULL, _mfc42d__scalar_new_dbg,
-    "mfc42d.dll",   (LPCSTR)711,          NULL, _mfc42d_scalar_new,
+    "mfc42d.dll",   (LPCSTR)714,          0x0, _mfc42d__scalar_new_dbg,
+    "mfc42d.dll",   (LPCSTR)711,          0x0, _mfc42d_scalar_new,
     // XXX MFC 7.x DLL new operators still need to be added to this
     //   table, but I don't know their ordinals.
-    "mfc80d.dll",   (LPCSTR)895,          NULL, _mfc80d__scalar_new_dbg,
-    "mfc80d.dll",   (LPCSTR)269,          NULL, _mfc80d__vector_new_dbg,
-    "mfc80d.dll",   (LPCSTR)893,          NULL, _mfc80d_scalar_new,
-    "mfc80d.dll",   (LPCSTR)267,          NULL, _mfc80d_vector_new,
+    "mfc80d.dll",   (LPCSTR)895,          0x0, _mfc80d__scalar_new_dbg,
+    "mfc80d.dll",   (LPCSTR)269,          0x0, _mfc80d__vector_new_dbg,
+    "mfc80d.dll",   (LPCSTR)893,          0x0, _mfc80d_scalar_new,
+    "mfc80d.dll",   (LPCSTR)267,          0x0, _mfc80d_vector_new,
 
     // CRT new operators and heap APIs.
-    "msvcr80d.dll", "_calloc_dbg",        NULL, _crt80d__calloc_dbg,
-    "msvcr80d.dll", "_malloc_dbg",        NULL, _crt80d__malloc_dbg,
-    "msvcr80d.dll", "_realloc_dbg",       NULL, _crt80d__realloc_dbg,
-    "msvcr80d.dll", "??2@YAPAXIHPBDH@Z",  NULL, _crt80d__scalar_new_dbg,
-    "msvcr80d.dll", "??_U@YAPAXIHPBDH@Z", NULL, _crt80d__vector_new_dbg,
-    "msvcr80d.dll", "calloc",             NULL, _crt80d_calloc,
-    "msvcr80d.dll", "malloc",             NULL, _crt80d_malloc,
-    "msvcr80d.dll", "realloc",            NULL, _crt80d_realloc,
-    "msvcr80d.dll", "??2@YAPAXI@Z",       NULL, _crt80d_scalar_new,
-    "msvcr80d.dll", "??_U@YAPAXI@Z",      NULL, _crt80d_vector_new,
-    "msvcrtd.dll",  "_calloc_dbg",        NULL, _crtd__calloc_dbg,
-    "msvcrtd.dll",  "_malloc_dbg",        NULL, _crtd__malloc_dbg,
-    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z",  NULL, _crtd__scalar_new_dbg,
-    "msvcrtd.dll",  "_realloc_dbg",       NULL, _crtd__realloc_dbg,
-    "msvcrtd.dll",  "calloc",             NULL, _crtd_calloc,
-    "msvcrtd.dll",  "malloc",             NULL, _crtd_malloc,
-    "msvcrtd.dll",  "realloc",            NULL, _crtd_realloc,
-    "msvcrtd.dll",  "??2@YAPAXI@Z",       NULL, _crtd_scalar_new,
+    "msvcr80d.dll", "_calloc_dbg",        0x0, _crt80d__calloc_dbg,
+    "msvcr80d.dll", "_malloc_dbg",        0x0, _crt80d__malloc_dbg,
+    "msvcr80d.dll", "_realloc_dbg",       0x0, _crt80d__realloc_dbg,
+    "msvcr80d.dll", "??2@YAPAXIHPBDH@Z",  0x0, _crt80d__scalar_new_dbg,
+    "msvcr80d.dll", "??_U@YAPAXIHPBDH@Z", 0x0, _crt80d__vector_new_dbg,
+    "msvcr80d.dll", "calloc",             0x0, _crt80d_calloc,
+    "msvcr80d.dll", "malloc",             0x0, _crt80d_malloc,
+    "msvcr80d.dll", "realloc",            0x0, _crt80d_realloc,
+    "msvcr80d.dll", "??2@YAPAXI@Z",       0x0, _crt80d_scalar_new,
+    "msvcr80d.dll", "??_U@YAPAXI@Z",      0x0, _crt80d_vector_new,
+    "msvcrtd.dll",  "_calloc_dbg",        0x0, _crtd__calloc_dbg,
+    "msvcrtd.dll",  "_malloc_dbg",        0x0, _crtd__malloc_dbg,
+    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z",  0x0, _crtd__scalar_new_dbg,
+    "msvcrtd.dll",  "_realloc_dbg",       0x0, _crtd__realloc_dbg,
+    "msvcrtd.dll",  "calloc",             0x0, _crtd_calloc,
+    "msvcrtd.dll",  "malloc",             0x0, _crtd_malloc,
+    "msvcrtd.dll",  "realloc",            0x0, _crtd_realloc,
+    "msvcrtd.dll",  "??2@YAPAXI@Z",       0x0, _crtd_scalar_new,
 
     // NT APIs.
-    "ntdll.dll",    "RtlAllocateHeap",    NULL, _RtlAllocateHeap,
-    "ntdll.dll",    "RtlFreeHeap",        NULL, _RtlFreeHeap,
-    "ntdll.dll",    "RtlReAllocateHeap",  NULL, _RtlReAllocateHeap,
+    "ntdll.dll",    "RtlAllocateHeap",    0x0, _RtlAllocateHeap,
+    "ntdll.dll",    "RtlFreeHeap",        0x0, _RtlFreeHeap,
+    "ntdll.dll",    "RtlReAllocateHeap",  0x0, _RtlReAllocateHeap,
 
     // COM heap APIs.
-    "ole32.dll",    "CoGetMalloc",        NULL, _CoGetMalloc,
-    "ole32.dll",    "CoTaskMemAlloc",     NULL, _CoTaskMemAlloc,
-    "ole32.dll",    "CoTaskMemRealloc",   NULL, _CoTaskMemRealloc
+    "ole32.dll",    "CoGetMalloc",        0x0, _CoGetMalloc,
+    "ole32.dll",    "CoTaskMemAlloc",     0x0, _CoTaskMemAlloc,
+    "ole32.dll",    "CoTaskMemRealloc",   0x0, _CoTaskMemRealloc
 };
-
-DWORD VisualLeakDetector::m_tlsindex = 0xffffffff;
 
 // Constructor - Initializes private data, loads configuration options, and
 //   attaches Visual Leak Detector to all other modules loaded into the current
@@ -163,10 +161,11 @@ DWORD VisualLeakDetector::m_tlsindex = 0xffffffff;
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    WCHAR   bom       = BOM; // Unicode byte-order mark.
-    HMODULE kernel32  = GetModuleHandle(L"kernel32.dll");
-    HMODULE ntdll     = GetModuleHandle(L"ntdll.dll");
-    LPWSTR  symbolpath;
+    WCHAR      bom = BOM; // Unicode byte-order mark.
+    HMODULE    kernel32 = GetModuleHandle(L"kernel32.dll");
+    ModuleSet *newmodules;
+    HMODULE    ntdll = GetModuleHandle(L"ntdll.dll");
+    LPWSTR     symbolpath;
 
     // Initialize global variables.
     currentprocess    = GetCurrentProcess();
@@ -185,12 +184,11 @@ VisualLeakDetector::VisualLeakDetector ()
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
     m_leaksfound      = 0;
+    m_loadedmodules   = NULL;
     InitializeCriticalSection(&m_loaderlock);
     m_maxdatadump     = 0xffffffff;
     m_maxtraceframes  = 0xffffffff;
-    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, L'\0', _TRUNCATE);
-    m_moduleset       = new ModuleSet;
-    m_moduleset->reserve(MODULESETRESERVE);
+    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
     m_options         = 0x0;
     m_reportfile      = NULL;
     wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
@@ -285,11 +283,14 @@ VisualLeakDetector::VisualLeakDetector ()
 
     // Patch into kernel32.dll's calls to LdrLoadDll so that VLD can
     // dynamically attach to new modules loaded during runtime.
-    patchimport(kernel32, "ntdll.dll", NULL, "LdrLoadDll", _LdrLoadDll);
+    patchimport(kernel32, ntdll, "ntdll.dll", "LdrLoadDll", _LdrLoadDll);
 
     // Attach Visual Leak Detector to every module loaded in the process.
-    pEnumerateLoadedModulesW64(currentprocess, recordmodulepaths, NULL);
-    pEnumerateLoadedModulesW64(currentprocess, attachtomodule, NULL);
+    newmodules = new ModuleSet;
+    newmodules->reserve(MODULESETRESERVE);
+    pEnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+    attachtoloadedmodules(newmodules);
+    m_loadedmodules = newmodules;
     m_status |= VLD_STATUS_INSTALLED;
 
     report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
@@ -310,22 +311,18 @@ VisualLeakDetector::VisualLeakDetector ()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
-    BlockMap::Iterator  blockit;
-    BlockMap           *blockmap;
-    size_t              count;
-    patchentry_t       *entry;
-    vldblockheader_t   *header;
-    HANDLE              heap;
-    HeapMap::Iterator   heapit;
-    UINT                index;
-    SIZE_T              internalleaks = 0;
-    const char         *leakfile = NULL;
-    WCHAR               leakfilew [MAX_PATH];
-    int                 leakline = 0;
-    patchentry_t       *resetentry;
-    UINT                resetindex;
-    UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
-    TlsSet::Iterator    tlsit;
+    BlockMap::Iterator   blockit;
+    BlockMap            *blockmap;
+    size_t               count;
+    vldblockheader_t    *header;
+    HANDLE               heap;
+    HeapMap::Iterator    heapit;
+    SIZE_T               internalleaks = 0;
+    const char          *leakfile = NULL;
+    WCHAR                leakfilew [MAX_PATH];
+    int                  leakline = 0;
+    ModuleSet::Iterator  moduleit;
+    TlsSet::Iterator     tlsit;
 
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
@@ -369,27 +366,13 @@ VisualLeakDetector::~VisualLeakDetector ()
             delete blockmap;
         }
         delete m_heapmap;
-        delete m_moduleset;
 
-        // Free internally allocated resources used by the import patch table.
-        for (index = 0; index < tablesize; index++) {
-            entry = &m_patchtable[index];
-            if (entry->modulepath != NULL) {
-                // This patch table entry had a dynamically allocated path added
-                // to it.
-                delete entry->modulepath;
-
-                // Find any other entries that also point to this same
-                // dynamically allocated path and reset their pointers to NULL.
-                for (resetindex = index + 1; resetindex < tablesize; resetindex++) {
-                    resetentry = &m_patchtable[resetindex];
-                    if (resetentry->modulepath == entry->modulepath) {
-                        resetentry->modulepath = NULL;
-                    }
-                }
-                entry->modulepath = NULL;
-            }
+        // Free internally allocated resources used by the loaded module set.
+        for (moduleit = m_loadedmodules->begin(); moduleit != m_loadedmodules->end(); ++moduleit) {
+            delete (*moduleit).name;
+            delete (*moduleit).path;
         }
+        delete m_loadedmodules;
 
         // Free internally allocated resources used for thread local storage.
         for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
@@ -1481,7 +1464,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 
     // See if there is an entry in the patch table that matches the requested
     // function.
-    for (index = 0; index < tablesize; ++index) {
+    for (index = 0; index < tablesize; index++) {
         entry = &vld.m_patchtable[index];
         exportmodule = GetModuleHandleA(entry->exportmodulename);
         if (exportmodule != module) {
@@ -1610,7 +1593,10 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename,
                                           PHANDLE modulehandle)
 {
-    NTSTATUS status;
+    ModuleSet::Iterator  moduleit;
+    ModuleSet           *newmodules;
+    ModuleSet           *oldmodules;
+    NTSTATUS             status;
 
     EnterCriticalSection(&vld.m_loaderlock);
 
@@ -1618,8 +1604,25 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
     
     if (STATUS_SUCCESS == status) {
-        // Attach to any newly loaded modules.
-        pEnumerateLoadedModulesW64(currentprocess, attachtomodule, NULL);
+        // Create a new set of all loaded modules, including any newly loaded
+        // modules.
+        newmodules = new ModuleSet;
+        newmodules->reserve(MODULESETRESERVE);
+        pEnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+
+        // Attach to all modules included in the set.
+        vld.attachtoloadedmodules(newmodules);
+
+        // Make an atomic switchover to the new set of loaded modules.
+        oldmodules = vld.m_loadedmodules;
+        vld.m_loadedmodules = newmodules;
+
+        // Free resources used by the old module list.
+        for (moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
+            delete (*moduleit).name;
+            delete (*moduleit).path;
+        }
+        delete oldmodules;
     }
 
     LeaveCriticalSection(&vld.m_loaderlock);
@@ -1964,8 +1967,8 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         returnaddress = *((SIZE_T*)fp + 1);
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
-        moduleit = vld.m_moduleset->find(moduleinfo);
-        assert(moduleit != vld.m_moduleset->end());
+        moduleit = vld.m_loadedmodules->find(moduleinfo);
+        assert(moduleit != vld.m_loadedmodules->end());
         if (!((*moduleit).flags & VLD_MODULE_EXCLUDED)) {
             // The module that initiated this allocation is included in leak
             // detection. Map this block to the specified heap.
@@ -2066,8 +2069,8 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         returnaddress = *((SIZE_T*)fp + 1);
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
-        moduleit = vld.m_moduleset->find(moduleinfo);
-        assert(moduleit != vld.m_moduleset->end());
+        moduleit = vld.m_loadedmodules->find(moduleinfo);
+        assert(moduleit != vld.m_loadedmodules->end());
         if (!((*moduleit).flags & VLD_MODULE_EXCLUDED)) {
             // The module that initiated this allocation is included in leak
             // detection. Remap the block.
@@ -2131,130 +2134,190 @@ LPVOID VisualLeakDetector::Alloc (ULONG size)
     return block;
 }
 
-// attachtomodule - Callback function for EnumerateLoadedModules64 that attaches
-//   Visual Leak Detector to the specified module. This provides a way for VLD
-//   to be attached to every module loaded in the process. However, even though
-//   it attaches to all modules, not all modules are actually included in leak
-//   detection. Only modules that import the global VisualLeakDetector class
-//   object, or those that are otherwise explicitly included in leak detection,
-//   will be checked for memory leaks.
+// addloadedmodule - Callback function for EnumerateLoadedModules64. This
+//   function records information about every module loaded in the process,
+//   each time adding the module's information to the provided ModuleSet (the
+//   "context" parameter).
+//
+//   When EnumerateLoadedModules64 has finished calling this function for each
+//   loaded module, then the resulting ModuleSet can be used at any time to get
+//   information about any modules loaded into the process.
+//
+//   - modulepath (IN): The fully qualified path from where the module was
+//       loaded.
+//
+//   - modulebase (IN): The base address at which the module has been loaded.
+//
+//   - modulesize (IN): The size, in bytes, of the loaded module.
+//
+//   - context (IN): Pointer to the ModuleSet to which information about each
+//       module is to be added.
+//
+//  Return Value:
+//
+//    Always returns TRUE, which tells EnumerateLoadedModules64 to continue
+//    enumerating.
+//
+BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
+{
+    size_t        count;
+    patchentry_t *entry;
+    CHAR          extension [_MAX_EXT];
+    CHAR          filename [_MAX_FNAME];
+    UINT          index;
+    moduleinfo_t  moduleinfo;
+    LPSTR         modulenamea;
+    LPSTR         modulepatha;
+    ModuleSet*    newmodules = (ModuleSet*)context;
+    SIZE_T        size;
+    UINT          tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+
+    // Convert the module path to ASCII.
+    size = wcslen(modulepath) + 1;
+    modulepatha = new CHAR [size];
+    wcstombs_s(&count, modulepatha, size, modulepath, _TRUNCATE);
+
+    // Extract just the filename and extension from the module path.
+    _splitpath_s(modulepatha, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
+    size = strlen(filename) + strlen(extension) + 1;
+    modulenamea = new CHAR [size];
+    strncpy_s(modulenamea, size, filename, _TRUNCATE);
+    strncat_s(modulenamea, size, extension, _TRUNCATE);
+    _strlwr_s(modulenamea, size);
+
+    // See if this is a module listed in the patch table. If it is, update the
+    // corresponding patch table entries' module base address.
+    for (index = 0; index < tablesize; index++) {
+        entry = &m_patchtable[index];
+        if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
+            entry->modulebase = (SIZE_T)modulebase;
+        }
+    }
+
+    // Record the module's information and store it in the set.
+    moduleinfo.addrlow  = (SIZE_T)modulebase;
+    moduleinfo.addrhigh = (SIZE_T)(modulebase + modulesize) - 1;
+    moduleinfo.flags    = 0x0;
+    moduleinfo.name     = modulenamea;
+    moduleinfo.path     = modulepatha;
+    newmodules->insert(moduleinfo);
+
+    return TRUE;
+}
+
+// attachtoloadedmodules - Attaches VLD to all modules contained in the provided
+//   ModuleSet. Not all modules are in the ModuleSet will actually be included
+//   in leak detection. Only modules that import the global VisualLeakDetector
+//   class object, or those that are otherwise explicitly included in leak
+//   detection, will be checked for memory leaks.
+//
+//   When VLD attaches to a module, it means that any of the imports listed in
+//   the import patch table which are imported by the module, will be redirected
+//   to VLD's designated replacements.
 //
 //   Caution: This function is not thread-safe. It calls into the Debug Help
 //     Library which is single-threaded. Therefore, calls to this function must
 //     be synchronized.
 //
-//  - modulepath (IN): String containing the name, which may include a path, of
-//      the module to attach to.
-//
-//  - modulebase (IN): Base address of the module.
-//
-//  - modulesize (IN): Total size of the module.
-//
-//  - context (IN): User-supplied context (ignored).
-//
-//  Return Value:
-//
-//    Always returns TRUE.
-//
-BOOL VisualLeakDetector::attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID /*context*/)
+VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 {
-    size_t              count;
-    WCHAR               extension [_MAX_EXT];
-    WCHAR               filename [_MAX_FNAME];
-    IMAGEHLP_MODULE64   moduleimageinfo;
-    moduleinfo_t        moduleinfo;
-    ModuleSet::Iterator moduleit;
+    size_t                count;
+    DWORD64               modulebase;
+    UINT32                moduleflags;
+    IMAGEHLP_MODULE64     moduleimageinfo;
+    LPCSTR                modulename;
 #define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
-    WCHAR               modulename [MAXMODULENAME + 1];
-    CHAR                modulepatha [MAX_PATH];
-    BOOL                refresh = FALSE;
-    UINT                tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    WCHAR                 modulenamew [MAXMODULENAME];
+    LPCSTR                modulepath;
+    DWORD                 modulesize;
+    ModuleSet::Iterator   newit;
+    ModuleSet::Iterator   oldit;
+    ModuleSet            *oldmodules = m_loadedmodules;
+    BOOL                  refresh = FALSE;
+    UINT                  tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    ModuleSet::Muterator  updateit;
 
-    // Extract just the filename and extension from the module path.
-    _wsplitpath_s(modulepath, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
-    wcsncpy_s(modulename, MAXMODULENAME + 1, filename, _TRUNCATE);
-    wcsncat_s(modulename, MAXMODULENAME + 1, extension, _TRUNCATE);
-    _wcslwr_s(modulename, MAXMODULENAME + 1);
+    // Iterate through the supplied set, until all modules have been attached.
+    for (newit = newmodules->begin(); newit != newmodules->end(); ++newit) {
+        modulebase  = (DWORD64)(*newit).addrlow;
+        moduleflags = 0x0;
+        modulename  = (*newit).name;
+        modulepath  = (*newit).path;
+        modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
 
-    // Find this module in our module set. The module set contains information
-    // about all modules loaded in the process that have already been attached.
-    // If we find that the module is not already in the module set, we try to
-    // load the module's symbols, add the module's information to the module
-    // set and then attach to the module.
-    moduleinfo.addrlow  = (SIZE_T)modulebase;
-    moduleinfo.addrhigh = (SIZE_T)modulebase + modulesize - 1;
-    moduleinfo.flags    = 0x0;
-    moduleit = vld.m_moduleset->find(moduleinfo);
-    if (moduleit != vld.m_moduleset->end()) {
-        if (moduleispatched((HMODULE)modulebase, m_patchtable, tablesize)) {
-            // This module is already attached.
-            return TRUE;
+        if (oldmodules != NULL) {
+            // This is not the first time we have been called to attach to the
+            // currently loaded modules.
+            oldit = oldmodules->find(*newit);
+            if (oldit != oldmodules->end()) {
+                // We've seen this "new" module loaded in the process before.
+                moduleflags = (*oldit).flags;
+                if (moduleispatched((HMODULE)modulebase, m_patchtable, tablesize)) {
+                    // This module is already attached. Just update the module's
+                    // flags, nothing more.
+                    updateit = newit;
+                    (*updateit).flags = moduleflags;
+                    continue;
+                }
+                else {
+                    // This module may have been attached before and has been
+                    // detached. We'll need to try reattaching to it in case it was
+                    // unloaded and then subsequently reloaded.
+                    refresh = TRUE;
+                }
+            }
         }
-        else {
-            // This module was attached before, but is now detached. It must
-            // have been unloaded, then subsequently reloaded. We will want to
-            // discard any prior data that we have about this module, in case
-            // anything about it has changed (address range or symbols) since
-            // the last time we attached to it.
-            refresh = TRUE;
+
+        if ((refresh == TRUE) && ((*oldit).flags & VLD_MODULE_SYMBOLSLOADED)) {
+            // Discard the previously loaded symbols, so we can refresh them.
+            if (pSymUnloadModule64(currentprocess, modulebase) == FALSE) {
+                report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
+                       L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
+            }
         }
-    }
 
-    if ((refresh == TRUE) && ((*moduleit).flags & VLD_MODULE_SYMBOLSLOADED)) {
-        // Discard the previously loaded symbols, so that we can refresh them.
-        if (pSymUnloadModule64(currentprocess, (*moduleit).addrlow) == FALSE) {
-            report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
-                   L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
+        // Try to load the module's symbols. This ensures that we have loaded
+        // the symbols for every module that has ever been loaded into the
+        // process, guaranteeing the symbols' availability when generating the
+        // leak report.
+        moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+        if ((pSymGetModuleInfoW64(currentprocess, (DWORD64)modulebase, &moduleimageinfo) == TRUE) ||
+            ((pSymLoadModule64(currentprocess, NULL, modulepath, NULL, modulebase, modulesize) == modulebase) &&
+            (pSymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
+            moduleflags |= VLD_MODULE_SYMBOLSLOADED;
         }
+
+        if (_stricmp("vld.dll", modulename) == 0) {
+            // What happens when a module goes through it's own portal? Bad things.
+            // Like infinite recursion. And ugly bald men wearing dresses. VLD
+            // should not, therefore, attach to itself.
+            continue;
+        }
+
+        mbstowcs_s(&count, modulenamew, MAXMODULENAME, modulename, _TRUNCATE);
+        if ((findimport((HMODULE)modulebase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
+            (wcsstr(vld.m_forcedmodulelist, modulenamew) == NULL)) {
+            // This module does not import VLD. This means that none of the module's
+            // sources #included vld.h. Exclude this module from leak detection.
+            moduleflags |= VLD_MODULE_EXCLUDED;
+        }
+        else if (!(moduleflags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
+            // This module is going to be included in leak detection, but complete
+            // symbols for this module couldn't be loaded. This means that any stack
+            // traces through this module may lack information, like line numbers
+            // and function names.
+            report(L"WARNING: Visual Leak Detector: A module, %s, included in memory leak detection\n"
+                   L"  does not have any debugging symbols available, or they could not be located.\n"
+                   L"  Function names and/or line numbers for this module may not be available.\n", modulename);
+        }
+
+        // Update the module's flags in the "new modules" set.
+        updateit = newit;
+        (*updateit).flags = moduleflags;
+
+        // Attach to the module.
+        patchmodule((HMODULE)modulebase, m_patchtable, tablesize);
     }
-
-    // Try to load the module's symbols. This ensures that we have loaded the
-    // symbols for every module that has ever been loaded into the process,
-    // guaranteeing the symbols' availability when generating the leak report.
-    moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-    wcstombs_s(&count, modulepatha, MAX_PATH, modulepath, _TRUNCATE);
-    if ((pSymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE) ||
-        ((pSymLoadModule64(currentprocess, NULL, modulepatha, NULL, modulebase, modulesize) == modulebase) &&
-        (pSymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
-        moduleinfo.flags |= VLD_MODULE_SYMBOLSLOADED;
-    }
-
-    if (_wcsicmp(L"vld.dll", modulename) == 0) {
-        // What happens when a module goes through it's own portal? Bad things.
-        // Like infinite recursion. And ugly bald men wearing dresses. VLD
-        // should not, therefore, attach to itself.
-        return TRUE;
-    }
-
-    if ((findimport((HMODULE)modulebase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
-        (wcsstr(vld.m_forcedmodulelist, modulename) == NULL)) {
-        // This module does not import VLD. This means that none of the module's
-        // sources #included vld.h. Exclude this module from leak detection.
-        moduleinfo.flags |= VLD_MODULE_EXCLUDED;
-    }
-    else if (!(moduleinfo.flags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
-        // This module is going to be included in leak detection, but complete
-        // symbols for this module couldn't be loaded. This means that any stack
-        // traces through this module may lack information, like line numbers
-        // and function names.
-        report(L"WARNING: Visual Leak Detector: A module, %s, included in memory leak detection\n"
-               L"  does not have any debugging symbols available, or they could not be located.\n"
-               L"  Function names and/or line numbers for this module may not be available.\n", modulename);
-    }
-
-    if (refresh == TRUE) {
-        // Discard the module's previously recorded information so that we can
-        // refresh it.
-        vld.m_moduleset->erase(moduleit);
-    }
-
-    // Insert the module's information into the module set.
-    vld.m_moduleset->insert(moduleinfo);
-
-    // Attach to the module.
-    patchmodule((HMODULE)modulebase, m_patchtable, tablesize);
-
-    return TRUE;
 }
 
 // buildsymbolsearchpath - Builds the symbol search path for the symbol handler.
@@ -2515,6 +2578,12 @@ INT VisualLeakDetector::DidAlloc (LPVOID mem)
 BOOL VisualLeakDetector::enabled ()
 {
     tls_t *tls = vld.gettls();
+
+    if (!(m_status & VLD_STATUS_INSTALLED)) {
+        // Memory leak detection is not yet enabled because VLD is still
+        // initializing.
+        return FALSE;
+    }
 
     if (!(tls->flags & VLD_TLS_DISABLED) && !(tls->flags & VLD_TLS_ENABLED)) {
         // The enabled/disabled state for the current thread has not been 
@@ -2941,74 +3010,6 @@ ULONG VisualLeakDetector::Release ()
 {
     assert(m_imalloc != NULL);
     return m_imalloc->Release();
-}
-
-// recordmodulepaths - Callback function for EnumerateLoadedModules64 that 
-//   records the fully qualified paths of the modules listed in the import patch
-//   table. The point of recording the fully qualified paths is to workaround an
-//   issue where GetModuleHandle sometimes fails for modules that reside in
-//   the side-by-side cache, unless the fully qualified path is supplied to
-//   GetModuleHandle.
-//
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
-//  - modulepath (IN): String containing the name, which may include a path, of
-//      the module to attach to.
-//
-//  - modulebase (IN): Base address of the module (ignored).
-//
-//  - modulesize (IN): Total size of the module (ignored).
-//
-//  - context (IN): User-supplied context (ignored).
-//
-//  Return Value:
-//
-//    Always returns TRUE.
-//
-BOOL VisualLeakDetector::recordmodulepaths(PCWSTR modulepath, DWORD64 /*modulebase*/, ULONG /*modulesize*/,
-                                           PVOID /*context*/)
-{
-    size_t        count;
-    patchentry_t *entry;
-    WCHAR         extension [_MAX_EXT];
-    WCHAR         filename [_MAX_FNAME];
-    UINT          index;
-    SIZE_T        length;
-    CHAR          modulenamea [MAXMODULENAME + 1];
-    WCHAR         modulenamew [MAXMODULENAME + 1];
-    LPSTR         modulepatha = NULL;
-    UINT          tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
-
-    // Extract just the filename and extension from the module path.
-    _wsplitpath_s(modulepath, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
-    wcsncpy_s(modulenamew, MAXMODULENAME + 1, filename, _TRUNCATE);
-    wcsncat_s(modulenamew, MAXMODULENAME + 1, extension, _TRUNCATE);
-    _wcslwr_s(modulenamew, MAXMODULENAME + 1);
-    wcstombs_s(&count, modulenamea, MAXMODULENAME + 1, modulenamew, _TRUNCATE);
-
-    // See if this module is listed in any of the entries in the import patch
-    // table.
-    for (index = 0; index < tablesize; index++) {
-        entry = &m_patchtable[index];
-        if (_stricmp(modulenamea, entry->exportmodulename) == 0) {
-            // Found this module listed in the import patch table. Add the fully
-            // qualified path to the entry.
-            if (modulepatha == NULL) {
-                // This is the first time this module has been encountered in
-                // the table. Allocate some storage for the fully qualified
-                // path. Any other repeat entries in the table will just point
-                // to this same string.
-                length = wcslen(modulepath) + 1;
-                modulepatha = new char [length];
-                wcstombs_s(&count, modulepatha, length, modulepath, _TRUNCATE);
-            }
-            entry->modulepath = modulepatha;
-        }
-    }
-
-    return TRUE;
 }
 
 // remapblock - Tracks reallocations. Unmaps a block from its previously

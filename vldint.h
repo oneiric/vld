@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.35 2006/11/12 18:09:20 dmouldin Exp $
+//  $Id: vldint.h,v 1.36 2006/11/15 01:29:00 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -92,6 +92,8 @@ typedef struct moduleinfo_s {
     UINT32 flags;                    // Module flags:
 #define VLD_MODULE_EXCLUDED      0x1 //   If set, this module is excluded from leak detection.
 #define VLD_MODULE_SYMBOLSLOADED 0x2 //   If set, this module's debug symbols have been loaded.
+    LPCSTR name;                     // The module's name (e.g. "kernel32.dll").
+    LPCSTR path;                     // The fully qualified path from where the module was loaded.
 } moduleinfo_t;
 
 // ModuleSets store information about modules loaded in the process.
@@ -195,7 +197,8 @@ private:
     static LPVOID __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
     // Private functions - see each function definition for details.
-    static BOOL __stdcall attachtomodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    VOID attachtoloadedmodules (ModuleSet *newmodules);
     LPWSTR buildsymbolsearchpath ();
     VOID configure ();
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
@@ -205,7 +208,6 @@ private:
     BOOL linkdebughelplibrary ();
     VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID mapheap (HANDLE heap);
-    static BOOL __stdcall recordmodulepaths (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID reportconfig ();
     VOID reportleaks (HANDLE heap);
@@ -219,10 +221,10 @@ private:
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
     SIZE_T               m_leaksfound;        // Total number of leaks found.
+    ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
     CRITICAL_SECTION     m_loaderlock;        // Serializes access to module loading activites (enumerating and attaching to modules).
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
-    ModuleSet           *m_moduleset;         // Contains information about all modules loaded in the process.
     UINT32               m_options;           // Configuration options:
 #define VLD_OPT_AGGREGATE_DUPLICATES    0x1   //   If set, aggregate duplicate leaks in the leak report.
 #define VLD_OPT_MODULE_LIST_INCLUDE     0x2   //   If set, modules in the module list are included, all others are excluded.
@@ -244,7 +246,7 @@ private:
 #define VLD_STATUS_INSTALLED            0x2   //   If set, VLD was successfully installed.
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
-    static DWORD         m_tlsindex;          // Thread-local storage index.
+    DWORD                m_tlsindex;          // Thread-local storage index.
     TlsSet              *m_tlsset;
 
     // The Visual Leak Detector APIs are our friends.
