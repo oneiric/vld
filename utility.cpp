@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.20 2006/11/15 01:48:14 dmouldin Exp $
+//  $Id: utility.cpp,v 1.21 2006/11/15 18:58:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -195,10 +195,6 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 // findimport - Determines if the specified module imports the named import
 //   from the named exporting module.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - importmodule (IN): Handle (base address) of the module to be searched to
 //      see if it imports the specified import.
 //
@@ -229,8 +225,10 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
     idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -270,10 +268,6 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
 // findpatch - Determines if the specified module has been patched to use the
 //   specified replacement.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - importmodule (IN): Handle (base address) of the module to be searched to
 //      see if it imports the specified replacement export.
 //
@@ -300,8 +294,10 @@ BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replaceme
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
     idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -395,10 +391,6 @@ BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tab
 //   module's Import Address Table (IAT) with the address of the replacement
 //   function or variable.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be patched.
 //
@@ -437,8 +429,10 @@ BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodul
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
     idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -587,10 +581,6 @@ VOID report (LPCWSTR format, ...)
 // restoreimport - Restores the IAT entry for an import previously patched via
 //   a call to "patchimport" to the original address of the import.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be restored.
 //
@@ -625,8 +615,10 @@ VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmod
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
     idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;

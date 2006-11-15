@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.16 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.17 2006/11/15 18:58:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -183,10 +183,6 @@ VOID CallStack::clear ()
 //   Note: The symbol handler must be initialized prior to calling this
 //     function.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - showinternalframes (IN): If true, then all frames in the CallStack will be
 //      dumped. Otherwise, frames internal to the heap will not be dumped.
 //
@@ -225,6 +221,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         // Try to get the source file and line number associated with
         // this program counter address.
         programcounter = (*this)[frame];
+        EnterCriticalSection(&symbollock);
         if ((foundline = pSymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
             if (!showinternalframes) {
                 _wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
@@ -247,6 +244,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         else {
             functionname = L"(Function name unavailable)";
         }
+        LeaveCriticalSection(&symbollock);
 
         // Display the current stack frame's information.
         if (foundline) {
@@ -420,6 +418,7 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
     frame.AddrStack.Mode   = AddrModeFlat;
 
     // Walk the stack.
+    EnterCriticalSection(&stackwalklock);
     while (count < maxdepth) {
         count++;
         if (!pStackWalk64(architecture, currentprocess, currentthread, &frame, &context, NULL,
@@ -435,4 +434,5 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
         // Push this frame's program counter onto the CallStack.
         push_back((SIZE_T)frame.AddrPC.Offset);
     }
+    LeaveCriticalSection(&stackwalklock);
 }

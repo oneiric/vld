@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: dbghelpapi.h,v 1.3 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: dbghelpapi.h,v 1.4 2006/11/15 18:58:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - DbgHelp API Definitions
 //  Copyright (c) 2006 Dan Moulding
@@ -62,6 +62,12 @@ typedef DWORD64 (__stdcall *SymLoadModule64_t) (HANDLE hProcess, HANDLE hFile, P
                                                 DWORD64 BaseOfDll, DWORD SizeOfDll);
 typedef DWORD (__stdcall *SymSetOptions_t) (DWORD SymOptions);
 typedef BOOL (__stdcall *SymUnloadModule64_t) (HANDLE hProcess, DWORD64 BaseOfDll);
+
+// Forward declaration for the locks that serialize calls to the Debug Help
+// Library APIs.
+extern CRITICAL_SECTION imagelock;
+extern CRITICAL_SECTION stackwalklock;
+extern CRITICAL_SECTION symbollock;
 
 // Provide forward declarations for the DbgHelp APIs for any source files that
 // include this header.

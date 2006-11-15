@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: dbghelpapi.cpp,v 1.3 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: dbghelpapi.cpp,v 1.4 2006/11/15 18:58:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Global DbgHelp API Function Pointers
 //  Copyright (c) 2006 Dan Moulding
@@ -25,6 +25,11 @@
 #define VLDBUILD
 
 #include "dbghelpapi.h"
+
+// Locks that serialize calls to the Debug Help Library APIs.
+CRITICAL_SECTION imagelock;
+CRITICAL_SECTION stackwalklock;
+CRITICAL_SECTION symbollock;
 
 // Global function pointers for explicit dynamic linking with the Debug Help
 // Library APIs. Though these functions coule be load-time linked, we do an

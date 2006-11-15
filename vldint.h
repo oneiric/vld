@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.37 2006/11/15 01:48:14 dmouldin Exp $
+//  $Id: vldint.h,v 1.38 2006/11/15 18:58:40 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -217,12 +217,11 @@ private:
     // Private data.
     HMODULE              m_dbghelp;           // Handle to the Debug Help Library.
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
-    CRITICAL_SECTION     m_heaplock;          // Serialzes access to the heap map.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
     SIZE_T               m_leaksfound;        // Total number of leaks found.
     ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
-    CRITICAL_SECTION     m_loaderlock;        // Serializes access to module loading activites (enumerating and attaching to modules).
+    CRITICAL_SECTION     m_loaderlock;        // Serializes the attachment of newly loaded modules.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     UINT32               m_options;           // Configuration options:
