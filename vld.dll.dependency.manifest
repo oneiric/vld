@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<!-- $Id: vld.dll.dependency.manifest,v 1.1 2006/11/16 00:13:56 dmouldin Exp $ -->
+<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type='win32' name='Microsoft.DTfW.DHL' version='6.6.7.5' processorArchitecture='x86' />
+    </dependentAssembly>
+  </dependency>
+</assembly>
