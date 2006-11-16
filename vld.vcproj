@@ -142,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
-				AdditionalManifestFiles="$(SolutionDir)vld.dll.dbghelp.dll.intermediate.manifest"
+				AdditionalManifestFiles="$(SolutionDir)vld.dll.dependency.manifest"
 				AssemblyIdentity=""
 			/>
 			<Tool
