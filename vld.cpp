@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.63 2006/11/16 16:36:19 db Exp $
+//  $Id: vld.cpp,v 1.64 2006/11/16 23:48:23 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
+//  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -2542,10 +2542,6 @@ VOID VisualLeakDetector::configure ()
 //   module has not previously been attached to, then calling this function will
 //   not actually result in any changes.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - modulepath (IN): String containing the name, which may inlcude a path, of
 //      the module to detach from (ignored).
 //
@@ -3067,10 +3063,6 @@ VOID VisualLeakDetector::reportconfig ()
 }
 
 // reportleaks - Generates a memory leak report for the specified heap.
-//
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
 //
 //  - heap (IN): Handle to the heap for which to generate a memory leak
 //      report.

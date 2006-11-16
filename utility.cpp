@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.22 2006/11/16 00:07:06 dmouldin Exp $
+//  $Id: utility.cpp,v 1.23 2006/11/16 23:48:03 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9d) - Various Utility Functions
+//  Visual Leak Detector (Version 1.9e) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
@@ -351,10 +351,6 @@ VOID insertreportdelay ()
 // moduleispatched - Checks to see if any of the imports listed in the specified
 //   patch table have been patched into the specified importmodule.
 //
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
-//
 //  - importmodule (IN): Handle (base address) of the module to be queried to
 //      determine if it has been patched.
 //
@@ -486,10 +482,6 @@ BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodul
 // patchmodule - Patches all imports listed in the supplied patch table, and
 //   which are imported by the specified module, through to their respective
 //   replacement functions.
-//
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
 //
 //   Note: If the specified module does not import any of the functions listed
 //     in the patch table, then nothing is changed for the specified module.
@@ -664,10 +656,6 @@ VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmod
 
 // restoremodule - Restores all imports listed in the supplied patch table, and
 //   which are imported by the specified module, to their original functions.
-//
-//   Caution: This function is not thread-safe. It calls into the Debug Help
-//     Library which is single-threaded. Therefore, calls to this function must
-//     be synchronized.
 //
 //   Note: If the specified module does not import any of the functions listed
 //     in the patch table, then nothing is changed for the specified module.
