@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: testsuite.cpp,v 1.6 2006/11/09 00:27:24 dmouldin Exp $
+//  $Id: testsuite.cpp,v 1.7 2006/11/16 02:18:28 dmouldin Exp $
 //
 //  Test suite for Visual Leak Detector
 //
@@ -31,7 +31,7 @@ enum action_e {
 #define MINDEPTH     0                       // Minimum depth of the allocation call stack
 #define MINSIZE      16                      // Minimum block size to allocate
 #define NUMDUPLEAKS  0                       // Number of times to duplicate each leak
-#define NUMTHREADS   64                      // Number of threads to run simultaneously
+#define NUMTHREADS   72                      // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 typedef struct blockholder_s {
