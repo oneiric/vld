@@ -64,6 +64,8 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(SolutionDir)vld.dll.dependency.manifest"
+				AssemblyIdentity=""
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -140,6 +142,8 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(SolutionDir)vld.dll.dbghelp.dll.intermediate.manifest"
+				AssemblyIdentity=""
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -174,10 +178,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dbghelpapi.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ntapi.cpp"
 				>
 			</File>
@@ -205,10 +205,6 @@
 			>
 			<File
 				RelativePath=".\callstack.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dbghelpapi.h"
 				>
 			</File>
 			<File
