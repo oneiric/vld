@@ -2,30 +2,27 @@ Visual Leak Detector (VLD) Version 1.9e (beta)
 
   Change Log / Release Notes
   
-1.9e beta (xx November 2006)
+1.9e beta (16 November 2006)
 ----------------------------
   Bugs Fixed:
-  + Problems may potentially occur when the program being debugged exits due the
-    Debug Help Library having been detached from the process too early. Symptoms
-    might include access violation exceptions or other erratic behavior just
-    as the program exits while VLD is generating the leak report.
-  + When using the "safe" stack walk method, deadlocks may frequently occur when
-    debugging multithreaded programs.
+  + VLD may become deadlocked when used with multithreaded programs.
+  + Problems may potentially occur when the program being debugged exits due to
+    the Debug Help Library having been detached from the process too early.
+    Symptoms might include access violation exceptions or other erratic behavior
+    just as the program exits and while VLD is generating the leak report.
   + The copy of vld.ini installed in VLD's installation directory overrides any
     other copies of vld.ini that are created, even copies placed in the
     working directory of the program being debugged.
     
   Known Bugs/Restrictions:
+  + Memory allocations made through calls to functions loaded from a DLL using
+    delayed loading may not be detected.
+  + Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some
+    memory leaks from such MFC-based programs may not be detected.
   + If more than one copy of the same C Runtime DLL is loaded in the process at
     the same time, then some leaks may go undetected (note that loading more
     than one copy of the C Runtime DLL at the same time is probably a bad idea
     to begin with).
-
-  + Memory allocations made through calls to functions loaded from a DLL using
-    delayed loading may not be detected.
-
-  + Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some
-    memory leaks from such MFC-based programs may not be detected.
   
 1.9d beta (12 November 2006)
 ----------------------------

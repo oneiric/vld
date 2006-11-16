@@ -179,7 +179,7 @@
 
 <div id="masthead">
 
-<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9d (Beta)</h1>
+<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9e (Beta)</h1>
 
 <p id="slogan">Enhanced Memory Leak Detection for Visual&nbsp;C++</p>
 
@@ -301,7 +301,7 @@
     <li>Build the debug version of your program.</li>
 </ol>
 
-<p class="note"><strong>Note:</strong> Unlike earlier versions of VLD, it is now acceptable to include
+<p class="note"><strong>Note:</strong> Unlike earlier (pre-1.9) versions of VLD, it is now acceptable to include
    <span class="filename">vld.h</span> in every source file, or to include it in a common header that is included by
    many or all source files. Only one copy of the VLD code will be loaded into the process, regardless of how many
    source files include <span class="filename">vld.h</span>.</p>
@@ -578,7 +578,19 @@
 <p>Once you have completed all of the above steps, your build environment should be ready. To build VLD, just open the
    <span class="filename">vld.sln</span> solution file and do a full build.</p>
 
-
+<p>When actually running the built project, <span class="filename">vld.dll</span> will expect to find the Debug Help
+   Library as a private assembly. The private assmebly must be located in the same directory as
+   <span class="filename">vld.dll</span> (either the <span class="filename">Release</span> or
+   <span class="filename">Debug</span> directory by default). Otherwise, when VLD is loaded, an error message will pop
+   up indicating that the program failed to initialize, and you will see a message similar to the following in the
+   debugger's output window:</p><blockquote><em>LDR: LdrpWalkImportDescriptor() failed to probe C:\Projects\vld\Release\vld.dll for its
+   manifest, ntstatus 0xc0150002</em></blockquote>
+   
+<p>To ensure that <span class="filename">vld.dll</span> finds the required private assembly, you can either create
+   the assembly directory by hand (it must be named <span class="filename">Microsoft.DTfW.DHL</span>) and copy
+   <span class="filename">dbghelp.dll</span> and <span class="filename">Microsoft.DTfW.DHL.manifest</span> into the
+   assembly directory, or you can just copy the assembly directory from the <span class="filename">bin</span>
+   subdirectory of the Visual Leak Detector installation directory, if you have already installed it.</p>
 
 
 <h2 id="x64">Windows x64 Support</h2>
@@ -617,12 +629,6 @@
            directory as the program itself, then VLD will probably not find it and can't show any file or function
            names.</p>
     </dd>
-    <dt>When running my program with VLD, I get an error message saying, "<strong>ERROR: Visual Leak Detector: Unable to load
-        dbghelp.dll</strong>".</dt>
-    <dd>
-        <p> VLD can't find the copy of the Debug Help Library that was installed with it. Your installation might be
-        corrupt. Try uninstalling and reinstalling VLD.</p>
-    </dd>
 </dl>
 
 
@@ -644,10 +650,15 @@
        the linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
        supported.</li>
        
-   <li>On Windows 2000 and earlier operating systems, you may need to manually add the <span class="filename">[Visual
-       Leak Detector Installation Directory]\bin\Microsoft.VC80.CRT</span> directory to the system PATH environment
-       variable. Otherwise the system may not find the required <span class="filename">msvcr80.dll</span> DLL when
-       running VLD.</li>
+   <li>On Windows 2000 and earlier operating systems, you may need to manually add the
+       <span class="filename">bin\Microsoft.VC80.CRT</span> subdirectory from the Visual Leak Detector installation
+       directory to the system PATH environment variable. Also, <span class="filename">dbghelp.dll</span> will probably
+       need to be manually copied to the directory where the program being debugged resides. Otherwise the system may
+       not find the required DLLs when running VLD.</li>
+       
+    <li>If more than one copy of the same C Runtime DLL is loaded in the process at the same time, then some leaks may
+        go undetected (note that loading more than one copy of the C Runtime DLL at the same time is probably a bad idea
+        to begin with).</li>
 </ul>
 
 
