@@ -579,18 +579,18 @@
    <span class="filename">vld.sln</span> solution file and do a full build.</p>
 
 <p>When actually running the built project, <span class="filename">vld.dll</span> will expect to find the Debug Help
-   Library as a private assembly. The private assmebly must be located in the same directory as
+   Library as a private assembly. The private assembly must be located in the same directory as
    <span class="filename">vld.dll</span> (either the <span class="filename">Release</span> or
    <span class="filename">Debug</span> directory by default). Otherwise, when VLD is loaded, an error message will pop
    up indicating that the program failed to initialize, and you will see a message similar to the following in the
-   debugger's output window:</p><blockquote><em>LDR: LdrpWalkImportDescriptor() failed to probe C:\Projects\vld\Release\vld.dll for its
-   manifest, ntstatus 0xc0150002</em></blockquote>
+   debugger's output window:</p><blockquote><em>LDR: LdrpWalkImportDescriptor() failed to probe
+   C:\Projects\vld\Release\vld.dll for its manifest, ntstatus 0xc0150002</em></blockquote>
    
-<p>To ensure that <span class="filename">vld.dll</span> finds the required private assembly, you can either create
-   the assembly directory by hand (it must be named <span class="filename">Microsoft.DTfW.DHL</span>) and copy
-   <span class="filename">dbghelp.dll</span> and <span class="filename">Microsoft.DTfW.DHL.manifest</span> into the
-   assembly directory, or you can just copy the assembly directory from the <span class="filename">bin</span>
-   subdirectory of the Visual Leak Detector installation directory, if you have already installed it.</p>
+<p>To ensure that <span class="filename">vld.dll</span> finds the required private assembly, you need to copy
+   <span class="filename">dbghelp.dll</span> and <span class="filename">Microsoft.DTfW.DHL.manifest</span> to the
+   same directory that <span class="filename">vld.dll</span> is in.</p>
+
+
 
 
 <h2 id="x64">Windows x64 Support</h2>
@@ -674,12 +674,14 @@
    commercial programs. But if you create a modified version of VLD, that modified version must remain "free software".
    See the <span class="filename"><a href="COPYING.txt">COPYING.txt</a></span> file for details.</p>
 
-<p>The Debug Help Library (<span class="filename">dbghelp.dll</span>) distributed with this software is not part of
-   Visual&nbsp;Leak&nbsp;Detector and is not covered under the terms of the GNU Lesser General Public License. It is a
-   separately copyrighted work of Microsoft Corporation. Microsoft reserves all its rights to its copyright in the Debug
-   Help Library. Neither your use of the Visual&nbsp;Leak&nbsp;Detector software, nor your license under the GNU Lesser
-   General Public license grant you any rights to use the Debug Help Library in <strong>ANY WAY</strong> (for example,
-   redistributing it) that would infringe upon Microsoft Corporation's copyright in the Debug Help Library.</p>
+<p>The Debug Help Library (<span class="filename">dbghelp.dll</span>) and Microsoft C Runtime Library
+   (<span class="filename">msvcr80.dll</span>) distributed with this software are not part of
+   Visual&nbsp;Leak&nbsp;Detector and are not covered under the terms of the GNU Lesser General Public License. They are
+   separately copyrighted works of Microsoft Corporation. Microsoft reserves all its rights to its copyrights in the
+   Debug Help Library and Microsoft C Runtime Library. Neither your use of the Visual&nbsp;Leak&nbsp;Detector software,
+   nor your license under the GNU Lesser General Public license grant you any rights to use the Debug Help Library or
+   Microsoft C Runtime Library in <strong>ANY WAY</strong> (for example, redistributing them) that would infringe upon
+   Microsoft Corporation's copyright in the Debug Help Library or Microsoft C Runtime Library.</p>
 
 <h3>NO WARRANTY</h3>
 
