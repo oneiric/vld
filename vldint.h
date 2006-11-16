@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.39 2006/11/16 00:11:01 dmouldin Exp $
+//  $Id: vldint.h,v 1.40 2006/11/16 16:36:26 db Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -220,6 +220,7 @@ private:
     SIZE_T               m_leaksfound;        // Total number of leaks found.
     ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
     CRITICAL_SECTION     m_loaderlock;        // Serializes the attachment of newly loaded modules.
+    CRITICAL_SECTION     m_maplock;           // Serializes access to the heap and block maps.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     CRITICAL_SECTION     m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.

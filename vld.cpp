@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.62 2006/11/16 00:10:31 dmouldin Exp $
+//  $Id: vld.cpp,v 1.63 2006/11/16 16:36:19 db Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -196,6 +196,7 @@ VisualLeakDetector::VisualLeakDetector ()
     m_leaksfound      = 0;
     m_loadedmodules   = NULL;
     InitializeCriticalSection(&m_loaderlock);
+    InitializeCriticalSection(&m_maplock);
     m_maxdatadump     = 0xffffffff;
     m_maxtraceframes  = 0xffffffff;
     InitializeCriticalSection(&m_moduleslock);
@@ -1535,9 +1536,11 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     if (symfound == TRUE) {
         if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
             // HeapCreate was called by _heap_init. This is a static CRT heap.
+            EnterCriticalSection(&vld.m_maplock);
             heapit = vld.m_heapmap->find(heap);
             assert(heapit != vld.m_heapmap->end());
             (*heapit).second->flags |= VLD_HEAP_CRT;
+            LeaveCriticalSection(&vld.m_maplock);
         }
     }
 
@@ -2784,6 +2787,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T
     blockinfo->size = size;
 
     // Insert the block's information into the block map.
+    EnterCriticalSection(&m_maplock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We haven't mapped this heap to a block map yet. Do it now.
@@ -2808,6 +2812,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T
         blockmap->erase(blockit);
         blockmap->insert(mem, blockinfo);
     }
+    LeaveCriticalSection(&m_maplock);
 }
 
 // mapheap - Tracks heap creation. Creates a block map for tracking individual
@@ -2829,6 +2834,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
     heapinfo = new heapinfo_t;
     heapinfo->blockmap.reserve(BLOCKMAPRESERVE);
     heapinfo->flags = 0x0;
+    EnterCriticalSection(&m_maplock);
     heapit = m_heapmap->insert(heap, heapinfo);
     if (heapit == m_heapmap->end()) {
         // Somehow this heap has been created twice without being destroyed,
@@ -2839,6 +2845,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
         unmapheap((*heapit).first);
         m_heapmap->insert(heap, heapinfo);
     }
+    LeaveCriticalSection(&m_maplock);
 }
 
 // QueryInterface - Calls to IMalloc::QueryInterface will end up here. This
@@ -2953,50 +2960,56 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // freed and a new block allocated to satisfy the new size.
         unmapblock(heap, mem);
         mapblock(heap, newmem, size, framepointer, crtalloc);
+        return;
+    }
+
+    // The block was reallocated in-place. Find the existing blockinfo_t
+    // entry in the block map and update it with the new callstack and size.
+    EnterCriticalSection(&m_maplock);
+    heapit = m_heapmap->find(heap);
+    if (heapit == m_heapmap->end()) {
+        // We haven't mapped this heap to a block map yet. Obviously the
+        // block has also not been mapped to a blockinfo_t entry yet either,
+        // so treat this reallocation as a brand-new allocation (this will
+        // also map the heap to a new block map).
+        mapblock(heap, newmem, size, framepointer, crtalloc);
+        LeaveCriticalSection(&m_maplock);
+        return;
+    }
+
+    // Find the block's blockinfo_t structure so that we can update it.
+    blockmap = &(*heapit).second->blockmap;
+    blockit = blockmap->find(mem);
+    if (blockit == blockmap->end()) {
+        // The block hasn't been mapped to a blockinfo_t entry yet.
+        // Treat this reallocation as a new allocation.
+        mapblock(heap, newmem, size, framepointer, crtalloc);
+        LeaveCriticalSection(&m_maplock);
+        return;
+    }
+
+    // Found the blockinfo_t entry for this block. Update it with
+    // a new callstack and new size.
+    info = (*blockit).second;
+    info->callstack->clear();
+    if (crtalloc) {
+        // The heap that this block was allocated from is a CRT heap.
+        (*heapit).second->flags |= VLD_HEAP_CRT;
+    }
+    LeaveCriticalSection(&m_maplock);
+
+    // Update the block's callstack and size.
+    if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
+        // Passing NULL for the frame pointer argument will force
+        // the stack trace to begin at the current frame.
+        info->callstack->getstacktrace(m_maxtraceframes, NULL);
     }
     else {
-        // The block was reallocated in-place. Find the existing blockinfo_t
-        // entry in the block map and update it with the new callstack and size.
-        heapit = m_heapmap->find(heap);
-        if (heapit == m_heapmap->end()) {
-            // We haven't mapped this heap to a block map yet. Obviously the
-            // block has also not been mapped to a blockinfo_t entry yet either,
-            // so treat this reallocation as a brand-new allocation (this will
-            // also map the heap to a new block map).
-            mapblock(heap, newmem, size, framepointer, crtalloc);
-        }
-        else {
-            // Find the block's blockinfo_t structure so that we can update it.
-            blockmap = &(*heapit).second->blockmap;
-            blockit = blockmap->find(mem);
-            if (blockit == blockmap->end()) {
-                // The block hasn't been mapped to a blockinfo_t entry yet.
-                // Treat this reallocation as a new allocation.
-                mapblock(heap, newmem, size, framepointer, crtalloc);
-            }
-            else {
-                // Found the blockinfo_t entry for this block. Update it with
-                // a new callstack and new size.
-                info = (*blockit).second;
-                info->callstack->clear();
-                if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
-                    // Passing NULL for the frame pointer argument will force
-                    // the stack trace to begin at the current frame.
-                    info->callstack->getstacktrace(m_maxtraceframes, NULL);
-                }
-                else {
-                    // Start the stack trace at the call that first entered
-                    // VLD's code.
-                    info->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)framepointer);
-                }
-                info->size = size;
-                if (crtalloc) {
-                    // The heap that this block was allocated from is a CRT heap.
-                    (*heapit).second->flags |= VLD_HEAP_CRT;
-                }
-            }
-        }
+        // Start the stack trace at the call that first entered
+        // VLD's code.
+        info->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)framepointer);
     }
+    info->size = size;
 }
 
 // reportconfig - Generates a brief report summarizing Visual Leak Detector's
@@ -3080,9 +3093,11 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
     SIZE_T               size;
 
     // Find the heap's information (blockmap, etc).
+    EnterCriticalSection(&m_maplock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // Nothing is allocated from this heap. No leaks.
+        LeaveCriticalSection(&m_maplock);
         return;
     }
 
@@ -3143,7 +3158,7 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
         report(L"\n");
     }
 
-    return;
+    LeaveCriticalSection(&m_maplock);
 }
 
 // unmapblock - Tracks memory blocks that are freed. Unmaps the specified block
@@ -3165,10 +3180,12 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
     blockinfo_t        *info;
 
     // Find this heap's block map.
+    EnterCriticalSection(&m_maplock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We don't have a block map for this heap. We must not have monitored
         // this allocation (probably happened before VLD was initialized).
+        LeaveCriticalSection(&m_maplock);
         return;
     }
 
@@ -3178,13 +3195,16 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
     if (blockit == blockmap->end()) {
         // This block is not in the block map. We must not have monitored this
         // allocation (probably happened before VLD was initialized).
+        LeaveCriticalSection(&m_maplock);
         return;
     }
+
     // Free the blockinfo_t structure and erase it from the block map.
     info = (*blockit).second;
     delete info->callstack;
     delete info;
     blockmap->erase(blockit);
+    LeaveCriticalSection(&m_maplock);
 }
 
 // unmapheap - Tracks heap destruction. Unmaps the specified heap from its block
@@ -3205,10 +3225,12 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
     HeapMap::Iterator   heapit;
 
     // Find this heap's block map.
+    EnterCriticalSection(&m_maplock);
     heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // This heap hasn't been mapped. We must not have monitored this heap's
         // creation (probably happened before VLD was initialized).
+        LeaveCriticalSection(&m_maplock);
         return;
     }
 
@@ -3223,4 +3245,5 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 
     // Remove this heap's block map from the heap map.
     m_heapmap->erase(heapit);
+    LeaveCriticalSection(&m_maplock);
 }
