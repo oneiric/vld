@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.21 2006/11/15 18:58:40 dmouldin Exp $
+//  $Id: utility.cpp,v 1.22 2006/11/16 00:07:06 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -25,10 +25,15 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
+#define DBGHELP_TRANSLATE_TCHAR
+#include <dbghelp.h>    // Provides portable executable (PE) image access functions.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
-#include "dbghelpapi.h" // Provides portable executable (PE) image access functions.
 #include "utility.h"    // Provides various utility functions and macros.
 #include "vldheap.h"    // Provides internal new and delete operators.
+
+// Imported Global Variables
+extern CRITICAL_SECTION imagelock;
 
 // Global variables.
 static BOOL        reportdelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
@@ -226,7 +231,7 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
@@ -295,7 +300,7 @@ BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replaceme
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
@@ -430,7 +435,7 @@ BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodul
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
@@ -616,7 +621,7 @@ VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmod
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)pImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
                                                                   IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.17 2006/11/15 18:58:40 dmouldin Exp $
+//  $Id: callstack.cpp,v 1.18 2006/11/16 00:06:26 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -24,9 +24,11 @@
 
 #include <cassert>
 #include <windows.h>
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
+#define DBGHELP_TRANSLATE_TCHAR
+#include <dbghelp.h>    // Provides symbol handling services.
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
-#include "dbghelpapi.h" // Provides symbol handling services.
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"     // Provides access to VLD internals.
@@ -36,7 +38,8 @@
 // Imported global variables.
 extern HANDLE             currentprocess;
 extern HANDLE             currentthread;
-extern VisualLeakDetector vld;
+extern CRITICAL_SECTION   stackwalklock;
+extern CRITICAL_SECTION   symbollock;
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
 //   Chunk of capacity.
@@ -222,7 +225,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         // this program counter address.
         programcounter = (*this)[frame];
         EnterCriticalSection(&symbollock);
-        if ((foundline = pSymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
+        if ((foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
             if (!showinternalframes) {
                 _wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
@@ -238,7 +241,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
 
         // Try to get the name of the function containing this program
         // counter address.
-        if (pSymFromAddrW(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
+        if (SymFromAddrW(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
             functionname = functioninfo->Name;
         }
         else {
@@ -421,8 +424,8 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
     EnterCriticalSection(&stackwalklock);
     while (count < maxdepth) {
         count++;
-        if (!pStackWalk64(architecture, currentprocess, currentthread, &frame, &context, NULL,
-                          pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)) {
+        if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &context, NULL,
+                         SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
             // Couldn't trace back through any more frames.
             break;
         }
