@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: ntapi.cpp,v 1.5 2006/11/12 18:09:19 dmouldin Exp $
+//  $Id: ntapi.cpp,v 1.6 2006/11/16 23:50:35 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9d) - Global NT API Function Pointers
+//  Visual Leak Detector (Version 1.9e) - Global NT API Function Pointers
 //  Copyright (c) 2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or

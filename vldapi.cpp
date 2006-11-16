@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.16 2006/11/15 01:09:47 dmouldin Exp $
+//  $Id: vldapi.cpp,v 1.17 2006/11/16 23:50:35 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9d) - Exported APIs
+//  Visual Leak Detector (Version 1.9e) - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
