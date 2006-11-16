@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.38 2006/11/15 18:58:40 dmouldin Exp $
+//  $Id: vldint.h,v 1.39 2006/11/16 00:11:01 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -205,7 +205,6 @@ private:
     BOOL enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
     tls_t* gettls ();
-    BOOL linkdebughelplibrary ();
     VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
     VOID mapheap (HANDLE heap);
     VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
@@ -215,7 +214,6 @@ private:
     VOID unmapheap (HANDLE heap);
 
     // Private data.
-    HMODULE              m_dbghelp;           // Handle to the Debug Help Library.
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
@@ -224,6 +222,7 @@ private:
     CRITICAL_SECTION     m_loaderlock;        // Serializes the attachment of newly loaded modules.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
+    CRITICAL_SECTION     m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
     UINT32               m_options;           // Configuration options:
 #define VLD_OPT_AGGREGATE_DUPLICATES    0x1   //   If set, aggregate duplicate leaks in the leak report.
 #define VLD_OPT_MODULE_LIST_INCLUDE     0x2   //   If set, modules in the module list are included, all others are excluded.

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.61 2006/11/15 18:58:40 dmouldin Exp $
+//  $Id: vld.cpp,v 1.62 2006/11/16 00:10:31 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9d) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -22,14 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#pragma comment(lib, "dbghelp.lib")
+
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <sys/stat.h>
 #include <windows.h>
+#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
+#define DBGHELP_TRANSLATE_TCHAR
+#include <dbghelp.h>    // Provides symbol handling services.
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "callstack.h"  // Provides a class for handling call stacks.
-#include "dbghelpapi.h" // Provides symbol handling services.
 #include "map.h"        // Provides a lightweight STL-like map template.
 #include "ntapi.h"      // Provides access to NT APIs.
 #include "set.h"        // Provides a lightweight STL-like set template.
@@ -48,9 +52,12 @@ extern HANDLE            vldheap;
 extern CRITICAL_SECTION  vldheaplock;
 
 // Global variables.
-HANDLE currentprocess; // Pseudo-handle for the current process.
-HANDLE currentthread;  // Pseudo-handle for the current thread.
-HANDLE processheap;    // Handle to the process's heap (COM allocations come from here).
+HANDLE           currentprocess; // Pseudo-handle for the current process.
+HANDLE           currentthread;  // Pseudo-handle for the current thread.
+CRITICAL_SECTION imagelock;      // Serializes calls to the Debug Help Library PE image access APIs.
+HANDLE           processheap;    // Handle to the process's heap (COM allocations come from here).
+CRITICAL_SECTION stackwalklock;  // Serializes calls to StackWalk64 from the Debug Help Library.
+CRITICAL_SECTION symbollock;     // Serializes calls to the Debug Help Library symbold handling APIs.
 
 // Function pointer types for explicit dynamic linking with functions listed in
 // the import patch table.
@@ -182,6 +189,7 @@ VisualLeakDetector::VisualLeakDetector ()
     InitializeCriticalSection(&vldheaplock);
 
     // Initialize private data.
+    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
     m_heapmap         = new HeapMap;
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
@@ -190,7 +198,7 @@ VisualLeakDetector::VisualLeakDetector ()
     InitializeCriticalSection(&m_loaderlock);
     m_maxdatadump     = 0xffffffff;
     m_maxtraceframes  = 0xffffffff;
-    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
+    InitializeCriticalSection(&m_moduleslock);
     m_options         = 0x0;
     m_reportfile      = NULL;
     wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
@@ -267,17 +275,11 @@ VisualLeakDetector::VisualLeakDetector ()
         return;
     }
 
-    // Do an explicit link with the Debug Help Library.
-    if (linkdebughelplibrary() == FALSE) {
-        report(L"ERROR: Visual Leak Detector could not be installed.\n");
-        return;
-    }
-
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
     symbolpath = buildsymbolsearchpath();
-    pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
-    if (!pSymInitializeW(currentprocess, symbolpath, FALSE)) {
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    if (!SymInitializeW(currentprocess, symbolpath, FALSE)) {
         report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
                L"    File and function names will probably not be available in call stacks.\n", GetLastError());
     }
@@ -290,7 +292,7 @@ VisualLeakDetector::VisualLeakDetector ()
     // Attach Visual Leak Detector to every module loaded in the process.
     newmodules = new ModuleSet;
     newmodules->reserve(MODULESETRESERVE);
-    pEnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+    EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
     attachtoloadedmodules(newmodules);
     m_loadedmodules = newmodules;
     m_status |= VLD_STATUS_INSTALLED;
@@ -328,7 +330,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
-        pEnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
+        EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
 
         if (m_status & VLD_STATUS_NEVER_ENABLED) {
             // Visual Leak Detector started with leak detection disabled and
@@ -353,7 +355,7 @@ VisualLeakDetector::~VisualLeakDetector ()
         }
 
         // Free resources used by the symbol handler.
-        if (!pSymCleanup(currentprocess)) {
+        if (!SymCleanup(currentprocess)) {
             report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n",
                    GetLastError());
         }
@@ -423,13 +425,10 @@ VisualLeakDetector::~VisualLeakDetector ()
 
     DeleteCriticalSection(&imagelock);
     DeleteCriticalSection(&m_loaderlock);
+    DeleteCriticalSection(&m_moduleslock);
     DeleteCriticalSection(&stackwalklock);
     DeleteCriticalSection(&symbollock);
     DeleteCriticalSection(&vldheaplock);
-
-    if (m_dbghelp != NULL) {
-        FreeLibrary(m_dbghelp);
-    }
 
     if (m_tlsindex != TLS_OUT_OF_INDEXES) {
         TlsFree(m_tlsindex);
@@ -1531,7 +1530,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
     functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
     EnterCriticalSection(&symbollock);
-    symfound = pSymFromAddrW(currentprocess, ra, &displacement, functioninfo);
+    symfound = SymFromAddrW(currentprocess, ra, &displacement, functioninfo);
     LeaveCriticalSection(&symbollock);
     if (symfound == TRUE) {
         if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
@@ -1598,6 +1597,8 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
     ModuleSet           *oldmodules;
     NTSTATUS             status;
 
+    EnterCriticalSection(&vld.m_loaderlock);
+
     // Load the DLL.
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
     
@@ -1606,16 +1607,16 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         // modules.
         newmodules = new ModuleSet;
         newmodules->reserve(MODULESETRESERVE);
-        EnterCriticalSection(&vld.m_loaderlock);
-        pEnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+        EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
 
         // Attach to all modules included in the set.
         vld.attachtoloadedmodules(newmodules);
 
-        // Perform an atomic switchover to the new set of loaded modules.
+        // Start using the new set of loaded modules.
+        EnterCriticalSection(&vld.m_moduleslock);
         oldmodules = vld.m_loadedmodules;
         vld.m_loadedmodules = newmodules;
-        LeaveCriticalSection(&vld.m_loaderlock);
+        LeaveCriticalSection(&vld.m_moduleslock);
 
         // Free resources used by the old module list.
         for (moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
@@ -1624,6 +1625,8 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         }
         delete oldmodules;
     }
+
+    LeaveCriticalSection(&vld.m_loaderlock);
 
     return status;
 }
@@ -1935,6 +1938,7 @@ void* VisualLeakDetector::_mfc80d_vector_new (unsigned int size)
 LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size)
 {
     BOOL                 crtalloc;
+    BOOL                 excluded = FALSE;
     SIZE_T               fp;
     LPVOID               block;
     moduleinfo_t         moduleinfo;
@@ -1964,9 +1968,13 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         returnaddress = *((SIZE_T*)fp + 1);
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
+        EnterCriticalSection(&vld.m_moduleslock);
         moduleit = vld.m_loadedmodules->find(moduleinfo);
-        assert(moduleit != vld.m_loadedmodules->end());
-        if (!((*moduleit).flags & VLD_MODULE_EXCLUDED)) {
+        if (moduleit != vld.m_loadedmodules->end()) {
+            excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
+        }
+        LeaveCriticalSection(&vld.m_moduleslock);
+        if (!excluded) {
             // The module that initiated this allocation is included in leak
             // detection. Map this block to the specified heap.
             vld.mapblock(heap, block, size, fp, crtalloc);
@@ -2030,6 +2038,7 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
 {
     BOOL                 crtalloc;
+    BOOL                 excluded = FALSE;
     SIZE_T               fp;
     moduleinfo_t         moduleinfo;
     ModuleSet::Iterator  moduleit;
@@ -2060,9 +2069,13 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         returnaddress = *((SIZE_T*)fp + 1);
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
+        EnterCriticalSection(&vld.m_moduleslock);
         moduleit = vld.m_loadedmodules->find(moduleinfo);
-        assert(moduleit != vld.m_loadedmodules->end());
-        if (!((*moduleit).flags & VLD_MODULE_EXCLUDED)) {
+        if (moduleit != vld.m_loadedmodules->end()) {
+            excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
+        }
+        LeaveCriticalSection(&vld.m_moduleslock);
+        if (!excluded) {
             // The module that initiated this allocation is included in leak
             // detection. Remap the block.
             vld.remapblock(heap, mem, newmem, size, fp, crtalloc);
@@ -2232,7 +2245,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
     ModuleSet::Iterator   newit;
     ModuleSet::Iterator   oldit;
     ModuleSet            *oldmodules = m_loadedmodules;
-    BOOL                  refresh = FALSE;
+    BOOL                  refresh;
     UINT                  tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
     ModuleSet::Muterator  updateit;
 
@@ -2244,6 +2257,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         modulepath  = (*newit).path;
         modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
 
+        refresh = FALSE;
         if (oldmodules != NULL) {
             // This is not the first time we have been called to attach to the
             // currently loaded modules.
@@ -2260,17 +2274,17 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
                 }
                 else {
                     // This module may have been attached before and has been
-                    // detached. We'll need to try reattaching to it in case it was
-                    // unloaded and then subsequently reloaded.
+                    // detached. We'll need to try reattaching to it in case it
+                    // was unloaded and then subsequently reloaded.
                     refresh = TRUE;
                 }
             }
         }
 
         EnterCriticalSection(&symbollock);
-        if ((refresh == TRUE) && ((*oldit).flags & VLD_MODULE_SYMBOLSLOADED)) {
+        if ((refresh == TRUE) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
-            if (pSymUnloadModule64(currentprocess, modulebase) == FALSE) {
+            if (SymUnloadModule64(currentprocess, modulebase) == FALSE) {
                 report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
                        L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
             }
@@ -2281,9 +2295,9 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         // process, guaranteeing the symbols' availability when generating the
         // leak report.
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        if ((pSymGetModuleInfoW64(currentprocess, (DWORD64)modulebase, &moduleimageinfo) == TRUE) ||
-            ((pSymLoadModule64(currentprocess, NULL, modulepath, NULL, modulebase, modulesize) == modulebase) &&
-            (pSymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
+        if ((SymGetModuleInfoW64(currentprocess, (DWORD64)modulebase, &moduleimageinfo) == TRUE) ||
+            ((SymLoadModule64(currentprocess, NULL, modulepath, NULL, modulebase, modulesize) == modulebase) &&
+            (SymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
             moduleflags |= VLD_MODULE_SYMBOLSLOADED;
         }
         LeaveCriticalSection(&symbollock);
@@ -2719,120 +2733,6 @@ VOID VisualLeakDetector::HeapMinimize ()
 {
     assert(m_imalloc != NULL);
     m_imalloc->HeapMinimize();
-}
-
-// linkdebughelplibrary - Performs explicit dynamic linking to dbghelp.dll.
-//   Though we could load-time link with dbghelp.dll, we instead do an explicit
-//   dynamic link in order to guarantee that we link with the copy of
-//   the DLL that was installed by VLD.
-//
-//  Return Value:
-//
-//    - Returns TRUE if dynamic linking was successful. Successful linking
-//      means that the Debug Help Library was found and that all functions were
-//      resolved.
-//
-//    - Returns FALSE if dynamic linking failed.
-//
-BOOL VisualLeakDetector::linkdebughelplibrary ()
-{
-    size_t  count;
-    WCHAR   dbghelppath [MAX_PATH] = { 0 };
-    LPCSTR  functionname;
-    wchar_t functionnamew [MAXSYMBOLNAMELENGTH];
-    DWORD   length = MAX_PATH;
-    HKEY    productkey;
-    LONG    regstatus;
-    DWORD   valuetype;
-
-    // Get the location of our installed copy of dbghelp.dll from the registry.
-    regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-    if (regstatus == ERROR_SUCCESS) {
-        regstatus = RegQueryValueEx(productkey, L"BinPath", NULL, &valuetype, (LPBYTE)&dbghelppath, &length);
-        if (regstatus != ERROR_SUCCESS) {
-            dbghelppath[0] = L'\0';
-        }
-    }
-    if (wcslen(dbghelppath) == 0) {
-        // Couldn't read the BinPath value, or it doesn't exist. Let the OS
-        // search for dbghelp.dll, hopefully it will find a compatible version.
-        wcsncpy_s(dbghelppath, MAX_PATH, L"dbghelp.dll", _TRUNCATE);
-    }
-    else {
-        // Use the copy of dbghelp.dll installed in the 'bin' directory.
-        wcsncat_s(dbghelppath, MAX_PATH, L"\\dbghelp.dll", _TRUNCATE);
-    }
-
-    // Load the copy of dbghelp.dll installed by Visual Leak Detector.
-    m_dbghelp = LoadLibrary(dbghelppath);
-    if (m_dbghelp == NULL) {
-        report(L"ERROR: Visual Leak Detector: Unable to load dbghelp.dll.\n");
-        return FALSE;
-    }
-
-    // Obtain pointers to the exported functions that we will be using.
-    functionname = "EnumerateLoadedModulesW64";
-    if ((pEnumerateLoadedModulesW64 = (EnumerateLoadedModulesW64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "ImageDirectoryEntryToDataEx";
-    if ((pImageDirectoryEntryToDataEx =
-        (ImageDirectoryEntryToDataEx_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "StackWalk64";
-    if ((pStackWalk64 = (StackWalk64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymCleanup";
-    if ((pSymCleanup = (SymCleanup_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymFromAddrW";
-    if ((pSymFromAddrW = (SymFromAddrW_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymFunctionTableAccess64";
-    if ((pSymFunctionTableAccess64 = (SymFunctionTableAccess64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymGetLineFromAddrW64";
-    if ((pSymGetLineFromAddrW64 = (SymGetLineFromAddrW64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymGetModuleBase64";
-    if ((pSymGetModuleBase64 = (SymGetModuleBase64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymInitializeW";
-    if ((pSymInitializeW = (SymInitializeW_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymLoadModule64";
-    if ((pSymLoadModule64 = (SymLoadModule64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymGetModuleInfoW64";
-    if ((pSymGetModuleInfoW64 = (SymGetModuleInfoW64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymSetOptions";
-    if ((pSymSetOptions = (SymSetOptions_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-    functionname = "SymUnloadModule64";
-    if ((pSymUnloadModule64 = (SymUnloadModule64_t)GetProcAddress(m_dbghelp, functionname)) == NULL) {
-        goto getprocaddressfailure;
-    }
-
-    return TRUE;
-
-getprocaddressfailure:
-    // One of the required exports was not found.
-    mbstowcs_s(&count, functionnamew, MAXSYMBOLNAMELENGTH, functionname, _TRUNCATE);
-    report(L"ERROR: Visual Leak Detector: The procedure entry point %s could not be located\n"
-           L"  in the dynamic link library dbghelp.dll.\n", functionnamew);
-    return FALSE;
 }
 
 // mapblock - Tracks memory allocations. Information about allocated blocks is
