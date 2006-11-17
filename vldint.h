@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.41 2006/11/16 23:50:35 dmouldin Exp $
+//  $Id: vldint.h,v 1.42 2006/11/17 01:21:13 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -235,6 +235,7 @@ private:
 #define VLD_OPT_START_DISABLED          0x80  //   If set, memory leak detection will initially disabled.
 #define VLD_OPT_TRACE_INTERNAL_FRAMES   0x100 //   If set, include useless frames (e.g. internal to VLD) in call stacks.
 #define VLD_OPT_UNICODE_REPORT          0x200 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
+#define VLD_OPT_VLDOFF                  0x400 //   If set, VLD will be completely deactivated. It will not attach to any modules.
     static patchentry_t  m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportfile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
