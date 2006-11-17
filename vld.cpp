@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.65 2006/11/17 01:17:46 dmouldin Exp $
+//  $Id: vld.cpp,v 1.66 2006/11/17 02:58:02 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -174,6 +174,15 @@ VisualLeakDetector::VisualLeakDetector ()
     HMODULE    ntdll;
     LPWSTR     symbolpath;
 
+    // Initialize configuration options and related private data.
+    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
+    m_maxdatadump    = 0xffffffff;
+    m_maxtraceframes = 0xffffffff;
+    m_options        = 0x0;
+    m_reportfile     = NULL;
+    wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
+    m_status         = 0x0;
+
     // Load configuration options.
     configure();
     if (m_options & VLD_OPT_VLDOFF) {
@@ -198,8 +207,7 @@ VisualLeakDetector::VisualLeakDetector ()
     vldheap           = HeapCreate(0x0, 0, 0);
     InitializeCriticalSection(&vldheaplock);
 
-    // Initialize private data.
-    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
+    // Initialize remaining private data.
     m_heapmap         = new HeapMap;
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
@@ -207,15 +215,9 @@ VisualLeakDetector::VisualLeakDetector ()
     m_loadedmodules   = NULL;
     InitializeCriticalSection(&m_loaderlock);
     InitializeCriticalSection(&m_maplock);
-    m_maxdatadump     = 0xffffffff;
-    m_maxtraceframes  = 0xffffffff;
     InitializeCriticalSection(&m_moduleslock);
-    m_options         = 0x0;
-    m_reportfile      = NULL;
-    wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
     m_selftestfile    = __FILE__;
     m_selftestline    = 0;
-    m_status          = 0x0;
     m_tlsindex        = TlsAlloc();
     m_tlsset          = new TlsSet;
 
@@ -1490,18 +1492,26 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
     // function.
     for (index = 0; index < tablesize; index++) {
         entry = &vld.m_patchtable[index];
-        if ((HMODULE)entry->modulebase != module) {
+        if ((entry->modulebase == 0x0) || ((HMODULE)entry->modulebase != module)) {
             // This patch table entry is for a different module.
             continue;
         }
 
-        // This patch table entry is for the specified module.
-        if (strcmp(entry->importname, procname) == 0) {
-            // The function name in the patch entry is the same as the requested
-            // function name. This means a request for a patched function's
-            // address has been made. Return tha address of the replacement
-            // function, not the address of the real function.
-            return (FARPROC)entry->replacement;
+        // This patch table entry is for the specified module. If the requested
+        // import's name matches the entry's import name (or ordinal), then
+        // return the address of the replacement instead of the address of the
+        // actual import.
+        if ((SIZE_T)entry->importname < (SIZE_T)vld.m_vldbase) {
+            // This entry's import name is not a valid pointer to data in
+            // vld.dll. It must be an ordinal value.
+            if ((UINT)entry->importname == (UINT)procname) {
+                return (FARPROC)entry->replacement;
+            }
+        }
+        else {
+            if (strcmp(entry->importname, procname) == 0) {
+                return (FARPROC)entry->replacement;
+            }
         }
     }
 
