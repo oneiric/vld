@@ -166,6 +166,10 @@
         #compliance img {
             border: 0;
         }
+        
+        blockquote {
+            font-style: italic;
+        }
     </style>
 
     <title>Visual Leak Detector (Beta)</title>
@@ -590,8 +594,9 @@
    <span class="filename">vld.dll</span> (either the <span class="filename">Release</span> or
    <span class="filename">Debug</span> directory by default). Otherwise, when VLD is loaded, an error message will pop
    up indicating that the program failed to initialize, and you will see a message similar to the following in the
-   debugger's output window:</p><blockquote><em>LDR: LdrpWalkImportDescriptor() failed to probe
-   C:\Projects\vld\Release\vld.dll for its manifest, ntstatus 0xc0150002</em></blockquote>
+   debugger's output window:</p>
+   <blockquote><p>LDR: LdrpWalkImportDescriptor() failed to probe C:\Projects\vld\Release\vld.dll for its manifest,
+   ntstatus 0xc0150002</p></blockquote>
    
 <p>To ensure that <span class="filename">vld.dll</span> finds the required private assembly, you need to copy
    <span class="filename">dbghelp.dll</span> and <span class="filename">Microsoft.DTfW.DHL.manifest</span> to the
