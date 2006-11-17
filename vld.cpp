@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.64 2006/11/16 23:48:23 dmouldin Exp $
+//  $Id: vld.cpp,v 1.65 2006/11/17 01:17:46 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -169,10 +169,20 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
 VisualLeakDetector::VisualLeakDetector ()
 {
     WCHAR      bom = BOM; // Unicode byte-order mark.
-    HMODULE    kernel32 = GetModuleHandle(L"kernel32.dll");
+    HMODULE    kernel32;
     ModuleSet *newmodules;
-    HMODULE    ntdll = GetModuleHandle(L"ntdll.dll");
+    HMODULE    ntdll;
     LPWSTR     symbolpath;
+
+    // Load configuration options.
+    configure();
+    if (m_options & VLD_OPT_VLDOFF) {
+        report(L"Visual Leak Detector is turned off.\n");
+        return;
+    }
+
+    kernel32 = GetModuleHandle(L"kernel32.dll");
+    ntdll = GetModuleHandle(L"ntdll.dll");
 
     // Initialize global variables.
     currentprocess    = GetCurrentProcess();
@@ -189,7 +199,7 @@ VisualLeakDetector::VisualLeakDetector ()
     InitializeCriticalSection(&vldheaplock);
 
     // Initialize private data.
-    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
+    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
     m_heapmap         = new HeapMap;
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
@@ -209,8 +219,6 @@ VisualLeakDetector::VisualLeakDetector ()
     m_tlsindex        = TlsAlloc();
     m_tlsset          = new TlsSet;
 
-    // Load configuration options.
-    configure();
     if (m_options & VLD_OPT_SELF_TEST) {
         // Self-test mode has been enabled. Intentionally leak a small amount of
         // memory so that memory leak self-checking can be verified.
@@ -329,6 +337,11 @@ VisualLeakDetector::~VisualLeakDetector ()
     ModuleSet::Iterator  moduleit;
     TlsSet::Iterator     tlsit;
 
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
         EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
@@ -422,10 +435,16 @@ VisualLeakDetector::~VisualLeakDetector ()
 
         report(L"Visual Leak Detector is now exiting.\n");
     }
+    else {
+        // VLD failed to load properly.
+        delete m_heapmap;
+        delete m_tlsset;
+    }
     HeapDestroy(vldheap);
 
     DeleteCriticalSection(&imagelock);
     DeleteCriticalSection(&m_loaderlock);
+    DeleteCriticalSection(&m_maplock);
     DeleteCriticalSection(&m_moduleslock);
     DeleteCriticalSection(&stackwalklock);
     DeleteCriticalSection(&symbollock);
@@ -2440,6 +2459,7 @@ VOID VisualLeakDetector::configure ()
     WCHAR        buffer [BSIZE];
     WCHAR        filename [MAX_PATH];
     WCHAR        inipath [MAX_PATH];
+    BOOL         keyopen = FALSE;
     DWORD        length;
     HKEY         productkey;
     LONG         regstatus;
@@ -2454,7 +2474,11 @@ VOID VisualLeakDetector::configure ()
         // Get the location of the vld.ini file from the registry.
         regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
         if (regstatus == ERROR_SUCCESS) {
+            keyopen = TRUE;
             regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
+        }
+        if (keyopen) {
+            RegCloseKey(productkey);
         }
         if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
             // The location of vld.ini could not be read from the registry. As a
@@ -2464,6 +2488,12 @@ VOID VisualLeakDetector::configure ()
     }
 
     // Read the boolean options.
+    GetPrivateProfileString(L"Options", L"VLD", L"on", buffer, BSIZE, inipath);
+    if (strtobool(buffer) == FALSE) {
+        m_options |= VLD_OPT_VLDOFF;
+        return;
+    }
+
     GetPrivateProfileString(L"Options", L"AggregateDuplicates", L"", buffer, BSIZE, inipath);
     if (strtobool(buffer) == TRUE) {
         m_options |= VLD_OPT_AGGREGATE_DUPLICATES;
