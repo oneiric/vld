@@ -1,6 +1,6 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.9 2006/11/16 02:23:18 dmouldin Exp $
-#  Visual Leak Detector (Version 1.9d) - NSIS Installation Script
+#  $Id: vld-setup.nsi,v 1.10 2006/11/17 03:22:07 dmouldin Exp $
+#  Visual Leak Detector (Version 1.9e) - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
 #  This program is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9d(p1)"
+!define VLD_VERSION "1.9e"
 
 # Define build system paths
 !define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT"
@@ -35,8 +35,6 @@
 
 # Define installer paths
 !define BIN_PATH     "$INSTDIR\bin"
-!define CRT_PA_PATH  "${BIN_PATH}\Microsoft.VC80.CRT"
-!define DHL_PA_PATH  "${BIN_PATH}\Microsoft.DTfW.DHL"
 !define INCLUDE_PATH "$INSTDIR\include"
 !define LIB_PATH     "$INSTDIR\lib"
 !define LNK_PATH     "$SMPROGRAMS\$SM_PATH"
@@ -134,7 +132,7 @@ Section "Import Library"
 	File "..\Release\vld.lib"
 SectionEnd
 
-Section "Dynamic Link Library"
+Section "Dynamic Link Libraries"
 	SetOutPath "${BIN_PATH}"
 	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
 	MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
@@ -144,18 +142,10 @@ addtopath:
 	Push "${BIN_PATH}"
 	Call AddToPath
 skipaddtopath:
-SectionEnd
-
-Section "Microsoft Debug Help Library"
-	SetOutPath "${DHL_PA_PATH}"
+	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\dbghelp.dll" "${BIN_PATH}\dbghelp.dll" $INSTDIR
+	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\msvcr80.dll" "${BIN_PATH}\msvcr80.dll" $INSTDIR
 	File "..\Microsoft.DTfW.DHL.manifest"
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\dbghelp.dll" "${DHL_PA_PATH}\dbghelp.dll" $INSTDIR
-SectionEnd
-
-Section "Microsoft C Runtime Library (8.0)"
-	SetOutPath "${CRT_PA_PATH}"
-	File "${CRT_PATH}\Microsoft.VC80.CRT.manifest"	
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\msvcr80.dll" "${CRT_PA_PATH}\msvcr80.dll" $INSTDIR
+	File "${CRT_PATH}\Microsoft.VC80.CRT.manifest"
 SectionEnd
 
 Section "Configuration File"
@@ -205,24 +195,16 @@ Section "un.Import Library"
 	RMDir "${LIB_PATH}"
 SectionEnd
 
-Section "un.Microsoft C Runtime Library (8.0)"
-	Delete "${CRT_PA_PATH}\Microsoft.VC80.CRT.manifest"
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PA_PATH}\msvcr80.dll"
-	RMDir "${CRT_PA_PATH}"
-SectionEnd
-
-Section "un.Microsoft Debug Help Library"
-	Delete "${DHL_PA_PATH}\Microsoft.DTfW.DHL.manifest"
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DHL_PA_PATH}\dbghelp.dll"
-	RMDir "${DHL_PA_PATH}"
-SectionEnd
-
-Section "un.Dynamic Link Library"
+Section "un.Dynamic Link Libraries"
 	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
-	RMDir "${BIN_PATH}"
 	DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
 	Push "${BIN_PATH}"
 	Call un.RemoveFromPath
+	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\dbghelp.dll"
+	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\msvcr80.dll"
+	Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
+	Delete "${BIN_PATH}\Microsoft.VC80.CRT.manifest"
+	RMDir "${BIN_PATH}"
 SectionEnd
 
 Section "un.Configuration File"
