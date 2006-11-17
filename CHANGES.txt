@@ -4,10 +4,16 @@ Visual Leak Detector (VLD) Version 1.9e (beta)
   
 1.9e beta (16 November 2006)
 ----------------------------
+  New Features/Enhancements:
+  + Added a master on/off switch configuration option to vld.ini that can be
+    used to completely disable Visual Leak Detector.
+    
   Bugs Fixed:
   + Numerous deadlock situations. The multithread synchronization scheme has
     been completely re-written which should make deadlocks in VLD much less
     likey to happen.
+  + An access violation will occur in VLD if GetProcAddress is called to obtain
+    an export's address by ordinal, for certain libraries.
   + Problems may potentially occur when the program being debugged exits due to
     the Debug Help Library having been detached from the process too early.
     Symptoms might include access violation exceptions or other erratic behavior
