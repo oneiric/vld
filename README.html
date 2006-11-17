@@ -329,6 +329,13 @@
    <span class="filename">vld.ini</span> will apply only when debugging that one program.</p>
 
 <dl>
+    <dt class="option">VLD</dt>
+    <dd>
+        <p>This option acts as a master on/off switch. By default, this option is set to "on". To <em>completely
+        disable</em> Visual Leak Detector at runtime, set this option to "off". When VLD is turned off using this
+        option, it will do nothing but print a message to the debugger indicating that it has been turned off.</p>
+    </dd>
+    
     <dt class="option">AggregateDuplicates</dt>
     <dd>
         <p>Normally, VLD displays each individual leaked block in detail. Setting this option to "yes" will make VLD
