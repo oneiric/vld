@@ -183,7 +183,7 @@
 
 <div id="masthead">
 
-<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9e (Beta)</h1>
+<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9f (Beta)</h1>
 
 <p id="slogan">Enhanced Memory Leak Detection for Visual&nbsp;C++</p>
 
@@ -661,6 +661,9 @@
        on the linker command line (can be added through project settings by adding it to the list of library modules in
        the linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
        supported.</li>
+       
+   <li>Visual Leak Detector may report leaks internal to Visual Leak Detector if the main thread of the process
+       terminates while other threads are still running.</li>
        
    <li>On Windows 2000 and earlier operating systems, you may need to manually add the
        <span class="filename">bin\Microsoft.VC80.CRT</span> subdirectory from the Visual Leak Detector installation
