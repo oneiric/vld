@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.43 2006/11/18 03:12:35 dmouldin Exp $
+//  $Id: vldint.h,v 1.44 2006/11/18 05:07:04 dmouldin Exp $
 //
 //  Visual Leak Detector - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -109,6 +109,7 @@ typedef struct tls_s {
 #define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 //   If set, memory leak detection is disabled for the current thread.
 #define VLD_TLS_ENABLED  0x4 //   If set, memory leak detection is enabled for the current thread.
+    DWORD  threadid;         // Thread ID of the thread that owns this TLS structure.
 } tls_t;
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
@@ -247,6 +248,7 @@ private:
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
     DWORD                m_tlsindex;          // Thread-local storage index.
+    CRITICAL_SECTION     m_tlslock;           // Protects accesses to the Set of TLS structures.
     TlsSet              *m_tlsset;            // Set of all all thread-local storage structres for the process.
     HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
 

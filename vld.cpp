@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.68 2006/11/18 03:12:35 dmouldin Exp $
+//  $Id: vld.cpp,v 1.69 2006/11/18 05:07:04 dmouldin Exp $
 //
 //  Visual Leak Detector - VisualLeakDetector Class Implementation
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -219,6 +219,7 @@ VisualLeakDetector::VisualLeakDetector ()
     m_selftestfile    = __FILE__;
     m_selftestline    = 0;
     m_tlsindex        = TlsAlloc();
+    InitializeCriticalSection(&m_tlslock);
     m_tlsset          = new TlsSet;
 
     if (m_options & VLD_OPT_SELF_TEST) {
@@ -329,6 +330,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     BlockMap::Iterator   blockit;
     BlockMap            *blockmap;
     size_t               count;
+    DWORD                exitcode;
     vldblockheader_t    *header;
     HANDLE               heap;
     HeapMap::Iterator    heapit;
@@ -337,6 +339,9 @@ VisualLeakDetector::~VisualLeakDetector ()
     WCHAR                leakfilew [MAX_PATH];
     int                  leakline = 0;
     ModuleSet::Iterator  moduleit;
+    SIZE_T               sleepcount;
+    HANDLE               thread;
+    BOOL                 threadsactive= FALSE;
     TlsSet::Iterator     tlsit;
 
     if (m_options & VLD_OPT_VLDOFF) {
@@ -347,6 +352,44 @@ VisualLeakDetector::~VisualLeakDetector ()
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
         EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
+
+        // See if any threads that have ever entered VLD's code are still active.
+        EnterCriticalSection(&m_tlslock);
+        for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
+            if ((*tlsit)->threadid == GetCurrentThreadId()) {
+                // Don't wait for the current thread to exit.
+                continue;
+            }
+
+            sleepcount = 0;
+            thread = OpenThread(THREAD_QUERY_INFORMATION, FALSE, (*tlsit)->threadid);
+            if (thread == NULL) {
+                // Couldn't query this thread. We'll assume that it exited.
+                continue; // XXX should we check GetLastError()?
+            }
+            while (GetExitCodeThread(thread, &exitcode) == TRUE) {
+                if (exitcode != STILL_ACTIVE) {
+                    // This thread exited.
+                    break;
+                }
+                else {
+                    // There is still at least one other thread running. The CRT
+                    // will stomp it dead when it cleans up, which is not a
+                    // graceful way for a thread to go down. Warn about this,
+                    // and wait until the thread has exited so that we know it
+                    // can't still be off running somewhere in VLD's code.
+                    threadsactive = TRUE;
+                    Sleep(100);
+                    sleepcount++;
+                    if ((sleepcount % 100) == 0) {
+                        // Just in case this takes a long time, let the human
+                        // know we are still here and alive.
+                        report(L"Visual Leak Detector: Waiting for threads to terminate...\n");
+                    }
+                }
+            }
+        }
+        LeaveCriticalSection(&m_tlslock);
 
         if (m_status & VLD_STATUS_NEVER_ENABLED) {
             // Visual Leak Detector started with leak detection disabled and
@@ -435,6 +478,10 @@ VisualLeakDetector::~VisualLeakDetector ()
             }
         }
 
+        if (threadsactive == TRUE) {
+            report(L"WARNING: Visual Leak Detector: Some threads appear to have not terminated normally.\n"
+                L"  This could cause inaccurate leak detection results, including false positives.\n");
+        }
         report(L"Visual Leak Detector is now exiting.\n");
     }
     else {
@@ -2760,9 +2807,12 @@ tls_t* VisualLeakDetector::gettls ()
         TlsSetValue(m_tlsindex, tls);
         tls->addrfp = 0x0;
         tls->flags = 0x0;
+        tls->threadid = GetCurrentThreadId();
 
         // Add this thread's TLS to the TlsSet.
+        EnterCriticalSection(&m_tlslock);
         m_tlsset->insert(tls);
+        LeaveCriticalSection(&m_tlslock);
     }
 
     return tls;
