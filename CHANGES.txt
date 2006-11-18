@@ -1,6 +1,28 @@
-Visual Leak Detector (VLD) Version 1.9e (beta)
+Visual Leak Detector (VLD) Version 1.9f (beta)
 
   Change Log / Release Notes
+  
+1.9f beta (18 November 2006)
+----------------------------
+  Bugs Fixed:
+  + Deadlocks or access violations may occur when loading DLLs into
+    multithreaded processes.
+  + In multithreaded programs, if the main thread terminates before other
+    threads in the process, then Visual Leak Detector may cause an access
+    violation while generating the memory leak report.
+    
+  Known Bugs/Restrictions:
+  + Memory allocations made through calls to functions loaded from a DLL using
+    delayed loading may not be detected.
+  + Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some
+    memory leaks from such MFC-based programs may not be detected.
+  + Visual Leak Detector may report leaks internal to Visual Leak Detector
+    if the main thread of the process terminates while other threads are still
+    running.
+  + If more than one copy of the same C Runtime DLL is loaded in the process at
+    the same time, then some leaks may go undetected (note that loading more
+    than one copy of the C Runtime DLL into a process at the same time is
+    probably a bad idea to begin with).
   
 1.9e beta (16 November 2006)
 ----------------------------
