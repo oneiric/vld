@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.11 2006/11/18 03:12:49 dmouldin Exp $
+#  $Id: vld-setup.nsi,v 1.12 2006/11/18 05:17:17 dmouldin Exp $
 #  Visual Leak Detector - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
@@ -27,7 +27,7 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9e"
+!define VLD_VERSION "1.9f"
 
 # Define build system paths
 !define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT"
