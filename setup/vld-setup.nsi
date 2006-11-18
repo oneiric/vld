@@ -1,6 +1,6 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.10 2006/11/17 03:22:07 dmouldin Exp $
-#  Visual Leak Detector (Version 1.9e) - NSIS Installation Script
+#  $Id: vld-setup.nsi,v 1.11 2006/11/18 03:12:49 dmouldin Exp $
+#  Visual Leak Detector - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
 #  This program is free software; you can redistribute it and/or

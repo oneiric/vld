@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.42 2006/11/17 01:21:13 dmouldin Exp $
+//  $Id: vldint.h,v 1.43 2006/11/18 03:12:35 dmouldin Exp $
 //
-//  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Definition
+//  Visual Leak Detector - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
