@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.66 2006/11/17 02:58:02 dmouldin Exp $
+//  $Id: vld.cpp,v 1.67 2006/11/18 03:02:27 dmouldin Exp $
 //
 //  Visual Leak Detector (Version 1.9e) - VisualLeakDetector Class Impl.
 //  Copyright (c) 2005-2006 Dan Moulding
@@ -1629,8 +1629,6 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
     ModuleSet           *oldmodules;
     NTSTATUS             status;
 
-    EnterCriticalSection(&vld.m_loaderlock);
-
     // Load the DLL.
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
     
@@ -1639,7 +1637,9 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         // modules.
         newmodules = new ModuleSet;
         newmodules->reserve(MODULESETRESERVE);
+        EnterCriticalSection(&vld.m_loaderlock);
         EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+        LeaveCriticalSection(&vld.m_loaderlock);
 
         // Attach to all modules included in the set.
         vld.attachtoloadedmodules(newmodules);
@@ -1657,8 +1657,6 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         }
         delete oldmodules;
     }
-
-    LeaveCriticalSection(&vld.m_loaderlock);
 
     return status;
 }
@@ -2276,7 +2274,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
     DWORD                 modulesize;
     ModuleSet::Iterator   newit;
     ModuleSet::Iterator   oldit;
-    ModuleSet            *oldmodules = m_loadedmodules;
+    ModuleSet            *oldmodules;
     BOOL                  refresh;
     UINT                  tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
     ModuleSet::Muterator  updateit;
@@ -2290,6 +2288,8 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
 
         refresh = FALSE;
+        EnterCriticalSection(&m_moduleslock);
+        oldmodules = m_loadedmodules;
         if (oldmodules != NULL) {
             // This is not the first time we have been called to attach to the
             // currently loaded modules.
@@ -2297,6 +2297,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
             if (oldit != oldmodules->end()) {
                 // We've seen this "new" module loaded in the process before.
                 moduleflags = (*oldit).flags;
+                LeaveCriticalSection(&m_moduleslock);
                 if (moduleispatched((HMODULE)modulebase, m_patchtable, tablesize)) {
                     // This module is already attached. Just update the module's
                     // flags, nothing more.
@@ -2311,6 +2312,12 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
                     refresh = TRUE;
                 }
             }
+            else {
+                LeaveCriticalSection(&m_moduleslock);
+            }
+        }
+        else {
+            LeaveCriticalSection(&m_moduleslock);
         }
 
         EnterCriticalSection(&symbollock);
