@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: tree.h,v 1.13 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Red-black Tree Template
 //  Copyright (c) 2005-2006 Dan Moulding

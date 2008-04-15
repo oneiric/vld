@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: ntapi.cpp,v 1.7 2006/11/18 03:12:34 dmouldin Exp $
 //
 //  Visual Leak Detector - Global NT API Function Pointers
 //  Copyright (c) 2006 Dan Moulding

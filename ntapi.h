@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: ntapi.h,v 1.8 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - NT API Definitions
 //  Copyright (c) 2006 Dan Moulding

@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: set.h,v 1.9 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Lightweight STL-like Set Template
 //  Copyright (c) 2006 Dan Moulding

@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: utility.cpp,v 1.24 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Various Utility Functions
 //  Copyright (c) 2005-2006 Dan Moulding

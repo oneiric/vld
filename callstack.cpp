@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: callstack.cpp,v 1.20 2006/11/18 03:12:34 dmouldin Exp $
 //
 //  Visual Leak Detector - CallStack Class Implementations
 //  Copyright (c) 2005-2006 Dan Moulding

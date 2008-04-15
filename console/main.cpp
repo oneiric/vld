@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: main.cpp,v 1.3 2005/03/31 02:11:08 db Exp $
 //
 //  A simple C++ example program for testing the Visual Leak Detector.
 //

@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldheap.cpp,v 1.13 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Internal C++ Heap Management
 //  Copyright (c) 2006 Dan Moulding

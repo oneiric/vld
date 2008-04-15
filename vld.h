@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.h,v 1.29 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Import Library Header
 //  Copyright (c) 2006 Dan Moulding

@@ -1,6 +1,3 @@
-//  $Id: vldmfc.cpp,v 1.4 2006/10/29 21:56:32 dmouldin Exp $
-//
-
 #include "stdafx.h"
 #include "vldmfc.h"
 #include "vldmfcdlg.h"

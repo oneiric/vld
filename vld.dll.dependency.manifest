@@ -1,5 +1,4 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
-<!-- $Id: vld.dll.dependency.manifest,v 1.1 2006/11/16 00:13:56 dmouldin Exp $ -->
 <assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>
   <dependency>
     <dependentAssembly>

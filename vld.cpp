@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vld.cpp,v 1.69 2006/11/18 05:07:04 dmouldin Exp $
 //
 //  Visual Leak Detector - VisualLeakDetector Class Implementation
 //  Copyright (c) 2005-2006 Dan Moulding

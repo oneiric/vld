@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: main.c,v 1.4 2005/03/31 02:10:54 db Exp $
 //
 //  A simple C example program for testing the Visual Leak Detector.
 //

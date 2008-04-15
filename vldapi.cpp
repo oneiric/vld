@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldapi.cpp,v 1.19 2006/11/18 03:12:35 dmouldin Exp $
 //
 //  Visual Leak Detector - Exported APIs
 //  Copyright (c) 2005-2006 Dan Moulding

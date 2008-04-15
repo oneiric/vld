@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: map.h,v 1.10 2006/11/18 03:12:34 dmouldin Exp $
 //
 //  Visual Leak Detector - Lightweight STL-like Map Template
 //  Copyright (c) 2006 Dan Moulding

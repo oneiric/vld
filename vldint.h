@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-//  $Id: vldint.h,v 1.45 2006/11/18 05:17:09 dmouldin Exp $
 //
 //  Visual Leak Detector - VisualLeakDetector Class Definition
 //  Copyright (c) 2005-2006 Dan Moulding

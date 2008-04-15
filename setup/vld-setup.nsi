@@ -1,5 +1,5 @@
 ################################################################################
-#  $Id: vld-setup.nsi,v 1.12 2006/11/18 05:17:17 dmouldin Exp $
+#
 #  Visual Leak Detector - NSIS Installation Script
 #  Copyright (c) 2006 Dan Moulding
 #
