@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Implementation
-//  Copyright (c) 2005-2006 Dan Moulding
+//  Copyright (c) 2005-2008 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -1675,6 +1675,8 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
     ModuleSet           *oldmodules;
     NTSTATUS             status;
 
+    EnterCriticalSection(&vld.m_loaderlock);
+
     // Load the DLL.
     status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
     
@@ -1683,9 +1685,7 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         // modules.
         newmodules = new ModuleSet;
         newmodules->reserve(MODULESETRESERVE);
-        EnterCriticalSection(&vld.m_loaderlock);
         EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
-        LeaveCriticalSection(&vld.m_loaderlock);
 
         // Attach to all modules included in the set.
         vld.attachtoloadedmodules(newmodules);
@@ -1703,6 +1703,8 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PDWORD flags, unico
         }
         delete oldmodules;
     }
+
+    LeaveCriticalSection(&vld.m_loaderlock);
 
     return status;
 }

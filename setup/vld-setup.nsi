@@ -27,7 +27,7 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9f"
+!define VLD_VERSION "1.9g"
 
 # Define build system paths
 !define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT"
@@ -69,7 +69,12 @@ Var SM_PATH
 	
 # Define the installer pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "..\COPYING.txt"
+!define MUI_PAGE_HEADER_TEXT "No License Required for Use"
+!define MUI_PAGE_HEADER_SUBTEXT "This software is provided 'AS IS' without warranty of any kind."
+!define MUI_LICENSEPAGE_TEXT_TOP "Press Page Down to see the rest of the text."
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "Click the 'Continue' button to continue installing. Remember, you aren't required to (and are not being asked to) agree to anything before using this software."
+!define MUI_LICENSEPAGE_BUTTON "Continue"
+!insertmacro MUI_PAGE_LICENSE "license-free.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_STARTMENU "Shortcuts" $SM_PATH
 !insertmacro MUI_PAGE_INSTFILES

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Definition
-//  Copyright (c) 2005-2006 Dan Moulding
+//  Copyright (c) 2005-2008 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,7 @@ Applications should never include this header."
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
-#define VLDVERSION          L"1.9f"
+#define VLDVERSION          L"1.9g"
 
 // The Visual Leak Detector APIs.
 extern "C" __declspec(dllexport) void VLDDisable ();

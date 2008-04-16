@@ -1,0 +1,21 @@
+Anybody may use Visual Leak Detector (this software). No license is required
+to use it and you are not asked (or required) to accept any terms or
+conditions before using it.
+
+As the recipient of a legal copy of this software, you are the owner of the
+copy that you have been given. As such, the publisher of this software has
+no authority to prevent you from using the software. In the United States, your
+legal right to use this copy of software is codified in 17 USC Sec. 117.
+
+The publisher of this software still retains the copyright in the software.
+As such, you may not make additional copies of the software without permission
+from the publisher.
+
+The publisher grants you the right to copy and distribute this software
+provided that you agree to the terms contained in the license file
+(COPYING.txt) that is provided with this software. Again, you are not asked to
+agree to the terms in the license file if you simply wish to use the software.
+You must agree to the license only if you wish to copy, distribute, or make
+derivative works of, this software.
+
+To learn more, visit: http://soldnotlicensed.blogspot.com
