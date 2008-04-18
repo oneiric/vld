@@ -1,7 +1,7 @@
 ################################################################################
 #
 #  Visual Leak Detector - NSIS Installation Script
-#  Copyright (c) 2006 Dan Moulding
+#  Copyright (c) 2006-2008 Dan Moulding
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -48,6 +48,9 @@
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_FINISHPAGE_SHOWREADME            "$INSTDIR\README.html"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT       "View Documentation"
+!define MUI_LICENSEPAGE_BUTTON               "Continue"
+!define MUI_LICENSEPAGE_TEXT_BOTTOM          "Click the 'Continue' button to continue installing. Remember, you aren't required to (and are not being asked to) agree to anything before using this software."
+!define MUI_LICENSEPAGE_TEXT_TOP             "Press Page Down to see the rest of the text."
 !define MUI_STARTMENUPAGE_DEFAULTFOLDER      "Visual Leak Detector"
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT      HKLM
 !define MUI_STARTMENUPAGE_REGISTRY_KEY       "${REG_KEY_PRODUCT}"
@@ -69,12 +72,9 @@ Var SM_PATH
 	
 # Define the installer pages
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_PAGE_HEADER_TEXT "No License Required for Use"
+!define MUI_PAGE_HEADER_TEXT    "No License Required for Use"
 !define MUI_PAGE_HEADER_SUBTEXT "This software is provided 'AS IS' without warranty of any kind."
-!define MUI_LICENSEPAGE_TEXT_TOP "Press Page Down to see the rest of the text."
-!define MUI_LICENSEPAGE_TEXT_BOTTOM "Click the 'Continue' button to continue installing. Remember, you aren't required to (and are not being asked to) agree to anything before using this software."
-!define MUI_LICENSEPAGE_BUTTON "Continue"
-!insertmacro MUI_PAGE_LICENSE "license-free.txt"
+!insertmacro MUI_PAGE_LICENSE   "license-free.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_STARTMENU "Shortcuts" $SM_PATH
 !insertmacro MUI_PAGE_INSTFILES
