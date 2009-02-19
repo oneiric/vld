@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld", "vld.vcproj", "{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\testsuite.vcproj", "{EE4A829C-5FD8-460B-8A90-B518B9BABB70}"
