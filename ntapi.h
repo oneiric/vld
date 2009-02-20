@@ -32,7 +32,7 @@ Applications should never include this header."
 #include <windows.h>
 
 // Return code type used by LdrLoadDll.
-typedef ULONG NTSTATUS;
+typedef LONG NTSTATUS;
 #define   STATUS_SUCCESS 0
 
 // Unicode string structure used by NT APIs.
