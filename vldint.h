@@ -47,6 +47,21 @@ Applications should never include this header."
 extern "C" __declspec(dllexport) void VLDDisable ();
 extern "C" __declspec(dllexport) void VLDEnable ();
 
+// Function pointer types for explicit dynamic linking with functions listed in
+// the import patch table.
+typedef void* (__cdecl *_calloc_dbg_t) (size_t, size_t, int, const char*, int);
+typedef void* (__cdecl *_malloc_dbg_t) (size_t, int, const char *, int);
+typedef void* (__cdecl *_realloc_dbg_t) (void *, size_t, int, const char *, int);
+typedef void* (__cdecl *calloc_t) (size_t, size_t);
+typedef HRESULT (__stdcall *CoGetMalloc_t) (DWORD, LPMALLOC *);
+typedef LPVOID (__stdcall *CoTaskMemAlloc_t) (ULONG);
+typedef LPVOID (__stdcall *CoTaskMemRealloc_t) (LPVOID, ULONG);
+typedef void* (__cdecl *malloc_t) (size_t);
+typedef void* (__cdecl *new_t) (unsigned int);
+typedef void* (__cdecl *new_dbg_crt_t) (unsigned int, int, const char *, int);
+typedef void* (__cdecl *new_dbg_mfc_t) (unsigned int, const char *, int);
+typedef void* (__cdecl *realloc_t) (void *, size_t);
+
 // Data is collected for every block allocated from any heap in the process.
 // The data is stored in this structure and these structures are stored in
 // a BlockMap which maps each of these structures to its corresponding memory
@@ -147,71 +162,96 @@ public:
     VisualLeakDetector();
     ~VisualLeakDetector();
 
-    // Public IMalloc methods - for support of COM-based memory leak detection.
-    ULONG __stdcall AddRef ();
-    LPVOID __stdcall Alloc (ULONG size);
-    INT __stdcall DidAlloc (LPVOID mem);
-    VOID __stdcall Free (LPVOID mem);
-    ULONG __stdcall GetSize (LPVOID mem);
-    VOID __stdcall HeapMinimize ();
+////////////////////////////////////////////////////////////////////////////////
+// Public IMalloc methods - for support of COM-based memory leak detection.
+////////////////////////////////////////////////////////////////////////////////
+    ULONG   __stdcall AddRef ();
+    LPVOID  __stdcall Alloc (ULONG size);
+    INT     __stdcall DidAlloc (LPVOID mem);
+    VOID    __stdcall Free (LPVOID mem);
+    ULONG   __stdcall GetSize (LPVOID mem);
+    VOID    __stdcall HeapMinimize ();
     HRESULT __stdcall QueryInterface (REFIID iid, LPVOID *object);
-    LPVOID __stdcall Realloc (LPVOID mem, ULONG size);
-    ULONG __stdcall Release ();
+    LPVOID  __stdcall Realloc (LPVOID mem, ULONG size);
+    ULONG   __stdcall Release ();
 
 private:
-    // Import patching replacement functions - see each function definition for details.
-    static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
-    static LPVOID __stdcall _CoTaskMemAlloc (ULONG size);
-    static LPVOID __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
-    static void* __cdecl _crt80d__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
-    static void* __cdecl _crt80d__malloc_dbg (size_t size, int type, const char *file, int line);
-    static void* __cdecl _crt80d__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
-    static void* __cdecl _crt80d__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl _crt80d__vector_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl _crt80d_calloc (size_t num, size_t size);
-    static void* __cdecl _crt80d_malloc (size_t size);
-    static void* __cdecl _crt80d_realloc (void *mem, size_t size);
-    static void* __cdecl _crt80d_scalar_new (unsigned int size);
-    static void* __cdecl _crt80d_vector_new (unsigned int size);
-    static void* __cdecl _crtd__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
-    static void* __cdecl _crtd__malloc_dbg (size_t size, int type, const char *file, int line);
-    static void* __cdecl _crtd__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
-    static void* __cdecl _crtd__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl _crtd_calloc (size_t num, size_t size);
-    static void* __cdecl _crtd_malloc (size_t size);
-    static void* __cdecl _crtd_realloc (void *mem, size_t size);
-    static void* __cdecl _crtd_scalar_new (unsigned int size);
-    static FARPROC __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
-    static HANDLE __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
-    static BOOL __stdcall _HeapDestroy (HANDLE heap);
-    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename,
-                                           PHANDLE modulehandle);
-    static void* __cdecl _mfc42d__scalar_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl _mfc42d_scalar_new (unsigned int size);
-    static void* __cdecl _mfc80d__scalar_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl _mfc80d__vector_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl _mfc80d_scalar_new (unsigned int size);
-    static void* __cdecl _mfc80d_vector_new (unsigned int size);
-    static LPVOID __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
-    static BOOL __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
-    static LPVOID __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
-
-    // Private functions - see each function definition for details.
-    static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
-    VOID attachtoloadedmodules (ModuleSet *newmodules);
+////////////////////////////////////////////////////////////////////////////////
+// Private leak detection functions - see each function definition for details.
+////////////////////////////////////////////////////////////////////////////////
+    VOID   attachtoloadedmodules (ModuleSet *newmodules);
     LPWSTR buildsymbolsearchpath ();
-    VOID configure ();
-    static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
-    BOOL enabled ();
+    VOID   configure ();
+    BOOL   enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
     tls_t* gettls ();
-    VOID mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
-    VOID mapheap (HANDLE heap);
-    VOID remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
-    VOID reportconfig ();
-    VOID reportleaks (HANDLE heap);
-    VOID unmapblock (HANDLE heap, LPCVOID mem);
-    VOID unmapheap (HANDLE heap);
+    VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
+    VOID   mapheap (HANDLE heap);
+    VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc);
+    VOID   reportconfig ();
+    VOID   reportleaks (HANDLE heap);
+    VOID   unmapblock (HANDLE heap, LPCVOID mem);
+    VOID   unmapheap (HANDLE heap);
+
+    // Static functions (callbacks)
+    static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+
+////////////////////////////////////////////////////////////////////////////////
+// IAT replacement functions - see each function definition for details.
+////////////////////////////////////////////////////////////////////////////////
+    // Standard CRT and MFC IAT replacement functions (common handlers)
+    static void* _calloc (calloc_t pcalloc, SIZE_T fp, size_t num, size_t size);
+    static void* _malloc (malloc_t pmalloc, SIZE_T fp, size_t size);
+    static void* _new (new_t pnew, SIZE_T fp, unsigned int size); 
+    static void* _realloc (realloc_t prealloc, SIZE_T fp, void *mem, size_t size);
+
+    // Debug CRT and MFC IAT replacement functions (common handlers)
+    static void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, SIZE_T fp, size_t num, size_t size, int type, char const *file, int line);
+    static void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
+    static void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    static void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, unsigned int size, char const *file, int line);
+    static void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, SIZE_T fp, void *mem, size_t size, int type, char const *file, int line);
+
+    // Win32 IAT replacement functions
+    static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
+    static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
+    static BOOL     __stdcall _HeapDestroy (HANDLE heap);
+    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PDWORD flags, unicodestring_t *modulename,
+                                           PHANDLE modulehandle);
+    static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
+    static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
+    static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
+
+    // COM IAT replacement functions
+    static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
+    static LPVOID  __stdcall _CoTaskMemAlloc (ULONG size);
+    static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
+
+    static void* __cdecl crt80d__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
+    static void* __cdecl crt80d__malloc_dbg (size_t size, int type, const char *file, int line);
+    static void* __cdecl crt80d__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
+    static void* __cdecl crt80d__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
+    static void* __cdecl crt80d__vector_new_dbg (unsigned int size, int type, const char *file, int line);
+    static void* __cdecl crt80d_calloc (size_t num, size_t size);
+    static void* __cdecl crt80d_malloc (size_t size);
+    static void* __cdecl crt80d_realloc (void *mem, size_t size);
+    static void* __cdecl crt80d_scalar_new (unsigned int size);
+    static void* __cdecl crt80d_vector_new (unsigned int size);
+    static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
+    static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
+    static void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
+    static void* __cdecl crtd__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
+    static void* __cdecl crtd_calloc (size_t num, size_t size);
+    static void* __cdecl crtd_malloc (size_t size);
+    static void* __cdecl crtd_realloc (void *mem, size_t size);
+    static void* __cdecl crtd_scalar_new (unsigned int size);
+    static void* __cdecl mfc42d__scalar_new_dbg (unsigned int size, const char *file, int line);
+    static void* __cdecl mfc42d_scalar_new (unsigned int size);
+    static void* __cdecl mfc80d__scalar_new_dbg (unsigned int size, const char *file, int line);
+    static void* __cdecl mfc80d__vector_new_dbg (unsigned int size, const char *file, int line);
+    static void* __cdecl mfc80d_scalar_new (unsigned int size);
+    static void* __cdecl mfc80d_vector_new (unsigned int size);
 
     // Private data.
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
