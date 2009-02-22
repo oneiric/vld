@@ -177,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\crtmfcpatch.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ntapi.cpp"
 				>
 			</File>
@@ -204,6 +208,10 @@
 			>
 			<File
 				RelativePath=".\callstack.h"
+				>
+			</File>
+			<File
+				RelativePath=".\crtmfcpatch.h"
 				>
 			</File>
 			<File

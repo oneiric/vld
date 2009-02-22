@@ -163,6 +163,27 @@ public:
     ~VisualLeakDetector();
 
 ////////////////////////////////////////////////////////////////////////////////
+// Public CRT and MFC Common Handlers
+//
+// Many heap functions are indirectly rerouted to these handlers. One common
+// function exists for each heap function with a given signature. These
+// handlers are not direct IAT replacements, but are called by the individual
+// IAT replacement functions.
+////////////////////////////////////////////////////////////////////////////////
+    // Standard CRT and MFC common handlers
+    void* _calloc (calloc_t pcalloc, SIZE_T fp, size_t num, size_t size);
+    void* _malloc (malloc_t pmalloc, SIZE_T fp, size_t size);
+    void* _new (new_t pnew, SIZE_T fp, unsigned int size); 
+    void* _realloc (realloc_t prealloc, SIZE_T fp, void *mem, size_t size);
+
+    // Debug CRT and MFC common handlers
+    void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, SIZE_T fp, size_t num, size_t size, int type, char const *file, int line);
+    void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
+    void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, unsigned int size, char const *file, int line);
+    void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, SIZE_T fp, void *mem, size_t size, int type, char const *file, int line);
+
+////////////////////////////////////////////////////////////////////////////////
 // Public IMalloc methods - for support of COM-based memory leak detection.
 ////////////////////////////////////////////////////////////////////////////////
     ULONG   __stdcall AddRef ();
@@ -199,20 +220,11 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // IAT replacement functions - see each function definition for details.
+//
+// Because there are so many virtually identical CRT and MFC replacement
+// functions, they are excluded from the class to reduce the amount of noise
+// within this class's code. See crtmfcpatch.cpp for those functions.
 ////////////////////////////////////////////////////////////////////////////////
-    // Standard CRT and MFC IAT replacement functions (common handlers)
-    static void* _calloc (calloc_t pcalloc, SIZE_T fp, size_t num, size_t size);
-    static void* _malloc (malloc_t pmalloc, SIZE_T fp, size_t size);
-    static void* _new (new_t pnew, SIZE_T fp, unsigned int size); 
-    static void* _realloc (realloc_t prealloc, SIZE_T fp, void *mem, size_t size);
-
-    // Debug CRT and MFC IAT replacement functions (common handlers)
-    static void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, SIZE_T fp, size_t num, size_t size, int type, char const *file, int line);
-    static void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
-    static void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, unsigned int size, int type, char const *file, int line);
-    static void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, unsigned int size, char const *file, int line);
-    static void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, SIZE_T fp, void *mem, size_t size, int type, char const *file, int line);
-
     // Win32 IAT replacement functions
     static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
     static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
@@ -228,32 +240,9 @@ private:
     static LPVOID  __stdcall _CoTaskMemAlloc (ULONG size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, ULONG size);
 
-    static void* __cdecl crt80d__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
-    static void* __cdecl crt80d__malloc_dbg (size_t size, int type, const char *file, int line);
-    static void* __cdecl crt80d__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
-    static void* __cdecl crt80d__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl crt80d__vector_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl crt80d_calloc (size_t num, size_t size);
-    static void* __cdecl crt80d_malloc (size_t size);
-    static void* __cdecl crt80d_realloc (void *mem, size_t size);
-    static void* __cdecl crt80d_scalar_new (unsigned int size);
-    static void* __cdecl crt80d_vector_new (unsigned int size);
-    static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, const char *file, int line);
-    static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
-    static void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, const char *file, int line);
-    static void* __cdecl crtd__scalar_new_dbg (unsigned int size, int type, const char *file, int line);
-    static void* __cdecl crtd_calloc (size_t num, size_t size);
-    static void* __cdecl crtd_malloc (size_t size);
-    static void* __cdecl crtd_realloc (void *mem, size_t size);
-    static void* __cdecl crtd_scalar_new (unsigned int size);
-    static void* __cdecl mfc42d__scalar_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl mfc42d_scalar_new (unsigned int size);
-    static void* __cdecl mfc80d__scalar_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl mfc80d__vector_new_dbg (unsigned int size, const char *file, int line);
-    static void* __cdecl mfc80d_scalar_new (unsigned int size);
-    static void* __cdecl mfc80d_vector_new (unsigned int size);
-
-    // Private data.
+////////////////////////////////////////////////////////////////////////////////
+// Private data
+////////////////////////////////////////////////////////////////////////////////
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
