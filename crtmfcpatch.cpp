@@ -1,24 +1,31 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Visual Leak Detector - CRT and MFC IAT Patch Functions
+//  Copyright (c) 2009 Dan Moulding
+//
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
+//
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
+//
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+//
+//  See COPYING.txt for the full terms of the GNU Lesser General Public License.
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #define VLDBUILD
 #include "crtmfcpatch.h"
 #include "vldint.h"
 
 extern VisualLeakDetector vld;
-
-// Global function pointers for explicit dynamic linking with functions listed
-// in the import patch table. Using explicit dynamic linking minimizes VLD's
-// footprint by loading only modules that are actually used. These pointers will
-// be linked to the real functions the first time they are used.
-//
-
-// Visual Studio 2008 DLLs
-
-// Visual Studio 6.0 DLLs
-
-// MFC 4.2 DLLs
-
-// MFC 8.0 DLLs
-
-// MFC 9.0 DLLs
 
 ////////////////////////////////////////////////////////////////////////////////
 //

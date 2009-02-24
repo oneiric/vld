@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Implementation
-//  Copyright (c) 2005-2008 Dan Moulding
+//  Copyright (c) 2005-2009 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -484,6 +484,7 @@ VisualLeakDetector::~VisualLeakDetector ()
         fclose(m_reportfile);
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -1377,9 +1378,10 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
     LeaveCriticalSection(&m_maplock);
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Static Leak Detection Functions (callbacks)
+// Static Leak Detection Functions (Callbacks)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1488,6 +1490,7 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 module
     return TRUE;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Standard CRT and MFC IAT Replacement Functions
@@ -1498,9 +1501,22 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 module
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// This function is just a wrapper around the real calloc that
-//   sets appropriate flags to be consulted when the memory is actually
-//   allocated by RtlAllocateHeap.
+// _calloc - This function is just a wrapper around the real calloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - pcalloc (IN): Pointer to the particular calloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - num (IN): The number of blocks, of size 'size', to be allocated.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified calloc.
+//
 void* VisualLeakDetector::_calloc (calloc_t pcalloc,
                                    SIZE_T   fp,
                                    size_t   num,
@@ -1528,9 +1544,20 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
     return block;
 }
 
-// This function is just a wrapper around the real malloc that
-//   sets appropriate flags to be consulted when the memory is actually
-//   allocated by RtlAllocateHeap.
+// _malloc - This function is just a wrapper around the real malloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - pmalloc (IN): Pointer to the particular malloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified malloc.
+//
 void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
 {
     void    *block;
@@ -1555,9 +1582,20 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
     return block;
 }
 
-// This function is just a wrapper
-//   around the real CRT and MFC new operators that sets appropriate flags to be
-//   consulted when the memory is actually allocated by RtlAllocateHeap.
+// _new - This function is just a wrapper around the real CRT and MFC new
+//   operators that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - pnew (IN): Pointer to the particular new implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified CRT new operator.
+//
 void* VisualLeakDetector::_new (new_t        pnew,
                                 SIZE_T       fp,
                                 unsigned int size)
@@ -1584,9 +1622,22 @@ void* VisualLeakDetector::_new (new_t        pnew,
     return block;
 }
 
-// This function is just a wrapper around the real realloc that
-//   sets appropriate flags to be consulted when the memory is actually
-//   allocated by RtlAllocateHeap.
+// _realloc - This function is just a wrapper around the real realloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - prealloc (IN): Pointer to the particular realloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified realloc.
+//
 void* VisualLeakDetector::_realloc (realloc_t  prealloc,
                                     SIZE_T     fp,
                                     void      *mem,
@@ -1624,9 +1675,28 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// This function is just a wrapper around the real
-//   _calloc_dbg that sets appropriate flags to be consulted when the memory is
-//   actually allocated by RtlAllocateHeap.
+// __calloc_dbg - This function is just a wrapper around the real _calloc_dbg
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
+//
+//  - p_calloc_dbg: Pointer to the particular _calloc_dbg implementation to
+//      call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _calloc_dbg.
+//
 void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
                                         SIZE_T         fp,
                                         size_t         num,
@@ -1657,9 +1727,28 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
     return block;
 }
 
-// This function is just a wrapper around the real
-//   _malloc_dbg that sets appropriate flags to be consulted when the memory is
-//   actually allocated by RtlAllocateHeap.
+// __malloc_dbg - This function is just a wrapper around the real _malloc_dbg
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
+//
+//  - p_malloc_dbg (IN): Pointer to the particular _malloc_dbg implementation to
+//      call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _malloc_dbg.
+//
 void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
                                         SIZE_T         fp,
                                         size_t         size,
@@ -1689,10 +1778,28 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
     return block;
 }
 
-// This function is just a
-//   wrapper around the real CRT debug new operators that sets appropriate
-//   flags to be consulted when the memory is actually allocated by
-//   RtlAllocateHeap.
+// new_dbg_crt - This function is just a wrapper around the real CRT debug new
+//   operators that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - pnew_dbg_crt (IN): Pointer to the particular CRT new operator
+//      implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified CRT debug new operator.
+//
 void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
                                        SIZE_T         fp,
                                        unsigned int   size,
@@ -1722,10 +1829,26 @@ void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
     return block;
 }
 
-// This function is just a
-//   wrapper around the real MFC debug new operators that sets appropriate
-//   flags to be consulted when the memory is actually allocated by
-//   RtlAllocateHeap.
+// new_dbg_mfc - This function is just a wrapper around the real MFC debug new
+//   operators that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - pnew_dbg_mfc (IN): Pointer to the particular MFC new operator
+//      implementation to call.
+//
+//  - fp (IN): Frame pointer of the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified MFC debug new operator.
+//
 void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
                                        SIZE_T         fp,
                                        unsigned int   size,
@@ -1751,9 +1874,30 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
     return block;
 }
 
-// This function is just a wrapper around the real
+// __realloc_debug - This function is just a wrapper around the real
 //   _realloc_dbg that sets appropriate flags to be consulted when the memory is
 //   actually allocated by RtlAllocateHeap.
+//
+//  - p_realloc_dbg (IN): Pointer to the particular __realloc_dbg implementation
+//      to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above filel, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _realloc_dbg.
+//
 void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
                                          SIZE_T          fp,
                                          void           *mem,

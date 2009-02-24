@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Definition
-//  Copyright (c) 2005-2008 Dan Moulding
+//  Copyright (c) 2005-2009 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -114,7 +114,7 @@ typedef struct moduleinfo_s {
 typedef Set<moduleinfo_t> ModuleSet;
 
 // Thread local storage structure. Every thread in the process gets its own copy
-// of this structure. Thread specific information, such as the currentl leak
+// of this structure. Thread specific information, such as the current leak
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 typedef struct tls_s {

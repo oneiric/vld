@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - Various Utility Functions
-//  Copyright (c) 2005-2006 Dan Moulding
+//  Copyright (c) 2005-2009 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
