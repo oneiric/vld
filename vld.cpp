@@ -68,9 +68,6 @@ __declspec(dllexport) VisualLeakDetector vld;
 // in the import patch table. Using explicit dynamic linking minimizes VLD's
 // footprint by loading only modules that are actually used. These pointers will
 // be linked to the real functions the first time they are used.
-static CoGetMalloc_t      pCoGetMalloc      = NULL;
-static CoTaskMemAlloc_t   pCoTaskMemAlloc   = NULL;
-static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
 
 // The import patch table: lists the heap-related API imports that VLD patches
 // through to replacement functions provided by VLD. Having this table simply
@@ -2185,6 +2182,8 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 //
 HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 {
+    static CoGetMalloc_t pCoGetMalloc = NULL;
+
     HMODULE ole32;
 
     *imalloc = (LPMALLOC)&vld;
@@ -2214,6 +2213,8 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 //
 LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
 {
+    static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
+
     LPVOID   block;
     SIZE_T   fp;
     HMODULE  ole32;
@@ -2258,6 +2259,8 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
 //
 LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, ULONG size)
 {
+    static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
+
     LPVOID   block;
     SIZE_T   fp;
     HMODULE  ole32;
