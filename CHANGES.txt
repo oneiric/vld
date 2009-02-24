@@ -1,6 +1,15 @@
-Visual Leak Detector (VLD) Version 1.9g (beta)
+Visual Leak Detector (VLD) Version 1.9h (beta)
 
   Change Log / Release Notes
+
+1.9h beta (24 February 2009)
+----------------------------
+  Enhancements:
+  + Added support to work with Visual Studio 2008.
+
+  Known Bugs/Restrictions:
+  + Same bugs/restrictions as version 1.9f.
+
 
 1.9g beta (16 April 2008)
 ----------------------------
@@ -12,11 +21,13 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
   Known Bugs/Restrictions:
   + Same bugs/restrictions as version 1.9f.
 
+
 1.9f beta (18 November 2006)
 ----------------------------
   Bugs Fixed:
   + Deadlocks or access violations may occur when loading DLLs into
     multithreaded processes.
+
   + In multithreaded programs, if the main thread terminates before other
     threads in the process, then Visual Leak Detector may cause an access
     violation while generating the memory leak report.
@@ -24,15 +35,19 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
   Known Bugs/Restrictions:
   + Memory allocations made through calls to functions loaded from a DLL using
     delayed loading may not be detected.
+
   + Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some
     memory leaks from such MFC-based programs may not be detected.
+
   + Visual Leak Detector may report leaks internal to Visual Leak Detector
     if the main thread of the process terminates while other threads are still
     running.
+
   + If more than one copy of the same C Runtime DLL is loaded in the process at
     the same time, then some leaks may go undetected (note that loading more
     than one copy of the C Runtime DLL into a process at the same time is
     probably a bad idea to begin with).
+
   
 1.9e beta (16 November 2006)
 ----------------------------
@@ -44,12 +59,15 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
   + Numerous deadlock situations. The multithread synchronization scheme has
     been completely re-written which should make deadlocks in VLD much less
     likey to happen.
+
   + An access violation will occur in VLD if GetProcAddress is called to obtain
     an export's address by ordinal, for certain libraries.
+
   + Problems may potentially occur when the program being debugged exits due to
     the Debug Help Library having been detached from the process too early.
     Symptoms might include access violation exceptions or other erratic behavior
     just as the program exits and while VLD is generating the leak report.
+
   + The copy of vld.ini installed in VLD's installation directory overrides any
     other copies of vld.ini that are created, even copies placed in the
     working directory of the program being debugged.
@@ -57,35 +75,46 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
   Known Bugs/Restrictions:
   + Memory allocations made through calls to functions loaded from a DLL using
     delayed loading may not be detected.
+
   + Support for programs that use MFC 7.0 or MFC 7.1 is not complete yet. Some
     memory leaks from such MFC-based programs may not be detected.
+
   + If more than one copy of the same C Runtime DLL is loaded in the process at
     the same time, then some leaks may go undetected (note that loading more
     than one copy of the C Runtime DLL into a process at the same time is
     probably a bad idea to begin with).
+
   
 1.9d beta (12 November 2006)
 ----------------------------
   Bugs Fixed:
   + Failed assertion "freed == TRUE" pops up when running a program with VLD
     without the debugger attached.
+
   + Some, but not all, multithreaded programs that dynamically load and unload
     many DLLs have been known to experience problems, such as deadlocks or
     exceptions, when used with VLD.
+
   + Failed assertion "exportmodule != NULL" pops up when running some programs
     with VLD.
+
   + VLD fails to show file names or function names in the memory leak report for
     some programs that are linked with the dynamic CRT library.
+
   + Access violation exceptions are thrown, but caught by the operating system,
     when running some programs with VLD.
+
 
 1.9c beta (6 November 2006)
 ---------------------------
   New Features/Enhancments:
   + New NSIS installer makes setting up and using VLD much easier.
+
   + No need to manually copy dbghelp.dll to the right location, VLD will always
     find the right version.
+
   + MFC 8.0 is now fully supported.
+
   + The memory leak report is now written to the output window much faster.
     Support has been added, through a new configuration option, to slow down
     the report output for older versions of Visual Studio that have trouble
@@ -93,15 +122,21 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
   
   Bugs Fixed:
   + All known compatibilities with Visual Studio 2005 have been eliminated.
+
   + Leaks from calloc may go undetected.
+
   + Leaks from vector new operator may go undetected.
+
   + VLDDisable and VLDEnable do not work as expected; some memory leaks that
     should be ignored by VLD due to a previous call to VLDDisable are still
     reported.
+
   + Unloading and reloading a previously loaded module may cause leaks that
     occur in the module after it was reloaded to go undetected.
+
   + If vld.h is included in a release build, then the compiler will generate
     errors if the VLDEnable or VLDDisable APIs have been used.
+
 
 1.9b beta (26 October 2006)
 ---------------------------
@@ -123,6 +158,7 @@ Visual Leak Detector (VLD) Version 1.9g (beta)
     settings by adding it to the list of library modules in the linker options).
     This restriction does not apply to programs that use MFC 4.2, which is fully
     supported.
+
 
 1.9a beta (9 March 2006)
 ------------------------
