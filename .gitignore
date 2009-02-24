@@ -1,5 +1,8 @@
 Debug
-vld.dsp
-vld.ncb
-vld.suo
+Release
+C?Debug
+CPP?Debug
+*.ncb
+*.suo
 *.vcproj.*.*.user
+*setup.exe
