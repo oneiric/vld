@@ -1,7 +1,7 @@
 ################################################################################
 #
 #  Visual Leak Detector - NSIS Installation Script
-#  Copyright (c) 2006-2008 Dan Moulding
+#  Copyright (c) 2006-2009 Dan Moulding
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -27,11 +27,16 @@
 !include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
-!define VLD_VERSION "1.9g"
+!define VLD_VERSION "1.9h"
 
 # Define build system paths
-!define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT"
-!define DTFW_PATH "C:\Program Files\Debugging Tools for Windows"
+!define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
+!define DTFW_PATH "C:\Program Files\Debugging Tools for Windows (x86)"
+
+# Define build system files
+!define CRT_DLL      "msvcr90.dll"
+!define CRT_MANIFEST "Microsoft.VC90.CRT.manifest"
+!define DHL_DLL      "dbghelp.dll"
 
 # Define installer paths
 !define BIN_PATH     "$INSTDIR\bin"
@@ -147,10 +152,10 @@ addtopath:
 	Push "${BIN_PATH}"
 	Call AddToPath
 skipaddtopath:
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\dbghelp.dll" "${BIN_PATH}\dbghelp.dll" $INSTDIR
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\msvcr80.dll" "${BIN_PATH}\msvcr80.dll" $INSTDIR
+	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\${DHL_DLL}" "${BIN_PATH}\${DHL_DLL}" $INSTDIR
+	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
 	File "..\Microsoft.DTfW.DHL.manifest"
-	File "${CRT_PATH}\Microsoft.VC80.CRT.manifest"
+	File "${CRT_PATH}\${CRT_MANIFEST}"
 SectionEnd
 
 Section "Configuration File"
@@ -205,10 +210,10 @@ Section "un.Dynamic Link Libraries"
 	DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
 	Push "${BIN_PATH}"
 	Call un.RemoveFromPath
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\dbghelp.dll"
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\msvcr80.dll"
+	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${DHL_DLL}"
+	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
 	Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
-	Delete "${BIN_PATH}\Microsoft.VC80.CRT.manifest"
+	Delete "${BIN_PATH}\${CRT_MANIFEST}"
 	RMDir "${BIN_PATH}"
 SectionEnd
 
