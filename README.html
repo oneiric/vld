@@ -170,6 +170,10 @@
         blockquote {
             font-style: italic;
         }
+
+        form {
+            margin: 20px;
+        }
     </style>
 
     <title>Visual Leak Detector (Beta)</title>
@@ -183,7 +187,7 @@
 
 <div id="masthead">
 
-<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9g (Beta)</h1>
+<h1>Visual&nbsp;Leak&nbsp;Detector&nbsp;1.9h (Beta)</h1>
 
 <p id="slogan">Enhanced Memory Leak Detection for Visual&nbsp;C++</p>
 
@@ -215,11 +219,13 @@
 
     <li><a href="#restrictions">Known Restrictions</a></li>
 
+    <li><a href="#contibuting">Contributing</a></li>
+
     <li><a href="#license">License</a></li>
 
     <li><a href="#contact">Contacting the Author</a></li>
 
-    <li><a href="#maintainer">New Maintainer Sought</a></li>
+    <li><a href="#help-wanted">Additional Developers Wanted</a></li>
 </ul>
 
 </div> <!-- #toc -->
@@ -270,7 +276,7 @@
    Detector include and library directories to the Visual C++ include and library directory search paths:</p>
 
 <ul>
-    <li><strong>Visual&nbsp;C++ 8</strong>: Go to Tools -> Options -> Projects and Solutions -> VC++ Directories.
+    <li><strong>Visual&nbsp;C++ 8 and 9</strong>: Go to Tools -> Options -> Projects and Solutions -> VC++ Directories.
         Select "Include files" from the "Show Directories For" drop-down menu. Add the
         <span class="filename">include</span> subdirectory from the Visual Leak Detector installation directory. Move it
         to the bottom of the list. Then select "Library files" from the drop-down menu and add the
@@ -531,16 +537,25 @@
 <h2 id="build">Building Visual&nbsp;Leak&nbsp;Detector from Source</h2>
 
 <p>Because Visual&nbsp;Leak&nbsp;Detector is open source, it can be built from source if you want to tweak it to your
-   liking. The most difficult part about building VLD from source is getting your build environment correctly set up.
+   liking. As of Visual Studio 2008, the source can usually be built out-of-the-box without downloading or installing
+   any other tools. If you are using Visual Studio 2008 (or later), you can skip ahead to
+   <a href="#exec">Executing Your Built vld.dll</a>.
+
+<p>Users with older versions of Visual Studio should continue reading here and follow the instructions in the next
+   subsection.</p>
+
+<h3>For Older Versions of Visual Studio</h3>
+
+<p>The most difficult part about building VLD from source is getting your build environment correctly set up.
    But if you follow these instructions carefully, the  process should be fairly painless.</p>
 
 <ol>
     <li>VLD depends on the Debug Help Library. This library is part of
         <a href="http://www.microsoft.com/whdc/devtools/debugging/default.mspx">Debugging Tools for Windows</a> (DTfW).
         Download and install DTfW in order to install the required headers and libraries. I recommend installing version
-        6.5 of DTfW. Newer versions may also work, but older versions will probably not work. Be sure to manually select
-        to install the SDK files during the DTfW installation or the headers and libraries will not be installed (they
-        are not installed with a default installation).</li>
+        6.5 of DTfW, or later. Newer versions tend to  work fine, but older versions will probably not work. Be sure to
+        manually select to install the SDK files during the DTfW installation or the headers and libraries will not be
+        installed (they are not always installed with a default installation).</li>
 
     <li>Visual&nbsp;C++ will need to be made aware of where it can find the Debug Help Library header and library files.
         Add the <span class="filename">sdk\inc</span> and <span class="filename">sdk\lib</span> subdirectories from the
@@ -591,6 +606,8 @@
 <p>Once you have completed all of the above steps, your build environment should be ready. To build VLD, just open the
    <span class="filename">vld.sln</span> solution file and do a full build.</p>
 
+<h3 id="exec">Executing Your Built vld.dll</h3>
+
 <p>When actually running the built project, <span class="filename">vld.dll</span> will expect to find the Debug Help
    Library as a private assembly. The private assembly must be located in the same directory as
    <span class="filename">vld.dll</span> (either the <span class="filename">Release</span> or
@@ -612,7 +629,7 @@
 <p>Currently VLD will not build on x64 due to limitations of the x64 compiler. Some efforts have been undertaken to
    get it working in a 64-bit environment, but have not yet been successful. If you need 64-bit support and run into
    problems trying to build the source in 64-bit mode, please <a href="mailto:dmoulding@gmail.com">let me know</a>.
-   I'll be glad to assist in getting the 64-bit code working properly.</p>
+   I'll be glad to assist in getting the 64-bit code working properly, if at all possible.</p>
 
 
 
@@ -654,17 +671,17 @@
        DLLs in memory leak detection, by setting the <span class="option">ForceIncludeModules</span> configuration
        option to: "mfc70d.dll mfc71d.dll" and explicitly adding <span class="filename">vld.lib</span> as an input file
        on the linker command line (can be added through project settings by adding it to the list of library modules in
-       the linker options). This restriction does not apply to programs that use MFC 4.2 or MFC 8.0 which are both fully
-       supported.</li>
+       the linker options). This restriction does not apply to programs that use MFC 4.2, MFC 8.0, or MFC 9.0, which are
+       all fully supported.</li>
        
    <li>Visual Leak Detector may report leaks internal to Visual Leak Detector if the main thread of the process
        terminates while other threads are still running.</li>
        
    <li>On Windows 2000 and earlier operating systems, you may need to manually add the
-       <span class="filename">bin\Microsoft.VC80.CRT</span> subdirectory from the Visual Leak Detector installation
-       directory to the system PATH environment variable. Also, <span class="filename">dbghelp.dll</span> will probably
-       need to be manually copied to the directory where the program being debugged resides. Otherwise the system may
-       not find the required DLLs when running VLD.</li>
+       <span class="filename">bin</span> subdirectory from the Visual Leak Detector installation directory to the system
+       PATH environment variable. Also, <span class="filename">dbghelp.dll</span> will probably need to be manually copied
+       to the directory where the program being debugged resides. Otherwise the system may not find the required DLLs when
+       running VLD.</li>
        
     <li>If more than one copy of the same C Runtime DLL is loaded in the process at the same time, then some leaks may
         go undetected (note that loading more than one copy of the C Runtime DLL at the same time is probably a bad idea
@@ -673,6 +690,15 @@
 
 
 
+<h2 id="contibuting">Contributing</h2>
+
+<p>I encourage developers who've added their own features, or fixed bugs they've found, to contribute to the project.
+   The full version-controlled source tree is available publicly via Git at the URL below. Feel free to clone from this
+   URL and submit patches for consideration for inclusion in future versions. You can also hop onto
+   <a href="http://github.com">GitHub</a> (accounts are free) and issue pull requests for changes that you've made and
+   would like to share.</p>
+
+<p>Git Repository URL: git://github.com/dmoulding/vld.git</p>
 
 <h2 id="license">License</h2>
 
@@ -730,25 +756,11 @@ BWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbG
 
 
 
-<h2 id="maintainer">New Maintainer Sought</h2>
+<h2 id="help-wanted">Additional Developers Wanted</h2>
 
-<p>Visual Leak Detector has not been updated much recently. This is mostly due to a lack of free time that I have to
-   maintain the software and incorporate new features. Visual Leak Detector is, I'm afraid, at risk of becoming a thing
-   of the past.
-
-<p>VLD may still have the potential to continue to be a useful tool for the thousands of developers worldwide who have
-   used it in the past and continue to use it today. However, to continue to be useful in the future, updates to the
-   software will be required to ensure compatibility with Windows Vista, Visual Studio 2008, and beyond.</p>
-
-<p>This project is in dire need of a maintainer who has the time, knowledge, and tools, to continue to make VLD a useful
-   utility for the Windows developer community. I would love to continue to be that person, but unfortunately, the past
-   couple of years has proven that I cannot put in the time and resources needed because of my other obligations.</p>
-
-<p>If you feel that you or someone you know would be interested in becoming the new maintainer/developer of VLD please
-   let me know. I think it still has the potential to continue to be a great tool. All the sources and tools, including a
-   small testing framework, the installer script, and documentation are securely stored in a version control system
-   (currently I'm using git) so it could all be easily shared and maintained by a group of individuals, too.</p>
-
+<p>This project is looking for additional developers who have the time, knowledge, and talent, to help make VLD continue
+   to be a useful utility for the Windows developer community. If you feel that you or someone you know would be
+   interested in becoming an active member of the Visual Leak Detector development team, please let me know.</p>
 
 
 
@@ -757,7 +769,9 @@ BWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbG
     <a href="http://jigsaw.w3.org/css-validator"><img id="valid-css" src="http://jigsaw.w3.org/css-validator/images/vcss" alt="Valid CSS!" /></a>
 </p>
 
-<p id="copyright">Copyright &copy; 2005-2008 Dan Moulding</p>
+
+
+<p id="copyright">Copyright &copy; 2005-2009 Dan Moulding</p>
 
 </div> <!-- #content -->
 
