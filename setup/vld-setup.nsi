@@ -74,7 +74,7 @@ ShowUninstDetails show
 # Declare global variables
 Var INSTALLED_VERSION
 Var SM_PATH
-	
+        
 # Define the installer pages
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_HEADER_TEXT    "No License Required for Use"
@@ -98,96 +98,97 @@ Var SM_PATH
 # Installation
 #
 Function .onInit
-	ReadRegStr $INSTALLED_VERSION HKLM "${REG_KEY_PRODUCT}" "InstalledVersion"
-	${UNLESS} $INSTALLED_VERSION == ""
-		${IF} $INSTALLED_VERSION == ${VLD_VERSION}
-			MessageBox MB_ICONINFORMATION|MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
-				IDOK continue IDCANCEL abort
-		${ELSE}
-			MessageBox MB_ICONEXCLAMATION|MB_YESNO "Setup has detected that a different version of Visual Leak Detector is already installed on this computer.$\nIt is highly recommended that you first uninstall the version currently installed before proceeding.$\n$\nAre you sure you want to continue installing?" \
-				IDYES continue IDNO abort
-		${ENDIF}
+    ReadRegStr $INSTALLED_VERSION HKLM "${REG_KEY_PRODUCT}" "InstalledVersion"
+    ${UNLESS} $INSTALLED_VERSION == ""
+        ${IF} $INSTALLED_VERSION == ${VLD_VERSION}
+            MessageBox MB_ICONINFORMATION|MB_OKCANCEL "Setup has detected that Visual Leak Detector version $INSTALLED_VERSION is already installed on this computer.$\n$\nClick 'OK' if you want to continue and repair the existing installation. Click 'Cancel' if you want to abort installation." \
+                IDOK continue IDCANCEL abort
+        ${ELSE}
+            MessageBox MB_ICONEXCLAMATION|MB_YESNO "Setup has detected that a different version of Visual Leak Detector is already installed on this computer.$\nIt is highly recommended that you first uninstall the version currently installed before proceeding.$\n$\nAre you sure you want to continue installing?" \
+                IDYES continue IDNO abort
+        ${ENDIF}
 abort:
-		Abort
+        Abort
 continue:
-	${ENDUNLESS}
+    ${ENDUNLESS}
 FunctionEnd
 
 Section "Uninstaller"
-	SetOutPath "$INSTDIR"
-	WriteUninstaller "$INSTDIR\uninstall.exe"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayName" "Visual Leak Detector ${VLD_VERSION}"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "UninstallString" "$INSTDIR\uninstall.exe"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "InstallLocation" "$INSTDIR"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "Publisher" "Dan Moulding"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "URLInfoAbout" "http://www.danm.net"
-	WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayVersion" "${VLD_VERSION}"
-	WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoModify" 1
-	WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoRepair" 1
+    SetOutPath "$INSTDIR"
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayName" "Visual Leak Detector ${VLD_VERSION}"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "UninstallString" "$INSTDIR\uninstall.exe"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "Publisher" "Dan Moulding"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "URLInfoAbout" "http://www.danm.net"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayVersion" "${VLD_VERSION}"
+    WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoModify" 1
+    WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoRepair" 1
 SectionEnd
 
 Section "Registry Keys"
-	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "IniFile" "$INSTDIR\vld.ini"
-	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstallPath" "$INSTDIR"
-	WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstalledVersion" "${VLD_VERSION}"
+    WriteRegStr HKLM "${REG_KEY_PRODUCT}" "IniFile" "$INSTDIR\vld.ini"
+    WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstallPath" "$INSTDIR"
+    WriteRegStr HKLM "${REG_KEY_PRODUCT}" "InstalledVersion" "${VLD_VERSION}"
 SectionEnd
 
 Section "Header File"
-	SetOutPath "${INCLUDE_PATH}"
-	File "..\vld.h"
+    SetOutPath "${INCLUDE_PATH}"
+    File "..\vld.h"
 SectionEnd
 
 Section "Import Library"
-	SetOutPath "${LIB_PATH}"
-	File "..\Release\vld.lib"
+    SetOutPath "${LIB_PATH}"
+    File "..\Release\vld.lib"
 SectionEnd
 
 Section "Dynamic Link Libraries"
-	SetOutPath "${BIN_PATH}"
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
-	MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
-		IDYES addtopath IDNO skipaddtopath
+    SetOutPath "${BIN_PATH}"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
+    MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
+        IDYES addtopath IDNO skipaddtopath
 addtopath:
-	DetailPrint "Adding ${BIN_PATH} to the PATH system environment variable."
-	Push "${BIN_PATH}"
-	Call AddToPath
+    DetailPrint "Adding ${BIN_PATH} to the PATH system environment variable."
+    Push "${BIN_PATH}"
+    Call AddToPath
 skipaddtopath:
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\${DHL_DLL}" "${BIN_PATH}\${DHL_DLL}" $INSTDIR
-	!insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
-	File "..\Microsoft.DTfW.DHL.manifest"
-	File "${CRT_PATH}\${CRT_MANIFEST}"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\${DHL_DLL}" "${BIN_PATH}\${DHL_DLL}" $INSTDIR
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
+    File "..\Microsoft.DTfW.DHL.manifest"
+    File "${CRT_PATH}\${CRT_MANIFEST}"
 SectionEnd
 
 Section "Configuration File"
-	SetOutPath "$INSTDIR"
-	File "..\vld.ini"
+    SetOutPath "$INSTDIR"
+    File "..\vld.ini"
 SectionEnd
 
 Section "Source Code"
-	SetOutPath "${SRC_PATH}"
-	File "..\*.cpp"
-	File "..\*.h"
-	File "..\vld.vcproj"
-	File "..\*.manifest"
+    SetOutPath "${SRC_PATH}"
+    File "..\*.cpp"
+    File "..\*.h"
+    File "..\vld.vcproj"
+    File "..\*.manifest"
+    File "..\*.rc"
 SectionEnd
 
 Section "Documentation"
-	SetOutPath "$INSTDIR"
-	File "..\CHANGES.txt"
-	File "..\COPYING.txt"
-	File "..\README.html"
+    SetOutPath "$INSTDIR"
+    File "..\CHANGES.txt"
+    File "..\COPYING.txt"
+    File "..\README.html"
 SectionEnd
 
 Section "Start Menu Shortcuts"
-	!insertmacro MUI_STARTMENU_WRITE_BEGIN "Shortcuts"
-	SetOutPath "$INSTDIR"
-	SetShellVarContext all
-	CreateDirectory "${LNK_PATH}"
-	CreateShortcut "${LNK_PATH}\Configure.lnk"     "$INSTDIR\vld.ini"
-	CreateShortcut "${LNK_PATH}\Documentation.lnk" "$INSTDIR\README.html"
-	CreateShortcut "${LNK_PATH}\License.lnk"       "$INSTDIR\COPYING.txt"
-	CreateShortcut "${LNK_PATH}\Uninstall.lnk"     "$INSTDIR\uninstall.exe"
-	!insertmacro MUI_STARTMENU_WRITE_END
+    !insertmacro MUI_STARTMENU_WRITE_BEGIN "Shortcuts"
+    SetOutPath "$INSTDIR"
+    SetShellVarContext all
+    CreateDirectory "${LNK_PATH}"
+    CreateShortcut "${LNK_PATH}\Configure.lnk"     "$INSTDIR\vld.ini"
+    CreateShortcut "${LNK_PATH}\Documentation.lnk" "$INSTDIR\README.html"
+    CreateShortcut "${LNK_PATH}\License.lnk"       "$INSTDIR\COPYING.txt"
+    CreateShortcut "${LNK_PATH}\Uninstall.lnk"     "$INSTDIR\uninstall.exe"
+    !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
 
@@ -196,61 +197,62 @@ SectionEnd
 # Uninstallation
 #
 Section "un.Header File"
-	Delete "${INCLUDE_PATH}\vld.h"
-	RMDir "${INCLUDE_PATH}"
+    Delete "${INCLUDE_PATH}\vld.h"
+    RMDir "${INCLUDE_PATH}"
 SectionEnd
 
 Section "un.Import Library"
-	Delete "${LIB_PATH}\vld.lib"
-	RMDir "${LIB_PATH}"
+    Delete "${LIB_PATH}\vld.lib"
+    RMDir "${LIB_PATH}"
 SectionEnd
 
 Section "un.Dynamic Link Libraries"
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
-	DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
-	Push "${BIN_PATH}"
-	Call un.RemoveFromPath
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${DHL_DLL}"
-	!insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
-	Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
-	Delete "${BIN_PATH}\${CRT_MANIFEST}"
-	RMDir "${BIN_PATH}"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
+    DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
+    Push "${BIN_PATH}"
+    Call un.RemoveFromPath
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${DHL_DLL}"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
+    Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
+    Delete "${BIN_PATH}\${CRT_MANIFEST}"
+    RMDir "${BIN_PATH}"
 SectionEnd
 
 Section "un.Configuration File"
-	Delete "$INSTDIR\vld.ini"
+    Delete "$INSTDIR\vld.ini"
 SectionEnd
 
 Section "un.Source Code"
-	Delete "${SRC_PATH}\*.cpp"
-	Delete "${SRC_PATH}\*.h"
-	Delete "${SRC_PATH}\vld.vcproj"
-	Delete "${SRC_PATH}\*.manifest"
-	RMDir "${SRC_PATH}"
+    Delete "${SRC_PATH}\*.cpp"
+    Delete "${SRC_PATH}\*.h"
+    Delete "${SRC_PATH}\vld.vcproj"
+    Delete "${SRC_PATH}\*.manifest"
+    Delete "${SRC_PATH}\*.rc"
+    RMDir "${SRC_PATH}"
 SectionEnd
 
 Section "un.Documentation"
-	Delete "$INSTDIR\CHANGES.txt"
-	Delete "$INSTDIR\COPYING.txt"
-	Delete "$INSTDIR\README.html"
+    Delete "$INSTDIR\CHANGES.txt"
+    Delete "$INSTDIR\COPYING.txt"
+    Delete "$INSTDIR\README.html"
 SectionEnd
 
 Section "un.Start Menu Shortcuts"
-	!insertmacro MUI_STARTMENU_GETFOLDER "Shortcuts" $SM_PATH
-	SetShellVarContext all
-	Delete "${LNK_PATH}\Configure.lnk"
-	Delete "${LNK_PATH}\Documentation.lnk"
-	Delete "${LNK_PATH}\License.lnk"
-	Delete "${LNK_PATH}\Uninstall.lnk"
-	RMDir "${LNK_PATH}"
+    !insertmacro MUI_STARTMENU_GETFOLDER "Shortcuts" $SM_PATH
+    SetShellVarContext all
+    Delete "${LNK_PATH}\Configure.lnk"
+    Delete "${LNK_PATH}\Documentation.lnk"
+    Delete "${LNK_PATH}\License.lnk"
+    Delete "${LNK_PATH}\Uninstall.lnk"
+    RMDir "${LNK_PATH}"
 SectionEnd
 
 Section "un.Registry Keys"
-	DeleteRegKey HKLM "${REG_KEY_PRODUCT}"
+    DeleteRegKey HKLM "${REG_KEY_PRODUCT}"
 SectionEnd
 
 Section "un.Uninstaller"
-	Delete "$INSTDIR\uninstall.exe"
-	RMDir "$INSTDIR"
-	DeleteRegKey HKLM "${REG_KEY_UNINSTALL}"
+    Delete "$INSTDIR\uninstall.exe"
+    RMDir "$INSTDIR"
+    DeleteRegKey HKLM "${REG_KEY_UNINSTALL}"
 SectionEnd
