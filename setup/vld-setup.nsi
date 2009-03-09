@@ -24,19 +24,20 @@
 !include "Library.nsh"  # Provides the dynamic link library installation system
 !include "LogicLib.nsh" # Provides useable conditional script syntax
 !include "MUI.nsh"      # Provides the modern user-interface
-!include "path-env.nsh" # Provides path environment variable manipulation
 
 # Version number
 !define VLD_VERSION "1.9h"
 
 # Define build system paths
-!define CRT_PATH  "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
-!define DTFW_PATH "C:\Program Files\Debugging Tools for Windows (x86)"
+!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
+!define DTFW_PATH    "C:\Program Files\Debugging Tools for Windows (x86)"
+!define EDITENV_PATH "editenv"
 
 # Define build system files
 !define CRT_DLL      "msvcr90.dll"
 !define CRT_MANIFEST "Microsoft.VC90.CRT.manifest"
 !define DHL_DLL      "dbghelp.dll"
+!define EDITENV_DLL  "editenv.dll"
 
 # Define installer paths
 !define BIN_PATH     "$INSTDIR\bin"
@@ -44,6 +45,9 @@
 !define LIB_PATH     "$INSTDIR\lib"
 !define LNK_PATH     "$SMPROGRAMS\$SM_PATH"
 !define SRC_PATH     "$INSTDIR\src"
+
+# Define editenv system environment variable scope
+!define ES_SYSTEM 1
 
 # Define registry keys
 !define REG_KEY_PRODUCT   "Software\Visual Leak Detector"
@@ -145,12 +149,16 @@ SectionEnd
 Section "Dynamic Link Libraries"
     SetOutPath "${BIN_PATH}"
     !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
-    MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your PATH environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
+    MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your 'Path' environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
         IDYES addtopath IDNO skipaddtopath
 addtopath:
-    DetailPrint "Adding ${BIN_PATH} to the PATH system environment variable."
-    Push "${BIN_PATH}"
-    Call AddToPath
+    DetailPrint "Adding ${BIN_PATH} to the 'Path' system environment variable."
+    InitPluginsDir
+    SetOutPath "$PLUGINSDIR"
+    File "${EDITENV_PATH}\${EDITENV_DLL}"
+    System::Call "editenv::pathAdd(i ${ES_SYSTEM}, t '${BIN_PATH}') ? u"
+    Delete "$PLUGINSDIR\${EDITENV_DLL}"
+    SetOutPath "${BIN_PATH}"
 skipaddtopath:
     !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\${DHL_DLL}" "${BIN_PATH}\${DHL_DLL}" $INSTDIR
     !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
@@ -208,9 +216,12 @@ SectionEnd
 
 Section "un.Dynamic Link Libraries"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
-    DetailPrint "Removing ${BIN_PATH} from the PATH system environment variable."
-    Push "${BIN_PATH}"
-    Call un.RemoveFromPath
+    DetailPrint "Removing ${BIN_PATH} from the 'Path' system environment variable."
+    InitPluginsDir
+    SetOutPath "$PLUGINSDIR"
+    File "${EDITENV_PATH}\${EDITENV_DLL}"
+    System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}') ? u"
+    Delete "$PLUGINSDIR\${EDITENV_DLL}"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${DHL_DLL}"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
     Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
