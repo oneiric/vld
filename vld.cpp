@@ -307,7 +307,6 @@ VisualLeakDetector::~VisualLeakDetector ()
     BlockMap::Iterator   blockit;
     BlockMap            *blockmap;
     size_t               count;
-    DWORD                exitcode;
     vldblockheader_t    *header;
     HANDLE               heap;
     HeapMap::Iterator    heapit;
@@ -316,7 +315,6 @@ VisualLeakDetector::~VisualLeakDetector ()
     WCHAR                leakfilew [MAX_PATH];
     int                  leakline = 0;
     ModuleSet::Iterator  moduleit;
-    SIZE_T               sleepcount;
     HANDLE               thread;
     BOOL                 threadsactive= FALSE;
     TlsSet::Iterator     tlsit;
@@ -338,33 +336,24 @@ VisualLeakDetector::~VisualLeakDetector ()
                 continue;
             }
 
-            sleepcount = 0;
-            thread = OpenThread(THREAD_QUERY_INFORMATION, FALSE, (*tlsit)->threadid);
+            thread = OpenThread(SYNCHRONIZE, FALSE, (*tlsit)->threadid);
             if (thread == NULL) {
                 // Couldn't query this thread. We'll assume that it exited.
                 continue; // XXX should we check GetLastError()?
             }
-            while (GetExitCodeThread(thread, &exitcode) == TRUE) {
-                if (exitcode != STILL_ACTIVE) {
-                    // This thread exited.
-                    break;
-                }
-                else {
-                    // There is still at least one other thread running. The CRT
-                    // will stomp it dead when it cleans up, which is not a
-                    // graceful way for a thread to go down. Warn about this,
-                    // and wait until the thread has exited so that we know it
-                    // can't still be off running somewhere in VLD's code.
-                    threadsactive = TRUE;
-                    Sleep(100);
-                    sleepcount++;
-                    if ((sleepcount % 100) == 0) {
-                        // Just in case this takes a long time, let the human
-                        // know we are still here and alive.
-                        report(L"Visual Leak Detector: Waiting for threads to terminate...\n");
-                    }
-                }
+            while (WaitForSingleObject(thread, 10000) == WAIT_TIMEOUT) { // 10 seconds
+                // There is still at least one other thread running. The CRT
+                // will stomp it dead when it cleans up, which is not a
+                // graceful way for a thread to go down. Warn about this,
+                // and wait until the thread has exited so that we know it
+                // can't still be off running somewhere in VLD's code.
+                // 
+                // Since we've been waiting a while, let the human know we are
+                // still here and alive.
+                threadsactive = TRUE;
+                report(L"Visual Leak Detector: Waiting for threads to terminate...\n");
             }
+            CloseHandle(thread);
         }
         LeaveCriticalSection(&m_tlslock);
 
