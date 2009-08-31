@@ -286,6 +286,6 @@ private:
 };
 
 // Configuration option default values
-#define VLD_DEFAULT_MAX_DATA_DUMP    0xffffffff
-#define VLD_DEFAULT_MAX_TRACE_FRAMES 0xffffffff
+#define VLD_DEFAULT_MAX_DATA_DUMP    256
+#define VLD_DEFAULT_MAX_TRACE_FRAMES 64
 #define VLD_DEFAULT_REPORT_FILE_NAME L".\\memory_leak_report.txt"
