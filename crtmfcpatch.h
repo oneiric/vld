@@ -29,54 +29,749 @@
 Applications should never include this header."
 #endif
 
-// Visual Studio 2005 DLLs
-void* __cdecl crt80d__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
-void* __cdecl crt80d__malloc_dbg (size_t size, int type, const char *file, int line);
-void* __cdecl crt80d__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
-void* __cdecl crt80d__scalar_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crt80d__vector_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crt80d_calloc (size_t num, size_t size);
-void* __cdecl crt80d_malloc (size_t size);
-void* __cdecl crt80d_realloc (void *mem, size_t size);
-void* __cdecl crt80d_scalar_new (unsigned int size);
-void* __cdecl crt80d_vector_new (unsigned int size);
+#include "vldint.h"
+extern __declspec(dllexport) VisualLeakDetector vld;
 
-// Visual Studio 2008 DLLs
-void* __cdecl crt90d__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
-void* __cdecl crt90d__malloc_dbg (size_t size, int type, const char *file, int line);
-void* __cdecl crt90d__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
-void* __cdecl crt90d__scalar_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crt90d__vector_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crt90d_calloc (size_t num, size_t size);
-void* __cdecl crt90d_malloc (size_t size);
-void* __cdecl crt90d_realloc (void *mem, size_t size);
-void* __cdecl crt90d_scalar_new (unsigned int size);
-void* __cdecl crt90d_vector_new (unsigned int size);
+#define TEMPLATE_HEADER \
+template<wchar_t const *crtddll, wchar_t const *mfcddll, wchar_t const *mfcuddll,\
+    char const *crtd_scalar_new_dbg_name, char const *crtd_vector_new_dbg_name,\
+    char const *crtd_scalar_new_name, char const *crtd_vector_new_name,\
+    int mfcd_scalar_new_dbg_ordinal, int mfcd_vector_new_dbg_ordinal,\
+    int mfcd_scalar_new_ordinal, int mfcd_vector_new_ordinal,\
+    int mfcud_scalar_new_dbg_ordinal, int mfcud_vector_new_dbg_ordinal,\
+    int mfcud_scalar_new_ordinal, int mfcud_vector_new_ordinal>
 
-// Visual Studio 6.0 DLLs
-void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
-void* __cdecl crtd__malloc_dbg (size_t size, int type, char const *file, int line);
-void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
-void* __cdecl crtd__scalar_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crtd__vector_new_dbg (unsigned int size, int type, char const *file, int line);
-void* __cdecl crtd_calloc (size_t num, size_t size);
-void* __cdecl crtd_malloc (size_t size);
-void* __cdecl crtd_realloc (void *mem, size_t size);
-void* __cdecl crtd_scalar_new (unsigned int size);
-void* __cdecl crtd_vector_new (unsigned int size);
+#define TEMPLATE_ARGS \
+    crtddll, mfcddll, mfcuddll,\
+    crtd_scalar_new_dbg_name, crtd_vector_new_dbg_name,\
+    crtd_scalar_new_name, crtd_vector_new_name,\
+    mfcd_scalar_new_dbg_ordinal, mfcd_vector_new_dbg_ordinal,\
+    mfcd_scalar_new_ordinal, mfcd_vector_new_ordinal,\
+    mfcud_scalar_new_dbg_ordinal, mfcud_vector_new_dbg_ordinal,\
+    mfcud_scalar_new_ordinal, mfcud_vector_new_ordinal
 
-// MFC 4.2 DLLs
-void* __cdecl mfc42d__scalar_new_dbg (unsigned int size, char const *file, int line);
-void* __cdecl mfc42d_scalar_new (unsigned int size);
+TEMPLATE_HEADER
+class CrtMfcPatch
+{
+public:
+    static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
+    static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
+    static void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
+    static void* __cdecl crtd__scalar_new_dbg (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl crtd__vector_new_dbg (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl crtd_calloc (size_t num, size_t size);
+    static void* __cdecl crtd_malloc (size_t size);
+    static void* __cdecl crtd_realloc (void *mem, size_t size);
+    static void* __cdecl crtd_scalar_new (unsigned int size);
+    static void* __cdecl crtd_vector_new (unsigned int size);
 
-// MFC 8.0 DLLs
-void* __cdecl mfc80d__scalar_new_dbg (unsigned int size, char const *file, int line);
-void* __cdecl mfc80d__vector_new_dbg (unsigned int size, char const *file, int line);
-void* __cdecl mfc80d_scalar_new (unsigned int size);
-void* __cdecl mfc80d_vector_new (unsigned int size);
+    template<char const *procname>
+    static void* __cdecl crtd_new_dbg (SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    template<char const *procname>
+    static void* __cdecl crtd_new (SIZE_T fp, unsigned int size);
 
-// MFC 9.0 DLLs
-void* __cdecl mfc90d__scalar_new_dbg (unsigned int size, char const *file, int line);
-void* __cdecl mfc90d__vector_new_dbg (unsigned int size, char const *file, int line);
-void* __cdecl mfc90d_scalar_new (unsigned int size);
-void* __cdecl mfc90d_vector_new (unsigned int size);
+    static void* __cdecl mfcd__scalar_new_dbg (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcd__vector_new_dbg (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcd_scalar_new (unsigned int size);
+    static void* __cdecl mfcd_vector_new (unsigned int size);
+    static void* __cdecl mfcud__scalar_new_dbg (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcud__vector_new_dbg (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcud_scalar_new (unsigned int size);
+    static void* __cdecl mfcud_vector_new (unsigned int size);
+
+    template<wchar_t const *mfcdll, int ordinal>
+    static void* __cdecl mfcd_new_dbg (SIZE_T fp, unsigned int size, char const *file, int line);
+    template<wchar_t const *mfcdll, int ordinal>
+    static void* __cdecl mfcd_new (SIZE_T fp, unsigned int size);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Visual Studio DLLs
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// crtd__calloc_dbg - Calls to _calloc_dbg from msvcrXXd.dll are patched
+//   through to this function.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _calloc_dbg.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
+                                                    size_t      size,
+                                                    int         type,
+                                                    char const *file,
+                                                    int         line)
+{
+    static _calloc_dbg_t pcrtxxd__calloc_dbg = NULL;
+
+    SIZE_T  fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd__calloc_dbg == NULL) {
+        // This is the first call to this function. Link to the real
+        // _calloc_dbg.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd__calloc_dbg = (_calloc_dbg_t)GetProcAddress(msvcrxxd, "_calloc_dbg");
+    }
+
+    return vld.__calloc_dbg(pcrtxxd__calloc_dbg, fp, num, size, type, file, line);
+}
+
+// crtd__malloc_dbg - Calls to _malloc_dbg from msvcrXXd.dll are patched
+//   through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _malloc_dbg.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
+                                                    int         type,
+                                                    char const *file,
+                                                    int         line)
+{
+    static _malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
+
+    SIZE_T  fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd__malloc_dbg == NULL) {
+        // This is the first call to this function. Link to the real
+        // _malloc_dbg.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd__malloc_dbg = (_malloc_dbg_t)GetProcAddress(msvcrxxd, "_malloc_dbg");
+    }
+
+    return vld.__malloc_dbg(pcrtxxd__malloc_dbg, fp, size, type, file, line);
+}
+
+// crtd__realloc_dbg - Calls to _realloc_dbg from msvcrXXd.dll are patched
+//   through to this function.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _realloc_dbg.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
+                                                     size_t     size,
+                                                     int        type,
+                                                     char const *file,
+                                                     int        line)
+{
+    static _realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
+
+    SIZE_T fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd__realloc_dbg == NULL) {
+        // This is the first call to this function. Link to the real
+        // _realloc_dbg.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd__realloc_dbg = (_realloc_dbg_t)GetProcAddress(msvcrxxd, "_realloc_dbg");
+    }
+
+    return vld.__realloc_dbg(pcrtxxd__realloc_dbg, fp, mem, size, type, file, line);
+}
+
+// crtd__scalar_new_dbg - Calls to the CRT's debug scalar new operator from
+//   msvcrXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT debug scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (unsigned int size,
+                                                        int          type,
+                                                        char const  *file,
+                                                        int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return crtd_new_dbg<crtd_scalar_new_dbg_name>(fp, size, type, file, line);
+}
+
+// crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
+//   msvcrXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT debug vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (unsigned int size,
+                                                        int          type,
+                                                        char const  *file,
+                                                        int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return crtd_new_dbg<crtd_vector_new_dbg_name>(fp, size, type, file, line);
+}
+
+// crtd_calloc - Calls to calloc from msvcrXXd.dll are patched through to
+//   this function.
+//
+//  - dll (IN): The name of the dll
+//
+//  - num (IN): The number of blocks, of size 'size', to be allocated.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the valued returned from calloc.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
+{
+    static calloc_t pcrtxxd_calloc = NULL;
+
+    SIZE_T  fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd_calloc == NULL) {
+        // This is the first call to this function. Link to the real malloc.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd_calloc = (calloc_t)GetProcAddress(msvcrxxd, "calloc");
+    }
+
+    return vld._calloc(pcrtxxd_calloc, fp, num, size);
+}
+
+// crtd_malloc - Calls to malloc from msvcrXXd.dll are patched through to
+//   this function.
+//
+//  - dll (IN): The name of the dll
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the valued returned from malloc.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
+{
+    static malloc_t pcrtxxd_malloc = NULL;
+
+    SIZE_T  fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd_malloc == NULL) {
+        // This is the first call to this function. Link to the real malloc.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd_malloc = (malloc_t)GetProcAddress(msvcrxxd, "malloc");
+    }
+
+    return vld._malloc(pcrtxxd_malloc, fp, size);
+}
+
+// crtd_realloc - Calls to realloc from msvcrXXd.dll are patched through to
+//   this function.
+//
+//  - dll (IN): The name of the dll
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from realloc.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
+{
+    static realloc_t pcrtxxd_realloc = NULL;
+
+    SIZE_T  fp;
+    HMODULE msvcrxxd;
+
+    FRAMEPOINTER(fp);
+
+    if (pcrtxxd_realloc == NULL) {
+        // This is the first call to this function. Link to the real realloc.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd_realloc = (realloc_t)GetProcAddress(msvcrxxd, "realloc");
+    }
+
+    return vld._realloc(pcrtxxd_realloc, fp, mem, size);
+}
+
+// crtd_scalar_new - Calls to the CRT's scalar new operator from msvcrXXd.dll
+//   are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return crtd_new<crtd_scalar_new_name>(fp, size);
+}
+
+// crtd_vector_new - Calls to the CRT's vector new operator from msvcrXXd.dll
+//   are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return crtd_new<crtd_vector_new_name>(fp, size);
+}
+
+// crtd_new_dbg - A template function for implementation of patch functions to
+//   the CRT's debug new operator from msvcrXXd.dll
+//
+//  - procname (IN): The debug new operator's name
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT debug new operator.
+//
+TEMPLATE_HEADER
+template<char const *procname>
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T       fp,
+                                                unsigned int size,
+                                                int          type,
+                                                char const  *file,
+                                                int          line)
+{
+    static new_dbg_crt_t pcrtxxd_new_dbg = NULL;
+
+    HMODULE msvcrxxd;
+
+    if (pcrtxxd_new_dbg == NULL) {
+        // This is the first call to this function. Link to the real CRT debug
+        // new operator.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd_new_dbg = (new_dbg_crt_t)GetProcAddress(msvcrxxd, procname);
+    }
+
+    return vld.new_dbg_crt(pcrtxxd_new_dbg, fp, size, type, file, line);
+}
+
+// crt_new - A template function for implementing patch functions to the
+//   CRT's new operator from msvcrXXd.dll
+//
+//  - dll (IN): The name of the dll
+//
+//  - procname (IN): The debug new operator's name
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the CRT new operator.
+//
+TEMPLATE_HEADER
+template<char const *procname>
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
+{
+    static new_t pcrtxxd_scalar_new = NULL;
+
+    HMODULE msvcrxxd;
+
+    if (pcrtxxd_scalar_new == NULL) {
+        // This is the first call to this function. Link to the real CRT new
+        // operator.
+        msvcrxxd = GetModuleHandle(crtddll);
+        pcrtxxd_scalar_new = (new_t)GetProcAddress(msvcrxxd, procname);
+    }
+
+    return vld._new(pcrtxxd_scalar_new, fp, size);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// MFC DLLs
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// mfcd__scalar_new_dbg - Calls to the MFC debug scalar new operator from
+//   mfcXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg (unsigned int size,
+                                                        char const  *file,
+                                                        int         line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_ordinal>(fp, size, file, line);
+}
+
+// mfcd__vector_new_dbg - Calls to the MFC debug vector new operator from
+//   mfcXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg (unsigned int size,
+                                                        char const  *file,
+                                                        int         line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_ordinal>(fp, size, file, line);
+}
+
+// mfcd_scalar_new - Calls to the MFC scalar new operator from mfcXXd.dll are
+//   patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new<mfcddll, mfcd_scalar_new_ordinal>(fp, size);
+}
+
+// mfcd_vector_new - Calls to the MFC vector new operator from mfcXXd.dll are
+//   patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new<mfcddll, mfcd_vector_new_ordinal>(fp, size);
+}
+
+// mfcud__scalar_new_dbg - Calls to the MFC debug scalar new operator from
+//   mfcXXud.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg (unsigned int size,
+                                                         char const  *file,
+                                                         int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_ordinal>(fp, size, file, line);
+}
+
+// mfcud__vector_new_dbg - Calls to the MFC debug vector new operator from
+//   mfcXXud.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg (unsigned int size,
+                                                         char const  *file,
+                                                         int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_ordinal>(fp, size, file, line);
+}
+
+// mfcud_scalar_new - Calls to the MFC scalar new operator from mfcXXud.dll are
+//   patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new<mfcuddll, mfcud_scalar_new_ordinal>(fp, size);
+}
+
+// mfcud_vector_new - Calls to the MFC vector new operator from mfcXXud.dll are
+//   patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (unsigned int size)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new<mfcuddll, mfcud_vector_new_ordinal>(fp, size);
+}
+
+// new_dbg_mfcT - A generic function for implementing patch functions to the MFC
+//   debug new operators.
+//
+//  - mfcdll (IN): The name of the MFC DLL
+//
+//  - ordinal (IN): The debug new operator's ordinal value
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug new operator.
+//
+TEMPLATE_HEADER
+template<wchar_t const *mfcdll, int ordinal>
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
+                                                unsigned int size,
+                                                char const  *file,
+                                                int          line)
+{
+    static new_dbg_mfc_t pmfcxxd__new_dbg = NULL;
+
+    HMODULE mfcxxd;
+
+    if (pmfcxxd__new_dbg == NULL) {
+        // This is the first call to this function. Link to the real MFC debug
+        // new operator.
+        mfcxxd = GetModuleHandle(mfcdll);
+        pmfcxxd__new_dbg = (new_dbg_mfc_t)GetProcAddress(mfcxxd, (LPCSTR)ordinal);
+    }
+
+    return vld.new_dbg_mfc(pmfcxxd__new_dbg, fp, size, file, line);
+}
+
+// mfc_newT - A generic function for implementing patch functions to the MFC new
+//   operators.
+//
+//  - mfcdll (IN): The name of the MFC DLL
+//
+//  - ordinal (IN): The new operator's ordinal value
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC new operator.
+//
+TEMPLATE_HEADER
+template<wchar_t const *mfcdll, int ordinal>
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (SIZE_T fp, unsigned int size)
+{
+    static new_t pmfcxxd_new = NULL;
+
+    HMODULE mfcxxd;
+
+    if (pmfcxxd_new == NULL) {
+        // This is the first call to this function. Link to the real CRT new
+        // operator.
+        mfcxxd = GetModuleHandle(mfcdll);
+        pmfcxxd_new = (new_t)GetProcAddress(mfcxxd, (LPCSTR)ordinal);
+    }
+
+    return vld._new(pmfcxxd_new, fp, size);
+}
+
+#undef TEMPLATE_HEADER
+#undef TEMPLATE_ARGS
+
+const extern char    scalar_new_dbg_name[] = "??2@YAPAXIHPBDH@Z";
+const extern char    vector_new_dbg_name[] = "??_U@YAPAXIHPBDH@Z";
+const extern char    scalar_new_name[] = "??2@YAPAXI@Z";
+const extern char    vector_new_name[] = "??_U@YAPAXI@Z";
+const extern wchar_t msvcrtd_dll[]  = L"msvcrtd.dll";
+const extern wchar_t mfc42d_dll[]   = L"mfc42d.dll";
+const extern wchar_t mfc42ud_dll[]  = L"mfc42ud.dll";
+const extern wchar_t msvcr70d_dll[] = L"msvcr70d.dll";
+const extern wchar_t mfc70d_dll[]   = L"mfc70d.dll";
+const extern wchar_t mfc70ud_dll[]  = L"mfc70ud.dll";
+const extern wchar_t msvcr71d_dll[] = L"msvcr71d.dll";
+const extern wchar_t mfc71d_dll[]   = L"mfc71d.dll";
+const extern wchar_t mfc71ud_dll[]  = L"mfc71ud.dll";
+const extern wchar_t msvcr80d_dll[] = L"msvcr80d.dll";
+const extern wchar_t mfc80d_dll[]   = L"mfc80d.dll";
+const extern wchar_t mfc80ud_dll[]  = L"mfc80ud.dll";
+const extern wchar_t msvcr90d_dll[] = L"msvcr90d.dll";
+const extern wchar_t mfc90d_dll[]   = L"mfc90d.dll";
+const extern wchar_t mfc90ud_dll[]  = L"mfc90ud.dll";
+
+// Visual Studio 6.0
+typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
+                    scalar_new_dbg_name, vector_new_dbg_name,
+                    scalar_new_name, vector_new_name,
+                    714, 0, 711, 0, 714, 0, 711, 0>
+        VS60;
+// Visual Studio .NET 2002
+typedef CrtMfcPatch<msvcr70d_dll, mfc70d_dll, mfc70ud_dll,
+                    scalar_new_dbg_name, vector_new_dbg_name,
+                    scalar_new_name, vector_new_name,
+                    834, 259, 832, 257, 835, 260, 833, 258>
+        VS70;
+// Visual Studio .NET 2003
+typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
+                    scalar_new_dbg_name, vector_new_dbg_name,
+                    scalar_new_name, vector_new_name,
+                    895, 269, 893, 267, 895, 269, 893, 267>
+        VS71;
+// Visual Studio 2005
+typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
+                    scalar_new_dbg_name, vector_new_dbg_name,
+                    scalar_new_name, vector_new_name,
+                    895, 269, 893, 267, 895, 269, 893, 267>
+        VS80;
+// Visual Studio 2008
+typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
+                    scalar_new_dbg_name, vector_new_dbg_name,
+                    scalar_new_name, vector_new_name,
+                    933, 269, 931, 267, 937, 269, 935, 267>
+        VS90;

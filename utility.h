@@ -58,7 +58,7 @@ Applications should never include this header."
 #endif // _M_IX86
 
 #if defined(_M_IX86) || defined (_M_X64)
-#define FRAMEPOINTER(fp) __asm mov fp, BPREG // Copies the current frame pointer to the supplied variable.
+#define FRAMEPOINTER(fp) __asm {mov fp, BPREG} // Copies the current frame pointer to the supplied variable.
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide an architecture-specific macro to
