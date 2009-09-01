@@ -34,21 +34,21 @@ extern __declspec(dllexport) VisualLeakDetector vld;
 
 #define TEMPLATE_HEADER \
 template<wchar_t const *crtddll, wchar_t const *mfcddll, wchar_t const *mfcuddll,\
-    char const *crtd_scalar_new_dbg_name, char const *crtd_vector_new_dbg_name,\
-    char const *crtd_scalar_new_name, char const *crtd_vector_new_name,\
-    int mfcd_scalar_new_dbg_ordinal, int mfcd_vector_new_dbg_ordinal,\
-    int mfcd_scalar_new_ordinal, int mfcd_vector_new_ordinal,\
-    int mfcud_scalar_new_dbg_ordinal, int mfcud_vector_new_dbg_ordinal,\
-    int mfcud_scalar_new_ordinal, int mfcud_vector_new_ordinal>
+    char const *crtd_vector_new_name, char const *crtd_vector_new_dbg_name,\
+    char const *crtd_scalar_new_name, char const *crtd_scalar_new_dbg_name,\
+	int mfcd_vector_new_ordinal, int mfcd_vector_new_dbg_4p_ordinal, int mfcd_vector_new_dbg_3p_ordinal,\
+    int mfcd_scalar_new_ordinal, int mfcd_scalar_new_dbg_4p_ordinal, int mfcd_scalar_new_dbg_3p_ordinal,\
+	int mfcud_vector_new_ordinal, int mfcud_vector_new_dbg_4p_ordinal, int mfcud_vector_new_dbg_3p_ordinal,\
+    int mfcud_scalar_new_ordinal, int mfcud_scalar_new_dbg_4p_ordinal, int mfcud_scalar_new_dbg_3p_ordinal>
 
 #define TEMPLATE_ARGS \
     crtddll, mfcddll, mfcuddll,\
-    crtd_scalar_new_dbg_name, crtd_vector_new_dbg_name,\
-    crtd_scalar_new_name, crtd_vector_new_name,\
-    mfcd_scalar_new_dbg_ordinal, mfcd_vector_new_dbg_ordinal,\
-    mfcd_scalar_new_ordinal, mfcd_vector_new_ordinal,\
-    mfcud_scalar_new_dbg_ordinal, mfcud_vector_new_dbg_ordinal,\
-    mfcud_scalar_new_ordinal, mfcud_vector_new_ordinal
+    crtd_vector_new_name, crtd_vector_new_dbg_name,\
+    crtd_scalar_new_name, crtd_scalar_new_dbg_name,\
+	mfcd_vector_new_ordinal, mfcd_vector_new_dbg_4p_ordinal, mfcd_vector_new_dbg_3p_ordinal,\
+    mfcd_scalar_new_ordinal, mfcd_scalar_new_dbg_4p_ordinal, mfcd_scalar_new_dbg_3p_ordinal,\
+	mfcud_vector_new_ordinal, mfcud_vector_new_dbg_4p_ordinal, mfcud_vector_new_dbg_3p_ordinal,\
+    mfcud_scalar_new_ordinal, mfcud_scalar_new_dbg_4p_ordinal, mfcud_scalar_new_dbg_3p_ordinal
 
 TEMPLATE_HEADER
 class CrtMfcPatch
@@ -70,15 +70,21 @@ public:
     template<char const *procname>
     static void* __cdecl crtd_new (SIZE_T fp, unsigned int size);
 
-    static void* __cdecl mfcd__scalar_new_dbg (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcd__vector_new_dbg (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcd_scalar_new (unsigned int size);
     static void* __cdecl mfcd_vector_new (unsigned int size);
-    static void* __cdecl mfcud__scalar_new_dbg (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcud__vector_new_dbg (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcud_scalar_new (unsigned int size);
+    static void* __cdecl mfcd__vector_new_dbg_4p (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl mfcd__vector_new_dbg_3p (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcd_scalar_new (unsigned int size);
+    static void* __cdecl mfcd__scalar_new_dbg_4p (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl mfcd__scalar_new_dbg_3p (unsigned int size, char const *file, int line);
     static void* __cdecl mfcud_vector_new (unsigned int size);
+    static void* __cdecl mfcud__vector_new_dbg_4p (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl mfcud__vector_new_dbg_3p (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcud_scalar_new (unsigned int size);
+    static void* __cdecl mfcud__scalar_new_dbg_4p (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl mfcud__scalar_new_dbg_3p (unsigned int size, char const *file, int line);
 
+    template<wchar_t const *mfcdll, int ordinal>
+    static void* __cdecl mfcd_new_dbg (SIZE_T fp, unsigned int size, int type, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new_dbg (SIZE_T fp, unsigned int size, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
@@ -480,7 +486,36 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// mfcd__scalar_new_dbg - Calls to the MFC debug scalar new operator from
+// mfcd__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
+//   mfcXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (unsigned int size,
+														   int          type,
+                                                           char const  *file,
+                                                           int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_4p_ordinal>
+                       (fp, size, type, file, line);
+}
+
+// mfcd__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
 //   mfcXXd.dll are patched through to this function.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
@@ -495,17 +530,47 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg (unsigned int size,
-                                                        char const  *file,
-                                                        int         line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (unsigned int size,
+                                                           char const  *file,
+                                                           int          line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
 
-    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_ordinal>(fp, size, file, line);
+    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_3p_ordinal>
+                       (fp, size, file, line);
 }
 
-// mfcd__vector_new_dbg - Calls to the MFC debug vector new operator from
+// mfcd__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
+//   mfcXXd.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (unsigned int size,
+														   int          type,
+                                                           char const  *file,
+                                                           int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_4p_ordinal>
+                       (fp, size, type, file, line);
+}
+
+// mfcd__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
 //   mfcXXd.dll are patched through to this function.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
@@ -520,14 +585,15 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg (unsigned int size,
-                                                        char const  *file,
-                                                        int         line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (unsigned int size,
+                                                           char const  *file,
+                                                           int          line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
 
-    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_ordinal>(fp, size, file, line);
+    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_3p_ordinal>
+                       (fp, size, file, line);
 }
 
 // mfcd_scalar_new - Calls to the MFC scalar new operator from mfcXXd.dll are
@@ -566,7 +632,36 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
     return mfcd_new<mfcddll, mfcd_vector_new_ordinal>(fp, size);
 }
 
-// mfcud__scalar_new_dbg - Calls to the MFC debug scalar new operator from
+// mfcud__scalar_new_dbg_4p - Calls to the MFC debug scalar new operator from
+//   mfcXXud.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug scalar new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (unsigned int size,
+															int          type,
+                                                            char const  *file,
+                                                            int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_4p_ordinal>
+                       (fp, size, type, file, line);
+}
+
+// mfcud__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
 //   mfcXXud.dll are patched through to this function.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
@@ -581,17 +676,47 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg (unsigned int size,
-                                                         char const  *file,
-                                                         int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (unsigned int size,
+                                                            char const  *file,
+                                                            int          line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_ordinal>(fp, size, file, line);
+    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_3p_ordinal>
+                       (fp, size, file, line);
 }
 
-// mfcud__vector_new_dbg - Calls to the MFC debug vector new operator from
+// mfcud__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
+//   mfcXXud.dll are patched through to this function.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug vector new operator.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (unsigned int size,
+															int          type,
+                                                            char const  *file,
+                                                            int          line)
+{
+    SIZE_T  fp;
+    FRAMEPOINTER(fp);
+
+    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_4p_ordinal>
+                       (fp, size, type, file, line);
+}
+
+// mfcud__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
 //   mfcXXud.dll are patched through to this function.
 //
 //  - size (IN): The size, in bytes, of the memory block to be allocated.
@@ -606,14 +731,15 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg (unsigned int size,
-                                                         char const  *file,
-                                                         int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (unsigned int size,
+                                                            char const  *file,
+                                                            int          line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_ordinal>(fp, size, file, line);
+    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_3p_ordinal>
+                       (fp, size, file, line);
 }
 
 // mfcud_scalar_new - Calls to the MFC scalar new operator from mfcXXud.dll are
@@ -652,8 +778,54 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (unsigned int size)
     return mfcd_new<mfcuddll, mfcud_vector_new_ordinal>(fp, size);
 }
 
-// new_dbg_mfcT - A generic function for implementing patch functions to the MFC
-//   debug new operators.
+// mfcd_new_dbg - A generic function for implementing patch functions to the MFC
+//   debug new operators:
+//   void* __cdecl operator new[](unsigned int size, int type, char const *file, int line)
+//   void* __cdecl operator new(unsigned int size, int type, char const *file, int line)
+//
+//  - mfcdll (IN): The name of the MFC DLL
+//
+//  - ordinal (IN): The debug new operator's ordinal value
+//
+//  - type (IN): The "use type" of the block to be allocated.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the MFC debug new operator.
+//
+TEMPLATE_HEADER
+template<wchar_t const *mfcdll, int ordinal>
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
+                                                unsigned int size,
+                                                int          type,
+                                                char const  *file,
+                                                int          line)
+{
+    static new_dbg_crt_t pmfcxxd__new_dbg = NULL;
+
+    HMODULE mfcxxd;
+
+    if (pmfcxxd__new_dbg == NULL) {
+        // This is the first call to this function. Link to the real MFC debug
+        // new operator.
+        mfcxxd = GetModuleHandle(mfcdll);
+        pmfcxxd__new_dbg = (new_dbg_crt_t)GetProcAddress(mfcxxd, (LPCSTR)ordinal);
+    }
+
+    return vld.new_dbg_mfc(pmfcxxd__new_dbg, fp, size, type, file, line);
+}
+
+// mfcd_new_dbg - A generic function for implementing patch functions to the MFC
+//   debug new operators:
+//   void* __cdecl operator new[](unsigned int size, char const *file, int line)
+//   void* __cdecl operator new(unsigned int size, char const *file, int line)
 //
 //  - mfcdll (IN): The name of the MFC DLL
 //
@@ -691,7 +863,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
     return vld.new_dbg_mfc(pmfcxxd__new_dbg, fp, size, file, line);
 }
 
-// mfc_newT - A generic function for implementing patch functions to the MFC new
+// mfcd_new - A generic function for implementing patch functions to the MFC new
 //   operators.
 //
 //  - mfcdll (IN): The name of the MFC DLL
@@ -747,31 +919,36 @@ const extern wchar_t mfc90ud_dll[]  = L"mfc90ud.dll";
 
 // Visual Studio 6.0
 typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
-                    scalar_new_dbg_name, vector_new_dbg_name,
-                    scalar_new_name, vector_new_name,
-                    714, 0, 711, 0, 714, 0, 711, 0>
+                    vector_new_name, vector_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
+                    0, 0, 0, 711, 712, 714,
+					0, 0, 0, 711, 712, 714>
         VS60;
 // Visual Studio .NET 2002
 typedef CrtMfcPatch<msvcr70d_dll, mfc70d_dll, mfc70ud_dll,
-                    scalar_new_dbg_name, vector_new_dbg_name,
-                    scalar_new_name, vector_new_name,
-                    834, 259, 832, 257, 835, 260, 833, 258>
+                    vector_new_name, vector_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
+                    257, 258, 259, 832, 833, 834,
+					258, 259, 260, 833, 834, 835>
         VS70;
 // Visual Studio .NET 2003
 typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
-                    scalar_new_dbg_name, vector_new_dbg_name,
-                    scalar_new_name, vector_new_name,
-                    895, 269, 893, 267, 895, 269, 893, 267>
+                    vector_new_name, vector_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
+                    267, 268, 269, 893, 264, 895,
+					267, 268, 269, 893, 264, 895>
         VS71;
 // Visual Studio 2005
 typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
-                    scalar_new_dbg_name, vector_new_dbg_name,
-                    scalar_new_name, vector_new_name,
-                    895, 269, 893, 267, 895, 269, 893, 267>
+                    vector_new_name, vector_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
+                    267, 268, 269, 893, 894, 895,
+					267, 268, 269, 893, 894, 895>
         VS80;
 // Visual Studio 2008
 typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
-                    scalar_new_dbg_name, vector_new_dbg_name,
-                    scalar_new_name, vector_new_name,
-                    933, 269, 931, 267, 937, 269, 935, 267>
+                    vector_new_name, vector_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
+                    267, 268, 269, 931, 932, 933,
+					267, 268, 269, 935, 936, 937>
         VS90;

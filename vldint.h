@@ -180,6 +180,7 @@ public:
     void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, SIZE_T fp, size_t num, size_t size, int type, char const *file, int line);
     void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
     void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_crt_t pnew_dbg, SIZE_T fp, unsigned int size, int type, char const *file, int line);
     void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, unsigned int size, char const *file, int line);
     void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, SIZE_T fp, void *mem, size_t size, int type, char const *file, int line);
 

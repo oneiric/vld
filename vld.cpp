@@ -59,7 +59,7 @@ HANDLE           currentthread;  // Pseudo-handle for the current thread.
 CRITICAL_SECTION imagelock;      // Serializes calls to the Debug Help Library PE image access APIs.
 HANDLE           processheap;    // Handle to the process's heap (COM allocations come from here).
 CRITICAL_SECTION stackwalklock;  // Serializes calls to StackWalk64 from the Debug Help Library.
-CRITICAL_SECTION symbollock;     // Serializes calls to the Debug Help Library symbold handling APIs.
+CRITICAL_SECTION symbollock;     // Serializes calls to the Debug Help Library symbols handling APIs.
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector vld;
@@ -83,42 +83,61 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
 
     // MFC new operators (exported by ordinal).
     // XXX why are the vector new operators missing for mfc42d.dll?
-    "mfc42d.dll",   (LPCSTR)714,          0x0, VS60::mfcd__scalar_new_dbg,
     "mfc42d.dll",   (LPCSTR)711,          0x0, VS60::mfcd_scalar_new,
-    "mfc42ud.dll",  (LPCSTR)714,          0x0, VS60::mfcud__scalar_new_dbg,
+    "mfc42d.dll",   (LPCSTR)712,          0x0, VS60::mfcd__scalar_new_dbg_4p,
+    "mfc42d.dll",   (LPCSTR)714,          0x0, VS60::mfcd__scalar_new_dbg_3p,
     "mfc42ud.dll",  (LPCSTR)711,          0x0, VS60::mfcud_scalar_new,
-    "mfc70d.dll",   (LPCSTR)834,          0x0, VS70::mfcd__scalar_new_dbg,
-    "mfc70d.dll",   (LPCSTR)259,          0x0, VS70::mfcd__vector_new_dbg,
-    "mfc70d.dll",   (LPCSTR)832,          0x0, VS70::mfcd_scalar_new,
+    "mfc42ud.dll",  (LPCSTR)712,          0x0, VS60::mfcud__scalar_new_dbg_4p,
+    "mfc42ud.dll",  (LPCSTR)714,          0x0, VS60::mfcud__scalar_new_dbg_3p,
     "mfc70d.dll",   (LPCSTR)257,          0x0, VS70::mfcd_vector_new,
-    "mfc70ud.dll",  (LPCSTR)835,          0x0, VS70::mfcud__scalar_new_dbg,
-    "mfc70ud.dll",  (LPCSTR)260,          0x0, VS70::mfcud__vector_new_dbg,
-    "mfc70ud.dll",  (LPCSTR)833,          0x0, VS70::mfcud_scalar_new,
+    "mfc70d.dll",   (LPCSTR)258,          0x0, VS70::mfcd__vector_new_dbg_4p,
+    "mfc70d.dll",   (LPCSTR)259,          0x0, VS70::mfcd__vector_new_dbg_3p,
+    "mfc70d.dll",   (LPCSTR)832,          0x0, VS70::mfcd_scalar_new,
+    "mfc70d.dll",   (LPCSTR)833,          0x0, VS70::mfcd__scalar_new_dbg_4p,
+    "mfc70d.dll",   (LPCSTR)834,          0x0, VS70::mfcd__scalar_new_dbg_3p,
     "mfc70ud.dll",  (LPCSTR)258,          0x0, VS70::mfcud_vector_new,
-    "mfc71d.dll",   (LPCSTR)895,          0x0, VS71::mfcd__scalar_new_dbg,
-    "mfc71d.dll",   (LPCSTR)269,          0x0, VS71::mfcd__vector_new_dbg,
-    "mfc71d.dll",   (LPCSTR)893,          0x0, VS71::mfcd_scalar_new,
+    "mfc70ud.dll",  (LPCSTR)259,          0x0, VS70::mfcud__vector_new_dbg_4p,
+    "mfc70ud.dll",  (LPCSTR)260,          0x0, VS70::mfcud__vector_new_dbg_3p,
+    "mfc70ud.dll",  (LPCSTR)833,          0x0, VS70::mfcud_scalar_new,
+    "mfc70ud.dll",  (LPCSTR)834,          0x0, VS70::mfcud__scalar_new_dbg_4p,
+    "mfc70ud.dll",  (LPCSTR)835,          0x0, VS70::mfcud__scalar_new_dbg_3p,
     "mfc71d.dll",   (LPCSTR)267,          0x0, VS71::mfcd_vector_new,
-    "mfc71ud.dll",  (LPCSTR)895,          0x0, VS71::mfcud__scalar_new_dbg,
-    "mfc71ud.dll",  (LPCSTR)269,          0x0, VS71::mfcud__vector_new_dbg,
-    "mfc71ud.dll",  (LPCSTR)893,          0x0, VS71::mfcud_scalar_new,
+    "mfc71d.dll",   (LPCSTR)268,          0x0, VS71::mfcd__vector_new_dbg_4p,
+    "mfc71d.dll",   (LPCSTR)269,          0x0, VS71::mfcd__vector_new_dbg_3p,
+    "mfc71d.dll",   (LPCSTR)893,          0x0, VS71::mfcd_scalar_new,
+    "mfc71d.dll",   (LPCSTR)894,          0x0, VS71::mfcd__scalar_new_dbg_4p,
+    "mfc71d.dll",   (LPCSTR)895,          0x0, VS71::mfcd__scalar_new_dbg_3p,
     "mfc71ud.dll",  (LPCSTR)267,          0x0, VS71::mfcud_vector_new,
-    "mfc80d.dll",   (LPCSTR)895,          0x0, VS80::mfcd__scalar_new_dbg,
-    "mfc80d.dll",   (LPCSTR)269,          0x0, VS80::mfcd__vector_new_dbg,
-    "mfc80d.dll",   (LPCSTR)893,          0x0, VS80::mfcd_scalar_new,
+    "mfc71ud.dll",  (LPCSTR)268,          0x0, VS71::mfcud__vector_new_dbg_4p,
+    "mfc71ud.dll",  (LPCSTR)269,          0x0, VS71::mfcud__vector_new_dbg_3p,
+    "mfc71ud.dll",  (LPCSTR)893,          0x0, VS71::mfcud_scalar_new,
+    "mfc71ud.dll",  (LPCSTR)894,          0x0, VS71::mfcud__scalar_new_dbg_4p,
+    "mfc71ud.dll",  (LPCSTR)895,          0x0, VS71::mfcud__scalar_new_dbg_3p,
     "mfc80d.dll",   (LPCSTR)267,          0x0, VS80::mfcd_vector_new,
-    "mfc80ud.dll",  (LPCSTR)895,          0x0, VS80::mfcud__scalar_new_dbg,
-    "mfc80ud.dll",  (LPCSTR)269,          0x0, VS80::mfcud__vector_new_dbg,
-    "mfc80ud.dll",  (LPCSTR)893,          0x0, VS80::mfcud_scalar_new,
+// FIXME To be verified
+    "mfc80d.dll",   (LPCSTR)268,          0x0, VS80::mfcd__vector_new_dbg_4p,
+    "mfc80d.dll",   (LPCSTR)269,          0x0, VS80::mfcd__vector_new_dbg_3p,
+    "mfc80d.dll",   (LPCSTR)893,          0x0, VS80::mfcd_scalar_new,
+    "mfc80d.dll",   (LPCSTR)894,          0x0, VS80::mfcd__scalar_new_dbg_4p,
+    "mfc80d.dll",   (LPCSTR)895,          0x0, VS80::mfcd__scalar_new_dbg_3p,
     "mfc80ud.dll",  (LPCSTR)267,          0x0, VS80::mfcud_vector_new,
-    "mfc90d.dll",   (LPCSTR)933,          0x0, VS90::mfcd__scalar_new_dbg,
-    "mfc90d.dll",   (LPCSTR)269,          0x0, VS90::mfcd__vector_new_dbg,
-    "mfc90d.dll",   (LPCSTR)931,          0x0, VS90::mfcd_scalar_new,
+    "mfc80ud.dll",  (LPCSTR)268,          0x0, VS80::mfcud__vector_new_dbg_4p,
+    "mfc80ud.dll",  (LPCSTR)269,          0x0, VS80::mfcud__vector_new_dbg_3p,
+    "mfc80ud.dll",  (LPCSTR)893,          0x0, VS80::mfcud_scalar_new,
+    "mfc80ud.dll",  (LPCSTR)894,          0x0, VS80::mfcud__scalar_new_dbg_4p,
+    "mfc80ud.dll",  (LPCSTR)895,          0x0, VS80::mfcud__scalar_new_dbg_3p,
     "mfc90d.dll",   (LPCSTR)267,          0x0, VS90::mfcd_vector_new,
-    "mfc90ud.dll",  (LPCSTR)937,          0x0, VS90::mfcud__scalar_new_dbg,
-    "mfc90ud.dll",  (LPCSTR)269,          0x0, VS90::mfcud__vector_new_dbg,
-    "mfc90ud.dll",  (LPCSTR)935,          0x0, VS90::mfcud_scalar_new,
+    "mfc90d.dll",   (LPCSTR)268,          0x0, VS90::mfcd__vector_new_dbg_4p,
+    "mfc90d.dll",   (LPCSTR)269,          0x0, VS90::mfcd__vector_new_dbg_3p,
+    "mfc90d.dll",   (LPCSTR)931,          0x0, VS90::mfcd_scalar_new,
+    "mfc90d.dll",   (LPCSTR)932,          0x0, VS90::mfcd__scalar_new_dbg_4p,
+    "mfc90d.dll",   (LPCSTR)933,          0x0, VS90::mfcd__scalar_new_dbg_3p,
     "mfc90ud.dll",  (LPCSTR)267,          0x0, VS90::mfcud_vector_new,
+    "mfc90ud.dll",  (LPCSTR)268,          0x0, VS90::mfcud__vector_new_dbg_4p,
+    "mfc90ud.dll",  (LPCSTR)269,          0x0, VS90::mfcud__vector_new_dbg_3p,
+    "mfc90ud.dll",  (LPCSTR)935,          0x0, VS90::mfcud_scalar_new,
+    "mfc90ud.dll",  (LPCSTR)936,          0x0, VS90::mfcud__scalar_new_dbg_4p,
+    "mfc90ud.dll",  (LPCSTR)937,          0x0, VS90::mfcud__scalar_new_dbg_3p,
 
     // CRT new operators and heap APIs.
     "msvcrtd.dll",  "_calloc_dbg",        0x0, VS60::crtd__calloc_dbg,
@@ -945,7 +964,7 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
     return erased;
 }
 
-// gettls - Obtains the thread local strorage structure for the calling thread.
+// gettls - Obtains the thread local storage structure for the calling thread.
 //
 //  Return Value:
 //
@@ -1854,6 +1873,54 @@ void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pnew_dbg_crt(size, type, file, line);
+
+    // Reset thread local flags and variables for the next allocation.
+    tls->addrfp = 0x0;
+    tls->flags &= ~VLD_TLS_CRTALLOC;
+
+    return block;
+}
+
+// new_dbg_mfc - This function is just a wrapper around the real MFC debug new
+//   operators that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - pnew_dbg (IN): Pointer to the particular CRT new operator
+//      implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified CRT debug new operator.
+//
+void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
+                                       SIZE_T         fp,
+                                       unsigned int   size,
+                                       int            type,
+                                       char const    *file,
+                                       int            line)
+{
+    void  *block;
+    tls_t *tls = vld.gettls();
+
+    if (tls->addrfp == 0x0) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        tls->addrfp = fp;
+    }
+
+    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
+    block = pnew_dbg(size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
     tls->addrfp = 0x0;
