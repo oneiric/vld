@@ -114,7 +114,6 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "mfc71ud.dll",  (LPCSTR)894,          0x0, VS71::mfcud__scalar_new_dbg_4p,
     "mfc71ud.dll",  (LPCSTR)895,          0x0, VS71::mfcud__scalar_new_dbg_3p,
     "mfc80d.dll",   (LPCSTR)267,          0x0, VS80::mfcd_vector_new,
-// FIXME To be verified
     "mfc80d.dll",   (LPCSTR)268,          0x0, VS80::mfcd__vector_new_dbg_4p,
     "mfc80d.dll",   (LPCSTR)269,          0x0, VS80::mfcd__vector_new_dbg_3p,
     "mfc80d.dll",   (LPCSTR)893,          0x0, VS80::mfcd_scalar_new,
@@ -1519,7 +1518,7 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
 //   module has not previously been attached to, then calling this function will
 //   not actually result in any changes.
 //
-//  - modulepath (IN): String containing the name, which may inlcude a path, of
+//  - modulepath (IN): String containing the name, which may include a path, of
 //      the module to detach from (ignored).
 //
 //  - modulebase (IN): Base address of the module.

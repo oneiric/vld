@@ -36,18 +36,18 @@ extern __declspec(dllexport) VisualLeakDetector vld;
 template<wchar_t const *crtddll, wchar_t const *mfcddll, wchar_t const *mfcuddll,\
     char const *crtd_vector_new_name, char const *crtd_vector_new_dbg_name,\
     char const *crtd_scalar_new_name, char const *crtd_scalar_new_dbg_name,\
-	int mfcd_vector_new_ordinal, int mfcd_vector_new_dbg_4p_ordinal, int mfcd_vector_new_dbg_3p_ordinal,\
+    int mfcd_vector_new_ordinal, int mfcd_vector_new_dbg_4p_ordinal, int mfcd_vector_new_dbg_3p_ordinal,\
     int mfcd_scalar_new_ordinal, int mfcd_scalar_new_dbg_4p_ordinal, int mfcd_scalar_new_dbg_3p_ordinal,\
-	int mfcud_vector_new_ordinal, int mfcud_vector_new_dbg_4p_ordinal, int mfcud_vector_new_dbg_3p_ordinal,\
+    int mfcud_vector_new_ordinal, int mfcud_vector_new_dbg_4p_ordinal, int mfcud_vector_new_dbg_3p_ordinal,\
     int mfcud_scalar_new_ordinal, int mfcud_scalar_new_dbg_4p_ordinal, int mfcud_scalar_new_dbg_3p_ordinal>
 
 #define TEMPLATE_ARGS \
     crtddll, mfcddll, mfcuddll,\
     crtd_vector_new_name, crtd_vector_new_dbg_name,\
     crtd_scalar_new_name, crtd_scalar_new_dbg_name,\
-	mfcd_vector_new_ordinal, mfcd_vector_new_dbg_4p_ordinal, mfcd_vector_new_dbg_3p_ordinal,\
+    mfcd_vector_new_ordinal, mfcd_vector_new_dbg_4p_ordinal, mfcd_vector_new_dbg_3p_ordinal,\
     mfcd_scalar_new_ordinal, mfcd_scalar_new_dbg_4p_ordinal, mfcd_scalar_new_dbg_3p_ordinal,\
-	mfcud_vector_new_ordinal, mfcud_vector_new_dbg_4p_ordinal, mfcud_vector_new_dbg_3p_ordinal,\
+    mfcud_vector_new_ordinal, mfcud_vector_new_dbg_4p_ordinal, mfcud_vector_new_dbg_3p_ordinal,\
     mfcud_scalar_new_ordinal, mfcud_scalar_new_dbg_4p_ordinal, mfcud_scalar_new_dbg_3p_ordinal
 
 TEMPLATE_HEADER
@@ -504,7 +504,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
 //
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (unsigned int size,
-														   int          type,
+                                                           int          type,
                                                            char const  *file,
                                                            int          line)
 {
@@ -559,7 +559,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (unsigned int size,
 //
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (unsigned int size,
-														   int          type,
+                                                           int          type,
                                                            char const  *file,
                                                            int          line)
 {
@@ -650,7 +650,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
 //
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (unsigned int size,
-															int          type,
+                                                            int          type,
                                                             char const  *file,
                                                             int          line)
 {
@@ -705,7 +705,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (unsigned int size,
 //
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (unsigned int size,
-															int          type,
+                                                            int          type,
                                                             char const  *file,
                                                             int          line)
 {
@@ -922,33 +922,33 @@ typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
                     0, 0, 0, 711, 712, 714,
-					0, 0, 0, 711, 712, 714>
+                    0, 0, 0, 711, 712, 714>
         VS60;
 // Visual Studio .NET 2002
 typedef CrtMfcPatch<msvcr70d_dll, mfc70d_dll, mfc70ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
                     257, 258, 259, 832, 833, 834,
-					258, 259, 260, 833, 834, 835>
+                    258, 259, 260, 833, 834, 835>
         VS70;
 // Visual Studio .NET 2003
 typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
                     267, 268, 269, 893, 264, 895,
-					267, 268, 269, 893, 264, 895>
+                    267, 268, 269, 893, 264, 895>
         VS71;
 // Visual Studio 2005
 typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
                     267, 268, 269, 893, 894, 895,
-					267, 268, 269, 893, 894, 895>
+                    267, 268, 269, 893, 894, 895>
         VS80;
 // Visual Studio 2008
 typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
                     267, 268, 269, 931, 932, 933,
-					267, 268, 269, 935, 936, 937>
+                    267, 268, 269, 935, 936, 937>
         VS90;
