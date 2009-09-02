@@ -935,8 +935,8 @@ typedef CrtMfcPatch<msvcr70d_dll, mfc70d_dll, mfc70ud_dll,
 typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
-                    267, 268, 269, 893, 264, 895,
-                    267, 268, 269, 893, 264, 895>
+                    267, 268, 269, 893, 894, 895,
+                    267, 268, 269, 893, 894, 895>
         VS71;
 // Visual Studio 2005
 typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
