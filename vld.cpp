@@ -28,6 +28,9 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include <windows.h>
+#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
+#include <tlhelp32.h>
+#endif
 #ifndef __out_xcount
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #endif
@@ -380,6 +383,13 @@ VisualLeakDetector::~VisualLeakDetector ()
     HANDLE               thread;
     BOOL                 threadsactive= FALSE;
     TlsSet::Iterator     tlsit;
+#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
+    DWORD                dwCurProcessID;
+    HANDLE               hSnapshot;
+    THREADENTRY32        te;
+    Set<DWORD>          *threadset;
+    Set<DWORD>::Iterator threadit;
+#endif
 
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -390,11 +400,37 @@ VisualLeakDetector::~VisualLeakDetector ()
         // Detach Visual Leak Detector from all previously attached modules.
         EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
 
+#if _WIN32_WINNT < 0x0502
+        // Create a list of running threads in current process.
+        threadset = new Set<DWORD>;
+        dwCurProcessID = GetCurrentProcessId();
+        hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, dwCurProcessID);
+        if (hSnapshot != INVALID_HANDLE_VALUE) {
+            te.dwSize = sizeof(te);
+            if (Thread32First(hSnapshot, &te)) do {
+                if (dwCurProcessID == te.th32OwnerProcessID) {
+                    // Save a valid thread id
+                    threadset->insert(te.th32ThreadID);
+                }
+                te.dwSize = sizeof(te);
+            } while (Thread32Next(hSnapshot, &te));
+
+            CloseHandle(hSnapshot);
+        }
+#endif
         // See if any threads that have ever entered VLD's code are still active.
         EnterCriticalSection(&m_tlslock);
         for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
             if ((*tlsit)->threadid == GetCurrentThreadId()) {
                 // Don't wait for the current thread to exit.
+                continue;
+            }
+#if _WIN32_WINNT < 0x0502
+            for (threadit = threadset->begin(); threadit != threadset->end(); ++threadit) {
+                if (*threadit == (*tlsit)->threadid) break;
+            }
+            if (threadit == threadset->end()) {
+                // Not running any more. The thread ID could have been recycled.
                 continue;
             }
 
@@ -403,6 +439,13 @@ VisualLeakDetector::~VisualLeakDetector ()
                 // Couldn't query this thread. We'll assume that it exited.
                 continue; // XXX should we check GetLastError()?
             }
+#else
+            thread = verifythreadid((*tlsit)->threadid);
+            if (thread == NULL) {
+                // Not a valid thread. We'll assume that it exited.
+                continue;
+            }
+#endif
             while (WaitForSingleObject(thread, 10000) == WAIT_TIMEOUT) { // 10 seconds
                 // There is still at least one other thread running. The CRT
                 // will stomp it dead when it cleans up, which is not a
@@ -418,6 +461,10 @@ VisualLeakDetector::~VisualLeakDetector ()
             CloseHandle(thread);
         }
         LeaveCriticalSection(&m_tlslock);
+
+#if _WIN32_WINNT < 0x0502
+        delete threadset;
+#endif
 
         if (m_status & VLD_STATUS_NEVER_ENABLED) {
             // Visual Leak Detector started with leak detection disabled and

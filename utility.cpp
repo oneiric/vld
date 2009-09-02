@@ -24,6 +24,9 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
+#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
+#include <tlhelp32.h>
+#endif
 #ifndef __out_xcount
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #endif
@@ -779,4 +782,76 @@ BOOL strtobool (LPCWSTR s) {
     else {
         return FALSE;
     }
+}
+
+// verifythreadid - Checks if a thread was created by current process.
+//
+//  - threadid (IN): ID of the thread to be checked.
+//
+//  Return Value:
+//
+//    Returns a handle to the thread if the process is the owner of the thread.
+//    Otherwise returns NULL.
+//
+HANDLE verifythreadid (DWORD threadid)
+{
+    DWORD           dwCurProcessID = GetCurrentProcessId();
+    HANDLE          thread;
+
+#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
+    HANDLE          hSnapshot;
+    THREADENTRY32   te;
+
+    // Because the thread may exit and the thread ID can be recycled when we are
+    // checking, open the thread first and then verify if it's a valid handle.
+    thread = OpenThread(SYNCHRONIZE, FALSE, threadid);
+    if (thread == NULL) {
+        // Couldn't query this thread. We'll assume that it exited.
+        return NULL; // XXX should we check GetLastError()?
+    }
+    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, dwCurProcessID);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        // Can't take a snap shot.
+        CloseHandle(thread);
+        return NULL;
+    }
+
+    te.dwSize = sizeof(te);
+    if (Thread32First(hSnapshot, &te)) do {
+        if (te.th32ThreadID != threadid) {
+            te.dwSize = sizeof(te);
+            continue;
+        }
+
+        if (dwCurProcessID == te.th32OwnerProcessID) {
+            // Valid thread id
+            CloseHandle(hSnapshot);
+            return thread;
+        } else {
+            // The thread id has been recycled
+            break;
+        }
+    } while (Thread32Next(hSnapshot, &te));
+
+    CloseHandle(hSnapshot);
+    CloseHandle(thread);
+
+    return NULL;
+
+#else
+
+    thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, threadid);
+    if (thread == NULL) {
+        // Couldn't query this thread. We'll assume that it exited.
+        return NULL; // XXX should we check GetLastError()?
+    }
+    if (GetProcessIdOfThread(thread) != dwCurProcessID) {
+        //The thread ID has been recycled.
+        CloseHandle(thread);
+        return NULL;
+    }
+
+    return thread;
+
+#endif
 }

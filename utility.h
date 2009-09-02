@@ -106,3 +106,4 @@ VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
 VOID strapp (LPWSTR *dest, LPCWSTR source);
 BOOL strtobool (LPCWSTR s);
+HANDLE verifythreadid (DWORD threadid);
