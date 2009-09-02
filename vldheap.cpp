@@ -34,7 +34,7 @@ CRITICAL_SECTION  vldheaplock;         // Serializes access to VLD's private hea
 
 // Local helper functions.
 static inline void vlddelete (void *block);
-static inline void* vldnew (unsigned int size, const char *file, int line);
+static inline void* vldnew (size_t size, const char *file, int line);
 
 // scalar delete operator - Delete operator used to free internally used memory
 //   back to VLD's private heap.
@@ -104,7 +104,7 @@ void operator delete [] (void *block, const char *, int)
 //    If the allocation succeeds, a pointer to the allocated memory block is
 //    returned. If the allocation fails, NULL is returned.
 //
-void* operator new (unsigned int size, const char *file, int line)
+void* operator new (size_t size, const char *file, int line)
 {
     return vldnew(size, file, line);
 }
@@ -125,7 +125,7 @@ void* operator new (unsigned int size, const char *file, int line)
 //    If the allocation succeeds, a pointer to the allocated memory block is
 //    returned. If the allocation fails, NULL is returned.
 //
-void* operator new [] (unsigned int size, const char *file, int line)
+void* operator new [] (size_t size, const char *file, int line)
 {
     return vldnew(size, file, line);
 }
@@ -181,7 +181,7 @@ void vlddelete (void *block)
 //    If the memory allocation succeeds, a pointer to the allocated memory
 //    block is returned. If the allocation fails, NULL is returned.
 //
-void* vldnew (unsigned int size, const char *file, int line)
+void* vldnew (size_t size, const char *file, int line)
 {
     vldblockheader_t *header = (vldblockheader_t*)RtlAllocateHeap(vldheap, 0x0, size + sizeof(vldblockheader_t));
     static SIZE_T     serialnumber = 0;

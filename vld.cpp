@@ -1647,9 +1647,7 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
 //
 //    Returns the value returned by the specified CRT new operator.
 //
-void* VisualLeakDetector::_new (new_t        pnew,
-                                SIZE_T       fp,
-                                unsigned int size)
+void* VisualLeakDetector::_new (new_t pnew, SIZE_T fp, size_t size)
 {
     void  *block;
     tls_t *tls = vld.gettls();
@@ -1853,7 +1851,7 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 //
 void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
                                        SIZE_T         fp,
-                                       unsigned int   size,
+                                       size_t         size,
                                        int            type,
                                        char const    *file,
                                        int            line)
@@ -1904,7 +1902,7 @@ void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 //
 void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
                                        SIZE_T         fp,
-                                       unsigned int   size,
+                                       size_t         size,
                                        int            type,
                                        char const    *file,
                                        int            line)
@@ -1950,7 +1948,7 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 //
 void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
                                        SIZE_T         fp,
-                                       unsigned int   size,
+                                       size_t         size,
                                        char const    *file,
                                        int            line)
 {

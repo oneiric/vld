@@ -57,38 +57,38 @@ public:
     static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
     static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
     static void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
-    static void* __cdecl crtd__scalar_new_dbg (unsigned int size, int type, char const *file, int line);
-    static void* __cdecl crtd__vector_new_dbg (unsigned int size, int type, char const *file, int line);
+    static void* __cdecl crtd__scalar_new_dbg (size_t size, int type, char const *file, int line);
+    static void* __cdecl crtd__vector_new_dbg (size_t size, int type, char const *file, int line);
     static void* __cdecl crtd_calloc (size_t num, size_t size);
     static void* __cdecl crtd_malloc (size_t size);
     static void* __cdecl crtd_realloc (void *mem, size_t size);
-    static void* __cdecl crtd_scalar_new (unsigned int size);
-    static void* __cdecl crtd_vector_new (unsigned int size);
+    static void* __cdecl crtd_scalar_new (size_t size);
+    static void* __cdecl crtd_vector_new (size_t size);
 
     template<char const *procname>
-    static void* __cdecl crtd_new_dbg (SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    static void* __cdecl crtd_new_dbg (SIZE_T fp, size_t size, int type, char const *file, int line);
     template<char const *procname>
-    static void* __cdecl crtd_new (SIZE_T fp, unsigned int size);
+    static void* __cdecl crtd_new (SIZE_T fp, size_t size);
 
-    static void* __cdecl mfcd_vector_new (unsigned int size);
-    static void* __cdecl mfcd__vector_new_dbg_4p (unsigned int size, int type, char const *file, int line);
-    static void* __cdecl mfcd__vector_new_dbg_3p (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcd_scalar_new (unsigned int size);
-    static void* __cdecl mfcd__scalar_new_dbg_4p (unsigned int size, int type, char const *file, int line);
-    static void* __cdecl mfcd__scalar_new_dbg_3p (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcud_vector_new (unsigned int size);
-    static void* __cdecl mfcud__vector_new_dbg_4p (unsigned int size, int type, char const *file, int line);
-    static void* __cdecl mfcud__vector_new_dbg_3p (unsigned int size, char const *file, int line);
-    static void* __cdecl mfcud_scalar_new (unsigned int size);
-    static void* __cdecl mfcud__scalar_new_dbg_4p (unsigned int size, int type, char const *file, int line);
-    static void* __cdecl mfcud__scalar_new_dbg_3p (unsigned int size, char const *file, int line);
+    static void* __cdecl mfcd_vector_new (size_t size);
+    static void* __cdecl mfcd__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcd__vector_new_dbg_3p (size_t size, char const *file, int line);
+    static void* __cdecl mfcd_scalar_new (size_t size);
+    static void* __cdecl mfcd__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcd__scalar_new_dbg_3p (size_t size, char const *file, int line);
+    static void* __cdecl mfcud_vector_new (size_t size);
+    static void* __cdecl mfcud__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcud__vector_new_dbg_3p (size_t size, char const *file, int line);
+    static void* __cdecl mfcud_scalar_new (size_t size);
+    static void* __cdecl mfcud__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (SIZE_T fp, unsigned int size, int type, char const *file, int line);
+    static void* __cdecl mfcd_new_dbg (SIZE_T fp, size_t size, int type, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (SIZE_T fp, unsigned int size, char const *file, int line);
+    static void* __cdecl mfcd_new_dbg (SIZE_T fp, size_t size, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new (SIZE_T fp, unsigned int size);
+    static void* __cdecl mfcd_new (SIZE_T fp, size_t size);
 };
 
 
@@ -238,10 +238,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
 //    Returns the value returned by the CRT debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (unsigned int size,
-                                                        int          type,
-                                                        char const  *file,
-                                                        int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (size_t      size,
+                                                        int         type,
+                                                        char const *file,
+                                                        int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -266,10 +266,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (unsigned int size,
 //    Returns the value returned by the CRT debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (unsigned int size,
-                                                        int          type,
-                                                        char const  *file,
-                                                        int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (size_t      size,
+                                                        int         type,
+                                                        char const *file,
+                                                        int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -381,7 +381,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 //    Returns the value returned by the CRT scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -399,7 +399,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (unsigned int size)
 //    Returns the value returned by the CRT vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -429,11 +429,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (unsigned int size)
 //
 TEMPLATE_HEADER
 template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T       fp,
-                                                unsigned int size,
-                                                int          type,
-                                                char const  *file,
-                                                int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T      fp,
+                                                size_t      size,
+                                                int         type,
+                                                char const *file,
+                                                int         line)
 {
     static new_dbg_crt_t pcrtxxd_new_dbg = NULL;
 
@@ -464,7 +464,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T       fp,
 //
 TEMPLATE_HEADER
 template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, size_t size)
 {
     static new_t pcrtxxd_scalar_new = NULL;
 
@@ -503,7 +503,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, unsigned int size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (unsigned int size,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -530,7 +530,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (unsigned int size,
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (unsigned int size,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -558,7 +558,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (unsigned int size,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -585,7 +585,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (unsigned int size,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -606,7 +606,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (unsigned int size,
 //    Returns the value returned by the MFC scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -624,7 +624,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (unsigned int size)
 //    Returns the value returned by the MFC vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -649,10 +649,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (unsigned int size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (unsigned int size,
-                                                            int          type,
-                                                            char const  *file,
-                                                            int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (size_t      size,
+                                                            int         type,
+                                                            char const *file,
+                                                            int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -676,9 +676,9 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (unsigned int size,
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (unsigned int size,
-                                                            char const  *file,
-                                                            int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (size_t      size,
+                                                            char const *file,
+                                                            int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -704,10 +704,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (unsigned int size,
-                                                            int          type,
-                                                            char const  *file,
-                                                            int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (size_t      size,
+                                                            int         type,
+                                                            char const *file,
+                                                            int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -731,9 +731,9 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (unsigned int size,
 //    Returns the value returned by the MFC debug vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (unsigned int size,
-                                                            char const  *file,
-                                                            int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (size_t      size,
+                                                            char const *file,
+                                                            int         line)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -752,7 +752,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (unsigned int size,
 //    Returns the value returned by the MFC scalar new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -770,7 +770,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (unsigned int size)
 //    Returns the value returned by the MFC vector new operator.
 //
 TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (size_t size)
 {
     SIZE_T  fp;
     FRAMEPOINTER(fp);
@@ -780,8 +780,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (unsigned int size)
 
 // mfcd_new_dbg - A generic function for implementing patch functions to the MFC
 //   debug new operators:
-//   void* __cdecl operator new[](unsigned int size, int type, char const *file, int line)
-//   void* __cdecl operator new(unsigned int size, int type, char const *file, int line)
+//   void* __cdecl operator new[](size_t size, int type, char const *file, int line)
+//   void* __cdecl operator new(size_t size, int type, char const *file, int line)
 //
 //  - mfcdll (IN): The name of the MFC DLL
 //
@@ -802,11 +802,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (unsigned int size)
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
-                                                unsigned int size,
-                                                int          type,
-                                                char const  *file,
-                                                int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
+                                                size_t      size,
+                                                int         type,
+                                                char const *file,
+                                                int         line)
 {
     static new_dbg_crt_t pmfcxxd__new_dbg = NULL;
 
@@ -824,8 +824,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
 
 // mfcd_new_dbg - A generic function for implementing patch functions to the MFC
 //   debug new operators:
-//   void* __cdecl operator new[](unsigned int size, char const *file, int line)
-//   void* __cdecl operator new(unsigned int size, char const *file, int line)
+//   void* __cdecl operator new[](size_t size, char const *file, int line)
+//   void* __cdecl operator new(size_t size, char const *file, int line)
 //
 //  - mfcdll (IN): The name of the MFC DLL
 //
@@ -844,10 +844,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
-                                                unsigned int size,
-                                                char const  *file,
-                                                int          line)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
+                                                size_t      size,
+                                                char const *file,
+                                                int         line)
 {
     static new_dbg_mfc_t pmfcxxd__new_dbg = NULL;
 
@@ -878,7 +878,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T       fp,
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (SIZE_T fp, unsigned int size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (SIZE_T fp, size_t size)
 {
     static new_t pmfcxxd_new = NULL;
 

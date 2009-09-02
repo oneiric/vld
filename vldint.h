@@ -57,9 +57,9 @@ typedef HRESULT (__stdcall *CoGetMalloc_t) (DWORD, LPMALLOC *);
 typedef LPVOID (__stdcall *CoTaskMemAlloc_t) (ULONG);
 typedef LPVOID (__stdcall *CoTaskMemRealloc_t) (LPVOID, ULONG);
 typedef void* (__cdecl *malloc_t) (size_t);
-typedef void* (__cdecl *new_t) (unsigned int);
-typedef void* (__cdecl *new_dbg_crt_t) (unsigned int, int, const char *, int);
-typedef void* (__cdecl *new_dbg_mfc_t) (unsigned int, const char *, int);
+typedef void* (__cdecl *new_t) (size_t);
+typedef void* (__cdecl *new_dbg_crt_t) (size_t, int, const char *, int);
+typedef void* (__cdecl *new_dbg_mfc_t) (size_t, const char *, int);
 typedef void* (__cdecl *realloc_t) (void *, size_t);
 
 // Data is collected for every block allocated from any heap in the process.
@@ -173,15 +173,15 @@ public:
     // Standard CRT and MFC common handlers
     void* _calloc (calloc_t pcalloc, SIZE_T fp, size_t num, size_t size);
     void* _malloc (malloc_t pmalloc, SIZE_T fp, size_t size);
-    void* _new (new_t pnew, SIZE_T fp, unsigned int size); 
+    void* _new (new_t pnew, SIZE_T fp, size_t size); 
     void* _realloc (realloc_t prealloc, SIZE_T fp, void *mem, size_t size);
 
     // Debug CRT and MFC common handlers
     void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, SIZE_T fp, size_t num, size_t size, int type, char const *file, int line);
     void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
-    void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, unsigned int size, int type, char const *file, int line);
-    void* new_dbg_mfc (new_dbg_crt_t pnew_dbg, SIZE_T fp, unsigned int size, int type, char const *file, int line);
-    void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, unsigned int size, char const *file, int line);
+    void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, SIZE_T fp, size_t size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_crt_t pnew_dbg, SIZE_T fp, size_t size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, SIZE_T fp, size_t size, char const *file, int line);
     void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, SIZE_T fp, void *mem, size_t size, int type, char const *file, int line);
 
 ////////////////////////////////////////////////////////////////////////////////

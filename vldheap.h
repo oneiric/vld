@@ -71,7 +71,7 @@ typedef struct vldblockheader_s
     struct vldblockheader_s *prev;          // Pointer to the preceding block in the list of internally allocated blocks.
     const char              *file;          // Name of the file where this block was allocated.
     int                      line;          // Line number within the above file where this block was allocated.
-    unsigned int             size;          // The size of this memory block, not including this header.
+    size_t                   size;          // The size of this memory block, not including this header.
     SIZE_T                   serialnumber;  // Each block is assigned a unique serial number, starting from zero.
 } vldblockheader_t;
 
@@ -86,8 +86,8 @@ void operator delete (void *block);
 void operator delete [] (void *block);
 void operator delete (void *block, const char *file, int line);
 void operator delete [] (void *block, const char *file, int line);
-void* operator new (unsigned int size, const char *file, int line);
-void* operator new [] (unsigned int size, const char *file, int line);
+void* operator new (size_t size, const char *file, int line);
+void* operator new [] (size_t size, const char *file, int line);
 
 // All calls to the new operator from within VLD are mapped to the version of
 // new that allocates from VLD's private heap.
