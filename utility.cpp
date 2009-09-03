@@ -25,7 +25,7 @@
 #include <cstdio>
 #include <windows.h>
 #if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
-#include <tlhelp32.h>
+#include <winternl.h>
 #endif
 #ifndef __out_xcount
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
@@ -784,74 +784,57 @@ BOOL strtobool (LPCWSTR s) {
     }
 }
 
-// verifythreadid - Checks if a thread was created by current process.
+// _GetProcessIdOfThread - Returns the ID of the process owns the thread.
 //
-//  - threadid (IN): ID of the thread to be checked.
+//  - thread (IN): The handle to the thread.
 //
 //  Return Value:
 //
-//    Returns a handle to the thread if the process is the owner of the thread.
-//    Otherwise returns NULL.
+//    Returns the ID of the process that owns the thread. Otherwise returns 0.
 //
-HANDLE verifythreadid (DWORD threadid)
+DWORD _GetProcessIdOfThread (HANDLE thread)
 {
-    DWORD           dwCurProcessID = GetCurrentProcessId();
-    HANDLE          thread;
+    typedef struct _CLIENT_ID {
+        HANDLE UniqueProcess;
+        HANDLE UniqueThread;
+    } CLIENT_ID, *PCLIENT_ID;
 
-#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
-    HANDLE          hSnapshot;
-    THREADENTRY32   te;
+    typedef LONG NTSTATUS;
+    typedef LONG KPRIORITY;
 
-    // Because the thread may exit and the thread ID can be recycled when we are
-    // checking, open the thread first and then verify if it's a valid handle.
-    thread = OpenThread(SYNCHRONIZE, FALSE, threadid);
-    if (thread == NULL) {
-        // Couldn't query this thread. We'll assume that it exited.
-        return NULL; // XXX should we check GetLastError()?
-    }
-    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, dwCurProcessID);
-    if (hSnapshot == INVALID_HANDLE_VALUE) {
-        // Can't take a snap shot.
-        CloseHandle(thread);
-        return NULL;
-    }
+    typedef struct _THREAD_BASIC_INFORMATION {
+        NTSTATUS  ExitStatus;
+        PVOID     TebBaseAddress;
+        CLIENT_ID ClientId;
+        KAFFINITY AffinityMask;
+        KPRIORITY Priority;
+        KPRIORITY BasePriority;
+    } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
-    te.dwSize = sizeof(te);
-    if (Thread32First(hSnapshot, &te)) do {
-        if (te.th32ThreadID != threadid) {
-            te.dwSize = sizeof(te);
-            continue;
+    const static THREADINFOCLASS ThreadBasicInformation = (THREADINFOCLASS)0;
+
+    typedef NTSTATUS (WINAPI *PNtQueryInformationThread) (HANDLE thread,
+                THREADINFOCLASS infoclass, PVOID buffer, ULONG buffersize,
+                PULONG used);
+
+    static PNtQueryInformationThread NtQueryInformationThread = NULL;
+
+    THREAD_BASIC_INFORMATION tbi;
+    NTSTATUS status;
+    HMODULE  ntdll;
+    if (NtQueryInformationThread == NULL) {
+        ntdll = GetModuleHandle(L"ntdll.dll");
+        NtQueryInformationThread = (PNtQueryInformationThread)GetProcAddress(ntdll, "NtQueryInformationThread");
+        if (NtQueryInformationThread == NULL) {
+            return 0;
         }
-
-        if (dwCurProcessID == te.th32OwnerProcessID) {
-            // Valid thread id
-            CloseHandle(hSnapshot);
-            return thread;
-        } else {
-            // The thread id has been recycled
-            break;
-        }
-    } while (Thread32Next(hSnapshot, &te));
-
-    CloseHandle(hSnapshot);
-    CloseHandle(thread);
-
-    return NULL;
-
-#else
-
-    thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, threadid);
-    if (thread == NULL) {
-        // Couldn't query this thread. We'll assume that it exited.
-        return NULL; // XXX should we check GetLastError()?
-    }
-    if (GetProcessIdOfThread(thread) != dwCurProcessID) {
-        //The thread ID has been recycled.
-        CloseHandle(thread);
-        return NULL;
     }
 
-    return thread;
+    status = NtQueryInformationThread(thread, ThreadBasicInformation, &tbi, sizeof(tbi), NULL);
+    if(status < 0) {
+        // Shall we go through all the trouble of setting last error?
+        return 0;
+    }
 
-#endif
+    return (DWORD)tbi.ClientId.UniqueProcess;
 }

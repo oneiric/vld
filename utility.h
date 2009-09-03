@@ -106,4 +106,7 @@ VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
 VOID strapp (LPWSTR *dest, LPCWSTR source);
 BOOL strtobool (LPCWSTR s);
-HANDLE verifythreadid (DWORD threadid);
+#if _WIN32_WINNT < 0x0502 // Windows XP or earlier, no GetProcessIdOfThread()
+DWORD _GetProcessIdOfThread (HANDLE thread);
+#define GetProcessIdOfThread _GetProcessIdOfThread
+#endif
