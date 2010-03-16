@@ -66,9 +66,9 @@ public:
     static void* __cdecl crtd_vector_new (size_t size);
 
     template<char const *procname>
-    static void* __cdecl crtd_new_dbg (SIZE_T fp, size_t size, int type, char const *file, int line);
+    static void* __cdecl crtd_new_dbg (UINT_PTR* fp, size_t size, int type, char const *file, int line);
     template<char const *procname>
-    static void* __cdecl crtd_new (SIZE_T fp, size_t size);
+    static void* __cdecl crtd_new (UINT_PTR* fp, size_t size);
 
     static void* __cdecl mfcd_vector_new (size_t size);
     static void* __cdecl mfcd__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
@@ -84,11 +84,11 @@ public:
     static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (SIZE_T fp, size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcd_new_dbg (UINT_PTR* fp, size_t size, int type, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (SIZE_T fp, size_t size, char const *file, int line);
+    static void* __cdecl mfcd_new_dbg (UINT_PTR* fp, size_t size, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new (SIZE_T fp, size_t size);
+    static void* __cdecl mfcd_new (UINT_PTR* fp, size_t size);
 };
 
 
@@ -125,10 +125,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
 {
     static _calloc_dbg_t pcrtxxd__calloc_dbg = NULL;
 
-    SIZE_T  fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd__calloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
@@ -164,10 +164,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
 {
     static _malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
 
-    SIZE_T  fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd__malloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
@@ -206,10 +206,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
 {
     static _realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
 
-    SIZE_T fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd__realloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
@@ -243,8 +243,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return crtd_new_dbg<crtd_scalar_new_dbg_name>(fp, size, type, file, line);
 }
@@ -271,8 +271,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return crtd_new_dbg<crtd_vector_new_dbg_name>(fp, size, type, file, line);
 }
@@ -295,10 +295,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
 {
     static calloc_t pcrtxxd_calloc = NULL;
 
-    SIZE_T  fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd_calloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
@@ -325,10 +325,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
 {
     static malloc_t pcrtxxd_malloc = NULL;
 
-    SIZE_T  fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd_malloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
@@ -357,10 +357,10 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 {
     static realloc_t pcrtxxd_realloc = NULL;
 
-    SIZE_T  fp;
+    UINT_PTR* fp;
     HMODULE msvcrxxd;
 
-    FRAMEPOINTER(fp);
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     if (pcrtxxd_realloc == NULL) {
         // This is the first call to this function. Link to the real realloc.
@@ -383,8 +383,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return crtd_new<crtd_scalar_new_name>(fp, size);
 }
@@ -401,8 +401,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return crtd_new<crtd_vector_new_name>(fp, size);
 }
@@ -429,7 +429,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (size_t size)
 //
 TEMPLATE_HEADER
 template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T      fp,
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (UINT_PTR*   fp,
                                                 size_t      size,
                                                 int         type,
                                                 char const *file,
@@ -464,7 +464,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (SIZE_T      fp,
 //
 TEMPLATE_HEADER
 template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (SIZE_T fp, size_t size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (UINT_PTR* fp, size_t size)
 {
     static new_t pcrtxxd_scalar_new = NULL;
 
@@ -508,8 +508,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_4p_ordinal>
                        (fp, size, type, file, line);
@@ -534,8 +534,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_3p_ordinal>
                        (fp, size, file, line);
@@ -563,8 +563,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_4p_ordinal>
                        (fp, size, type, file, line);
@@ -589,8 +589,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_3p_ordinal>
                        (fp, size, file, line);
@@ -608,8 +608,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new<mfcddll, mfcd_scalar_new_ordinal>(fp, size);
 }
@@ -626,8 +626,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new<mfcddll, mfcd_vector_new_ordinal>(fp, size);
 }
@@ -654,8 +654,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_4p_ordinal>
                        (fp, size, type, file, line);
@@ -680,8 +680,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_3p_ordinal>
                        (fp, size, file, line);
@@ -709,8 +709,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_4p_ordinal>
                        (fp, size, type, file, line);
@@ -735,8 +735,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_3p_ordinal>
                        (fp, size, file, line);
@@ -754,8 +754,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (size_t      size,
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new<mfcuddll, mfcud_scalar_new_ordinal>(fp, size);
 }
@@ -772,8 +772,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (size_t size)
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (size_t size)
 {
-    SIZE_T  fp;
-    FRAMEPOINTER(fp);
+    UINT_PTR* fp;
+    ADDRESS_OF_RETURN_ADDRESS(fp);
 
     return mfcd_new<mfcuddll, mfcud_vector_new_ordinal>(fp, size);
 }
@@ -802,7 +802,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (size_t size)
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (UINT_PTR*   fp,
                                                 size_t      size,
                                                 int         type,
                                                 char const *file,
@@ -844,7 +844,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (UINT_PTR*   fp,
                                                 size_t      size,
                                                 char const *file,
                                                 int         line)
@@ -878,7 +878,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (SIZE_T      fp,
 //
 TEMPLATE_HEADER
 template<wchar_t const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (SIZE_T fp, size_t size)
+void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (UINT_PTR* fp, size_t size)
 {
     static new_t pmfcxxd_new = NULL;
 
@@ -897,10 +897,26 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (SIZE_T fp, size_t size)
 #undef TEMPLATE_HEADER
 #undef TEMPLATE_ARGS
 
+#ifndef WIN64
+//void * __cdecl operator new(unsigned int,int,char const *,int)
 const extern char    scalar_new_dbg_name[] = "??2@YAPAXIHPBDH@Z";
+//void * __cdecl operator new[](unsigned int,int,char const *,int)
 const extern char    vector_new_dbg_name[] = "??_U@YAPAXIHPBDH@Z";
+//void * __cdecl operator new(unsigned int)
 const extern char    scalar_new_name[] = "??2@YAPAXI@Z";
+//void * __cdecl operator new[](unsigned int)
 const extern char    vector_new_name[] = "??_U@YAPAXI@Z";
+#else
+//void * __ptr64 __cdecl operator new(unsigned __int64,int,char const * __ptr64,int)
+const extern char    scalar_new_dbg_name[] = "??2@YAPEAX_KHPEBDH@Z";
+//void * __ptr64 __cdecl operator new[](unsigned __int64,int,char const * __ptr64,int)
+const extern char    vector_new_dbg_name[] = "??_U@YAPEAX_KHPEBDH@Z";
+//void * __ptr64 __cdecl operator new(unsigned __int64)
+const extern char    scalar_new_name[] = "??2@YAPEAX_K@Z";
+//void * __ptr64 __cdecl operator new[](unsigned __int64)
+const extern char    vector_new_name[] = "??_U@YAPEAX_K@Z";
+#endif
+
 const extern wchar_t msvcrtd_dll[]  = L"msvcrtd.dll";
 const extern wchar_t mfc42d_dll[]   = L"mfc42d.dll";
 const extern wchar_t mfc42ud_dll[]  = L"mfc42ud.dll";

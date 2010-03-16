@@ -21,6 +21,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "stdafx.h"
+
 #define VLDBUILD     // Declares that we are building Visual Leak Detector.
 #include "vldint.h"  // Provides access to the Visual Leak Detector internals.
 #include "vldheap.h" // Provides internal new and delete operators.

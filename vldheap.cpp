@@ -21,7 +21,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <cassert>
+#include "stdafx.h"
+
 #define VLDBUILD     // Declares that we are building Visual Leak Detector.
 #include "ntapi.h"   // Provides access to NT APIs.
 #include "vldheap.h" // Provides access to VLD's internal heap data structures.

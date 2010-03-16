@@ -31,6 +31,9 @@ Applications should never include this header."
 
 #include <cstdio>
 #include <windows.h>
+#include <intrin.h>
+
+#pragma intrinsic(_AddressOfReturnAddress)
 
 #ifdef _WIN64
 #define ADDRESSFORMAT   L"0x%.16X" // Format string for 64-bit addresses
@@ -58,7 +61,7 @@ Applications should never include this header."
 #endif // _M_IX86
 
 #if defined(_M_IX86) || defined (_M_X64)
-#define FRAMEPOINTER(fp) __asm {mov fp, BPREG} // Copies the current frame pointer to the supplied variable.
+#define ADDRESS_OF_RETURN_ADDRESS(fp) fp = (UINT_PTR*)_AddressOfReturnAddress() // Copies the current frame pointer to the supplied variable.
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide an architecture-specific macro to
@@ -84,7 +87,7 @@ typedef struct patchentry_s
 {
     LPCSTR  exportmodulename; // The name of the module exporting the patched API.
     LPCSTR  importname;       // The name (or ordinal) of the imported API being patched.
-    SIZE_T  modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
+    UINT_PTR modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 } patchentry_t;
 

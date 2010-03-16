@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstdio>
 #include <windows.h>
+#include <tchar.h>
 
 #include <vld.h>
 
@@ -45,7 +46,7 @@ enum action_e {
     numactions
 };
 
-#define CRTDLLNAME   "msvcr90d.dll"          // Name of the debug C Runtime Library DLL on this system
+#define CRTDLLNAME   _T("msvcr90d.dll")      // Name of the debug C Runtime Library DLL on this system
 #define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
 #define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
 #define MAXDEPTH     32                      // Maximum depth of the allocation call stack

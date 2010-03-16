@@ -654,11 +654,11 @@ public:
     //
     //    Returns the previously defined reserve value.
     //
-    UINT32 reserve (UINT32 count)
+    size_t reserve (size_t count)
     {
         chunk_t *chunk;
-        UINT32   index;
-        UINT32   oldreserve = m_reserve;
+        size_t   index;
+        size_t   oldreserve = m_reserve;
 
         if (count != m_reserve) {
             if (count < 1) {
@@ -778,7 +778,7 @@ private:
     node_t                   *m_freelist;  // Pointer to the list of free nodes (reserve storage).
     mutable CRITICAL_SECTION  m_lock;      // Protects the tree's integrity against concurrent accesses.
     node_t                    m_nil;       // The tree's nil node. All leaf nodes point to this.
-    UINT32                    m_reserve;   // The size (in nodes) of the chunks of reserve storage.
+    size_t                    m_reserve;   // The size (in nodes) of the chunks of reserve storage.
     node_t                   *m_root;      // Pointer to the tree's root node.
     chunk_t                  *m_store;     // Pointer to the start of the chunk list.
     chunk_t                  *m_storetail; // Pointer to the end of the chunk list.

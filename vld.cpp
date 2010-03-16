@@ -21,18 +21,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "stdafx.h"
+
 #pragma comment(lib, "dbghelp.lib")
 
-#include <cassert>
-#include <cerrno>
-#include <cstdio>
 #include <sys/stat.h>
-#include <windows.h>
-#ifndef __out_xcount
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
-#endif
-#define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>     // Provides symbol handling services.
 #define VLDBUILD         // Declares that we are building Visual Leak Detector.
 #include "callstack.h"   // Provides a class for handling call stacks.
 #include "crtmfcpatch.h" // Provides CRT and MFC patch functions.
@@ -142,53 +135,53 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "msvcrtd.dll",  "_calloc_dbg",        0x0, VS60::crtd__calloc_dbg,
     "msvcrtd.dll",  "_malloc_dbg",        0x0, VS60::crtd__malloc_dbg,
     "msvcrtd.dll",  "_realloc_dbg",       0x0, VS60::crtd__realloc_dbg,
-    "msvcrtd.dll",  "??2@YAPAXIHPBDH@Z",  0x0, VS60::crtd__scalar_new_dbg,
-//  "msvcrtd.dll",  "??_U@YAPAXIHPBDH@Z", 0x0, VS60::crtd__vector_new_dbg,
+    "msvcrtd.dll",  scalar_new_dbg_name,  0x0, VS60::crtd__scalar_new_dbg,
+//  "msvcrtd.dll",  vector_new_dbg_name,  0x0, VS60::crtd__vector_new_dbg,
     "msvcrtd.dll",  "calloc",             0x0, VS60::crtd_calloc,
     "msvcrtd.dll",  "malloc",             0x0, VS60::crtd_malloc,
     "msvcrtd.dll",  "realloc",            0x0, VS60::crtd_realloc,
-    "msvcrtd.dll",  "??2@YAPAXI@Z",       0x0, VS60::crtd_scalar_new,
-//  "msvcrtd.dll",  "??_U@YAPAXI@Z",      0x0, VS60::crtd_vector_new,
+    "msvcrtd.dll",  scalar_new_name,      0x0, VS60::crtd_scalar_new,
+//  "msvcrtd.dll",  vector_new_name,      0x0, VS60::crtd_vector_new,
     "msvcr70d.dll", "_calloc_dbg",        0x0, VS70::crtd__calloc_dbg,
     "msvcr70d.dll", "_malloc_dbg",        0x0, VS70::crtd__malloc_dbg,
     "msvcr70d.dll", "_realloc_dbg",       0x0, VS70::crtd__realloc_dbg,
-    "msvcr70d.dll", "??2@YAPAXIHPBDH@Z",  0x0, VS70::crtd__scalar_new_dbg,
-    "msvcr70d.dll", "??_U@YAPAXIHPBDH@Z", 0x0, VS70::crtd__vector_new_dbg,
+    "msvcr70d.dll", scalar_new_dbg_name,  0x0, VS70::crtd__scalar_new_dbg,
+    "msvcr70d.dll", vector_new_dbg_name,  0x0, VS70::crtd__vector_new_dbg,
     "msvcr70d.dll", "calloc",             0x0, VS70::crtd_calloc,
     "msvcr70d.dll", "malloc",             0x0, VS70::crtd_malloc,
     "msvcr70d.dll", "realloc",            0x0, VS70::crtd_realloc,
-    "msvcr70d.dll", "??2@YAPAXI@Z",       0x0, VS70::crtd_scalar_new,
-    "msvcr70d.dll", "??_U@YAPAXI@Z",      0x0, VS70::crtd_vector_new,
+    "msvcr70d.dll", scalar_new_name,      0x0, VS70::crtd_scalar_new,
+    "msvcr70d.dll", vector_new_name,      0x0, VS70::crtd_vector_new,
     "msvcr71d.dll", "_calloc_dbg",        0x0, VS71::crtd__calloc_dbg,
     "msvcr71d.dll", "_malloc_dbg",        0x0, VS71::crtd__malloc_dbg,
     "msvcr71d.dll", "_realloc_dbg",       0x0, VS71::crtd__realloc_dbg,
-    "msvcr71d.dll", "??2@YAPAXIHPBDH@Z",  0x0, VS71::crtd__scalar_new_dbg,
-    "msvcr71d.dll", "??_U@YAPAXIHPBDH@Z", 0x0, VS71::crtd__vector_new_dbg,
+    "msvcr71d.dll", scalar_new_dbg_name,  0x0, VS71::crtd__scalar_new_dbg,
+    "msvcr71d.dll", vector_new_dbg_name,  0x0, VS71::crtd__vector_new_dbg,
     "msvcr71d.dll", "calloc",             0x0, VS71::crtd_calloc,
     "msvcr71d.dll", "malloc",             0x0, VS71::crtd_malloc,
     "msvcr71d.dll", "realloc",            0x0, VS71::crtd_realloc,
-    "msvcr71d.dll", "??2@YAPAXI@Z",       0x0, VS71::crtd_scalar_new,
-    "msvcr71d.dll", "??_U@YAPAXI@Z",      0x0, VS71::crtd_vector_new,
+    "msvcr71d.dll", scalar_new_name,      0x0, VS71::crtd_scalar_new,
+    "msvcr71d.dll", vector_new_name,      0x0, VS71::crtd_vector_new,
     "msvcr80d.dll", "_calloc_dbg",        0x0, VS80::crtd__calloc_dbg,
     "msvcr80d.dll", "_malloc_dbg",        0x0, VS80::crtd__malloc_dbg,
     "msvcr80d.dll", "_realloc_dbg",       0x0, VS80::crtd__realloc_dbg,
-    "msvcr80d.dll", "??2@YAPAXIHPBDH@Z",  0x0, VS80::crtd__scalar_new_dbg,
-    "msvcr80d.dll", "??_U@YAPAXIHPBDH@Z", 0x0, VS80::crtd__vector_new_dbg,
+    "msvcr80d.dll", scalar_new_dbg_name,  0x0, VS80::crtd__scalar_new_dbg,
+    "msvcr80d.dll", vector_new_dbg_name,  0x0, VS80::crtd__vector_new_dbg,
     "msvcr80d.dll", "calloc",             0x0, VS80::crtd_calloc,
     "msvcr80d.dll", "malloc",             0x0, VS80::crtd_malloc,
     "msvcr80d.dll", "realloc",            0x0, VS80::crtd_realloc,
-    "msvcr80d.dll", "??2@YAPAXI@Z",       0x0, VS80::crtd_scalar_new,
-    "msvcr80d.dll", "??_U@YAPAXI@Z",      0x0, VS80::crtd_vector_new,
+    "msvcr80d.dll", scalar_new_name,      0x0, VS80::crtd_scalar_new,
+    "msvcr80d.dll", vector_new_name,      0x0, VS80::crtd_vector_new,
     "msvcr90d.dll", "_calloc_dbg",        0x0, VS90::crtd__calloc_dbg,
     "msvcr90d.dll", "_malloc_dbg",        0x0, VS90::crtd__malloc_dbg,
     "msvcr90d.dll", "_realloc_dbg",       0x0, VS90::crtd__realloc_dbg,
-    "msvcr90d.dll", "??2@YAPAXIHPBDH@Z",  0x0, VS90::crtd__scalar_new_dbg,
-    "msvcr90d.dll", "??_U@YAPAXIHPBDH@Z", 0x0, VS90::crtd__vector_new_dbg,
+    "msvcr90d.dll", scalar_new_dbg_name,  0x0, VS90::crtd__scalar_new_dbg,
+    "msvcr90d.dll", vector_new_dbg_name,  0x0, VS90::crtd__vector_new_dbg,
     "msvcr90d.dll", "calloc",             0x0, VS90::crtd_calloc,
     "msvcr90d.dll", "malloc",             0x0, VS90::crtd_malloc,
     "msvcr90d.dll", "realloc",            0x0, VS90::crtd_realloc,
-    "msvcr90d.dll", "??2@YAPAXI@Z",       0x0, VS90::crtd_scalar_new,
-    "msvcr90d.dll", "??_U@YAPAXI@Z",      0x0, VS90::crtd_vector_new,
+    "msvcr90d.dll", scalar_new_name,      0x0, VS90::crtd_scalar_new,
+    "msvcr90d.dll", vector_new_name,      0x0, VS90::crtd_vector_new,
 
     // NT APIs.
     "ntdll.dll",    "RtlAllocateHeap",    0x0, _RtlAllocateHeap,
@@ -990,7 +983,7 @@ tls_t* VisualLeakDetector::gettls ()
         // This thread's thread local storage structure has not been allocated.
         tls = new tls_t;
         TlsSetValue(m_tlsindex, tls);
-        tls->addrfp = 0x0;
+        tls->addrofra = 0x0;
         tls->flags = 0x0;
         tls->threadid = GetCurrentThreadId();
 
@@ -1012,9 +1005,9 @@ tls_t* VisualLeakDetector::gettls ()
 //
 //  - size (IN): Size, in bytes, of the memory block being allocated.
 //
-//  - framepointer (IN): Framepointer at the time this allocation first entered
-//      VLD's code. This is used from determining the starting point for the
-//      stack trace.
+//  - addrOfRetAddr (IN): Address of return address at the time this allocation
+//      first entered VLD's code. This is used from determining the starting
+//      point for the stack trace.
 //
 //  - crtalloc (IN): Should be set to TRUE if this allocation is a CRT memory
 //      block. Otherwise should be FALSE.
@@ -1023,7 +1016,7 @@ tls_t* VisualLeakDetector::gettls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T framepointer, BOOL crtalloc)
+VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, UINT_PTR* addrOfRetAddr, BOOL crtalloc)
 {
     blockinfo_t        *blockinfo;
     BlockMap::Iterator  blockit;
@@ -1046,7 +1039,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, SIZE_T
     }
     else {
         // Start the stack trace at the call that first entered VLD's code.
-        blockinfo->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)framepointer);
+        blockinfo->callstack->getstacktrace(m_maxtraceframes, (addrOfRetAddr - 1));
     }
     blockinfo->serialnumber = serialnumber++;
     blockinfo->size = size;
@@ -1140,7 +1133,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //
 //    None.
 //
-VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, SIZE_T framepointer,
+VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, UINT_PTR* framepointer,
                                      BOOL crtalloc)
 {
     BlockMap::Iterator   blockit;
@@ -1200,7 +1193,7 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     else {
         // Start the stack trace at the call that first entered
         // VLD's code.
-        info->callstack->getstacktrace(m_maxtraceframes, (SIZE_T*)framepointer);
+        info->callstack->getstacktrace(m_maxtraceframes, (framepointer - 1));
     }
     info->size = size;
 }
@@ -1505,14 +1498,14 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
         for (index = 0; index < tablesize; index++) {
             entry = &m_patchtable[index];
             if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
-                entry->modulebase = (SIZE_T)modulebase;
+                entry->modulebase = (UINT_PTR)modulebase;
             }
         }
     }
 
     // Record the module's information and store it in the set.
-    moduleinfo.addrlow  = (SIZE_T)modulebase;
-    moduleinfo.addrhigh = (SIZE_T)(modulebase + modulesize) - 1;
+    moduleinfo.addrlow  = (UINT_PTR)modulebase;
+    moduleinfo.addrhigh = (UINT_PTR)(modulebase + modulesize) - 1;
     moduleinfo.flags    = 0x0;
     moduleinfo.name     = modulenamea;
     moduleinfo.path     = modulepatha;
@@ -1577,7 +1570,7 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 module
 //    Returns the value returned from the specified calloc.
 //
 void* VisualLeakDetector::_calloc (calloc_t pcalloc,
-                                   SIZE_T   fp,
+                                   UINT_PTR* fp,
                                    size_t   num,
                                    size_t   size)
 {
@@ -1587,17 +1580,17 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
     // malloc is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pcalloc(num, size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1617,7 +1610,7 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 //
 //    Returns the value returned from the specified malloc.
 //
-void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
+void *VisualLeakDetector::_malloc (malloc_t pmalloc, UINT_PTR* fp, size_t size)
 {
     void    *block;
     tls_t   *tls = vld.gettls();
@@ -1625,17 +1618,17 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
     // malloc is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pmalloc(size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1655,7 +1648,7 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, SIZE_T fp, size_t size)
 //
 //    Returns the value returned by the specified CRT new operator.
 //
-void* VisualLeakDetector::_new (new_t pnew, SIZE_T fp, size_t size)
+void* VisualLeakDetector::_new (new_t pnew, UINT_PTR* fp, size_t size)
 {
     void  *block;
     tls_t *tls = vld.gettls();
@@ -1663,17 +1656,17 @@ void* VisualLeakDetector::_new (new_t pnew, SIZE_T fp, size_t size)
     // The new operator is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pnew(size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1696,7 +1689,7 @@ void* VisualLeakDetector::_new (new_t pnew, SIZE_T fp, size_t size)
 //    Returns the value returned from the specified realloc.
 //
 void* VisualLeakDetector::_realloc (realloc_t  prealloc,
-                                    SIZE_T     fp,
+                                    UINT_PTR*  fp,
                                     void      *mem,
                                     size_t     size)
 {
@@ -1706,17 +1699,17 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
     // realloc is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     block = prealloc(mem, size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1755,7 +1748,7 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 //    Returns the value returned by the specified _calloc_dbg.
 //
 void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
-                                        SIZE_T         fp,
+                                        UINT_PTR*      fp,
                                         size_t         num,
                                         size_t         size,
                                         int            type,
@@ -1768,17 +1761,17 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = p_calloc_dbg(num, size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1807,7 +1800,7 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 //    Returns the value returned by the specified _malloc_dbg.
 //
 void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
-                                        SIZE_T         fp,
+                                        UINT_PTR*      fp,
                                         size_t         size,
                                         int            type,
                                         char const    *file,
@@ -1819,17 +1812,17 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = p_malloc_dbg(size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1858,7 +1851,7 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
-                                       SIZE_T         fp,
+                                       UINT_PTR*      fp,
                                        size_t         size,
                                        int            type,
                                        char const    *file,
@@ -1870,17 +1863,17 @@ void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
     // The debug new operator is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pnew_dbg_crt(size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1909,7 +1902,7 @@ void* VisualLeakDetector::new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
-                                       SIZE_T         fp,
+                                       UINT_PTR*      fp,
                                        size_t         size,
                                        int            type,
                                        char const    *file,
@@ -1918,17 +1911,17 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
     void  *block;
     tls_t *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pnew_dbg(size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -1955,7 +1948,7 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 //    Returns the value returned by the specified MFC debug new operator.
 //
 void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
-                                       SIZE_T         fp,
+                                       UINT_PTR*      fp,
                                        size_t         size,
                                        char const    *file,
                                        int            line)
@@ -1963,17 +1956,17 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
     void  *block;
     tls_t *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     block = pnew_dbg_mfc(size, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -2004,7 +1997,7 @@ void* VisualLeakDetector::new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 //    Returns the value returned by the specified _realloc_dbg.
 //
 void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
-                                         SIZE_T          fp,
+                                         UINT_PTR*       fp,
                                          void           *mem,
                                          size_t          size,
                                          int             type,
@@ -2017,17 +2010,17 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
     tls->flags |= VLD_TLS_CRTALLOC;
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        tls->addrfp = fp;
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     block = p_realloc_dbg(mem, size, type, file, line);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -2111,17 +2104,17 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
 {
     DWORD64            displacement;
-    SIZE_T             fp;
     SYMBOL_INFO       *functioninfo;
     HANDLE             heap;
-    HeapMap::Iterator  heapit;
-    SIZE_T             ra;
+	HeapMap::Iterator  heapit;
+	UINT_PTR*          fp;
+    UINT_PTR           ra;
     BYTE               symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
     BOOL               symfound;
 
     // Get the return address within the calling function.
-    FRAMEPOINTER(fp);
-    ra = *((SIZE_T*)fp + 1);
+	ADDRESS_OF_RETURN_ADDRESS(fp);
+    ra = *fp;
 
     // Create the heap.
     heap = HeapCreate(options, initsize, maxsize);
@@ -2257,33 +2250,34 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 {
     BOOL                 crtalloc;
     BOOL                 excluded = FALSE;
-    SIZE_T               fp;
+    UINT_PTR*            fp;
     LPVOID               block;
     moduleinfo_t         moduleinfo;
     ModuleSet::Iterator  moduleit;
-    SIZE_T               returnaddress;
+    UINT_PTR             returnaddress;
     tls_t               *tls = vld.gettls();
 
     // Allocate the block.
     block = RtlAllocateHeap(heap, flags, size);
-    if ((block != NULL) && vld.enabled()) {
-        if (tls->addrfp == 0x0) {
+
+	if ((block != NULL) && vld.enabled()) {
+        if (tls->addrofra == 0x0) {
             // This is the first call to enter VLD for the current allocation.
             // Record the current frame pointer.
-            FRAMEPOINTER(fp);
+            ADDRESS_OF_RETURN_ADDRESS(fp);
         }
         else {
-            fp = tls->addrfp;
+            fp = tls->addrofra;
         }
         crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
 
         // Reset thread local flags and variables, in case any libraries called
         // into while mapping the block allocate some memory.
-        tls->addrfp = 0x0;
+        tls->addrofra = 0x0;
         tls->flags &=~VLD_TLS_CRTALLOC;
 
         // Find the information for the module that initiated this allocation.
-        returnaddress = *((SIZE_T*)fp + 1);
+        returnaddress = *fp;
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
         EnterCriticalSection(&vld.m_moduleslock);
@@ -2300,7 +2294,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     }
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -2357,34 +2351,34 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 {
     BOOL                 crtalloc;
     BOOL                 excluded = FALSE;
-    SIZE_T               fp;
+    UINT_PTR*            fp;
     moduleinfo_t         moduleinfo;
     ModuleSet::Iterator  moduleit;
     LPVOID               newmem;
-    SIZE_T               returnaddress;
+    UINT_PTR             returnaddress;
     tls_t               *tls = vld.gettls();
 
     // Reallocate the block.
     newmem = RtlReAllocateHeap(heap, flags, mem, size);
 
     if (newmem != NULL) {
-        if (tls->addrfp == 0x0) {
+        if (tls->addrofra == 0x0) {
             // This is the first call to enter VLD for the current allocation.
             // Record the current frame pointer.
-            FRAMEPOINTER(fp);
+            ADDRESS_OF_RETURN_ADDRESS(fp);
         }
         else {
-            fp = tls->addrfp;
+            fp = tls->addrofra;
         }
         crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
 
         // Reset thread local flags and variables, in case any libraries called
         // into while remapping the block allocate some memory.
-        tls->addrfp = 0x0;
+        tls->addrofra = 0x0;
         tls->flags &= ~VLD_TLS_CRTALLOC;
 
         // Find the information for the module that initiated this reallocation.
-        returnaddress = *((SIZE_T*)fp + 1);
+        returnaddress = *fp;
         moduleinfo.addrhigh = returnaddress;
         moduleinfo.addrlow  = returnaddress;
         EnterCriticalSection(&vld.m_moduleslock);
@@ -2401,7 +2395,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     }
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return newmem;
@@ -2460,20 +2454,20 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 //
 //    Returns the value returned from CoTaskMemAlloc.
 //
-LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
+LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 {
     static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
 
     LPVOID   block;
-    SIZE_T   fp;
+    UINT_PTR* fp;
     HMODULE  ole32;
     tls_t   *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        tls->addrfp = fp;
+        ADDRESS_OF_RETURN_ADDRESS(fp);
+        tls->addrofra = fp;
     }
 
     if (pCoTaskMemAlloc == NULL) {
@@ -2487,7 +2481,7 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
     block = pCoTaskMemAlloc(size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
     
     return block;
@@ -2506,20 +2500,20 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (ULONG size)
 //
 //    Returns the value returned from CoTaskMemRealloc.
 //
-LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, ULONG size)
+LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 {
     static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
 
     LPVOID   block;
-    SIZE_T   fp;
+    UINT_PTR* fp;
     HMODULE  ole32;
     tls_t   *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        tls->addrfp = fp;
+        ADDRESS_OF_RETURN_ADDRESS(fp);
+        tls->addrofra = fp;
     }
 
     if (pCoTaskMemRealloc == NULL) {
@@ -2533,7 +2527,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, ULONG size)
     block = pCoTaskMemRealloc(mem, size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -2569,17 +2563,17 @@ ULONG VisualLeakDetector::AddRef ()
 //
 //    Returns the value returned by the system's IMalloc::Alloc implementation.
 //
-LPVOID VisualLeakDetector::Alloc (ULONG size)
+LPVOID VisualLeakDetector::Alloc (SIZE_T size)
 {
     LPVOID  block;
-    SIZE_T  fp;
+    UINT_PTR* fp;
     tls_t  *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        tls->addrfp = fp;
+        ADDRESS_OF_RETURN_ADDRESS(fp);
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -2587,7 +2581,7 @@ LPVOID VisualLeakDetector::Alloc (ULONG size)
     block = m_imalloc->Alloc(size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     return block;
@@ -2634,7 +2628,7 @@ VOID VisualLeakDetector::Free (LPVOID mem)
 //    Returns the value returned by the system implementation of
 //    IMalloc::GetSize.
 //
-ULONG VisualLeakDetector::GetSize (LPVOID mem)
+SIZE_T VisualLeakDetector::GetSize (LPVOID mem)
 {
     assert(m_imalloc != NULL);
     return m_imalloc->GetSize(mem);
@@ -2687,17 +2681,17 @@ HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 //    Returns the value returned by the system implementation of
 //    IMalloc::Realloc.
 //
-LPVOID VisualLeakDetector::Realloc (LPVOID mem, ULONG size)
+LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
 {
     LPVOID  block;
-    SIZE_T  fp;
+    UINT_PTR* fp;
     tls_t  *tls = vld.gettls();
 
-    if (tls->addrfp == 0x0) {
+    if (tls->addrofra == 0x0) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        FRAMEPOINTER(fp);
-        tls->addrfp = fp;
+        ADDRESS_OF_RETURN_ADDRESS(fp);
+        tls->addrofra = fp;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -2705,7 +2699,7 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, ULONG size)
     block = m_imalloc->Realloc(mem, size);
 
     // Reset thread local flags and variables for the next allocation.
-    tls->addrfp = 0x0;
+    tls->addrofra = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
     
     return block;

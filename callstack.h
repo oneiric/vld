@@ -62,7 +62,7 @@ public:
     // Public APIs - see each function definition for details.
     VOID clear ();
     VOID dump (BOOL showinternalframes) const;
-    virtual VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer) = 0;
+    virtual VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer) = 0;
     CallStack& operator = (const CallStack &other);
     BOOL operator == (const CallStack &other) const;
     SIZE_T operator [] (UINT32 index) const;
@@ -99,7 +99,7 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer);
+    VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,5 +112,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, SIZE_T *framepointer);
+    VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer);
 };

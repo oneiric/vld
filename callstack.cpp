@@ -21,13 +21,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <cassert>
-#include <windows.h>
-#ifndef __out_xcount
-#define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
-#endif
-#define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>    // Provides symbol handling services.
+#include "stdafx.h"
 #define VLDBUILD
 #include "callstack.h"  // This class' header.
 #include "utility.h"    // Provides various utility functions.
@@ -319,19 +313,20 @@ VOID CallStack::push_back (const SIZE_T programcounter)
 //
 //    None.
 //
-VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
+VOID FastCallStack::getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer)
 {
     UINT32  count = 0;
 
     if (framepointer == NULL) {
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
-        FRAMEPOINTER(framepointer);
+        ADDRESS_OF_RETURN_ADDRESS(framepointer);
+		framepointer--;
     }
 
     while (count < maxdepth) {
-        if ((SIZE_T*)*framepointer < framepointer) {
-            if ((SIZE_T*)*framepointer == NULL) {
+        if (*framepointer < (UINT)framepointer) {
+            if (*framepointer == NULL) {
                 // Looks like we reached the end of the stack.
                 break;
             }
@@ -342,7 +337,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
                 break;
             }
         }
-        if ((SIZE_T)*framepointer & (sizeof(SIZE_T*) - 1)) {
+        if (*framepointer & (sizeof(UINT_PTR*) - 1)) {
             // Invalid frame pointer. Frame pointer addresses should always
             // be aligned to the size of a pointer. This probably means that
             // we've encountered a frame that was created by a module built with
@@ -350,7 +345,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
             m_status |= CALLSTACK_STATUS_INCOMPLETE;
             break;
         }
-        if (IsBadReadPtr((SIZE_T*)*framepointer, sizeof(SIZE_T*))) {
+        if (IsBadReadPtr((UINT*)*framepointer, sizeof(UINT_PTR*))) {
             // Bogus frame pointer. Again, this probably means that we've
             // encountered a frame built with FPO optimization.
             m_status |= CALLSTACK_STATUS_INCOMPLETE;
@@ -358,7 +353,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
         }
         count++;
         push_back(*(framepointer + 1));
-        framepointer = (SIZE_T*)*framepointer;
+        framepointer = (UINT_PTR*)*framepointer;
     }
 }
 
@@ -381,7 +376,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
 //
 //    None.
 //
-VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
+VOID SafeCallStack::getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer)
 {
     DWORD        architecture;
     CONTEXT      context;
@@ -393,7 +388,8 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, SIZE_T *framepointer)
     if (framepointer == NULL) {
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
-        FRAMEPOINTER(framepointer);
+        ADDRESS_OF_RETURN_ADDRESS(framepointer);
+        framepointer--;
     }
 
     // Get the required values for initialization of the STACKFRAME64 structure
