@@ -130,6 +130,18 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "mfc90ud.dll",  (LPCSTR)935,          0x0, VS90::mfcud_scalar_new,
     "mfc90ud.dll",  (LPCSTR)936,          0x0, VS90::mfcud__scalar_new_dbg_4p,
     "mfc90ud.dll",  (LPCSTR)937,          0x0, VS90::mfcud__scalar_new_dbg_3p,
+    "mfc100d.dll",   (LPCSTR)267,          0x0, VS100::mfcd_vector_new,
+    "mfc100d.dll",   (LPCSTR)268,          0x0, VS100::mfcd__vector_new_dbg_4p,
+    "mfc100d.dll",   (LPCSTR)269,          0x0, VS100::mfcd__vector_new_dbg_3p,
+    "mfc100d.dll",   (LPCSTR)1427,         0x0, VS100::mfcd_scalar_new,
+    "mfc100d.dll",   (LPCSTR)1428,         0x0, VS100::mfcd__scalar_new_dbg_4p,
+    "mfc100d.dll",   (LPCSTR)1429,         0x0, VS100::mfcd__scalar_new_dbg_3p,
+    "mfc100ud.dll",  (LPCSTR)267,          0x0, VS100::mfcud_vector_new,
+    "mfc100ud.dll",  (LPCSTR)268,          0x0, VS100::mfcud__vector_new_dbg_4p,
+    "mfc100ud.dll",  (LPCSTR)269,          0x0, VS100::mfcud__vector_new_dbg_3p,
+    "mfc100ud.dll",  (LPCSTR)1434,         0x0, VS100::mfcud_scalar_new,
+    "mfc100ud.dll",  (LPCSTR)1435,         0x0, VS100::mfcud__scalar_new_dbg_4p,
+    "mfc100ud.dll",  (LPCSTR)1436,         0x0, VS100::mfcud__scalar_new_dbg_3p,
 
     // CRT new operators and heap APIs.
     "msvcrtd.dll",  "_calloc_dbg",        0x0, VS60::crtd__calloc_dbg,
@@ -182,6 +194,16 @@ patchentry_t VisualLeakDetector::m_patchtable [] = {
     "msvcr90d.dll", "realloc",            0x0, VS90::crtd_realloc,
     "msvcr90d.dll", scalar_new_name,      0x0, VS90::crtd_scalar_new,
     "msvcr90d.dll", vector_new_name,      0x0, VS90::crtd_vector_new,
+    "msvcr100d.dll", "_calloc_dbg",        0x0, VS100::crtd__calloc_dbg,
+    "msvcr100d.dll", "_malloc_dbg",        0x0, VS100::crtd__malloc_dbg,
+    "msvcr100d.dll", "_realloc_dbg",       0x0, VS100::crtd__realloc_dbg,
+    "msvcr100d.dll", scalar_new_dbg_name,  0x0, VS100::crtd__scalar_new_dbg,
+    "msvcr100d.dll", vector_new_dbg_name,  0x0, VS100::crtd__vector_new_dbg,
+    "msvcr100d.dll", "calloc",             0x0, VS100::crtd_calloc,
+    "msvcr100d.dll", "malloc",             0x0, VS100::crtd_malloc,
+    "msvcr100d.dll", "realloc",            0x0, VS100::crtd_realloc,
+    "msvcr100d.dll", scalar_new_name,      0x0, VS100::crtd_scalar_new,
+    "msvcr100d.dll", vector_new_name,      0x0, VS100::crtd_vector_new,
 
     // NT APIs.
     "ntdll.dll",    "RtlAllocateHeap",    0x0, _RtlAllocateHeap,
@@ -576,7 +598,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
     ModuleSet::Iterator   oldit;
     ModuleSet            *oldmodules;
     BOOL                  refresh;
-    UINT                  tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    UINT                  tablesize = _countof(m_patchtable);
     ModuleSet::Muterator  updateit;
 
     // Iterate through the supplied set, until all modules have been attached.
@@ -1473,7 +1495,7 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
     LPSTR         modulepatha;
     ModuleSet*    newmodules = (ModuleSet*)context;
     SIZE_T        size;
-    UINT          tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    UINT          tablesize = _countof(m_patchtable);
 
     // Convert the module path to ASCII.
     size = wcslen(modulepath) + 1;
@@ -1535,7 +1557,7 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
 BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 modulebase, ULONG /*modulesize*/,
                                            PVOID /*context*/)
 {
-    UINT tablesize = sizeof(m_patchtable) / sizeof(patchentry_t);
+    UINT tablesize = _countof(m_patchtable);
 
     restoremodule((HMODULE)modulebase, m_patchtable, tablesize);
 
@@ -2053,7 +2075,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
     patchentry_t *entry;
     UINT          index;
-    UINT          tablesize = sizeof(vld.m_patchtable) / sizeof(patchentry_t);
+    UINT          tablesize = _countof(vld.m_patchtable);
 
     // See if there is an entry in the patch table that matches the requested
     // function.

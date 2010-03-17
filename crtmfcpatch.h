@@ -932,6 +932,9 @@ const extern wchar_t mfc80ud_dll[]  = L"mfc80ud.dll";
 const extern wchar_t msvcr90d_dll[] = L"msvcr90d.dll";
 const extern wchar_t mfc90d_dll[]   = L"mfc90d.dll";
 const extern wchar_t mfc90ud_dll[]  = L"mfc90ud.dll";
+const extern wchar_t msvcr100d_dll[] = L"msvcr100d.dll";
+const extern wchar_t mfc100d_dll[]   = L"mfc100d.dll";
+const extern wchar_t mfc100ud_dll[]  = L"mfc100ud.dll";
 
 // Visual Studio 6.0
 typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
@@ -968,3 +971,10 @@ typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     267, 268, 269, 931, 932, 933,
                     267, 268, 269, 935, 936, 937>
         VS90;
+// Visual Studio 2010
+typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
+                    vector_new_name, vector_new_dbg_name,
+                     scalar_new_name, scalar_new_dbg_name,
+                    267, 268, 269, 1427, 1428, 1429,
+                    267, 268, 269, 1434, 1435, 1436>
+        VS100;

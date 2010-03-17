@@ -46,7 +46,15 @@ enum action_e {
     numactions
 };
 
-#define CRTDLLNAME   _T("msvcr90d.dll")      // Name of the debug C Runtime Library DLL on this system
+// Name of the debug C Runtime Library DLL on this system
+#if _MSC_VER == 1400
+#define CRTDLLNAME   _T("msvcr80d.dll")      
+#elif _MSC_VER == 1500
+#define CRTDLLNAME   _T("msvcr90d.dll")      
+#elif _MSC_VER == 1600
+#define CRTDLLNAME   _T("msvcr100d.dll") 
+#endif
+
 #define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
 #define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
 #define MAXDEPTH     32                      // Maximum depth of the allocation call stack
