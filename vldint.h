@@ -118,7 +118,7 @@ typedef Set<moduleinfo_t> ModuleSet;
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 typedef struct tls_s {
-    UINT_PTR* addrofra;      // Address of return address at the first call that entered VLD's code for the current allocation.
+	context_t context;       // Address of return address at the first call that entered VLD's code for the current allocation.
     UINT32 flags;            // Thread-local status flags:
 #define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 //   If set, memory leak detection is disabled for the current thread.
@@ -171,18 +171,18 @@ public:
 // IAT replacement functions.
 ////////////////////////////////////////////////////////////////////////////////
     // Standard CRT and MFC common handlers
-    void* _calloc (calloc_t pcalloc, UINT_PTR* fp, size_t num, size_t size);
-    void* _malloc (malloc_t pmalloc, UINT_PTR* fp, size_t size);
-    void* _new (new_t pnew, UINT_PTR* fp, size_t size); 
-    void* _realloc (realloc_t prealloc, UINT_PTR* fp, void *mem, size_t size);
+    void* _calloc (calloc_t pcalloc, context_t& context, size_t num, size_t size);
+    void* _malloc (malloc_t pmalloc, context_t& context, size_t size);
+    void* _new (new_t pnew, context_t& context, size_t size); 
+    void* _realloc (realloc_t prealloc, context_t& context, void *mem, size_t size);
 
     // Debug CRT and MFC common handlers
-    void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, UINT_PTR* fp, size_t num, size_t size, int type, char const *file, int line);
-    void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, UINT_PTR* fp, size_t size, int type, char const *file, int line);
-    void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, UINT_PTR* fp, size_t size, int type, char const *file, int line);
-    void* new_dbg_mfc (new_dbg_crt_t pnew_dbg, UINT_PTR* fp, size_t size, int type, char const *file, int line);
-    void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, UINT_PTR* fp, size_t size, char const *file, int line);
-    void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, UINT_PTR* fp, void *mem, size_t size, int type, char const *file, int line);
+    void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, size_t num, size_t size, int type, char const *file, int line);
+    void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, size_t size, int type, char const *file, int line);
+    void* new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, size_t size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
+    void* new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
+    void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, void *mem, size_t size, int type, char const *file, int line);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public IMalloc methods - for support of COM-based memory leak detection.
@@ -207,9 +207,9 @@ private:
     BOOL   enabled ();
     SIZE_T eraseduplicates (const BlockMap::Iterator &element);
     tls_t* gettls ();
-    VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, UINT_PTR* framepointer, BOOL crtalloc);
+    VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, context_t& context, BOOL crtalloc);
     VOID   mapheap (HANDLE heap);
-    VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, UINT_PTR* framepointer, BOOL crtalloc);
+    VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, context_t& context, BOOL crtalloc);
     VOID   reportconfig ();
     VOID   reportleaks (HANDLE heap);
     VOID   unmapblock (HANDLE heap, LPCVOID mem);
@@ -218,6 +218,9 @@ private:
     // Static functions (callbacks)
     static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+
+	// Utils
+	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
 
 ////////////////////////////////////////////////////////////////////////////////
 // IAT replacement functions - see each function definition for details.
@@ -236,7 +239,7 @@ private:
     static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
     static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
-    // COM IAT replacement functions
+	// COM IAT replacement functions
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);

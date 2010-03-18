@@ -30,6 +30,7 @@ Applications should never include this header."
 #endif
 
 #include <windows.h>
+#include "utility.h"
 
 #define CALLSTACKCHUNKSIZE 32 // Number of frame slots in each CallStack chunk.
 
@@ -62,11 +63,11 @@ public:
     // Public APIs - see each function definition for details.
     VOID clear ();
     VOID dump (BOOL showinternalframes) const;
-    virtual VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer) = 0;
+    virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
     CallStack& operator = (const CallStack &other);
     BOOL operator == (const CallStack &other) const;
     SIZE_T operator [] (UINT32 index) const;
-    VOID push_back (const SIZE_T programcounter);
+    VOID push_back (const UINT_PTR programcounter);
 
 protected:
     // Protected data.
@@ -99,7 +100,7 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer);
+    VOID getstacktrace (UINT32 maxdepth, context_t& context);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,5 +113,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, UINT_PTR *framepointer);
+	VOID getstacktrace (UINT32 maxdepth, context_t& context);
 };
