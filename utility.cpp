@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - Various Utility Functions
-//  Copyright (c) 2005-2009 Dan Moulding
+//  Copyright (c) 2005-2010 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -282,52 +282,61 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
 //    Returns TRUE if the module has been patched to use the specified
 //    replacement export.
 //
-BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement)
+BOOL findpatch (HMODULE importmodule, moduleentry_t *module)
 {
-    IMAGE_THUNK_DATA        *iate;
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
-            
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return FALSE;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return FALSE;
-    }
-    
-    // Locate the replacement's IAT entry.
-    iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-    while (iate->u1.Function != 0x0) {
-        if (iate->u1.Function == (DWORD_PTR)replacement) {
-            // Found the IAT entry for the replacement. This patch has been
-            // installed.
-            return TRUE;
-        }
-        iate++;
-    }
+	IMAGE_IMPORT_DESCRIPTOR *idte;
+	IMAGE_SECTION_HEADER    *section;
+	ULONG                    size;
 
-    // The module does not import the replacement. The patch has not been
-    // installed.
-    return FALSE;
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	EnterCriticalSection(&imagelock);
+	idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+		IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	LeaveCriticalSection(&imagelock);
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return FALSE;
+	}
+	while (idte->OriginalFirstThunk != 0x0) {
+		if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), module->exportmodulename) == 0) {
+			// Found the IDT entry for the exporting module.
+			break;
+		}
+		idte++;
+	}
+	if (idte->OriginalFirstThunk == 0x0) {
+		// The importing module does not import anything from the exporting
+		// module.
+		return FALSE;
+	}
+
+	int i = 0;
+	patchentry_t *entry = module->patchtable;
+	while(entry->importname)
+	{
+		LPCVOID replacement = entry->replacement;
+
+		IMAGE_THUNK_DATA        *iate;
+
+		// Locate the replacement's IAT entry.
+		iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+		while (iate->u1.Function != 0x0) {
+			if (iate->u1.Function == (DWORD_PTR)replacement) {
+				// Found the IAT entry for the replacement. This patch has been
+				// installed.
+				return TRUE;
+			}
+			iate++;
+		}
+		entry++; i++;
+	}
+
+	// The module does not import the replacement. The patch has not been
+	// installed.
+	return FALSE;
 }
 
 // insertreportdelay - Sets the report function to sleep for a bit after each
@@ -358,9 +367,9 @@ VOID insertreportdelay ()
 //    Returns TRUE if at least one of the patches listed in the patch table is
 //    installed in the importmodule. Otherwise returns FALSE.
 //
-BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
-    patchentry_t *entry;
+    moduleentry_t *entry;
     BOOL          found = FALSE;
     UINT          index;
 
@@ -368,8 +377,8 @@ BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tab
     // entry to see if it is installed in the import module. If any patch entry
     // is installed in the import module, then the module has been patched.
     for (index = 0; index < tablesize; index++) {
-        entry = &patchtable[index];
-        found = findpatch(importmodule, entry->exportmodulename, entry->replacement);
+		entry = &patchtable[index];
+        found = findpatch(importmodule, entry);
         if (found == TRUE) {
             // Found one of the listed patches installed in the import module.
             return TRUE;
@@ -410,67 +419,79 @@ BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tab
 //    import module does not import the specified export, so nothing changed,
 //    then FALSE will be returned.
 //   
-BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
-                  LPCVOID replacement)
+BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 {
-    IMAGE_THUNK_DATA        *iate;
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    FARPROC                  import;
-    DWORD                    protect;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+	DWORD result = 0;
+	HMODULE exportmodule = (HMODULE)module->modulebase;
+	LPCSTR exportmodulename = module->exportmodulename;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return FALSE;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return FALSE;
-    }
-    
-    // Get the *real* address of the import. If we find this address in the IAT,
-    // then we've found the entry that needs to be patched.
-    import = GetProcAddress(exportmodule, importname);
-    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+	IMAGE_IMPORT_DESCRIPTOR *idte;
+	IMAGE_SECTION_HEADER    *section;
+	ULONG                    size;
 
-    // Locate the import's IAT entry.
-    iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-    while (iate->u1.Function != 0x0) {
-        if (iate->u1.Function == (DWORD_PTR)import) {
-            // Found the IAT entry. Overwrite the address stored in the IAT
-            // entry with the address of the replacement. Note that the IAT
-            // entry may be write-protected, so we must first ensure that it is
-            // writable.
-            VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
-            iate->u1.Function = (DWORD_PTR)replacement;
-            VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	EnterCriticalSection(&imagelock);
+	idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+		IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	LeaveCriticalSection(&imagelock);
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return FALSE;
+	}
+	while (idte->FirstThunk != 0x0) {
+		if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+			// Found the IDT entry for the exporting module.
+			break;
+		}
+		idte++;
+	}
+	if (idte->FirstThunk == 0x0) {
+		// The importing module does not import anything from the exporting
+		// module.
+		return FALSE;
+	}
 
-            // The patch has been installed in the import module.
-            return TRUE;
-        }
-        iate++;
-    }
+	patchentry_t *entry = module->patchtable;
+	int i = 0;
+	while(entry->importname)
+	{
+		LPCSTR importname   = entry->importname;
+		LPCVOID replacement = entry->replacement;
+		IMAGE_THUNK_DATA        *iate;
+		DWORD                    protect;
+		FARPROC                  import;
+
+		// Get the *real* address of the import. If we find this address in the IAT,
+		// then we've found the entry that needs to be patched.
+		import = GetProcAddress(exportmodule, importname);
+		assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+
+		// Locate the import's IAT entry.
+		iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+		while (iate->u1.Function != 0x0) {
+			if (iate->u1.Function == (DWORD_PTR)import) {
+				// Found the IAT entry. Overwrite the address stored in the IAT
+				// entry with the address of the replacement. Note that the IAT
+				// entry may be write-protected, so we must first ensure that it is
+				// writable.
+				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
+				iate->u1.Function = (DWORD_PTR)replacement;
+				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+
+				// The patch has been installed in the import module.
+				result++;
+			}
+			iate++;
+		}
+		entry++; i++;
+	}
 
     // The import's IAT entry was not found. The importing module does not
     // import the specified import.
-    return FALSE;
+    return result > 0;
 }
 
 // patchmodule - Patches all imports listed in the supplied patch table, and
@@ -493,9 +514,9 @@ BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodul
 //    Returns TRUE if at least one of the patches listed in the patch table was
 //    installed in the importmodule. Otherwise returns FALSE.
 //
-BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
-    patchentry_t *entry;
+    moduleentry_t *entry;
     UINT          index;
     BOOL          patched = FALSE;
 
@@ -503,8 +524,7 @@ BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesi
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        if (patchimport(importmodule, (HMODULE)entry->modulebase, entry->exportmodulename, entry->importname,
-                        entry->replacement) == TRUE) {
+        if (patchimport(importmodule, entry) == TRUE) {
             patched = TRUE;
         }
     }
@@ -592,60 +612,72 @@ VOID report (LPCWSTR format, ...)
 //
 //    None.
 //   
-VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
-                    LPCVOID replacement)
+VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 {
-    IMAGE_THUNK_DATA        *iate;
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    FARPROC                  import;
-    DWORD                    protect;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+	IMAGE_IMPORT_DESCRIPTOR *idte;
+	IMAGE_SECTION_HEADER    *section;
+	ULONG                    size;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return;
-    }
-    
-    // Get the *real* address of the import.
-    import = GetProcAddress(exportmodule, importname);
-    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+	HMODULE exportmodule = (HMODULE)module->modulebase;
+	LPCSTR exportmodulename = module->exportmodulename;
 
-    // Locate the import's original IAT entry (it currently has the replacement
-    // address in it).
-    iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-    while (iate->u1.Function != 0x0) {
-        if (iate->u1.Function == (DWORD_PTR)replacement) {
-            // Found the IAT entry. Overwrite the address stored in the IAT
-            // entry with the import's real address. Note that the IAT entry may
-            // be write-protected, so we must first ensure that it is writable.
-            VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
-            iate->u1.Function = (DWORD_PTR)import;
-            VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-            break;
-        }
-        iate++;
-    }
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	EnterCriticalSection(&imagelock);
+	idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+		IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	LeaveCriticalSection(&imagelock);
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return;
+	}
+	while (idte->OriginalFirstThunk != 0x0) {
+		if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
+			// Found the IDT entry for the exporting module.
+			break;
+		}
+		idte++;
+	}
+	if (idte->OriginalFirstThunk == 0x0) {
+		// The importing module does not import anything from the exporting
+		// module.
+		return;
+	}
+
+	int i = 0;
+	patchentry_t *entry = module->patchtable;
+	while(entry->importname)
+	{
+		IMAGE_THUNK_DATA        *iate;
+		FARPROC                  import;
+		DWORD                    protect;
+
+		LPCSTR importname   = entry->importname;
+		LPCVOID replacement = entry->replacement;
+
+		// Get the *real* address of the import.
+		import = GetProcAddress(exportmodule, importname);
+		assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+
+		// Locate the import's original IAT entry (it currently has the replacement
+		// address in it).
+		iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+		while (iate->u1.Function != 0x0) {
+			if (iate->u1.Function == (DWORD_PTR)replacement) {
+				// Found the IAT entry. Overwrite the address stored in the IAT
+				// entry with the import's real address. Note that the IAT entry may
+				// be write-protected, so we must first ensure that it is writable.
+				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
+				iate->u1.Function = (DWORD_PTR)import;
+				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				break;
+			}
+			iate++;
+		}
+		entry++; i++;
+	}
 }
 
 // restoremodule - Restores all imports listed in the supplied patch table, and
@@ -666,17 +698,16 @@ VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmod
 //
 //    None.
 //
-VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize)
+VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
-    patchentry_t *entry;
+    moduleentry_t *entry;
     UINT          index;
 
     // Loop through the import patch table, individually restoring each import
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        restoreimport(importmodule, (HMODULE)entry->modulebase, entry->exportmodulename, entry->importname,
-                      entry->replacement);
+        restoreimport(importmodule, entry);
     }
 }
 

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Definition
-//  Copyright (c) 2005-2009 Dan Moulding
+//  Copyright (c) 2005-2010 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -268,7 +268,10 @@ private:
 #define VLD_OPT_TRACE_INTERNAL_FRAMES   0x100 //   If set, include useless frames (e.g. internal to VLD) in call stacks.
 #define VLD_OPT_UNICODE_REPORT          0x200 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
 #define VLD_OPT_VLDOFF                  0x400 //   If set, VLD will be completely deactivated. It will not attach to any modules.
-    static patchentry_t  m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
+    static patchentry_t  m_kernel32Patch [];
+    static patchentry_t  m_ntdllPatch [];
+    static patchentry_t  m_ole32Patch [];
+    static moduleentry_t m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportfile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
     const char          *m_selftestfile;      // Filename where the memory leak self-test block is leaked.

@@ -101,11 +101,16 @@ enum encoding_e {
 // through to replacement functions provided by VLD.
 typedef struct patchentry_s
 {
-    LPCSTR  exportmodulename; // The name of the module exporting the patched API.
     LPCSTR  importname;       // The name (or ordinal) of the imported API being patched.
-    UINT_PTR modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 } patchentry_t;
+
+typedef struct moduleentry_s
+{
+	LPCSTR          exportmodulename; // The name of the module exporting the patched API.
+	UINT_PTR        modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
+	patchentry_t*   patchtable;
+} moduleentry_t;
 
 // Utility functions. See function definitions for details.
 VOID dumpmemorya (LPCVOID address, SIZE_T length);
@@ -113,14 +118,12 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T length);
 BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname);
 BOOL findpatch (HMODULE importmodule, LPCSTR exportmodulename, LPCVOID replacement);
 VOID insertreportdelay ();
-BOOL moduleispatched (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
-BOOL patchimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
-                  LPCVOID replacement);
-BOOL patchmodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
+BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
+BOOL patchimport (HMODULE importmodule, moduleentry_t *module);
+BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 VOID report (LPCWSTR format, ...);
-VOID restoreimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname,
-                    LPCVOID replacement);
-VOID restoremodule (HMODULE importmodule, patchentry_t patchtable [], UINT tablesize);
+VOID restoreimport (HMODULE importmodule, moduleentry_t* module);
+VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger);
 VOID strapp (LPWSTR *dest, LPCWSTR source);

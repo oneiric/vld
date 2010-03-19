@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - CRT and MFC IAT Patch Functions Header
-//  Copyright (c) 2009 Dan Moulding
+//  Copyright (c) 2009-2010 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -88,7 +88,7 @@ public:
     template<wchar_t const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new (context_t& context, size_t size);
+	static void* __cdecl mfcd_new (context_t& context, size_t size);
 };
 
 
@@ -960,21 +960,36 @@ typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
 // Visual Studio 2005
 typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
                     vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
+					scalar_new_name, scalar_new_dbg_name,
+#if !defined(_M_X64)
                     267, 268, 269, 893, 894, 895,
-                    267, 268, 269, 893, 894, 895>
+					267, 268, 269, 893, 894, 895>
+#else
+					267, 268, 269, 907, 908, 909,
+					267, 268, 269, 907, 908, 909>
+#endif
         VS80;
 // Visual Studio 2008
 typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
+					scalar_new_name, scalar_new_dbg_name,
+#if !defined(_M_X64)
                     267, 268, 269, 931, 932, 933,
-                    267, 268, 269, 935, 936, 937>
+					267, 268, 269, 935, 936, 937>
+#else
+					267, 268, 269, 909, 910, 911,
+					267, 268, 269, 913, 914, 915>
+#endif
         VS90;
 // Visual Studio 2010
 typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
                     vector_new_name, vector_new_dbg_name,
-                     scalar_new_name, scalar_new_dbg_name,
+					scalar_new_name, scalar_new_dbg_name,
+#if !defined(_M_X64)
                     267, 268, 269, 1427, 1428, 1429,
                     267, 268, 269, 1434, 1435, 1436>
+#else
+					267, 268, 269, 1405, 1406, 1407,
+					267, 268, 269, 1412, 1413, 1414>
+#endif
         VS100;

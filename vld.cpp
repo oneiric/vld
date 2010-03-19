@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - VisualLeakDetector Class Implementation
-//  Copyright (c) 2005-2009 Dan Moulding
+//  Copyright (c) 2005-2010 Dan Moulding
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -66,155 +66,267 @@ __declspec(dllexport) VisualLeakDetector vld;
 // The import patch table: lists the heap-related API imports that VLD patches
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
-patchentry_t VisualLeakDetector::m_patchtable [] = {
-    // Win32 heap APIs.
-    "kernel32.dll", "GetProcAddress",     0x0, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
-    "kernel32.dll", "HeapAlloc",          0x0, _RtlAllocateHeap,
-    "kernel32.dll", "HeapCreate",         0x0, _HeapCreate,
-    "kernel32.dll", "HeapDestroy",        0x0, _HeapDestroy,
-    "kernel32.dll", "HeapFree",           0x0, _RtlFreeHeap,
-    "kernel32.dll", "HeapReAlloc",        0x0, _RtlReAllocateHeap,
+patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
+	"GetProcAddress",     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+	"HeapAlloc",          _RtlAllocateHeap,
+	"HeapCreate",         _HeapCreate,
+	"HeapDestroy",        _HeapDestroy,
+	"HeapFree",           _RtlFreeHeap,
+	"HeapReAlloc",        _RtlReAllocateHeap,
+	NULL,                 NULL
+};
 
-    // MFC new operators (exported by ordinal).
-    // XXX why are the vector new operators missing for mfc42d.dll?
-    "mfc42d.dll",   (LPCSTR)711,          0x0, VS60::mfcd_scalar_new,
-    "mfc42d.dll",   (LPCSTR)712,          0x0, VS60::mfcd__scalar_new_dbg_4p,
-    "mfc42d.dll",   (LPCSTR)714,          0x0, VS60::mfcd__scalar_new_dbg_3p,
-    "mfc42ud.dll",  (LPCSTR)711,          0x0, VS60::mfcud_scalar_new,
-    "mfc42ud.dll",  (LPCSTR)712,          0x0, VS60::mfcud__scalar_new_dbg_4p,
-    "mfc42ud.dll",  (LPCSTR)714,          0x0, VS60::mfcud__scalar_new_dbg_3p,
-    "mfc70d.dll",   (LPCSTR)257,          0x0, VS70::mfcd_vector_new,
-    "mfc70d.dll",   (LPCSTR)258,          0x0, VS70::mfcd__vector_new_dbg_4p,
-    "mfc70d.dll",   (LPCSTR)259,          0x0, VS70::mfcd__vector_new_dbg_3p,
-    "mfc70d.dll",   (LPCSTR)832,          0x0, VS70::mfcd_scalar_new,
-    "mfc70d.dll",   (LPCSTR)833,          0x0, VS70::mfcd__scalar_new_dbg_4p,
-    "mfc70d.dll",   (LPCSTR)834,          0x0, VS70::mfcd__scalar_new_dbg_3p,
-    "mfc70ud.dll",  (LPCSTR)258,          0x0, VS70::mfcud_vector_new,
-    "mfc70ud.dll",  (LPCSTR)259,          0x0, VS70::mfcud__vector_new_dbg_4p,
-    "mfc70ud.dll",  (LPCSTR)260,          0x0, VS70::mfcud__vector_new_dbg_3p,
-    "mfc70ud.dll",  (LPCSTR)833,          0x0, VS70::mfcud_scalar_new,
-    "mfc70ud.dll",  (LPCSTR)834,          0x0, VS70::mfcud__scalar_new_dbg_4p,
-    "mfc70ud.dll",  (LPCSTR)835,          0x0, VS70::mfcud__scalar_new_dbg_3p,
-    "mfc71d.dll",   (LPCSTR)267,          0x0, VS71::mfcd_vector_new,
-    "mfc71d.dll",   (LPCSTR)268,          0x0, VS71::mfcd__vector_new_dbg_4p,
-    "mfc71d.dll",   (LPCSTR)269,          0x0, VS71::mfcd__vector_new_dbg_3p,
-    "mfc71d.dll",   (LPCSTR)893,          0x0, VS71::mfcd_scalar_new,
-    "mfc71d.dll",   (LPCSTR)894,          0x0, VS71::mfcd__scalar_new_dbg_4p,
-    "mfc71d.dll",   (LPCSTR)895,          0x0, VS71::mfcd__scalar_new_dbg_3p,
-    "mfc71ud.dll",  (LPCSTR)267,          0x0, VS71::mfcud_vector_new,
-    "mfc71ud.dll",  (LPCSTR)268,          0x0, VS71::mfcud__vector_new_dbg_4p,
-    "mfc71ud.dll",  (LPCSTR)269,          0x0, VS71::mfcud__vector_new_dbg_3p,
-    "mfc71ud.dll",  (LPCSTR)893,          0x0, VS71::mfcud_scalar_new,
-    "mfc71ud.dll",  (LPCSTR)894,          0x0, VS71::mfcud__scalar_new_dbg_4p,
-    "mfc71ud.dll",  (LPCSTR)895,          0x0, VS71::mfcud__scalar_new_dbg_3p,
-    "mfc80d.dll",   (LPCSTR)267,          0x0, VS80::mfcd_vector_new,
-    "mfc80d.dll",   (LPCSTR)268,          0x0, VS80::mfcd__vector_new_dbg_4p,
-    "mfc80d.dll",   (LPCSTR)269,          0x0, VS80::mfcd__vector_new_dbg_3p,
-    "mfc80d.dll",   (LPCSTR)893,          0x0, VS80::mfcd_scalar_new,
-    "mfc80d.dll",   (LPCSTR)894,          0x0, VS80::mfcd__scalar_new_dbg_4p,
-    "mfc80d.dll",   (LPCSTR)895,          0x0, VS80::mfcd__scalar_new_dbg_3p,
-    "mfc80ud.dll",  (LPCSTR)267,          0x0, VS80::mfcud_vector_new,
-    "mfc80ud.dll",  (LPCSTR)268,          0x0, VS80::mfcud__vector_new_dbg_4p,
-    "mfc80ud.dll",  (LPCSTR)269,          0x0, VS80::mfcud__vector_new_dbg_3p,
-    "mfc80ud.dll",  (LPCSTR)893,          0x0, VS80::mfcud_scalar_new,
-    "mfc80ud.dll",  (LPCSTR)894,          0x0, VS80::mfcud__scalar_new_dbg_4p,
-    "mfc80ud.dll",  (LPCSTR)895,          0x0, VS80::mfcud__scalar_new_dbg_3p,
-    "mfc90d.dll",   (LPCSTR)267,          0x0, VS90::mfcd_vector_new,
-    "mfc90d.dll",   (LPCSTR)268,          0x0, VS90::mfcd__vector_new_dbg_4p,
-    "mfc90d.dll",   (LPCSTR)269,          0x0, VS90::mfcd__vector_new_dbg_3p,
-    "mfc90d.dll",   (LPCSTR)931,          0x0, VS90::mfcd_scalar_new,
-    "mfc90d.dll",   (LPCSTR)932,          0x0, VS90::mfcd__scalar_new_dbg_4p,
-    "mfc90d.dll",   (LPCSTR)933,          0x0, VS90::mfcd__scalar_new_dbg_3p,
-    "mfc90ud.dll",  (LPCSTR)267,          0x0, VS90::mfcud_vector_new,
-    "mfc90ud.dll",  (LPCSTR)268,          0x0, VS90::mfcud__vector_new_dbg_4p,
-    "mfc90ud.dll",  (LPCSTR)269,          0x0, VS90::mfcud__vector_new_dbg_3p,
-    "mfc90ud.dll",  (LPCSTR)935,          0x0, VS90::mfcud_scalar_new,
-    "mfc90ud.dll",  (LPCSTR)936,          0x0, VS90::mfcud__scalar_new_dbg_4p,
-    "mfc90ud.dll",  (LPCSTR)937,          0x0, VS90::mfcud__scalar_new_dbg_3p,
-    "mfc100d.dll",   (LPCSTR)267,          0x0, VS100::mfcd_vector_new,
-    "mfc100d.dll",   (LPCSTR)268,          0x0, VS100::mfcd__vector_new_dbg_4p,
-    "mfc100d.dll",   (LPCSTR)269,          0x0, VS100::mfcd__vector_new_dbg_3p,
-    "mfc100d.dll",   (LPCSTR)1427,         0x0, VS100::mfcd_scalar_new,
-    "mfc100d.dll",   (LPCSTR)1428,         0x0, VS100::mfcd__scalar_new_dbg_4p,
-    "mfc100d.dll",   (LPCSTR)1429,         0x0, VS100::mfcd__scalar_new_dbg_3p,
-    "mfc100ud.dll",  (LPCSTR)267,          0x0, VS100::mfcud_vector_new,
-    "mfc100ud.dll",  (LPCSTR)268,          0x0, VS100::mfcud__vector_new_dbg_4p,
-    "mfc100ud.dll",  (LPCSTR)269,          0x0, VS100::mfcud__vector_new_dbg_3p,
-    "mfc100ud.dll",  (LPCSTR)1434,         0x0, VS100::mfcud_scalar_new,
-    "mfc100ud.dll",  (LPCSTR)1435,         0x0, VS100::mfcud__scalar_new_dbg_4p,
-    "mfc100ud.dll",  (LPCSTR)1436,         0x0, VS100::mfcud__scalar_new_dbg_3p,
+#if !defined(_M_X64)
+#define ORDINAL(x86, x64)	(LPCSTR)x86
+#else
+#define ORDINAL(x86, x64)	(LPCSTR)x64
+#endif
+
+static patchentry_t mfc42dPatch [] = {
+	// XXX why are the vector new operators missing for mfc42d.dll?
+	(LPCSTR)711,          VS60::mfcd_scalar_new,
+	(LPCSTR)712,          VS60::mfcd__scalar_new_dbg_4p,
+	(LPCSTR)714,          VS60::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc42udPatch [] = {
+	// XXX why are the vector new operators missing for mfc42ud.dll?
+	(LPCSTR)711,          VS60::mfcud_scalar_new,
+	(LPCSTR)712,          VS60::mfcud__scalar_new_dbg_4p,
+	(LPCSTR)714,          VS60::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc70dPatch [] = {
+	(LPCSTR)257,          VS70::mfcd_vector_new,
+	(LPCSTR)258,          VS70::mfcd__vector_new_dbg_4p,
+	(LPCSTR)259,          VS70::mfcd__vector_new_dbg_3p,
+	(LPCSTR)832,          VS70::mfcd_scalar_new,
+	(LPCSTR)833,          VS70::mfcd__scalar_new_dbg_4p,
+	(LPCSTR)834,          VS70::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc70udPatch [] = {
+	(LPCSTR)258,          VS70::mfcud_vector_new,
+	(LPCSTR)259,          VS70::mfcud__vector_new_dbg_4p,
+	(LPCSTR)260,          VS70::mfcud__vector_new_dbg_3p,
+	(LPCSTR)833,          VS70::mfcud_scalar_new,
+	(LPCSTR)834,          VS70::mfcud__scalar_new_dbg_4p,
+	(LPCSTR)835,          VS70::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc71dPatch [] = {
+	(LPCSTR)267,          VS71::mfcd_vector_new,
+	(LPCSTR)268,          VS71::mfcd__vector_new_dbg_4p,
+	(LPCSTR)269,          VS71::mfcd__vector_new_dbg_3p,
+	(LPCSTR)893,          VS71::mfcd_scalar_new,
+	(LPCSTR)894,          VS71::mfcd__scalar_new_dbg_4p,
+	(LPCSTR)895,          VS71::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc71udPatch [] = {
+	(LPCSTR)267,          VS71::mfcud_vector_new,
+	(LPCSTR)268,          VS71::mfcud__vector_new_dbg_4p,
+	(LPCSTR)269,          VS71::mfcud__vector_new_dbg_3p,
+	(LPCSTR)893,          VS71::mfcud_scalar_new,
+	(LPCSTR)894,          VS71::mfcud__scalar_new_dbg_4p,
+	(LPCSTR)895,          VS71::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc80dPatch [] = {
+	(LPCSTR)267,          VS80::mfcd_vector_new,
+	(LPCSTR)268,          VS80::mfcd__vector_new_dbg_4p,
+	(LPCSTR)269,          VS80::mfcd__vector_new_dbg_3p,
+	ORDINAL(893,907),     VS80::mfcd_scalar_new,
+	ORDINAL(894,908),     VS80::mfcd__scalar_new_dbg_4p,
+	ORDINAL(895,909),     VS80::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc80udPatch [] = {
+	(LPCSTR)267,          VS80::mfcud_vector_new,
+	(LPCSTR)268,          VS80::mfcud__vector_new_dbg_4p,
+	(LPCSTR)269,          VS80::mfcud__vector_new_dbg_3p,
+	ORDINAL(893,907),     VS80::mfcud_scalar_new,
+	ORDINAL(894,908),     VS80::mfcud__scalar_new_dbg_4p,
+	ORDINAL(895,909),     VS80::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc90dPatch [] = {
+	(LPCSTR)267,          VS90::mfcd_vector_new,
+	(LPCSTR)268,          VS90::mfcd__vector_new_dbg_4p,
+	(LPCSTR)269,          VS90::mfcd__vector_new_dbg_3p,
+	ORDINAL(931, 909),    VS90::mfcd_scalar_new,
+	ORDINAL(932, 910),    VS90::mfcd__scalar_new_dbg_4p,
+	ORDINAL(932, 911),    VS90::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc90udPatch [] = {
+	(LPCSTR)267,          VS90::mfcud_vector_new,
+	(LPCSTR)268,          VS90::mfcud__vector_new_dbg_4p,
+	(LPCSTR)269,          VS90::mfcud__vector_new_dbg_3p,
+	ORDINAL(935, 913),    VS90::mfcud_scalar_new,
+	ORDINAL(936, 914),    VS90::mfcud__scalar_new_dbg_4p,
+	ORDINAL(937, 915),    VS90::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc100dPatch [] = {
+	(LPCSTR)267,          VS100::mfcd_vector_new,
+	(LPCSTR)268,          VS100::mfcd__vector_new_dbg_4p,
+	(LPCSTR)269,          VS100::mfcd__vector_new_dbg_3p,
+	ORDINAL(1427, 1405),  VS100::mfcd_scalar_new,
+	ORDINAL(1428, 1406),  VS100::mfcd__scalar_new_dbg_4p,
+	ORDINAL(1429, 1407),  VS100::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t mfc100udPatch [] = {
+	(LPCSTR)267,          VS100::mfcud_vector_new,
+	(LPCSTR)268,          VS100::mfcud__vector_new_dbg_4p,
+	(LPCSTR)269,          VS100::mfcud__vector_new_dbg_3p,
+	ORDINAL(1434, 1412),  VS100::mfcud_scalar_new,
+	ORDINAL(1435, 1413),  VS100::mfcud__scalar_new_dbg_4p,
+	ORDINAL(1436, 1414),  VS100::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcrtdPatch [] = {
+	"_calloc_dbg",        VS60::crtd__calloc_dbg,
+	"_malloc_dbg",        VS60::crtd__malloc_dbg,
+	"_realloc_dbg",       VS60::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS60::crtd__scalar_new_dbg,
+	//vector_new_dbg_name,  VS60::crtd__vector_new_dbg,
+	"calloc",             VS60::crtd_calloc,
+	"malloc",             VS60::crtd_malloc,
+	"realloc",            VS60::crtd_realloc,
+	scalar_new_name,      VS60::crtd_scalar_new,
+	//vector_new_name,      VS60::crtd_vector_new,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcr70dPatch [] = {
+	"_calloc_dbg",        VS70::crtd__calloc_dbg,
+	"_malloc_dbg",        VS70::crtd__malloc_dbg,
+	"_realloc_dbg",       VS70::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS70::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS70::crtd__vector_new_dbg,
+	"calloc",             VS70::crtd_calloc,
+	"malloc",             VS70::crtd_malloc,
+	"realloc",            VS70::crtd_realloc,
+	scalar_new_name,      VS70::crtd_scalar_new,
+	vector_new_name,      VS70::crtd_vector_new,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcr71dPatch [] = {
+	"_calloc_dbg",        VS71::crtd__calloc_dbg,
+	"_malloc_dbg",        VS71::crtd__malloc_dbg,
+	"_realloc_dbg",       VS71::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS71::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS71::crtd__vector_new_dbg,
+	"calloc",             VS71::crtd_calloc,
+	"malloc",             VS71::crtd_malloc,
+	"realloc",            VS71::crtd_realloc,
+	scalar_new_name,      VS71::crtd_scalar_new,
+	vector_new_name,      VS71::crtd_vector_new,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcr80dPatch [] = {
+	"_calloc_dbg",        VS80::crtd__calloc_dbg,
+	"_malloc_dbg",        VS80::crtd__malloc_dbg,
+	"_realloc_dbg",       VS80::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS80::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS80::crtd__vector_new_dbg,
+	"calloc",             VS80::crtd_calloc,
+	"malloc",             VS80::crtd_malloc,
+	"realloc",            VS80::crtd_realloc,
+	scalar_new_name,      VS80::crtd_scalar_new,
+	vector_new_name,      VS80::crtd_vector_new,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcr90dPatch [] = {
+	"_calloc_dbg",        VS90::crtd__calloc_dbg,
+	"_malloc_dbg",        VS90::crtd__malloc_dbg,
+	"_realloc_dbg",       VS90::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS90::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS90::crtd__vector_new_dbg,
+	"calloc",             VS90::crtd_calloc,
+	"malloc",             VS90::crtd_malloc,
+	"realloc",            VS90::crtd_realloc,
+	scalar_new_name,      VS90::crtd_scalar_new,
+	vector_new_name,      VS90::crtd_vector_new,
+	NULL,                 NULL
+};
+
+static patchentry_t msvcr100dPatch [] = {
+	"_calloc_dbg",        VS100::crtd__calloc_dbg,
+	"_malloc_dbg",        VS100::crtd__malloc_dbg,
+	"_realloc_dbg",       VS100::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS100::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS100::crtd__vector_new_dbg,
+	"calloc",             VS100::crtd_calloc,
+	"malloc",             VS100::crtd_malloc,
+	"realloc",            VS100::crtd_realloc,
+	scalar_new_name,      VS100::crtd_scalar_new,
+	vector_new_name,      VS100::crtd_vector_new,
+	NULL,                 NULL
+};
+
+patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
+	"RtlAllocateHeap",    VisualLeakDetector::_RtlAllocateHeap,
+	"RtlFreeHeap",        VisualLeakDetector::_RtlFreeHeap,
+	"RtlReAllocateHeap",  VisualLeakDetector::_RtlReAllocateHeap,
+	NULL,                 NULL
+};
+
+patchentry_t VisualLeakDetector::m_ole32Patch [] = {
+	"CoGetMalloc",        VisualLeakDetector::_CoGetMalloc,
+	"CoTaskMemAlloc",     VisualLeakDetector::_CoTaskMemAlloc,
+	"CoTaskMemRealloc",   VisualLeakDetector::_CoTaskMemRealloc,
+	NULL,                 NULL
+};
+
+moduleentry_t VisualLeakDetector::m_patchtable [] = {
+    // Win32 heap APIs.
+    "kernel32.dll", 0x0, m_kernel32Patch,
+
+	// MFC new operators (exported by ordinal).
+	"mfc42d.dll",   0x0, mfc42dPatch,
+	"mfc42ud.dll",  0x0, mfc42udPatch,
+    "mfc70d.dll",   0x0, mfc70dPatch,
+    "mfc70ud.dll",  0x0, mfc70udPatch,
+    "mfc71d.dll",   0x0, mfc71dPatch,
+    "mfc71ud.dll",  0x0, mfc71udPatch,
+    "mfc80d.dll",   0x0, mfc80dPatch,
+    "mfc80ud.dll",  0x0, mfc80udPatch,
+    "mfc90d.dll",   0x0, mfc90dPatch,
+    "mfc90ud.dll",  0x0, mfc90udPatch,
+    "mfc100d.dll",   0x0, mfc100dPatch,
+    "mfc100ud.dll",  0x0, mfc100dPatch,
 
     // CRT new operators and heap APIs.
-    "msvcrtd.dll",  "_calloc_dbg",        0x0, VS60::crtd__calloc_dbg,
-    "msvcrtd.dll",  "_malloc_dbg",        0x0, VS60::crtd__malloc_dbg,
-    "msvcrtd.dll",  "_realloc_dbg",       0x0, VS60::crtd__realloc_dbg,
-    "msvcrtd.dll",  scalar_new_dbg_name,  0x0, VS60::crtd__scalar_new_dbg,
-//  "msvcrtd.dll",  vector_new_dbg_name,  0x0, VS60::crtd__vector_new_dbg,
-    "msvcrtd.dll",  "calloc",             0x0, VS60::crtd_calloc,
-    "msvcrtd.dll",  "malloc",             0x0, VS60::crtd_malloc,
-    "msvcrtd.dll",  "realloc",            0x0, VS60::crtd_realloc,
-    "msvcrtd.dll",  scalar_new_name,      0x0, VS60::crtd_scalar_new,
-//  "msvcrtd.dll",  vector_new_name,      0x0, VS60::crtd_vector_new,
-    "msvcr70d.dll", "_calloc_dbg",        0x0, VS70::crtd__calloc_dbg,
-    "msvcr70d.dll", "_malloc_dbg",        0x0, VS70::crtd__malloc_dbg,
-    "msvcr70d.dll", "_realloc_dbg",       0x0, VS70::crtd__realloc_dbg,
-    "msvcr70d.dll", scalar_new_dbg_name,  0x0, VS70::crtd__scalar_new_dbg,
-    "msvcr70d.dll", vector_new_dbg_name,  0x0, VS70::crtd__vector_new_dbg,
-    "msvcr70d.dll", "calloc",             0x0, VS70::crtd_calloc,
-    "msvcr70d.dll", "malloc",             0x0, VS70::crtd_malloc,
-    "msvcr70d.dll", "realloc",            0x0, VS70::crtd_realloc,
-    "msvcr70d.dll", scalar_new_name,      0x0, VS70::crtd_scalar_new,
-    "msvcr70d.dll", vector_new_name,      0x0, VS70::crtd_vector_new,
-    "msvcr71d.dll", "_calloc_dbg",        0x0, VS71::crtd__calloc_dbg,
-    "msvcr71d.dll", "_malloc_dbg",        0x0, VS71::crtd__malloc_dbg,
-    "msvcr71d.dll", "_realloc_dbg",       0x0, VS71::crtd__realloc_dbg,
-    "msvcr71d.dll", scalar_new_dbg_name,  0x0, VS71::crtd__scalar_new_dbg,
-    "msvcr71d.dll", vector_new_dbg_name,  0x0, VS71::crtd__vector_new_dbg,
-    "msvcr71d.dll", "calloc",             0x0, VS71::crtd_calloc,
-    "msvcr71d.dll", "malloc",             0x0, VS71::crtd_malloc,
-    "msvcr71d.dll", "realloc",            0x0, VS71::crtd_realloc,
-    "msvcr71d.dll", scalar_new_name,      0x0, VS71::crtd_scalar_new,
-    "msvcr71d.dll", vector_new_name,      0x0, VS71::crtd_vector_new,
-    "msvcr80d.dll", "_calloc_dbg",        0x0, VS80::crtd__calloc_dbg,
-    "msvcr80d.dll", "_malloc_dbg",        0x0, VS80::crtd__malloc_dbg,
-    "msvcr80d.dll", "_realloc_dbg",       0x0, VS80::crtd__realloc_dbg,
-    "msvcr80d.dll", scalar_new_dbg_name,  0x0, VS80::crtd__scalar_new_dbg,
-    "msvcr80d.dll", vector_new_dbg_name,  0x0, VS80::crtd__vector_new_dbg,
-    "msvcr80d.dll", "calloc",             0x0, VS80::crtd_calloc,
-    "msvcr80d.dll", "malloc",             0x0, VS80::crtd_malloc,
-    "msvcr80d.dll", "realloc",            0x0, VS80::crtd_realloc,
-    "msvcr80d.dll", scalar_new_name,      0x0, VS80::crtd_scalar_new,
-    "msvcr80d.dll", vector_new_name,      0x0, VS80::crtd_vector_new,
-    "msvcr90d.dll", "_calloc_dbg",        0x0, VS90::crtd__calloc_dbg,
-    "msvcr90d.dll", "_malloc_dbg",        0x0, VS90::crtd__malloc_dbg,
-    "msvcr90d.dll", "_realloc_dbg",       0x0, VS90::crtd__realloc_dbg,
-    "msvcr90d.dll", scalar_new_dbg_name,  0x0, VS90::crtd__scalar_new_dbg,
-    "msvcr90d.dll", vector_new_dbg_name,  0x0, VS90::crtd__vector_new_dbg,
-    "msvcr90d.dll", "calloc",             0x0, VS90::crtd_calloc,
-    "msvcr90d.dll", "malloc",             0x0, VS90::crtd_malloc,
-    "msvcr90d.dll", "realloc",            0x0, VS90::crtd_realloc,
-    "msvcr90d.dll", scalar_new_name,      0x0, VS90::crtd_scalar_new,
-    "msvcr90d.dll", vector_new_name,      0x0, VS90::crtd_vector_new,
-    "msvcr100d.dll", "_calloc_dbg",        0x0, VS100::crtd__calloc_dbg,
-    "msvcr100d.dll", "_malloc_dbg",        0x0, VS100::crtd__malloc_dbg,
-    "msvcr100d.dll", "_realloc_dbg",       0x0, VS100::crtd__realloc_dbg,
-    "msvcr100d.dll", scalar_new_dbg_name,  0x0, VS100::crtd__scalar_new_dbg,
-    "msvcr100d.dll", vector_new_dbg_name,  0x0, VS100::crtd__vector_new_dbg,
-    "msvcr100d.dll", "calloc",             0x0, VS100::crtd_calloc,
-    "msvcr100d.dll", "malloc",             0x0, VS100::crtd_malloc,
-    "msvcr100d.dll", "realloc",            0x0, VS100::crtd_realloc,
-    "msvcr100d.dll", scalar_new_name,      0x0, VS100::crtd_scalar_new,
-    "msvcr100d.dll", vector_new_name,      0x0, VS100::crtd_vector_new,
+    "msvcrtd.dll",  0x0, msvcrtdPatch,
+    "msvcr70d.dll", 0x0, msvcr70dPatch,
+    "msvcr71d.dll", 0x0, msvcr71dPatch,
+    "msvcr80d.dll", 0x0, msvcr80dPatch,
+    "msvcr90d.dll", 0x0, msvcr90dPatch,
+    "msvcr100d.dll", 0x0, msvcr100dPatch,
 
     // NT APIs.
-    "ntdll.dll",    "RtlAllocateHeap",    0x0, _RtlAllocateHeap,
-    "ntdll.dll",    "RtlFreeHeap",        0x0, _RtlFreeHeap,
-    "ntdll.dll",    "RtlReAllocateHeap",  0x0, _RtlReAllocateHeap,
+    "ntdll.dll", 0x0, m_ntdllPatch,
 
     // COM heap APIs.
-    "ole32.dll",    "CoGetMalloc",        0x0, _CoGetMalloc,
-    "ole32.dll",    "CoTaskMemAlloc",     0x0, _CoTaskMemAlloc,
-    "ole32.dll",    "CoTaskMemRealloc",   0x0, _CoTaskMemRealloc
+    "ole32.dll", 0x0, m_ole32Patch
 };
 
 // Constructor - Initializes private data, loads configuration options, and
@@ -352,9 +464,14 @@ VisualLeakDetector::VisualLeakDetector ()
     }
     delete [] symbolpath;
 
-    // Patch into kernel32.dll's calls to LdrLoadDll so that VLD can
-    // dynamically attach to new modules loaded during runtime.
-    patchimport(kernel32, ntdll, "ntdll.dll", "LdrLoadDll", _LdrLoadDll);
+	patchentry_t ntdllPatch [] = {
+		"LdrLoadDll",    _LdrLoadDll,
+		NULL,                 NULL
+	};
+	moduleentry_t ldrLoadDllPatch [] = {
+		"ntdll.dll", (UINT_PTR)ntdll, ntdllPatch,
+	};
+    patchimport(kernel32, ldrLoadDllPatch);
 
     // Attach Visual Leak Detector to every module loaded in the process.
     newmodules = new ModuleSet;
@@ -1495,7 +1612,7 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
     size_t        count;
-    patchentry_t *entry;
+    moduleentry_t *entry;
     CHAR          extension [_MAX_EXT];
     CHAR          filename [_MAX_FNAME];
     UINT          index;
@@ -2082,7 +2199,7 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 //
 FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
-    patchentry_t *entry;
+	moduleentry_t *entry;
     UINT          index;
     UINT          tablesize = _countof(vld.m_patchtable);
 
@@ -2095,22 +2212,27 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
             continue;
         }
 
-        // This patch table entry is for the specified module. If the requested
-        // import's name matches the entry's import name (or ordinal), then
-        // return the address of the replacement instead of the address of the
-        // actual import.
-        if ((SIZE_T)entry->importname < (SIZE_T)vld.m_vldbase) {
-            // This entry's import name is not a valid pointer to data in
-            // vld.dll. It must be an ordinal value.
-            if ((UINT)entry->importname == (UINT)procname) {
-                return (FARPROC)entry->replacement;
-            }
-        }
-        else {
-            if (strcmp(entry->importname, procname) == 0) {
-                return (FARPROC)entry->replacement;
-            }
-        }
+		patchentry_t *patchentry = entry->patchtable;
+		while(patchentry->importname)
+		{
+			// This patch table entry is for the specified module. If the requested
+			// import's name matches the entry's import name (or ordinal), then
+			// return the address of the replacement instead of the address of the
+			// actual import.
+			if ((SIZE_T)patchentry->importname < (SIZE_T)vld.m_vldbase) {
+				// This entry's import name is not a valid pointer to data in
+				// vld.dll. It must be an ordinal value.
+				if ((UINT)patchentry->importname == (UINT)procname) {
+					return (FARPROC)patchentry->replacement;
+				}
+			}
+			else {
+				if (strcmp(patchentry->importname, procname) == 0) {
+					return (FARPROC)patchentry->replacement;
+				}
+			}
+			patchentry++;
+		}
     }
 
     // The requested function is not a patched function. Just return the real
