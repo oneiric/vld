@@ -164,7 +164,7 @@ static patchentry_t mfc90dPatch [] = {
 	(LPCSTR)269,          VS90::mfcd__vector_new_dbg_3p,
 	ORDINAL(931, 909),    VS90::mfcd_scalar_new,
 	ORDINAL(932, 910),    VS90::mfcd__scalar_new_dbg_4p,
-	ORDINAL(932, 911),    VS90::mfcd__scalar_new_dbg_3p,
+	ORDINAL(933, 911),    VS90::mfcd__scalar_new_dbg_3p,
 	NULL,                 NULL
 };
 
