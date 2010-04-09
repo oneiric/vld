@@ -315,15 +315,10 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 //
 VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 {
-    UINT32  count = 0;
-
-    if (context.fp == NULL) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        CAPTURE_CONTEXT(context);
-    }
-
+	UINT32  count = 0;
 	UINT_PTR* framepointer = context.fp;
+
+#if defined(_M_IX86)
     while (count < maxdepth) {
         if (*framepointer < (UINT)framepointer) {
             if (*framepointer == NULL) {
@@ -354,7 +349,38 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
         count++;
         push_back(*(framepointer + 1));
         framepointer = (UINT_PTR*)*framepointer;
-    }
+	}
+#elif defined(_M_X64)
+	UINT32 maxframes = min(62, maxdepth + 10);
+	static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;  
+	if (s_pfnCaptureStackBackTrace == 0)  
+	{  
+		const HMODULE hNtDll = GetModuleHandle(L"ntdll.dll");  
+		reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
+			= ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
+		if (s_pfnCaptureStackBackTrace == 0)  
+			return;
+	}
+	UINT_PTR* myFrames = new UINT_PTR[maxframes];
+	ZeroMemory(myFrames, sizeof(UINT_PTR) * maxframes);
+	s_pfnCaptureStackBackTrace(0, maxframes, (PVOID*)myFrames, NULL);
+	UINT32  startIndex = 0;
+	while (count < maxframes) {
+		if (myFrames[count] == 0)
+			break;
+		if (myFrames[count] == *(framepointer + 1))
+			startIndex = count;
+		count++;
+	}
+	count = startIndex;
+	while (count < maxframes) {
+		if (myFrames[count] == 0)
+			break;
+		push_back(myFrames[count]);
+		count++;
+	}
+	delete [] myFrames;
+#endif
 }
 
 // getstacktrace - Traces the stack as far back as possible, or until 'maxdepth'
@@ -382,12 +408,6 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
     CONTEXT      currentcontext;
     UINT32       count = 0;
     STACKFRAME64 frame;
-
-    if (context.fp == NULL) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        CAPTURE_CONTEXT(context);
-    }
 
     UINT_PTR* framepointer = context.fp;
 

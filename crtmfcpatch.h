@@ -446,7 +446,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
         pcrtxxd_new_dbg = (new_dbg_crt_t)GetProcAddress(msvcrxxd, procname);
     }
 
-    return vld.new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
+    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
 }
 
 // crt_new - A template function for implementing patch functions to the
@@ -819,7 +819,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
         pmfcxxd__new_dbg = (new_dbg_crt_t)GetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
-    return vld.new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcd_new_dbg - A generic function for implementing patch functions to the MFC
@@ -860,7 +860,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
         pmfcxxd__new_dbg = (new_dbg_mfc_t)GetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
-    return vld.new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcd_new - A generic function for implementing patch functions to the MFC new

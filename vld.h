@@ -85,6 +85,14 @@ __declspec(dllimport) void VLDDisable ();
 //
 __declspec(dllimport) void VLDEnable ();
 
+// VLDRestore - Restore Visual Leak Detector's previous state.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDRestore ();
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
@@ -93,5 +101,6 @@ __declspec(dllimport) void VLDEnable ();
 
 #define VLDEnable()
 #define VLDDisable()
+#define VLDRestore()
 
 #endif // _DEBUG

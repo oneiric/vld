@@ -170,7 +170,7 @@ VOID allocateblock (action_e action, SIZE_T size)
             name = "Ignored";
             VLDDisable();
             *pblock = malloc(size);
-            VLDEnable();
+            VLDRestore();
             break;
 
         case a_malloc:
@@ -354,6 +354,8 @@ int main (int argc, char *argv [])
     char            message [512];
     DWORD           start;
     UINT            leakythread;
+
+	//VLDDisable();
 
     start = GetTickCount();
     srand(start);
