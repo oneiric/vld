@@ -83,6 +83,7 @@ typedef struct threadcontext_s {
 } threadcontext_t;
 
 __declspec(thread) blockholder_t  blocks [MAXBLOCKS];
+__declspec(thread) ULONG          freeBlock = (ULONG)0;
 __declspec(thread) ULONG          counts [numactions] = { 0 };
 __declspec(thread) IMalloc       *imalloc = NULL;
 __declspec(thread) free_t         pfree = NULL;
@@ -113,13 +114,16 @@ VOID allocateblock (action_e action, SIZE_T size)
 {
     HMODULE  crt;
     ULONG    index;
+    ULONG    index2;
     LPCSTR   name;
     PVOID   *pblock;
     HRESULT  status;
 
     // Find the first unused index.
-    for (index = 0; index < MAXBLOCKS; index++) {
-        if (blocks[index].block == NULL) {
+    index = freeBlock;
+    for (index2 = freeBlock + 1; index2 < MAXBLOCKS; index2++) {
+        if (blocks[index2].block == NULL) {
+            freeBlock = index2;
             break;
         }
     }
@@ -241,6 +245,8 @@ VOID freeblock (ULONG index)
             assert(FALSE);
     }
     blocks[index].block = NULL;
+    if (index < freeBlock)
+      freeBlock = index;
     counts[blocks[index].action]--;
     total_allocs--;
 }

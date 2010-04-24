@@ -26,16 +26,16 @@
 !include "MUI.nsh"      # Provides the modern user-interface
 
 # Version number
-!define VLD_VERSION "1.9h"
+!define VLD_VERSION "2.0"
 
 # Define build system paths
-!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
+#!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
 !define DTFW_PATH    "C:\Program Files\Debugging Tools for Windows (x86)"
 !define EDITENV_PATH "editenv"
 
 # Define build system files
-!define CRT_DLL      "msvcr90.dll"
-!define CRT_MANIFEST "Microsoft.VC90.CRT.manifest"
+#!define CRT_DLL      "msvcr90.dll"
+#!define CRT_MANIFEST "Microsoft.VC90.CRT.manifest"
 !define DHL_DLL      "dbghelp.dll"
 !define EDITENV_DLL  "editenv.dll"
 
@@ -143,12 +143,15 @@ SectionEnd
 
 Section "Import Library"
     SetOutPath "${LIB_PATH}"
-    File "..\Release\vld.lib"
+    File "..\Win32\Release\vld.lib"
+    File "..\x64\Release\vld.lib"
 SectionEnd
 
 Section "Dynamic Link Libraries"
-    SetOutPath "${BIN_PATH}"
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Release\vld.dll" "${BIN_PATH}\vld.dll" $INSTDIR
+    SetOutPath "${BIN_PATH}\Win32"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Win32\Release\vld.dll" "${BIN_PATH}\Win32\vld.dll" $INSTDIR
+    SetOutPath "${BIN_PATH}\Win64"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\x64\Release\vld.dll" "${BIN_PATH}\Win64\vld.dll" $INSTDIR
     MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your 'Path' environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
         IDYES addtopath IDNO skipaddtopath
 addtopath:
@@ -156,14 +159,18 @@ addtopath:
     InitPluginsDir
     SetOutPath "$PLUGINSDIR"
     File "${EDITENV_PATH}\${EDITENV_DLL}"
-    System::Call "editenv::pathAdd(i ${ES_SYSTEM}, t '${BIN_PATH}') ? u"
+    System::Call "editenv::pathAdd(i ${ES_SYSTEM}, t '${BIN_PATH}\Win32') ? u"
+    System::Call "editenv::pathAdd(i ${ES_SYSTEM}, t '${BIN_PATH}\Win64') ? u"
     Delete "$PLUGINSDIR\${EDITENV_DLL}"
     SetOutPath "${BIN_PATH}"
 skipaddtopath:
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${DTFW_PATH}\${DHL_DLL}" "${BIN_PATH}\${DHL_DLL}" $INSTDIR
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
-    File "..\Microsoft.DTfW.DHL.manifest"
-    File "${CRT_PATH}\${CRT_MANIFEST}"
+    SetOutPath "${BIN_PATH}\Win32"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Win32\Release\${DHL_DLL}" "${BIN_PATH}\Win32\${DHL_DLL}" $INSTDIR
+    SetOutPath "${BIN_PATH}\Win64"
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\x64\Release\${DHL_DLL}" "${BIN_PATH}\Win64\${DHL_DLL}" $INSTDIR
+#    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
+#    File "..\Microsoft.DTfW.DHL.manifest"
+#    File "${CRT_PATH}\${CRT_MANIFEST}"
 SectionEnd
 
 Section "Configuration File"
@@ -176,7 +183,8 @@ Section "Source Code"
     File "..\*.cpp"
     File "..\*.h"
     File "..\vld.vcproj"
-    File "..\*.manifest"
+    File "..\vld.sln"
+#    File "..\*.manifest"
     File "..\*.rc"
 SectionEnd
 
@@ -210,22 +218,26 @@ Section "un.Header File"
 SectionEnd
 
 Section "un.Import Library"
-    Delete "${LIB_PATH}\vld.lib"
+    Delete "${LIB_PATH}\Win32\vld.lib"
+    Delete "${LIB_PATH}\Win64\vld.lib"
     RMDir "${LIB_PATH}"
 SectionEnd
 
 Section "un.Dynamic Link Libraries"
-    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\vld.dll"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\vld.dll"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\vld.dll"
     DetailPrint "Removing ${BIN_PATH} from the 'Path' system environment variable."
     InitPluginsDir
     SetOutPath "$PLUGINSDIR"
     File "${EDITENV_PATH}\${EDITENV_DLL}"
-    System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}') ? u"
+    System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}\Win32') ? u"
+    System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}\Win64') ? u"
     Delete "$PLUGINSDIR\${EDITENV_DLL}"
-    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${DHL_DLL}"
-    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
-    Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
-    Delete "${BIN_PATH}\${CRT_MANIFEST}"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\${DHL_DLL}"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\${DHL_DLL}"
+#    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
+#    Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
+#    Delete "${BIN_PATH}\${CRT_MANIFEST}"
     RMDir "${BIN_PATH}"
 SectionEnd
 
