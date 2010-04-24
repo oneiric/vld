@@ -55,7 +55,7 @@
 
 # Define page settings
 !define MUI_FINISHPAGE_NOAUTOCLOSE
-!define MUI_FINISHPAGE_SHOWREADME            "$INSTDIR\README.html"
+!define MUI_FINISHPAGE_SHOWREADME            "http://vld.codeplex.com/documentation"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT       "View Documentation"
 !define MUI_LICENSEPAGE_BUTTON               "Continue"
 !define MUI_LICENSEPAGE_TEXT_BOTTOM          "Click the 'Continue' button to continue installing. Remember, you aren't required to (and are not being asked to) agree to anything before using this software."
@@ -142,8 +142,9 @@ Section "Header File"
 SectionEnd
 
 Section "Import Library"
-    SetOutPath "${LIB_PATH}"
+    SetOutPath "${LIB_PATH}\Win32"
     File "..\Win32\Release\vld.lib"
+    SetOutPath "${LIB_PATH}\Win64"
     File "..\x64\Release\vld.lib"
 SectionEnd
 
@@ -183,7 +184,6 @@ Section "Source Code"
     File "..\*.cpp"
     File "..\*.h"
     File "..\vld.vcproj"
-    File "..\vld.sln"
 #    File "..\*.manifest"
     File "..\*.rc"
 SectionEnd
@@ -219,7 +219,9 @@ SectionEnd
 
 Section "un.Import Library"
     Delete "${LIB_PATH}\Win32\vld.lib"
+    RMDir "${LIB_PATH}\Win32"
     Delete "${LIB_PATH}\Win64\vld.lib"
+    RMDir "${LIB_PATH}\Win64"
     RMDir "${LIB_PATH}"
 SectionEnd
 
@@ -234,7 +236,9 @@ Section "un.Dynamic Link Libraries"
     System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}\Win64') ? u"
     Delete "$PLUGINSDIR\${EDITENV_DLL}"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\${DHL_DLL}"
+    RMDir "${BIN_PATH}\Win32"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\${DHL_DLL}"
+    RMDir "${BIN_PATH}\Win64"
 #    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
 #    Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
 #    Delete "${BIN_PATH}\${CRT_MANIFEST}"
