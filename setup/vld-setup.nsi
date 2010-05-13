@@ -26,7 +26,7 @@
 !include "MUI.nsh"      # Provides the modern user-interface
 
 # Version number
-!define VLD_VERSION "2.0"
+!define VLD_VERSION "2.0a"
 
 # Define build system paths
 #!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
@@ -150,10 +150,10 @@ SectionEnd
 
 Section "Dynamic Link Libraries"
     SetOutPath "${BIN_PATH}\Win32"
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Win32\Release\vld.dll" "${BIN_PATH}\Win32\vld.dll" $INSTDIR
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Win32\Release\vld_x86.dll" "${BIN_PATH}\Win32\vld_x86.dll" $INSTDIR
     SetOutPath "${BIN_PATH}\Win64"
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\x64\Release\vld.dll" "${BIN_PATH}\Win64\vld.dll" $INSTDIR
-    MessageBox MB_YESNO "Visual Leak Detector needs the location of vld.dll to be added to your 'Path' environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\x64\Release\vld_x64.dll" "${BIN_PATH}\Win64\vld_x64.dll" $INSTDIR
+    MessageBox MB_YESNO "Visual Leak Detector needs the location of vld_x86.dll and vld_x64.dll to be added to your 'Path' environment variable.$\n$\nWould you like the installer to add it to the path now? If you select No, you'll need to add it to the path manually." \
         IDYES addtopath IDNO skipaddtopath
 addtopath:
     DetailPrint "Adding ${BIN_PATH} to the 'Path' system environment variable."
@@ -166,9 +166,9 @@ addtopath:
     SetOutPath "${BIN_PATH}"
 skipaddtopath:
     SetOutPath "${BIN_PATH}\Win32"
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\Win32\Release\${DHL_DLL}" "${BIN_PATH}\Win32\${DHL_DLL}" $INSTDIR
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "dbghelp\x86\${DHL_DLL}" "${BIN_PATH}\Win32\${DHL_DLL}" $INSTDIR
     SetOutPath "${BIN_PATH}\Win64"
-    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "..\x64\Release\${DHL_DLL}" "${BIN_PATH}\Win64\${DHL_DLL}" $INSTDIR
+    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "dbghelp\x64\${DHL_DLL}" "${BIN_PATH}\Win64\${DHL_DLL}" $INSTDIR
 #    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
 #    File "..\Microsoft.DTfW.DHL.manifest"
 #    File "${CRT_PATH}\${CRT_MANIFEST}"
@@ -226,8 +226,8 @@ Section "un.Import Library"
 SectionEnd
 
 Section "un.Dynamic Link Libraries"
-    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\vld.dll"
-    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\vld.dll"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\vld_x86.dll"
+    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\vld_x64.dll"
     DetailPrint "Removing ${BIN_PATH} from the 'Path' system environment variable."
     InitPluginsDir
     SetOutPath "$PLUGINSDIR"

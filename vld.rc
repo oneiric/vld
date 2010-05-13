@@ -73,7 +73,11 @@ BEGIN
             VALUE "FileVersion", "2, 0, 0, 0"
             VALUE "InternalName", "vld"
             VALUE "LegalCopyright", "Copyright (C) 2010"
-            VALUE "OriginalFilename", "vld.dll"
+#ifndef WIN64
+            VALUE "OriginalFilename", "vld_x86.dll"
+#else
+            VALUE "OriginalFilename", "vld_x64.dll"
+#endif
             VALUE "ProductName", "Visual Leak Detector"
             VALUE "ProductVersion", "2, 0, 0, 0"
         END

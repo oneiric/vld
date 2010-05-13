@@ -2,7 +2,18 @@ Visual Leak Detector (VLD) Version 1.9h (beta)
 
   Change Log / Release Notes
 
-2.0 beta (25 April 2009)
+2.0a (13 May 2010)
+----------------------------
+  Enhancements:
+  + Renamed vld dll files.
+  
+  Bugs Fixed:
+  + Problem with MSVC 2010 Unicode library fixed.
+
+  Known Bugs/Restrictions:
+  + Same bugs/restrictions as version 1.9f.
+
+2.0 (25 April 2010)
 ----------------------------
   Enhancements:
   + Added support to work with 64-bit applications

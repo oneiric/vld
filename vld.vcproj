@@ -62,9 +62,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\$(ProjectName)_x86.dll"
 				GenerateDebugInformation="true"
 				BaseAddress="0x03200000"
 				RandomizedBaseAddress="1"
+				ImportLibrary="$(TargetDir)$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -134,9 +136,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\$(ProjectName)_x64.dll"
 				GenerateDebugInformation="true"
 				BaseAddress="0x03200000"
 				RandomizedBaseAddress="1"
+				ImportLibrary="$(TargetDir)$(ProjectName).lib"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -211,11 +215,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\$(ProjectName)_x86.dll"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				BaseAddress="0x03200000"
 				RandomizedBaseAddress="1"
+				ImportLibrary="$(TargetDir)$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -290,11 +296,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\$(ProjectName)_x64.dll"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				BaseAddress="0x03200000"
 				RandomizedBaseAddress="1"
+				ImportLibrary="$(TargetDir)$(ProjectName).lib"
 				TargetMachine="17"
 			/>
 			<Tool

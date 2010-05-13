@@ -42,6 +42,11 @@ Applications should never include this header."
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
 #define VLDVERSION          L"2.0"
+#ifndef WIN64
+#define VLDDLL				"vld_x86.dll"
+#else
+#define VLDDLL				"vld_x64.dll"
+#endif
 
 // The Visual Leak Detector APIs.
 extern "C" __declspec(dllexport) void VLDDisable ();

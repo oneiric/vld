@@ -312,7 +312,7 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
     "mfc90d.dll",   0x0, mfc90dPatch,
     "mfc90ud.dll",  0x0, mfc90udPatch,
     "mfc100d.dll",   0x0, mfc100dPatch,
-    "mfc100ud.dll",  0x0, mfc100dPatch,
+    "mfc100ud.dll",  0x0, mfc100udPatch,
 
     // CRT new operators and heap APIs.
     "msvcrtd.dll",  0x0, msvcrtdPatch,
@@ -781,7 +781,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         }
         LeaveCriticalSection(&symbollock);
 
-        if (_stricmp("vld.dll", modulename) == 0) {
+        if (_stricmp(VLDDLL, modulename) == 0) {
             // What happens when a module goes through it's own portal? Bad things.
             // Like infinite recursion. And ugly bald men wearing dresses. VLD
             // should not, therefore, attach to itself.
@@ -789,7 +789,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         }
 
         mbstowcs_s(&count, modulenamew, MAXMODULENAME, modulename, _TRUNCATE);
-        if ((findimport((HMODULE)modulebase, m_vldbase, "vld.dll", "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
+        if ((findimport((HMODULE)modulebase, m_vldbase, VLDDLL, "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
             (wcsstr(vld.m_forcedmodulelist, modulenamew) == NULL)) {
             // This module does not import VLD. This means that none of the module's
             // sources #included vld.h. Exclude this module from leak detection.
@@ -1622,7 +1622,7 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
     strncat_s(modulenamea, size, extension, _TRUNCATE);
     _strlwr_s(modulenamea, size);
 
-    if (_stricmp(modulenamea, "vld.dll") == 0) {
+    if (_stricmp(modulenamea, VLDDLL) == 0) {
         // Record Visual Leak Detector's own base address.
         vld.m_vldbase = (HMODULE)modulebase;
     }
