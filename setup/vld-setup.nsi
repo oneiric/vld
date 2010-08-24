@@ -1,7 +1,7 @@
 ################################################################################
 #
 #  Visual Leak Detector - NSIS Installation Script
-#  Copyright (c) 2006-2009 Dan Moulding
+#  Copyright (c) 2006-2010 Dan Moulding, Arkadiy Shapkin
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 !include "MUI.nsh"      # Provides the modern user-interface
 
 # Version number
-!define VLD_VERSION "2.0a"
+!define VLD_VERSION "2.0b"
 
 # Define build system paths
 #!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
@@ -139,6 +139,7 @@ SectionEnd
 Section "Header File"
     SetOutPath "${INCLUDE_PATH}"
     File "..\vld.h"
+    File "..\vld_def.h"
 SectionEnd
 
 Section "Import Library"
@@ -184,6 +185,8 @@ Section "Source Code"
     File "..\*.cpp"
     File "..\*.h"
     File "..\vld.vcproj"
+    File "..\vld.vcxproj"
+    File "..\vld.vcxproj.filters"
 #    File "..\*.manifest"
     File "..\*.rc"
 SectionEnd
@@ -214,6 +217,7 @@ SectionEnd
 #
 Section "un.Header File"
     Delete "${INCLUDE_PATH}\vld.h"
+    Delete "${INCLUDE_PATH}\vld_def.h"
     RMDir "${INCLUDE_PATH}"
 SectionEnd
 
@@ -253,6 +257,8 @@ Section "un.Source Code"
     Delete "${SRC_PATH}\*.cpp"
     Delete "${SRC_PATH}\*.h"
     Delete "${SRC_PATH}\vld.vcproj"
+    Delete "${SRC_PATH}\vld.vcxproj"
+    Delete "${SRC_PATH}\vld.vcxproj.filters"
     Delete "${SRC_PATH}\*.manifest"
     Delete "${SRC_PATH}\*.rc"
     RMDir "${SRC_PATH}"
