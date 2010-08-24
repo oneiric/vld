@@ -85,3 +85,29 @@ extern "C" __declspec(dllexport) void VLDRestore ()
 	tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
 	tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
 }
+
+extern "C" __declspec(dllexport) void VLDReportLeaks ()
+{
+    vld.Reportleaks();
+}
+
+extern "C" __declspec(dllexport) void VLDRefreshModules()
+{
+	vld.RefreshModules();
+}
+
+extern "C" __declspec(dllexport) void VLDEnableModule(HMODULE module)
+{
+	vld.EnableModule(module);
+}
+
+extern "C" __declspec(dllexport) void VLDDisableModule(HMODULE module)
+{
+	vld.DisableModule(module);
+}
+
+
+extern "C" __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask,WCHAR *filename)
+{
+	vld.SetReportOptions(option_mask,filename);
+}

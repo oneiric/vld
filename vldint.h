@@ -31,6 +31,7 @@ Applications should never include this header."
 
 #include <cstdio>
 #include <windows.h>
+#include "vld_def.h"
 #include "callstack.h" // Provides a custom class for handling call stacks.
 #include "map.h"       // Provides a custom STL-like map template.
 #include "ntapi.h"     // Provides access to NT APIs.
@@ -172,6 +173,8 @@ public:
     VisualLeakDetector();
     ~VisualLeakDetector();
 
+	NTSTATUS RefreshModules();
+
 ////////////////////////////////////////////////////////////////////////////////
 // Public CRT and MFC Common Handlers
 //
@@ -207,6 +210,13 @@ public:
     LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
     ULONG   __stdcall Release ();
 
+    VOID __stdcall Reportleaks();
+	VOID __stdcall EnableModule(HMODULE module);
+	VOID __stdcall DisableModule(HMODULE module);
+	void __stdcall SetReportOptions(UINT32 option_mask,WCHAR *filename);
+
+
+    static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
 private:
 ////////////////////////////////////////////////////////////////////////////////
 // Private leak detection functions - see each function definition for details.
@@ -232,6 +242,7 @@ private:
 	// Utils
 	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
 	static void getcallstack( CallStack **&ppcallstack, context_t &context );
+	void SetupReporting();
 
 ////////////////////////////////////////////////////////////////////////////////
 // IAT replacement functions - see each function definition for details.
@@ -255,6 +266,7 @@ private:
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Private data
 ////////////////////////////////////////////////////////////////////////////////
@@ -269,17 +281,7 @@ private:
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     CRITICAL_SECTION     m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
     UINT32               m_options;           // Configuration options:
-#define VLD_OPT_AGGREGATE_DUPLICATES    0x1   //   If set, aggregate duplicate leaks in the leak report.
-#define VLD_OPT_MODULE_LIST_INCLUDE     0x2   //   If set, modules in the module list are included, all others are excluded.
-#define VLD_OPT_REPORT_TO_DEBUGGER      0x4   //   If set, the memory leak report is sent to the debugger.
-#define VLD_OPT_REPORT_TO_FILE          0x8   //   If set, the memory leak report is sent to a file.
-#define VLD_OPT_SAFE_STACK_WALK         0x10  //   If set, the stack is walked using the "safe" method (StackWalk64).
-#define VLD_OPT_SELF_TEST               0x20  //   If set, peform a self-test to verify memory leak self-checking.
-#define VLD_OPT_SLOW_DEBUGGER_DUMP      0x40  //   If set, inserts a slight delay between sending output to the debugger.
-#define VLD_OPT_START_DISABLED          0x80  //   If set, memory leak detection will initially disabled.
-#define VLD_OPT_TRACE_INTERNAL_FRAMES   0x100 //   If set, include useless frames (e.g. internal to VLD) in call stacks.
-#define VLD_OPT_UNICODE_REPORT          0x200 //   If set, the leak report will be encoded UTF-16 instead of ASCII.
-#define VLD_OPT_VLDOFF                  0x400 //   If set, VLD will be completely deactivated. It will not attach to any modules.
+
     static patchentry_t  m_kernel32Patch [];
     static patchentry_t  m_ntdllPatch [];
     static patchentry_t  m_ole32Patch [];
@@ -297,6 +299,12 @@ private:
     CRITICAL_SECTION     m_tlslock;           // Protects accesses to the Set of TLS structures.
     TlsSet              *m_tlsset;            // Set of all all thread-local storage structres for the process.
     HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
+
+    typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
+
+	VOID __stdcall ChangeModuleState(HMODULE module,bool on);
+
+    static _GetProcAddressType * m_original_GetProcAddress;
 
     // The Visual Leak Detector APIs are our friends.
     friend __declspec(dllexport) void VLDDisable ();

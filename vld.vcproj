@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="vld"
 	ProjectGUID="{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}"
 	RootNamespace="vld"
@@ -441,6 +441,10 @@
 			</File>
 			<File
 				RelativePath=".\vld.h"
+				>
+			</File>
+			<File
+				RelativePath=".\vld_def.h"
 				>
 			</File>
 			<File

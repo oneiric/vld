@@ -1,6 +1,16 @@
-Visual Leak Detector (VLD) Version 1.9h (beta)
+Visual Leak Detector (VLD) Version 2.0b
 
+  
   Change Log / Release Notes
+
+2.0b (24 August 2010)
+----------------------------
+  Enhancements:
+  + Added new commands: VLDReportLeaks, VLDRefreshModules, VLDEnableModule,
+    VLDDisableModule, VLDSetReportOptions (see vld.h).
+  
+  Bugs Fixed:
+  + Problems with MSVC 2008 SP1 fixed. Thanks to Laurent Lessieux for contributing this patch.
 
 2.0a (13 May 2010)
 ----------------------------
@@ -10,17 +20,11 @@ Visual Leak Detector (VLD) Version 1.9h (beta)
   Bugs Fixed:
   + Problem with MSVC 2010 Unicode library fixed.
 
-  Known Bugs/Restrictions:
-  + Same bugs/restrictions as version 1.9f.
-
 2.0 (25 April 2010)
 ----------------------------
   Enhancements:
   + Added support to work with 64-bit applications
   + Added support to work with Visual Studio 2010
-
-  Known Bugs/Restrictions:
-  + Same bugs/restrictions as version 1.9f.
 
 1.9h beta (24 February 2009)
 ----------------------------
@@ -78,7 +82,7 @@ Visual Leak Detector (VLD) Version 1.9h (beta)
   Bugs Fixed:
   + Numerous deadlock situations. The multithread synchronization scheme has
     been completely re-written which should make deadlocks in VLD much less
-    likey to happen.
+    likely to happen.
 
   + An access violation will occur in VLD if GetProcAddress is called to obtain
     an export's address by ordinal, for certain libraries.
@@ -127,7 +131,7 @@ Visual Leak Detector (VLD) Version 1.9h (beta)
 
 1.9c beta (6 November 2006)
 ---------------------------
-  New Features/Enhancments:
+  New Features/Enhancements:
   + New NSIS installer makes setting up and using VLD much easier.
 
   + No need to manually copy dbghelp.dll to the right location, VLD will always
@@ -182,7 +186,7 @@ Visual Leak Detector (VLD) Version 1.9h (beta)
 
 1.9a beta (9 March 2006)
 ------------------------
-  New Features/Enhancments:
+  New Features/Enhancements:
   + All new leak detection engine detects most, if not all, in-process memory
     leaks, not just leaks from "new" or "malloc", including COM-based leaks.
 

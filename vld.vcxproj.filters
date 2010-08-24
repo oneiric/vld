@@ -74,6 +74,9 @@
     <ClInclude Include="vldint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vld_def.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vld.rc">

@@ -102,7 +102,7 @@
       <BaseAddress>0x03200000</BaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalLibraryDirectories>DIA SDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>psapi.lib;diaguids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <AssemblyIdentity>
@@ -131,7 +131,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>DIA SDK\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>psapi.lib;diaguids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <AssemblyIdentity>
@@ -160,7 +160,7 @@
       <BaseAddress>0x03200000</BaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalLibraryDirectories>DIA SDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>diaguids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <AssemblyIdentity>
@@ -194,7 +194,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <Profile>true</Profile>
       <AdditionalLibraryDirectories>DIA SDK\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>diaguids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <AssemblyIdentity>
@@ -228,6 +228,7 @@
     <ClInclude Include="vld.h" />
     <ClInclude Include="vldheap.h" />
     <ClInclude Include="vldint.h" />
+    <ClInclude Include="vld_def.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vld.rc" />

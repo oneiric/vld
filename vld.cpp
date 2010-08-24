@@ -82,6 +82,8 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 #define ORDINAL(x86, x64)	(LPCSTR)x64
 #endif
 
+VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcAddress = NULL;
+
 static patchentry_t mfc42dPatch [] = {
 	// XXX why are the vector new operators missing for mfc42d.dll?
 	(LPCSTR)711,          VS60::mfcd_scalar_new,
@@ -335,7 +337,6 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    WCHAR      bom = BOM; // Unicode byte-order mark.
     HMODULE    kernel32;
     ModuleSet *newmodules;
     HMODULE    ntdll;
@@ -360,6 +361,7 @@ VisualLeakDetector::VisualLeakDetector ()
     kernel32 = GetModuleHandle(L"kernel32.dll");
     ntdll = GetModuleHandle(L"ntdll.dll");
 
+    m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
     // Initialize global variables.
     currentprocess    = GetCurrentProcess();
     currentthread     = GetCurrentThread();
@@ -406,38 +408,7 @@ VisualLeakDetector::VisualLeakDetector ()
         m_status |= VLD_STATUS_NEVER_ENABLED;
     }
     if (m_options & VLD_OPT_REPORT_TO_FILE) {
-        // Reporting to file enabled.
-        if (m_options & VLD_OPT_UNICODE_REPORT) {
-            // Unicode data encoding has been enabled. Write the byte-order
-            // mark before anything else gets written to the file. Open the
-            // file for binary writing.
-            if (_wfopen_s(&m_reportfile, m_reportfilepath, L"wb") == EINVAL) {
-                // Couldn't open the file.
-                m_reportfile = NULL;
-            }
-            else {
-                fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
-                setreportencoding(unicode);
-            }
-        }
-        else {
-            // Open the file in text mode for ASCII output.
-            if (_wfopen_s(&m_reportfile, m_reportfilepath, L"w") == EINVAL) {
-                // Couldn't open the file.
-                m_reportfile = NULL;
-            }
-            else {
-                setreportencoding(ascii);
-            }
-        }
-        if (m_reportfile == NULL) {
-            report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
-                   L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
-        }
-        else {
-            // Set the "report" function to write to the file.
-            setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER);
-        }
+		SetupReporting();
     }
     if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
         // Insert a slight delay between messages sent to the debugger for
@@ -1013,6 +984,9 @@ VOID VisualLeakDetector::configure ()
     }
     else if (_wcsicmp(buffer, L"file") == 0) {
         m_options |= VLD_OPT_REPORT_TO_FILE;
+    }
+    else if (_wcsicmp(buffer, L"stdout") == 0) {
+        m_options |= VLD_OPT_REPORT_TO_STDOUT;
     }
     else {
         m_options |= VLD_OPT_REPORT_TO_DEBUGGER;
@@ -2313,9 +2287,18 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 				}
 			}
 			else {
-				if (strcmp(patchentry->importname, procname) == 0) {
-					return (FARPROC)patchentry->replacement;
-				}
+                __try
+                {
+                    if (strcmp(patchentry->importname, procname) == 0) {
+                        return (FARPROC)patchentry->replacement;
+                    }
+                }
+                __except(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    if ((UINT)patchentry->importname == (UINT)procname) {
+                        return (FARPROC)patchentry->replacement;
+                    }                	
+                }
 			}
 			patchentry++;
 		}
@@ -2323,7 +2306,12 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 
     // The requested function is not a patched function. Just return the real
     // address of the requested function.
-    return GetProcAddress(module, procname);
+    return vld._RGetProcAddress(module, procname);
+}
+
+FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
+{
+    return m_original_GetProcAddress(module, procname);
 }
 
 // _HeapCreate - Calls to HeapCreate are patched through to this function. This
@@ -2467,6 +2455,40 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
     return status;
 }
 
+NTSTATUS VisualLeakDetector::RefreshModules()
+{
+    ModuleSet::Iterator  moduleit;
+    ModuleSet           *newmodules;
+    ModuleSet           *oldmodules;
+
+    EnterCriticalSection(&vld.m_loaderlock);
+
+    // Create a new set of all loaded modules, including any newly loaded
+    // modules.
+    newmodules = new ModuleSet;
+    newmodules->reserve(MODULESETRESERVE);
+    EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+
+    // Attach to all modules included in the set.
+    vld.attachtoloadedmodules(newmodules);
+
+    // Start using the new set of loaded modules.
+    EnterCriticalSection(&vld.m_moduleslock);
+    oldmodules = vld.m_loadedmodules;
+    vld.m_loadedmodules = newmodules;
+    LeaveCriticalSection(&vld.m_moduleslock);
+
+    // Free resources used by the old module list.
+    for (moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
+        delete (*moduleit).name;
+        delete (*moduleit).path;
+    }
+    delete oldmodules;
+
+    LeaveCriticalSection(&vld.m_loaderlock);
+
+    return STATUS_SUCCESS;
+}
 void VisualLeakDetector::getcallstack( CallStack **&ppcallstack, context_t &context_ )
 {
 	CallStack *callstack;
@@ -2727,7 +2749,7 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
         // CoGetMalloc and get a pointer to the system implementation of the
         // IMalloc interface.
         ole32 = GetModuleHandle(L"ole32.dll");
-        pCoGetMalloc = (CoGetMalloc_t)GetProcAddress(ole32, "CoGetMalloc");
+        pCoGetMalloc = (CoGetMalloc_t)vld._RGetProcAddress(ole32, "CoGetMalloc");
         pCoGetMalloc(context, &vld.m_imalloc);
     }
 
@@ -2766,7 +2788,7 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
         // This is the first call to this function. Link to the real
         // CoTaskMemAlloc.
         ole32 = GetModuleHandle(L"ole32.dll");
-        pCoTaskMemAlloc = (CoTaskMemAlloc_t)GetProcAddress(ole32, "CoTaskMemAlloc");
+        pCoTaskMemAlloc = (CoTaskMemAlloc_t)vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -2822,7 +2844,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
         // This is the first call to this function. Link to the real
         // CoTaskMemRealloc.
         ole32 = GetModuleHandle(L"ole32.dll");
-        pCoTaskMemRealloc = (CoTaskMemRealloc_t)GetProcAddress(ole32, "CoTaskMemRealloc");
+        pCoTaskMemRealloc = (CoTaskMemRealloc_t)vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -3048,4 +3070,107 @@ ULONG VisualLeakDetector::Release ()
 {
     assert(m_imalloc != NULL);
     return m_imalloc->Release();
+}
+
+
+VOID __stdcall VisualLeakDetector::Reportleaks( ) 
+{
+    HeapMap::Iterator    heapit;
+    HANDLE               heap;
+
+    // Generate a memory leak report for each heap in the process.
+    for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+        heap = (*heapit).first;
+        reportleaks(heap);
+    }
+}
+
+void __stdcall VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
+{
+	ModuleSet::Iterator  moduleit;
+
+	EnterCriticalSection(&vld.m_moduleslock);
+	moduleit = vld.m_loadedmodules->begin();
+	while( moduleit != vld.m_loadedmodules->end() )
+	{			
+		if ( (*moduleit).addrlow == (UINT_PTR)module) 
+		{
+			moduleinfo_t *mod = (moduleinfo_t *)&(*moduleit);
+			if ( on )
+				mod->flags &= ~VLD_MODULE_EXCLUDED;
+			else
+				mod->flags |= VLD_MODULE_EXCLUDED;
+
+			break;
+		}
+		moduleit++;
+	}
+	LeaveCriticalSection(&vld.m_moduleslock);
+
+}
+
+void __stdcall VisualLeakDetector::EnableModule(HMODULE module)
+{
+	ChangeModuleState(module,true);
+}
+
+void __stdcall VisualLeakDetector::DisableModule(HMODULE module)
+{
+	ChangeModuleState(module,false);
+}
+
+void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask,WCHAR *filename)
+{
+	m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
+	if ( (option_mask & VLD_OPT_REPORT_TO_FILE) && ( filename != NULL ))
+	{
+		wcsncpy_s(m_reportfilepath, MAX_PATH, filename, _TRUNCATE);
+		m_options |= option_mask & VLD_OPT_REPORT_TO_FILE;
+	}
+	m_options |= option_mask & VLD_OPT_REPORT_TO_STDOUT;
+	m_options |= option_mask & VLD_OPT_UNICODE_REPORT;
+
+	SetupReporting();
+}
+
+void VisualLeakDetector::SetupReporting()
+{
+    WCHAR      bom = BOM; // Unicode byte-order mark.
+
+	//Close the previous report file if needed.
+	if ( m_reportfile )
+		fclose(m_reportfile);
+
+    // Reporting to file enabled.
+    if (m_options & VLD_OPT_UNICODE_REPORT) {
+        // Unicode data encoding has been enabled. Write the byte-order
+        // mark before anything else gets written to the file. Open the
+        // file for binary writing.
+        if (_wfopen_s(&m_reportfile, m_reportfilepath, L"wb") == EINVAL) {
+            // Couldn't open the file.
+            m_reportfile = NULL;
+        }
+        else {
+            fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
+            setreportencoding(unicode);
+        }
+    }
+    else {
+        // Open the file in text mode for ASCII output.
+        if (_wfopen_s(&m_reportfile, m_reportfilepath, L"w") == EINVAL) {
+            // Couldn't open the file.
+            m_reportfile = NULL;
+        }
+        else {
+            setreportencoding(ascii);
+        }
+    }
+    if (m_reportfile == NULL) {
+        report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
+               L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
+    }
+    else {
+        // Set the "report" function to write to the file.
+        setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER, m_options & VLD_OPT_REPORT_TO_STDOUT);
+    }
 }

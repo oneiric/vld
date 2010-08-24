@@ -25,6 +25,7 @@
 #define VLDBUILD        // Declares that we are building Visual Leak Detector.
 #include "utility.h"    // Provides various utility functions and macros.
 #include "vldheap.h"    // Provides internal new and delete operators.
+#include "vldint.h"
 
 // Imported Global Variables
 extern CRITICAL_SECTION imagelock;
@@ -33,6 +34,7 @@ extern CRITICAL_SECTION imagelock;
 static BOOL        reportdelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
 static FILE       *reportfile = NULL;       // Pointer to the file, if any, to send the memory leak report to.
 static BOOL        reporttodebugger = TRUE; // If TRUE, a copy of the memory leak report will be sent to the debugger for display.
+static BOOL        reporttostdout = TRUE;   // If TRUE, a copy of the memory leak report will be sent to standart output.
 static encoding_e  reportencoding = ascii;  // Output encoding of the memory leak report.
 
 // dumpmemorya - Dumps a nicely formatted rendition of a region of memory.
@@ -462,11 +464,16 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 		LPCVOID replacement = entry->replacement;
 		IMAGE_THUNK_DATA        *iate;
 		DWORD                    protect;
-		FARPROC                  import;
+		FARPROC                  import = NULL;
+		FARPROC                  import2 = NULL;
 
 		// Get the *real* address of the import. If we find this address in the IAT,
 		// then we've found the entry that needs to be patched.
+		import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
 		import = GetProcAddress(exportmodule, importname);
+		if ( import2 )
+			import = import2;
+
 		assert(import != NULL); // Perhaps the named export module does not actually export the named import?
 
 		// Locate the import's IAT entry.
@@ -477,10 +484,12 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 				// entry with the address of the replacement. Note that the IAT
 				// entry may be write-protected, so we must first ensure that it is
 				// writable.
-				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
-				iate->u1.Function = (DWORD_PTR)replacement;
-				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-
+				if ( import != replacement )
+				{
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_READWRITE, &protect);
+					iate->u1.Function = (DWORD_PTR)replacement;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				}
 				// The patch has been installed in the import module.
 				result++;
 			}
@@ -564,6 +573,9 @@ VOID report (LPCWSTR format, ...)
             // Send the report to the previously specified file.
             fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
         }
+        if ( reporttostdout )
+            fwprintf(stdout,messagew);
+
         if (reporttodebugger) {
             OutputDebugStringW(messagew);
         }
@@ -579,6 +591,10 @@ VOID report (LPCWSTR format, ...)
             // Send the report to the previously specified file.
             fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
         }
+
+        if ( reporttostdout )
+            printf(messagea);
+
         if (reporttodebugger) {
             OutputDebugStringA(messagea);
         }
@@ -748,10 +764,11 @@ VOID setreportencoding (encoding_e encoding)
 //
 //    None.
 //
-VOID setreportfile (FILE *file, BOOL copydebugger)
+VOID setreportfile (FILE *file, BOOL copydebugger, BOOL tostdout)
 {
     reportfile = file;
     reporttodebugger = copydebugger;
+    reporttostdout = tostdout;
 }
 
 // strapp - Appends the specified source string to the specified destination
