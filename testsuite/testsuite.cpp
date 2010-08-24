@@ -361,7 +361,7 @@ int main (int argc, char *argv [])
     DWORD           start;
     UINT            leakythread;
 
-	//VLDDisable();
+    //VLDDisable();
 
     start = GetTickCount();
     srand(start);

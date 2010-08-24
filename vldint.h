@@ -42,7 +42,7 @@ Applications should never include this header."
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
-#define VLDVERSION          L"2.0"
+#define VLDVERSION          L"2.0b"
 #ifndef WIN64
 #define VLDDLL				"vld_x86.dll"
 #else
@@ -125,7 +125,7 @@ typedef Set<moduleinfo_t> ModuleSet;
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 typedef struct tls_s {
-	context_t context;       // Address of return address at the first call that entered VLD's code for the current allocation.
+    context_t context;       // Address of return address at the first call that entered VLD's code for the current allocation.
     UINT32 flags;            // Thread-local status flags:
 #define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 //   If set, memory leak detection is disabled for the current thread.
@@ -173,7 +173,7 @@ public:
     VisualLeakDetector();
     ~VisualLeakDetector();
 
-	NTSTATUS RefreshModules();
+    NTSTATUS RefreshModules();
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public CRT and MFC Common Handlers
@@ -211,9 +211,9 @@ public:
     ULONG   __stdcall Release ();
 
     VOID __stdcall Reportleaks();
-	VOID __stdcall EnableModule(HMODULE module);
-	VOID __stdcall DisableModule(HMODULE module);
-	void __stdcall SetReportOptions(UINT32 option_mask,WCHAR *filename);
+    VOID __stdcall EnableModule(HMODULE module);
+    VOID __stdcall DisableModule(HMODULE module);
+    void __stdcall SetReportOptions(UINT32 option_mask,WCHAR *filename);
 
 
     static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
@@ -233,16 +233,16 @@ private:
     VOID   reportconfig ();
     VOID   reportleaks (HANDLE heap);
     VOID   unmapblock (HANDLE heap, LPCVOID mem);
-	VOID   unmapheap (HANDLE heap);
+    VOID   unmapheap (HANDLE heap);
 
     // Static functions (callbacks)
     static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
 
-	// Utils
-	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
-	static void getcallstack( CallStack **&ppcallstack, context_t &context );
-	void SetupReporting();
+    // Utils
+    static BOOL IsModuleExcluded (UINT_PTR returnaddress);
+    static void getcallstack( CallStack **&ppcallstack, context_t &context );
+    void SetupReporting();
 
 ////////////////////////////////////////////////////////////////////////////////
 // IAT replacement functions - see each function definition for details.
@@ -259,10 +259,10 @@ private:
                                            PHANDLE modulehandle);
     static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
 
-	static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
+    static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
     static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
-	// COM IAT replacement functions
+    // COM IAT replacement functions
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
@@ -302,7 +302,7 @@ private:
 
     typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
 
-	VOID __stdcall ChangeModuleState(HMODULE module,bool on);
+    VOID __stdcall ChangeModuleState(HMODULE module,bool on);
 
     static _GetProcAddressType * m_original_GetProcAddress;
 

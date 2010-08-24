@@ -48,8 +48,8 @@ extern "C" __declspec(dllexport) void VLDDisable ()
     // because if neither flag is set, it means that we are in the default or
     // "starting" state, which could be either enabled or disabled depending on
     // the configuration.
-	tls = vld.gettls();
-	tls->oldflags = tls->flags;
+    tls = vld.gettls();
+    tls->oldflags = tls->flags;
     tls->flags &= ~VLD_TLS_ENABLED;
     tls->flags |= VLD_TLS_DISABLED;
 }
@@ -64,8 +64,8 @@ extern "C" __declspec(dllexport) void VLDEnable ()
     }
 
     // Enable memory leak detection for the current thread.
-	tls = vld.gettls();
-	tls->oldflags = tls->flags;
+    tls = vld.gettls();
+    tls->oldflags = tls->flags;
     tls->flags &= ~VLD_TLS_DISABLED;
     tls->flags |= VLD_TLS_ENABLED;
     vld.m_status &= ~VLD_STATUS_NEVER_ENABLED;
@@ -82,8 +82,8 @@ extern "C" __declspec(dllexport) void VLDRestore ()
 
     // Restore state memory leak detection for the current thread.
     tls = vld.gettls();
-	tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
-	tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+    tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+    tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
 }
 
 extern "C" __declspec(dllexport) void VLDReportLeaks ()
@@ -93,21 +93,21 @@ extern "C" __declspec(dllexport) void VLDReportLeaks ()
 
 extern "C" __declspec(dllexport) void VLDRefreshModules()
 {
-	vld.RefreshModules();
+    vld.RefreshModules();
 }
 
 extern "C" __declspec(dllexport) void VLDEnableModule(HMODULE module)
 {
-	vld.EnableModule(module);
+    vld.EnableModule(module);
 }
 
 extern "C" __declspec(dllexport) void VLDDisableModule(HMODULE module)
 {
-	vld.DisableModule(module);
+    vld.DisableModule(module);
 }
 
 
 extern "C" __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask,WCHAR *filename)
 {
-	vld.SetReportOptions(option_mask,filename);
+    vld.SetReportOptions(option_mask,filename);
 }

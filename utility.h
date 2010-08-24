@@ -107,9 +107,9 @@ typedef struct patchentry_s
 
 typedef struct moduleentry_s
 {
-	LPCSTR          exportmodulename; // The name of the module exporting the patched API.
-	UINT_PTR        modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
-	patchentry_t*   patchtable;
+    LPCSTR          exportmodulename; // The name of the module exporting the patched API.
+    UINT_PTR        modulebase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
+    patchentry_t*   patchtable;
 } moduleentry_t;
 
 // Utility functions. See function definitions for details.

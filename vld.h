@@ -27,10 +27,15 @@
 
 #ifdef _DEBUG
 
-#pragma comment(lib, "vld.lib")
+#ifndef WIN64
+#pragma comment(lib, "vld_x86.lib")
+#else
+#pragma comment(lib, "vld_x64.lib")
+#endif
+
 
 // Force a symbolic reference to the global VisualLeakDetector class object from
-// the DLL. This enusres that the DLL is loaded and linked with the program,
+// the DLL. This ensures that the DLL is loaded and linked with the program,
 // even if no code otherwise imports any of the DLL's exports.
 #pragma comment(linker, "/include:__imp_?vld@@3VVisualLeakDetector@@A")
 

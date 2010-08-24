@@ -88,7 +88,7 @@ public:
     template<wchar_t const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, char const *file, int line);
     template<wchar_t const *mfcdll, int ordinal>
-	static void* __cdecl mfcd_new (context_t& context, size_t size);
+    static void* __cdecl mfcd_new (context_t& context, size_t size);
 };
 
 
@@ -164,7 +164,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
 {
     static _malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
 
-	context_t context;
+    context_t context;
     HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
@@ -206,7 +206,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
 {
     static _realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
 
-	context_t context;
+    context_t context;
     HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
@@ -243,7 +243,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
-	context_t context;
+    context_t context;
     CAPTURE_CONTEXT(context);
 
     return crtd_new_dbg<crtd_scalar_new_dbg_name>(context, size, type, file, line);
@@ -295,7 +295,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
 {
     static calloc_t pcrtxxd_calloc = NULL;
 
-	context_t context;
+    context_t context;
     HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
@@ -325,7 +325,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
 {
     static malloc_t pcrtxxd_malloc = NULL;
 
-	context_t context;
+    context_t context;
     HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
@@ -357,7 +357,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 {
     static realloc_t pcrtxxd_realloc = NULL;
 
-	context_t context;
+    context_t context;
     HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
@@ -383,7 +383,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
 {
-	context_t context;
+    context_t context;
     CAPTURE_CONTEXT(context);
 
     return crtd_new<crtd_scalar_new_name>(context, size);
@@ -508,7 +508,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-	context_t context;
+    context_t context;
     CAPTURE_CONTEXT(context);
 
     return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_4p_ordinal>
@@ -534,7 +534,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-	context_t context;	
+    context_t context;	
     CAPTURE_CONTEXT(context);
 
     return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_3p_ordinal>
@@ -608,7 +608,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
 TEMPLATE_HEADER
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
 {
-	context_t context;
+    context_t context;
     CAPTURE_CONTEXT(context);
 
     return mfcd_new<mfcddll, mfcd_scalar_new_ordinal>(context, size);
@@ -960,36 +960,36 @@ typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
 // Visual Studio 2005
 typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
                     vector_new_name, vector_new_dbg_name,
-					scalar_new_name, scalar_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
 #if !defined(_M_X64)
                     267, 268, 269, 893, 894, 895,
-					267, 268, 269, 893, 894, 895>
+                    267, 268, 269, 893, 894, 895>
 #else
-					267, 268, 269, 907, 908, 909,
-					267, 268, 269, 907, 908, 909>
+                    267, 268, 269, 907, 908, 909,
+                    267, 268, 269, 907, 908, 909>
 #endif
         VS80;
 // Visual Studio 2008
 typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     vector_new_name, vector_new_dbg_name,
-					scalar_new_name, scalar_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
 #if !defined(_M_X64)
                     267, 268, 269, 931, 932, 933,
-					267, 268, 269, 935, 936, 937>
+                    267, 268, 269, 935, 936, 937>
 #else
-					267, 268, 269, 909, 910, 911,
-					267, 268, 269, 913, 914, 915>
+                    267, 268, 269, 909, 910, 911,
+                    267, 268, 269, 913, 914, 915>
 #endif
         VS90;
 // Visual Studio 2010
 typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
                     vector_new_name, vector_new_dbg_name,
-					scalar_new_name, scalar_new_dbg_name,
+                    scalar_new_name, scalar_new_dbg_name,
 #if !defined(_M_X64)
                     267, 268, 269, 1427, 1428, 1429,
                     267, 268, 269, 1434, 1435, 1436>
 #else
-					267, 268, 269, 1405, 1406, 1407,
-					267, 268, 269, 1412, 1413, 1414>
+                    267, 268, 269, 1405, 1406, 1407,
+                    267, 268, 269, 1412, 1413, 1414>
 #endif
         VS100;

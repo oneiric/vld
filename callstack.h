@@ -113,5 +113,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-	VOID getstacktrace (UINT32 maxdepth, context_t& context);
+    VOID getstacktrace (UINT32 maxdepth, context_t& context);
 };
