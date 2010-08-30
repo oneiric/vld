@@ -27,12 +27,7 @@
 
 #ifdef _DEBUG
 
-#ifndef WIN64
-#pragma comment(lib, "vld_x86.lib")
-#else
-#pragma comment(lib, "vld_x64.lib")
-#endif
-
+#pragma comment(lib, "vld.lib")
 
 // Force a symbolic reference to the global VisualLeakDetector class object from
 // the DLL. This ensures that the DLL is loaded and linked with the program,
@@ -161,7 +156,9 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filena
 #define VLDRestore()
 #define VLDReportLeaks()
 #define VLDRefreshModules()
-#define VLDEnableModule()
-#define VLDDisableModule()
+
+inline void VLDEnableModule(HMODULE) {}
+inline void VLDDisableModule(HMODULE) {}
+inline void VLDSetReportOptions(UINT32 option_mask, WCHAR *filename = NULL) {}
 
 #endif // _DEBUG
