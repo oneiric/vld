@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - CRT and MFC IAT Patch Functions Header
-//  Copyright (c) 2009-2010 Dan Moulding
+//  Copyright (c) 2005-2010 Dan Moulding, Arkadiy Shapkin, Laurent Lessieux
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public

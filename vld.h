@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - Import Library Header
-//  Copyright (c) 2006 Dan Moulding
+//  Copyright (c) 2005-2010 Dan Moulding, Arkadiy Shapkin, Laurent Lessieux
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <windef.h>
 #include "vld_def.h"
 
 #ifdef _DEBUG
@@ -76,7 +77,7 @@ __declspec(dllimport) void VLDDisable ();
 //    those other threads. It was designed to work this way to insulate you,
 //    the programmer, from having to ensure thread synchronization when calling
 //    VLDEnable() and VLDDisable(). Without this, calling these two functions
-//    unsychronized could result in unpredictable and unintended behavior.
+//    unsynchronized could result in unpredictable and unintended behavior.
 //    But this also means that if you want to enable memory leak detection
 //    process-wide, then you need to call this function from every thread in
 //    the process.
@@ -119,6 +120,7 @@ __declspec(dllimport) void VLDRefreshModules();
 //
 //    None.
 //
+
 __declspec(dllimport) void VLDEnableModule(HMODULE);
 
 
@@ -138,12 +140,12 @@ __declspec(dllimport) void VLDDisableModule(HMODULE);
 // VLD_OPT_REPORT_TO_STDOUT
 // VLD_OPT_UNICODE_REPORT
 //
-// filename is optional.
+// filename is optional and can be NULL.
 //  Return Value:
 //
 //    None.
 //
-__declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filename = NULL);
+__declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filename);
 
 #ifdef __cplusplus
 }
@@ -156,9 +158,8 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filena
 #define VLDRestore()
 #define VLDReportLeaks()
 #define VLDRefreshModules()
-
-inline void VLDEnableModule(HMODULE) {}
-inline void VLDDisableModule(HMODULE) {}
-inline void VLDSetReportOptions(UINT32 option_mask, WCHAR *filename = NULL) {}
+#define VLDEnableModule(a)
+#define VLDDisableModule(b)
+#define VLDSetReportOptions(a, b)
 
 #endif // _DEBUG
