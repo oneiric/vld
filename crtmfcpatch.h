@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - CRT and MFC IAT Patch Functions Header
-//  Copyright (c) 2005-2010 Dan Moulding, Arkadiy Shapkin, Laurent Lessieux
+//  Copyright (c) 2005-2011 Dan Moulding, Arkadiy Shapkin, Laurent Lessieux
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -981,7 +981,7 @@ typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     267, 268, 269, 913, 914, 915>
 #endif
         VS90;
-// Visual Studio 2010
+// Visual Studio 2011
 typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,

@@ -1,7 +1,20 @@
-Visual Leak Detector (VLD) Version 2.0b
+Visual Leak Detector (VLD) Version 2.1
 
   
   Change Log / Release Notes
+
+2.1 (05 March 2011)
+----------------------------
+  Enhancements:
+  + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions, 
+    VLDGetReportFilename, VLDSetOptions, VLDSetIncludeModules,
+    VLDGetIncludeModules (see vld.h).
+  + Option VLD_OPT_SKIP_HEAPFREE_LEAKS added.
+  + Hash for each leak added
+  
+  Bugs Fixed:
+  + Improved LdrLoadDll hooking on Windows 7.
+  + "HMODULE not founded" bug fixed.
 
 2.0b (24 August 2010)
 ----------------------------
