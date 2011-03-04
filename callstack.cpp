@@ -238,6 +238,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         // counter address.
         if (SymFromAddrW(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
             functionname = functioninfo->Name;
+            displacement = (DWORD)displacement64;
         }
         else {
             functionname = L"(Function name unavailable)";

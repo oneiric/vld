@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include <windef.h>
 #include "vld_def.h"
 
 #ifdef _DEBUG
+
+#include <windows.h>
 
 #pragma comment(lib, "vld.lib")
 
