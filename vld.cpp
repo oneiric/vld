@@ -964,6 +964,11 @@ VOID VisualLeakDetector::configure ()
         m_options |= VLD_OPT_TRACE_INTERNAL_FRAMES;
     }
 
+    GetPrivateProfileString(L"Options", L"SkipHeapFreeLeaks", L"", buffer, BSIZE, inipath);
+    if (strtobool(buffer) == TRUE) {
+        m_options |= VLD_OPT_SKIP_HEAPFREE_LEAKS;
+    }
+
     // Read the integer configuration options.
     m_maxdatadump = GetPrivateProfileInt(L"Options", L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
     m_maxtraceframes = GetPrivateProfileInt(L"Options", L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
@@ -2386,7 +2391,8 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
     // from the process's address space. So, we'd better generate a leak report
     // for this heap now, while we can still read from the memory blocks
     // allocated to it.
-    vld.reportleaks(heap);
+    if (!(vld.m_options & VLD_OPT_SKIP_HEAPFREE_LEAKS))
+        vld.reportleaks(heap);
 
     vld.unmapheap(heap);
 
@@ -3230,12 +3236,11 @@ UINT32 __stdcall VisualLeakDetector::GetOptions()
 
 void __stdcall VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
 {
-    m_options &= ~(VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | VLD_OPT_TRACE_INTERNAL_FRAMES); // clear used bits
+    UINT32 mask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | 
+        VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
 
-    m_options |= option_mask & VLD_OPT_AGGREGATE_DUPLICATES;
-    m_options |= option_mask & VLD_OPT_SAFE_STACK_WALK;
-    m_options |= option_mask & VLD_OPT_SLOW_DEBUGGER_DUMP;
-    m_options |= option_mask & VLD_OPT_TRACE_INTERNAL_FRAMES;
+    m_options &= ~mask; // clear used bits
+    m_options |= option_mask & mask;
 
     m_maxdatadump = maxDataDump;
     m_maxtraceframes = maxTraceFrames;
@@ -3281,7 +3286,8 @@ void __stdcall VisualLeakDetector::GetReportFilename(WCHAR *filename)
 
 void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
-    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
+    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
+        VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
 
     m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
     if ( (option_mask & VLD_OPT_REPORT_TO_FILE) && ( filename != NULL ))
