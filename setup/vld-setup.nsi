@@ -123,8 +123,8 @@ Section "Uninstaller"
     WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayName" "Visual Leak Detector ${VLD_VERSION}"
     WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "UninstallString" "$INSTDIR\uninstall.exe"
     WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "InstallLocation" "$INSTDIR"
-    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "Publisher" "Dan Moulding"
-    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "URLInfoAbout" "http://www.danm.net"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "Publisher" "VLD Team"
+    WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "URLInfoAbout" "http://vld.codeplex.com/"
     WriteRegStr HKLM "${REG_KEY_UNINSTALL}" "DisplayVersion" "${VLD_VERSION}"
     WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoModify" 1
     WriteRegDWORD HKLM "${REG_KEY_UNINSTALL}" "NoRepair" 1
