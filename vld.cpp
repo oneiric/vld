@@ -337,7 +337,7 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    HMODULE    kernel32;
+    HMODULE    kernel32, kernelBase;
     ModuleSet *newmodules;
     HMODULE    ntdll;
     LPWSTR     symbolpath;
@@ -359,6 +359,7 @@ VisualLeakDetector::VisualLeakDetector ()
     }
 
     kernel32 = GetModuleHandleW(L"kernel32.dll");
+    kernelBase = GetModuleHandleW(L"KernelBase.dll");
     ntdll = GetModuleHandleW(L"ntdll.dll");
 
     m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
@@ -443,6 +444,8 @@ VisualLeakDetector::VisualLeakDetector ()
         "ntdll.dll", (UINT_PTR)ntdll, ntdllPatch,
     };
     patchimport(kernel32, ldrLoadDllPatch);
+    if (kernelBase != NULL)
+        patchimport(kernelBase, ldrLoadDllPatch);
 
     // Attach Visual Leak Detector to every module loaded in the process.
     newmodules = new ModuleSet;
