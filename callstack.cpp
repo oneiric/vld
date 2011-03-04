@@ -378,7 +378,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
     static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;  
     if (s_pfnCaptureStackBackTrace == 0)  
     {  
-        const HMODULE hNtDll = GetModuleHandle(L"ntdll.dll");  
+        const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");  
         reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
             = ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
         if (s_pfnCaptureStackBackTrace == 0)  

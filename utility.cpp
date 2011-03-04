@@ -861,7 +861,7 @@ DWORD _GetProcessIdOfThread (HANDLE thread)
     NTSTATUS status;
     HMODULE  ntdll;
     if (NtQueryInformationThread == NULL) {
-        ntdll = GetModuleHandle(L"ntdll.dll");
+        ntdll = GetModuleHandleW(L"ntdll.dll");
         NtQueryInformationThread = (PNtQueryInformationThread)GetProcAddress(ntdll, "NtQueryInformationThread");
         if (NtQueryInformationThread == NULL) {
             return 0;

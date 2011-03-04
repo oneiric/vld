@@ -358,8 +358,8 @@ VisualLeakDetector::VisualLeakDetector ()
         return;
     }
 
-    kernel32 = GetModuleHandle(L"kernel32.dll");
-    ntdll = GetModuleHandle(L"ntdll.dll");
+    kernel32 = GetModuleHandleW(L"kernel32.dll");
+    ntdll = GetModuleHandleW(L"ntdll.dll");
 
     m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
     // Initialize global variables.
@@ -812,7 +812,7 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
     // executable image. So, we'll manually add the location of the executable
     // to the search path since that is often where the PDB will be located.
     path[0] = L'\0';
-    module = GetModuleHandle(NULL);
+    module = GetModuleHandleW(NULL);
     GetModuleFileName(module, path, MAX_PATH);
     _wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
     wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
@@ -2749,7 +2749,7 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
         // This is the first call to this function. Link to the real
         // CoGetMalloc and get a pointer to the system implementation of the
         // IMalloc interface.
-        ole32 = GetModuleHandle(L"ole32.dll");
+        ole32 = GetModuleHandleW(L"ole32.dll");
         pCoGetMalloc = (CoGetMalloc_t)vld._RGetProcAddress(ole32, "CoGetMalloc");
         hr = pCoGetMalloc(context, &vld.m_imalloc);
     }
@@ -2800,7 +2800,7 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
     if (pCoTaskMemAlloc == NULL) {
         // This is the first call to this function. Link to the real
         // CoTaskMemAlloc.
-        ole32 = GetModuleHandle(L"ole32.dll");
+        ole32 = GetModuleHandleW(L"ole32.dll");
         pCoTaskMemAlloc = (CoTaskMemAlloc_t)vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
     }
 
@@ -2856,7 +2856,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
     if (pCoTaskMemRealloc == NULL) {
         // This is the first call to this function. Link to the real
         // CoTaskMemRealloc.
-        ole32 = GetModuleHandle(L"ole32.dll");
+        ole32 = GetModuleHandleW(L"ole32.dll");
         pCoTaskMemRealloc = (CoTaskMemRealloc_t)vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
     }
 
@@ -2896,7 +2896,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 ULONG VisualLeakDetector::AddRef ()
 {
     assert(m_imalloc != NULL);
-    return m_imalloc->AddRef();
+    return (m_imalloc) ? m_imalloc->AddRef() : 0;
 }
 
 // Alloc - Calls to IMalloc::Alloc end up here. This function is just a wrapper
@@ -2925,7 +2925,7 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     assert(m_imalloc != NULL);
-    block = m_imalloc->Alloc(size);
+    block = (m_imalloc) ? m_imalloc->Alloc(size) : NULL;
 
     if (firstcall)
     {
@@ -2956,7 +2956,7 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
 INT VisualLeakDetector::DidAlloc (LPVOID mem)
 {
     assert(m_imalloc != NULL);
-    return m_imalloc->DidAlloc(mem);
+    return (m_imalloc) ? m_imalloc->DidAlloc(mem) : 0;
 }
 
 // Free - Calls to IMalloc::Free will end up here. This function is just a
@@ -2971,7 +2971,7 @@ INT VisualLeakDetector::DidAlloc (LPVOID mem)
 VOID VisualLeakDetector::Free (LPVOID mem)
 {
     assert(m_imalloc != NULL);
-    m_imalloc->Free(mem);
+    if (m_imalloc) m_imalloc->Free(mem);
 }
 
 // GetSize - Calls to IMalloc::GetSize will end up here. This function is just a
@@ -2987,7 +2987,7 @@ VOID VisualLeakDetector::Free (LPVOID mem)
 SIZE_T VisualLeakDetector::GetSize (LPVOID mem)
 {
     assert(m_imalloc != NULL);
-    return m_imalloc->GetSize(mem);
+    return (m_imalloc) ? m_imalloc->GetSize(mem) : 0;
 }
 
 // HeapMinimize - Calls to IMalloc::HeapMinimize will end up here. This function
@@ -3000,7 +3000,7 @@ SIZE_T VisualLeakDetector::GetSize (LPVOID mem)
 VOID VisualLeakDetector::HeapMinimize ()
 {
     assert(m_imalloc != NULL);
-    m_imalloc->HeapMinimize();
+    if (m_imalloc) m_imalloc->HeapMinimize();
 }
 
 // QueryInterface - Calls to IMalloc::QueryInterface will end up here. This
@@ -3020,7 +3020,7 @@ VOID VisualLeakDetector::HeapMinimize ()
 HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 {
     assert(m_imalloc != NULL);
-    return m_imalloc->QueryInterface(iid, object);
+    return (m_imalloc) ? m_imalloc->QueryInterface(iid, object) : E_UNEXPECTED;
 }
 
 // Realloc - Calls to IMalloc::Realloc will end up here. This function is just a
@@ -3053,7 +3053,7 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     assert(m_imalloc != NULL);
-    block = m_imalloc->Realloc(mem, size);
+    block = (m_imalloc) ? m_imalloc->Realloc(mem, size) : NULL;
 
     if (firstcall)
     {
@@ -3082,7 +3082,7 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
 ULONG VisualLeakDetector::Release ()
 {
     assert(m_imalloc != NULL);
-    return m_imalloc->Release();
+    return (m_imalloc) ? m_imalloc->Release() : 0;
 }
 
 

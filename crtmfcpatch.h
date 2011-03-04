@@ -133,7 +133,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
     if (pcrtxxd__calloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _calloc_dbg.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd__calloc_dbg = (_calloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_calloc_dbg");
     }
 
@@ -172,7 +172,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
     if (pcrtxxd__malloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _malloc_dbg.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd__malloc_dbg = (_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_malloc_dbg");
     }
 
@@ -214,7 +214,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
     if (pcrtxxd__realloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _realloc_dbg.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd__realloc_dbg = (_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_realloc_dbg");
     }
 
@@ -302,7 +302,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
 
     if (pcrtxxd_calloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd_calloc = (calloc_t)vld._RGetProcAddress(msvcrxxd, "calloc");
     }
 
@@ -332,7 +332,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
 
     if (pcrtxxd_malloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd_malloc = (malloc_t)vld._RGetProcAddress(msvcrxxd, "malloc");
     }
 
@@ -364,7 +364,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 
     if (pcrtxxd_realloc == NULL) {
         // This is the first call to this function. Link to the real realloc.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd_realloc = (realloc_t)vld._RGetProcAddress(msvcrxxd, "realloc");
     }
 
@@ -442,7 +442,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
     if (pcrtxxd_new_dbg == NULL) {
         // This is the first call to this function. Link to the real CRT debug
         // new operator.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd_new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
 
@@ -473,7 +473,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
     if (pcrtxxd_scalar_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        msvcrxxd = GetModuleHandle(crtddll);
+        msvcrxxd = GetModuleHandleW(crtddll);
         pcrtxxd_scalar_new = (new_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
 
@@ -815,7 +815,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = GetModuleHandle(mfcdll);
+        mfcxxd = GetModuleHandleW(mfcdll);
         pmfcxxd__new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
@@ -856,7 +856,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = GetModuleHandle(mfcdll);
+        mfcxxd = GetModuleHandleW(mfcdll);
         pmfcxxd__new_dbg = (new_dbg_mfc_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
@@ -887,7 +887,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
     if (pmfcxxd_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        mfcxxd = GetModuleHandle(mfcdll);
+        mfcxxd = GetModuleHandleW(mfcdll);
         pmfcxxd_new = (new_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
