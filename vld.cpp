@@ -1350,7 +1350,7 @@ VOID VisualLeakDetector::reportconfig ()
         report(L"    Using the \"safe\" (but slow) stack walking method.\n");
     }
     if (m_options & VLD_OPT_SELF_TEST) {
-        report(L"    Perfoming a memory leak self-test.\n");
+        report(L"    Performing a memory leak self-test.\n");
     }
     if (m_options & VLD_OPT_START_DISABLED) {
         report(L"    Starting with memory leak detection disabled.\n");
@@ -1425,12 +1425,11 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
         if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
             // Aggregate all other leaks which are duplicates of this one
             // under this same heading, to cut down on clutter.
-            duplicates = eraseduplicates(blockit);
-            if (duplicates) {
-                report(L"A total of %lu leaks match this size and call stack. Showing only the first one.\n",
-                       duplicates + 1);
+            duplicates = eraseduplicates(blockit) + 1;
+            if (duplicates > 1)
                 m_leaksfound += duplicates;
-            }
+            report(L"Leak Hash: 0x%08IX Count: %lu\n",
+                 CalculateCRC32(info->size, info->callstack->getHashValue()), duplicates);
         }
         // Dump the call stack.
         report(L"  Call Stack:\n");
@@ -1445,7 +1444,7 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
                 dumpmemorya(address, (m_maxdatadump < size) ? m_maxdatadump : size);
             }
         }
-        report(L"\n");
+        report(L"\n\n");
     }
 
     LeaveCriticalSection(&m_maplock);
@@ -2740,6 +2739,8 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 {
     static CoGetMalloc_t pCoGetMalloc = NULL;
 
+    HRESULT hr = S_OK;
+
     HMODULE ole32;
 
     *imalloc = (LPMALLOC)&vld;
@@ -2750,10 +2751,22 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
         // IMalloc interface.
         ole32 = GetModuleHandle(L"ole32.dll");
         pCoGetMalloc = (CoGetMalloc_t)vld._RGetProcAddress(ole32, "CoGetMalloc");
-        pCoGetMalloc(context, &vld.m_imalloc);
+        hr = pCoGetMalloc(context, &vld.m_imalloc);
+    }
+    else
+    {
+        // wait for different thread initialization
+        int c = 0;
+        while(vld.m_imalloc == NULL && c < 10)
+        {
+            Sleep(1);
+            c++;
+        }
+        if (vld.m_imalloc == NULL)
+            hr = E_INVALIDARG;
     }
 
-    return S_OK;
+    return hr;
 }
 
 // _CoTaskMemAlloc - Calls to CoTaskMemAlloc are patched through to this
@@ -3119,8 +3132,154 @@ void __stdcall VisualLeakDetector::DisableModule(HMODULE module)
     ChangeModuleState(module,false);
 }
 
-void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask,WCHAR *filename)
+void __stdcall VisualLeakDetector::DisableLeakDetection ()
 {
+    tls_t *tls;
+
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    // Disable memory leak detection for the current thread. There are two flags
+    // because if neither flag is set, it means that we are in the default or
+    // "starting" state, which could be either enabled or disabled depending on
+    // the configuration.
+    tls = gettls();
+    tls->oldflags = tls->flags;
+    tls->flags &= ~VLD_TLS_ENABLED;
+    tls->flags |= VLD_TLS_DISABLED;
+}
+
+void __stdcall VisualLeakDetector::EnableLeakDetection ()
+{
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    tls_t *tls;
+
+    // Enable memory leak detection for the current thread.
+    tls = gettls();
+    tls->oldflags = tls->flags;
+    tls->flags &= ~VLD_TLS_DISABLED;
+    tls->flags |= VLD_TLS_ENABLED;
+    m_status &= ~VLD_STATUS_NEVER_ENABLED;
+}
+
+void __stdcall VisualLeakDetector::RestoreLeakDetectionState ()
+{
+    tls_t *tls;
+
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    // Restore state memory leak detection for the current thread.
+    tls = gettls();
+    tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+    tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+}
+
+void __stdcall VisualLeakDetector::GlobalDisableLeakDetection ()
+{
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    // Disable memory leak detection for all threads.
+    EnterCriticalSection(&m_tlslock);
+    TlsSet::Iterator     tlsit;
+    for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
+        (*tlsit)->oldflags = (*tlsit)->flags;
+            (*tlsit)->flags &= ~VLD_TLS_ENABLED;
+        (*tlsit)->flags |= VLD_TLS_DISABLED;
+    }
+    LeaveCriticalSection(&m_tlslock);
+}
+
+void __stdcall VisualLeakDetector::GlobalEnableLeakDetection ()
+{
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    // Enable memory leak detection for all threads.
+    EnterCriticalSection(&m_tlslock);
+    TlsSet::Iterator     tlsit;
+    for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
+        (*tlsit)->oldflags = (*tlsit)->flags;
+        (*tlsit)->flags &= ~VLD_TLS_DISABLED;
+        (*tlsit)->flags |= VLD_TLS_ENABLED;
+    }
+    LeaveCriticalSection(&m_tlslock);
+    m_status &= ~VLD_STATUS_NEVER_ENABLED;
+}
+
+UINT32 __stdcall VisualLeakDetector::GetOptions()
+{
+    return m_options;
+}
+
+void __stdcall VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
+{
+    m_options &= ~(VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | VLD_OPT_TRACE_INTERNAL_FRAMES); // clear used bits
+
+    m_options |= option_mask & VLD_OPT_AGGREGATE_DUPLICATES;
+    m_options |= option_mask & VLD_OPT_SAFE_STACK_WALK;
+    m_options |= option_mask & VLD_OPT_SLOW_DEBUGGER_DUMP;
+    m_options |= option_mask & VLD_OPT_TRACE_INTERNAL_FRAMES;
+
+    m_maxdatadump = maxDataDump;
+    m_maxtraceframes = maxTraceFrames;
+    if (m_maxtraceframes < 1) {
+        m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
+    }
+
+    m_options |= option_mask & VLD_OPT_START_DISABLED;
+    if (m_options & VLD_OPT_START_DISABLED)
+        GlobalDisableLeakDetection();
+}
+
+void __stdcall VisualLeakDetector::SetIncludeModules(CONST WCHAR *modules)
+{
+    if (modules && modules[0] != '\0')
+    {
+        m_options &= !VLD_OPT_MODULE_LIST_INCLUDE;
+        wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
+        _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
+    }
+    else
+        m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
+}
+
+bool __stdcall VisualLeakDetector::GetIncludeModules(WCHAR *modules, UINT size)
+{
+    if (m_options & VLD_OPT_MODULE_LIST_INCLUDE)
+    {
+        wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
+        return true;
+    }
+    else
+    {
+        modules[0] = '\0';
+        return false;
+    }
+}
+
+void __stdcall VisualLeakDetector::GetReportFilename(WCHAR *filename)
+{
+    wcsncpy_s(filename, MAX_PATH, m_reportfilepath, _TRUNCATE);
+}
+
+void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
+{
+    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
+
     m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
     if ( (option_mask & VLD_OPT_REPORT_TO_FILE) && ( filename != NULL ))
     {
@@ -3130,7 +3289,17 @@ void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask,WCHAR *fi
     m_options |= option_mask & VLD_OPT_REPORT_TO_STDOUT;
     m_options |= option_mask & VLD_OPT_UNICODE_REPORT;
 
-    SetupReporting();
+    if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
+        // If Unicode report encoding is enabled, then the report needs to be
+        // sent to a file because the debugger will not display Unicode
+        // characters, it will display question marks in their place instead.
+        m_options |= VLD_OPT_REPORT_TO_FILE;
+        m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
+    }
+
+    if (m_options & VLD_OPT_REPORT_TO_FILE) {
+        SetupReporting();
+    }
 }
 
 void VisualLeakDetector::SetupReporting()

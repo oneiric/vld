@@ -63,12 +63,12 @@ public:
     // Public APIs - see each function definition for details.
     VOID clear ();
     VOID dump (BOOL showinternalframes) const;
+    DWORD getHashValue () const;
     virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
     CallStack& operator = (const CallStack &other);
     BOOL operator == (const CallStack &other) const;
-    SIZE_T operator [] (UINT32 index) const;
+    UINT_PTR operator [] (UINT32 index) const;
     VOID push_back (const UINT_PTR programcounter);
-
 protected:
     // Protected data.
     UINT32 m_status;                    // Status flags:
@@ -78,7 +78,7 @@ private:
     // The chunk list is made of a linked list of Chunks.
     typedef struct chunk_s {
         struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.
-        SIZE_T          frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
+        UINT_PTR        frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
     } chunk_t;
 
     // Private data.

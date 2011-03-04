@@ -26,7 +26,7 @@
 !include "MUI.nsh"      # Provides the modern user-interface
 
 # Version number
-!define VLD_VERSION "2.0b"
+!define VLD_VERSION "2.1-test"
 
 # Define build system paths
 #!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"

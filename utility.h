@@ -132,3 +132,4 @@ BOOL strtobool (LPCWSTR s);
 DWORD _GetProcessIdOfThread (HANDLE thread);
 #define GetProcessIdOfThread _GetProcessIdOfThread
 #endif
+DWORD CalculateCRC32(UINT_PTR p, UINT startValue = 0xD202EF8D);

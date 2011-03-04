@@ -35,79 +35,81 @@ extern VisualLeakDetector vld;
 //  Visual Leak Detector APIs - see vldapi.h for each function's details.
 //
 
-extern "C" __declspec(dllexport) void VLDDisable ()
+extern "C" {
+
+__declspec(dllexport) void VLDDisable ()
 {
-    tls_t *tls;
-
-    if (vld.m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
-
-    // Disable memory leak detection for the current thread. There are two flags
-    // because if neither flag is set, it means that we are in the default or
-    // "starting" state, which could be either enabled or disabled depending on
-    // the configuration.
-    tls = vld.gettls();
-    tls->oldflags = tls->flags;
-    tls->flags &= ~VLD_TLS_ENABLED;
-    tls->flags |= VLD_TLS_DISABLED;
+    vld.DisableLeakDetection();
 }
 
-extern "C" __declspec(dllexport) void VLDEnable ()
+__declspec(dllexport) void VLDEnable ()
 {
-    tls_t *tls;
-
-    if (vld.m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
-
-    // Enable memory leak detection for the current thread.
-    tls = vld.gettls();
-    tls->oldflags = tls->flags;
-    tls->flags &= ~VLD_TLS_DISABLED;
-    tls->flags |= VLD_TLS_ENABLED;
-    vld.m_status &= ~VLD_STATUS_NEVER_ENABLED;
+    vld.EnableLeakDetection();
 }
 
-extern "C" __declspec(dllexport) void VLDRestore ()
+__declspec(dllexport) void VLDRestore ()
 {
-    tls_t *tls;
-
-    if (vld.m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
-
-    // Restore state memory leak detection for the current thread.
-    tls = vld.gettls();
-    tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
-    tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+    vld.RestoreLeakDetectionState();
 }
 
-extern "C" __declspec(dllexport) void VLDReportLeaks ()
+__declspec(dllexport) void VLDGlobalDisable ()
+{
+    vld.GlobalDisableLeakDetection();
+}
+
+__declspec(dllexport) void VLDGlobalEnable ()
+{
+    vld.GlobalEnableLeakDetection();
+}
+
+__declspec(dllexport) void VLDReportLeaks ()
 {
     vld.Reportleaks();
 }
 
-extern "C" __declspec(dllexport) void VLDRefreshModules()
+__declspec(dllexport) void VLDRefreshModules()
 {
     vld.RefreshModules();
 }
 
-extern "C" __declspec(dllexport) void VLDEnableModule(HMODULE module)
+__declspec(dllexport) void VLDEnableModule(HMODULE module)
 {
     vld.EnableModule(module);
 }
 
-extern "C" __declspec(dllexport) void VLDDisableModule(HMODULE module)
+__declspec(dllexport) void VLDDisableModule(HMODULE module)
 {
     vld.DisableModule(module);
 }
 
+__declspec(dllexport) UINT32 VLDGetOptions()
+{
+    return vld.GetOptions();
+}
 
-extern "C" __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask,WCHAR *filename)
+__declspec(dllexport) void VLDGetReportFilename(WCHAR *filename)
+{
+    vld.GetReportFilename(filename);
+}
+
+__declspec(dllexport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
+{
+    vld.SetOptions(option_mask, maxDataDump, maxTraceFrames);
+}
+
+__declspec(dllexport) void VLDSetIncludeModules(CONST WCHAR *modules)
+{
+    vld.SetIncludeModules(modules);
+}
+
+__declspec(dllexport) BOOL VLDGetIncludeModules(WCHAR *modules, UINT size)
+{
+    return vld.GetIncludeModules(modules, size);
+}
+
+__declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
     vld.SetReportOptions(option_mask,filename);
+}
+
 }

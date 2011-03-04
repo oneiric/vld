@@ -210,10 +210,21 @@ public:
     LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
     ULONG   __stdcall Release ();
 
+    void __stdcall DisableLeakDetection ();
+    void __stdcall EnableLeakDetection ();
+    void __stdcall RestoreLeakDetectionState ();
+    void __stdcall GlobalDisableLeakDetection ();
+    void __stdcall GlobalEnableLeakDetection ();
+
     VOID __stdcall Reportleaks();
     VOID __stdcall EnableModule(HMODULE module);
     VOID __stdcall DisableModule(HMODULE module);
-    void __stdcall SetReportOptions(UINT32 option_mask,WCHAR *filename);
+    UINT32 __stdcall GetOptions();
+    VOID __stdcall GetReportFilename(WCHAR *filename);
+    VOID __stdcall SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
+    VOID __stdcall SetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
+    VOID __stdcall SetIncludeModules(CONST WCHAR *modules);
+    bool __stdcall GetIncludeModules(WCHAR *modules, UINT size);
 
 
     static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
@@ -303,7 +314,6 @@ private:
     typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
 
     VOID __stdcall ChangeModuleState(HMODULE module,bool on);
-
     static _GetProcAddressType * m_original_GetProcAddress;
 
     // The Visual Leak Detector APIs are our friends.

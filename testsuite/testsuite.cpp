@@ -61,7 +61,7 @@ enum action_e {
 #define MAXSIZE      64                      // Maximum block size to allocate
 #define MINDEPTH     0                       // Minimum depth of the allocation call stack
 #define MINSIZE      16                      // Minimum block size to allocate
-#define NUMDUPLEAKS  0                       // Number of times to duplicate each leak
+#define NUMDUPLEAKS  3                       // Number of times to duplicate each leak
 #define NUMTHREADS   72                      // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
@@ -371,9 +371,10 @@ int main (int argc, char *argv [])
 
     for (index = 0; index < NUMTHREADS; ++index) {
         contexts[index].index = index;
-        if (index == leakythread) {
+        if (index == leakythread)
             contexts[index].leaky = TRUE;
-        }
+        else
+            contexts[index].leaky = FALSE;
         contexts[index].seed = random(RAND_MAX);
         contexts[index].terminated = FALSE;
         CreateThread(NULL, 0, runtestsuite, &contexts[index], 0, &contexts[index].threadid);

@@ -144,7 +144,7 @@ BOOL CallStack::operator == (const CallStack &other) const
 //    specified index is out of range for the CallStack, the return value is
 //    undefined.
 //
-SIZE_T CallStack::operator [] (UINT32 index) const
+UINT_PTR CallStack::operator [] (UINT32 index) const
 {
     UINT32                    count;
     const CallStack::chunk_t *chunk = &m_store;
@@ -196,7 +196,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
     UINT32           frame;
     SYMBOL_INFO     *functioninfo;
     LPWSTR           functionname;
-    SIZE_T           programcounter;
+    UINT_PTR         programcounter;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
     BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
 
@@ -246,13 +246,36 @@ VOID CallStack::dump (BOOL showinternalframes) const
 
         // Display the current stack frame's information.
         if (foundline) {
-            report(L"    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
+            if (displacement64 == 0)
+                report(L"    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
+            else
+                report(L"    %s (%d): %s + 0x%X bytes\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname, displacement);
         }
         else {
             report(L"    " ADDRESSFORMAT L" (File and line number not available): ", (*this)[frame]);
             report(L"%s\n", functionname);
         }
     }
+}
+
+// getHashValue - Generate callstack hash value.
+//
+//  Return Value:
+//
+//    None.
+//
+DWORD CallStack::getHashValue () const
+{
+    UINT32      frame;
+    UINT_PTR    programcounter;
+    DWORD       hashcode = 0xD202EF8D;
+
+    // Iterate through each frame in the call stack.
+    for (frame = 0; frame < m_size; frame++) {
+        programcounter = (*this)[frame];
+        hashcode = CalculateCRC32(programcounter, hashcode);
+    }
+    return hashcode;
 }
 
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are

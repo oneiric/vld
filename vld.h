@@ -55,7 +55,7 @@ extern "C" {
 //    those other threads. It was designed to work this way to insulate you,
 //    the programmer, from having to ensure thread synchronization when calling
 //    VLDEnable() and VLDDisable(). Without this, calling these two functions
-//    unsychronized could result in unpredictable and unintended behavior.
+//    unsynchronized could result in unpredictable and unintended behavior.
 //    But this also means that if you want to disable memory leak detection
 //    process-wide, then you need to call this function from every thread in
 //    the process.
@@ -96,6 +96,26 @@ __declspec(dllimport) void VLDEnable ();
 //
 __declspec(dllimport) void VLDRestore ();
 
+// VLDGlobalDisable - Disables Visual Leak Detector's memory leak detection at
+//   runtime in all threads. If memory leak detection is already disabled, 
+//   then calling this function has no effect.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDGlobalDisable ();
+
+// VLDGlobalEnable - Enables Visual Leak Detector's memory leak detection 
+//   at runtime in all threads. If memory leak detection is already enabled, 
+//   which it is by default, then calling this function has no effect.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDGlobalEnable ();
+
 // VLDReportLeaks - Report leaks up to the execution point.
 //
 //  Return Value:
@@ -132,6 +152,65 @@ __declspec(dllimport) void VLDEnableModule(HMODULE);
 //
 __declspec(dllimport) void VLDDisableModule(HMODULE);
 
+// VLDGetOptions - Return all current options.
+//
+//  Return Value:
+//
+//    Mask of current options.
+//
+__declspec(dllimport) UINT32 VLDGetOptions();
+
+// VLDGetReportFilename - Return current report filename.
+//
+// filename: current report filename (max characters - MAX_PATH).
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDGetReportFilename(WCHAR *filename);
+
+// VLDSetOptions - Update the report options via function call rather than INI file.
+//
+// option_mask: Only the following flags are checked
+// VLD_OPT_AGGREGATE_DUPLICATES
+// VLD_OPT_SAFE_STACK_WALK
+// VLD_OPT_SLOW_DEBUGGER_DUMP
+// VLD_OPT_TRACE_INTERNAL_FRAMES
+// VLD_OPT_START_DISABLED
+//
+// maxDataDump: maximum number of user-data bytes to dump for each leaked block.
+//
+// maxTraceFrames: maximum number of frames per stack trace for each leaked block.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
+
+// VLDSetIncludeModules - Set list of modules included in leak detection.
+//
+// modules: list of modules to be forcefully included in leak detection.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDSetIncludeModules(CONST WCHAR *modules);
+
+// VLDGetIncludeModules - Return current list of included modules.
+//
+// modules: destination string for list of included modules (maximum length 512 characters).
+//
+// size: maximum string size.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) BOOL VLDGetIncludeModules(WCHAR *modules, UINT size);
+
 // VLDSetOptions - Update the report options via function call rather than INI file.
 //
 // Only the following flags are checked
@@ -141,11 +220,12 @@ __declspec(dllimport) void VLDDisableModule(HMODULE);
 // VLD_OPT_UNICODE_REPORT
 //
 // filename is optional and can be NULL.
+//
 //  Return Value:
 //
 //    None.
 //
-__declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filename);
+__declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
 
 #ifdef __cplusplus
 }
@@ -160,6 +240,11 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, WCHAR *filena
 #define VLDRefreshModules()
 #define VLDEnableModule(a)
 #define VLDDisableModule(b)
+#define VLDGetOptions() 0
+#define VLDGetReportFilename(a)
+#define VLDSetOptions(a, b, c)
+#define VLDSetIncludeModules(a)
+#define VLDGetIncludeModules(a, b) FALSE
 #define VLDSetReportOptions(a, b)
 
 #endif // _DEBUG
