@@ -241,7 +241,7 @@ VOID CallStack::dump (BOOL showinternalframes) const
         }
         else {
             functionname = L"(Function name unavailable)";
-			displacement64 = 0;
+            displacement64 = 0;
         }
         LeaveCriticalSection(&symbollock);
 
