@@ -64,7 +64,7 @@ __declspec(dllexport) void VLDGlobalEnable ()
 
 __declspec(dllexport) void VLDReportLeaks ()
 {
-    vld.Reportleaks();
+    vld.ReportLeaks();
 }
 
 __declspec(dllexport) void VLDRefreshModules()
@@ -97,14 +97,14 @@ __declspec(dllexport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump,
     vld.SetOptions(option_mask, maxDataDump, maxTraceFrames);
 }
 
-__declspec(dllexport) void VLDSetIncludeModules(CONST WCHAR *modules)
+__declspec(dllexport) void VLDSetModulesList(CONST WCHAR *modules, BOOL includeModules)
 {
-    vld.SetIncludeModules(modules);
+    vld.SetModulesList(modules, includeModules);
 }
 
-__declspec(dllexport) BOOL VLDGetIncludeModules(WCHAR *modules, UINT size)
+__declspec(dllexport) BOOL VLDGetModulesList(WCHAR *modules, UINT size)
 {
-    return vld.GetIncludeModules(modules, size);
+    return vld.GetModulesList(modules, size);
 }
 
 __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename)

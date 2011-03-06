@@ -236,26 +236,29 @@ VOID CallStack::dump (BOOL showinternalframes) const
 
         // Try to get the name of the function containing this program
         // counter address.
-        if (SymFromAddrW(currentprocess, (*this)[frame], &displacement64, functioninfo)) {
+        if (SymFromAddrW(currentprocess, programcounter, &displacement64, functioninfo)) {
             functionname = functioninfo->Name;
-            displacement = (DWORD)displacement64;
         }
         else {
             functionname = L"(Function name unavailable)";
+			displacement64 = 0;
         }
         LeaveCriticalSection(&symbollock);
 
         // Display the current stack frame's information.
         if (foundline) {
-            if (displacement64 == 0)
+            if (displacement == 0)
                 report(L"    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
             else
                 report(L"    %s (%d): %s + 0x%X bytes\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname, displacement);
         }
         else {
             report(L"    " ADDRESSFORMAT L" (File and line number not available): ", (*this)[frame]);
-            report(L"%s\n", functionname);
-        }
+            if (displacement64 == 0)
+                report(L"%s\n", functionname);
+             else
+                report(L"%s + 0x%X bytes\n", functionname, (DWORD)displacement64);
+       }
     }
 }
 

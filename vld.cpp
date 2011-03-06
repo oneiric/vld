@@ -429,7 +429,11 @@ VisualLeakDetector::VisualLeakDetector ()
     // Initialize the symbol handler. We use it for obtaining source file/line
     // number information and function names for the memory leak report.
     symbolpath = buildsymbolsearchpath();
+#ifdef _DEBUG
+    SymSetOptions(SYMOPT_DEBUG | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+#else
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+#endif
     if (!SymInitializeW(currentprocess, symbolpath, FALSE)) {
         report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
                L"    File and function names will probably not be available in call stacks.\n", GetLastError());
@@ -748,11 +752,15 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         // process, guaranteeing the symbols' availability when generating the
         // leak report.
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        if ((SymGetModuleInfoW64(currentprocess, (DWORD64)modulebase, &moduleimageinfo) == TRUE) ||
-            ((SymLoadModule64(currentprocess, NULL, modulepath, NULL, modulebase, modulesize) == modulebase) &&
-            (SymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo) == TRUE))) {
-            moduleflags |= VLD_MODULE_SYMBOLSLOADED;
+        BOOL SymbolsLoaded = SymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo);
+        if (!SymbolsLoaded)
+        {
+            DWORD64 module = SymLoadModule64(currentprocess, NULL, modulepath, NULL, modulebase, modulesize);
+            if (module == modulebase)
+                SymbolsLoaded = SymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo);
         }
+        if (SymbolsLoaded)
+            moduleflags |= VLD_MODULE_SYMBOLSLOADED;
         LeaveCriticalSection(&symbollock);
 
         if (_stricmp(VLDDLL, modulename) == 0) {
@@ -852,7 +860,7 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
         delete [] env;
     }
 
-    //  Append %_NT_ALT_SYMBOL_PATH%.
+    // Append %_NT_ALT_SYMBOL_PATH%.
     envlen = GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", NULL, 0);
     if (envlen != 0) {
         env = new WCHAR [envlen];
@@ -861,6 +869,28 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
             strapp(&path, env);
         }
         delete [] env;
+    }
+
+    // Append Visual Studio 2010/2008 symbols cache directory.
+    HKEY debuggerkey;
+    WCHAR symbolCacheDir [MAX_PATH];
+    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    if (regstatus != ERROR_SUCCESS) 
+        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+
+    if (regstatus == ERROR_SUCCESS)
+    {
+        DWORD valuetype;
+        DWORD dirLength = MAX_PATH * sizeof(WCHAR);
+        regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
+        if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
+        {
+            strapp(&path, L";cache*");
+            strapp(&path, symbolCacheDir);
+            strapp(&path, L"\\MicrosoftPublicSymbols;cache*");
+            strapp(&path, symbolCacheDir);
+        }
+        RegCloseKey(debuggerkey);
     }
 
     // Remove any quotes from the path. The symbol handler doesn't like them.
@@ -3095,7 +3125,7 @@ ULONG VisualLeakDetector::Release ()
 }
 
 
-VOID __stdcall VisualLeakDetector::Reportleaks( ) 
+VOID VisualLeakDetector::ReportLeaks( ) 
 {
     HeapMap::Iterator    heapit;
     HANDLE               heap;
@@ -3107,7 +3137,7 @@ VOID __stdcall VisualLeakDetector::Reportleaks( )
     }
 }
 
-void __stdcall VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
+void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 {
     ModuleSet::Iterator  moduleit;
 
@@ -3131,17 +3161,17 @@ void __stdcall VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 
 }
 
-void __stdcall VisualLeakDetector::EnableModule(HMODULE module)
+void VisualLeakDetector::EnableModule(HMODULE module)
 {
     ChangeModuleState(module,true);
 }
 
-void __stdcall VisualLeakDetector::DisableModule(HMODULE module)
+void VisualLeakDetector::DisableModule(HMODULE module)
 {
     ChangeModuleState(module,false);
 }
 
-void __stdcall VisualLeakDetector::DisableLeakDetection ()
+void VisualLeakDetector::DisableLeakDetection ()
 {
     tls_t *tls;
 
@@ -3160,7 +3190,7 @@ void __stdcall VisualLeakDetector::DisableLeakDetection ()
     tls->flags |= VLD_TLS_DISABLED;
 }
 
-void __stdcall VisualLeakDetector::EnableLeakDetection ()
+void VisualLeakDetector::EnableLeakDetection ()
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -3177,7 +3207,7 @@ void __stdcall VisualLeakDetector::EnableLeakDetection ()
     m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
-void __stdcall VisualLeakDetector::RestoreLeakDetectionState ()
+void VisualLeakDetector::RestoreLeakDetectionState ()
 {
     tls_t *tls;
 
@@ -3192,7 +3222,7 @@ void __stdcall VisualLeakDetector::RestoreLeakDetectionState ()
     tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
 }
 
-void __stdcall VisualLeakDetector::GlobalDisableLeakDetection ()
+void VisualLeakDetector::GlobalDisableLeakDetection ()
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -3210,7 +3240,7 @@ void __stdcall VisualLeakDetector::GlobalDisableLeakDetection ()
     LeaveCriticalSection(&m_tlslock);
 }
 
-void __stdcall VisualLeakDetector::GlobalEnableLeakDetection ()
+void VisualLeakDetector::GlobalEnableLeakDetection ()
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -3229,18 +3259,19 @@ void __stdcall VisualLeakDetector::GlobalEnableLeakDetection ()
     m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
-UINT32 __stdcall VisualLeakDetector::GetOptions()
+CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
+    VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
+    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
+
+UINT32 VisualLeakDetector::GetOptions()
 {
-    return m_options;
+    return m_options & OptionsMask;
 }
 
-void __stdcall VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
+void VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
 {
-    UINT32 mask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | 
-        VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
-
-    m_options &= ~mask; // clear used bits
-    m_options |= option_mask & mask;
+    m_options &= ~OptionsMask; // clear used bits
+    m_options |= option_mask & OptionsMask;
 
     m_maxdatadump = maxDataDump;
     m_maxtraceframes = maxTraceFrames;
@@ -3253,38 +3284,28 @@ void __stdcall VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxData
         GlobalDisableLeakDetection();
 }
 
-void __stdcall VisualLeakDetector::SetIncludeModules(CONST WCHAR *modules)
+void VisualLeakDetector::SetModulesList(CONST WCHAR *modules, BOOL includeModules)
 {
-    if (modules && modules[0] != '\0')
-    {
-        m_options &= !VLD_OPT_MODULE_LIST_INCLUDE;
-        wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
-        _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
-    }
-    else
+    wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
+    _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
+    if (includeModules)
         m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
-}
-
-bool __stdcall VisualLeakDetector::GetIncludeModules(WCHAR *modules, UINT size)
-{
-    if (m_options & VLD_OPT_MODULE_LIST_INCLUDE)
-    {
-        wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
-        return true;
-    }
     else
-    {
-        modules[0] = '\0';
-        return false;
-    }
+        m_options &= ~VLD_OPT_MODULE_LIST_INCLUDE;
 }
 
-void __stdcall VisualLeakDetector::GetReportFilename(WCHAR *filename)
+bool VisualLeakDetector::GetModulesList(WCHAR *modules, UINT size)
+{
+    wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
+    return (m_options & VLD_OPT_MODULE_LIST_INCLUDE) > 0;
+}
+
+void VisualLeakDetector::GetReportFilename(WCHAR *filename)
 {
     wcsncpy_s(filename, MAX_PATH, m_reportfilepath, _TRUNCATE);
 }
 
-void __stdcall VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
+void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
     m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
         VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits

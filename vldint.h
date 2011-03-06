@@ -210,21 +210,21 @@ public:
     LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
     ULONG   __stdcall Release ();
 
-    void __stdcall DisableLeakDetection ();
-    void __stdcall EnableLeakDetection ();
-    void __stdcall RestoreLeakDetectionState ();
-    void __stdcall GlobalDisableLeakDetection ();
-    void __stdcall GlobalEnableLeakDetection ();
+    void DisableLeakDetection ();
+    void EnableLeakDetection ();
+    void RestoreLeakDetectionState ();
+    void GlobalDisableLeakDetection ();
+    void GlobalEnableLeakDetection ();
 
-    VOID __stdcall Reportleaks();
-    VOID __stdcall EnableModule(HMODULE module);
-    VOID __stdcall DisableModule(HMODULE module);
-    UINT32 __stdcall GetOptions();
-    VOID __stdcall GetReportFilename(WCHAR *filename);
-    VOID __stdcall SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
-    VOID __stdcall SetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
-    VOID __stdcall SetIncludeModules(CONST WCHAR *modules);
-    bool __stdcall GetIncludeModules(WCHAR *modules, UINT size);
+    VOID ReportLeaks();
+    VOID EnableModule(HMODULE module);
+    VOID DisableModule(HMODULE module);
+    UINT32 GetOptions();
+    VOID GetReportFilename(WCHAR *filename);
+    VOID SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
+    VOID SetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
+    VOID SetModulesList(CONST WCHAR *modules, BOOL includeModules);
+    bool GetModulesList(WCHAR *modules, UINT size);
 
 
     static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
@@ -315,11 +315,6 @@ private:
 
     VOID __stdcall ChangeModuleState(HMODULE module,bool on);
     static _GetProcAddressType * m_original_GetProcAddress;
-
-    // The Visual Leak Detector APIs are our friends.
-    friend __declspec(dllexport) void VLDDisable ();
-    friend __declspec(dllexport) void VLDEnable ();
-    friend __declspec(dllexport) void VLDRestore ();
 };
 
 // Configuration option default values

@@ -190,29 +190,33 @@ __declspec(dllimport) void VLDGetReportFilename(WCHAR *filename);
 //
 __declspec(dllimport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
 
-// VLDSetIncludeModules - Set list of modules included in leak detection.
+// VLDSetModulesList - Set list of modules included/excluded in leak detection
+// depending on parameter "includeModules".
 //
-// modules: list of modules to be forcefully included in leak detection.
+// modules: list of modules to be forcefully included/excluded in leak detection.
+//
+// includeModules: include or exclude that modules.
 //
 //  Return Value:
 //
 //    None.
 //
-__declspec(dllimport) void VLDSetIncludeModules(CONST WCHAR *modules);
+__declspec(dllimport) void VLDSetModulesList(CONST WCHAR *modules, BOOL includeModules);
 
-// VLDGetIncludeModules - Return current list of included modules.
+// VLDGetModulesList - Return current list of included/excluded modules
+// depending on flag VLD_OPT_TRACE_INTERNAL_FRAMES.
 //
-// modules: destination string for list of included modules (maximum length 512 characters).
+// modules: destination string for list of included/excluded modules (maximum length 512 characters).
 //
 // size: maximum string size.
 //
 //  Return Value:
 //
-//    None.
+//    BOOL: TRUE if include modules, otherwise FALSE.
 //
-__declspec(dllimport) BOOL VLDGetIncludeModules(WCHAR *modules, UINT size);
+__declspec(dllimport) BOOL VLDGetModulesList(WCHAR *modules, UINT size);
 
-// VLDSetOptions - Update the report options via function call rather than INI file.
+// VLDSetReportOptions - Update the report options via function call rather than INI file.
 //
 // Only the following flags are checked
 // VLD_OPT_REPORT_TO_DEBUGGER
@@ -244,8 +248,8 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *
 #define VLDGetOptions() 0
 #define VLDGetReportFilename(a)
 #define VLDSetOptions(a, b, c)
-#define VLDSetIncludeModules(a)
-#define VLDGetIncludeModules(a, b) FALSE
+#define VLDSetModulesList(a)
+#define VLDGetModulesList(a, b) FALSE
 #define VLDSetReportOptions(a, b)
 
 #endif // _DEBUG

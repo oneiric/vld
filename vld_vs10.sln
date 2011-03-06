@@ -8,6 +8,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\test
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bugtest", "bugtest\bugtest.vcxproj", "{90990D55-04C9-46AB-A638-CE07E33DB560}"
+EndProject
 Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
 		SccNumberOfProjects = 5
@@ -52,6 +54,14 @@ Global
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|Win32.Build.0 = Debug(Release)|Win32
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|x64.ActiveCfg = Debug(Release)|x64
 		{EE4A829C-5FD8-460B-8A90-B518B9BABB70}.Release|x64.Build.0 = Debug(Release)|x64
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Debug|Win32.ActiveCfg = Debug|Win32
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Debug|Win32.Build.0 = Debug|Win32
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Debug|x64.ActiveCfg = Debug|x64
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Debug|x64.Build.0 = Debug|x64
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Release|Win32.ActiveCfg = Release|Win32
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Release|Win32.Build.0 = Release|Win32
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Release|x64.ActiveCfg = Release|x64
+		{90990D55-04C9-46AB-A638-CE07E33DB560}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
