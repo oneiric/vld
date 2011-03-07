@@ -3350,10 +3350,9 @@ void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filen
     if (m_options & VLD_OPT_REPORT_TO_FILE) {
         SetupReporting();
     }
-    else {
-        //Close the previous report file if needed.
-        if ( m_reportfile )
-            fclose(m_reportfile);
+    else if ( m_reportfile ) { //Close the previous report file if needed.
+        fclose(m_reportfile);
+        m_reportfile = NULL;
     }
 }
 
