@@ -134,6 +134,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
         // This is the first call to this function. Link to the real
         // _calloc_dbg.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd__calloc_dbg = (_calloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_calloc_dbg");
     }
 
@@ -173,6 +174,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
         // This is the first call to this function. Link to the real
         // _malloc_dbg.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd__malloc_dbg = (_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_malloc_dbg");
     }
 
@@ -215,6 +217,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
         // This is the first call to this function. Link to the real
         // _realloc_dbg.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd__realloc_dbg = (_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_realloc_dbg");
     }
 
@@ -303,6 +306,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
     if (pcrtxxd_calloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd_calloc = (calloc_t)vld._RGetProcAddress(msvcrxxd, "calloc");
     }
 
@@ -333,6 +337,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
     if (pcrtxxd_malloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd_malloc = (malloc_t)vld._RGetProcAddress(msvcrxxd, "malloc");
     }
 
@@ -365,6 +370,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
     if (pcrtxxd_realloc == NULL) {
         // This is the first call to this function. Link to the real realloc.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd_realloc = (realloc_t)vld._RGetProcAddress(msvcrxxd, "realloc");
     }
 
@@ -443,6 +449,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
         // This is the first call to this function. Link to the real CRT debug
         // new operator.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd_new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
 
@@ -474,6 +481,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
         // This is the first call to this function. Link to the real CRT new
         // operator.
         msvcrxxd = GetModuleHandleW(crtddll);
+        assert(msvcrxxd != NULL);
         pcrtxxd_scalar_new = (new_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
 
@@ -816,6 +824,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
         mfcxxd = GetModuleHandleW(mfcdll);
+        assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
@@ -857,6 +866,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
         mfcxxd = GetModuleHandleW(mfcdll);
+        assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_mfc_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
@@ -888,6 +898,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
         // This is the first call to this function. Link to the real CRT new
         // operator.
         mfcxxd = GetModuleHandleW(mfcdll);
+        assert(mfcxxd != NULL);
         pmfcxxd_new = (new_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
 
@@ -981,7 +992,7 @@ typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
                     267, 268, 269, 913, 914, 915>
 #endif
         VS90;
-// Visual Studio 2011
+// Visual Studio 2010
 typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
                     vector_new_name, vector_new_dbg_name,
                     scalar_new_name, scalar_new_dbg_name,
