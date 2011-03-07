@@ -173,8 +173,6 @@ public:
     VisualLeakDetector();
     ~VisualLeakDetector();
 
-    NTSTATUS RefreshModules();
-
 ////////////////////////////////////////////////////////////////////////////////
 // Public CRT and MFC Common Handlers
 //
@@ -216,6 +214,7 @@ public:
     void GlobalDisableLeakDetection ();
     void GlobalEnableLeakDetection ();
 
+    VOID RefreshModules();
     VOID ReportLeaks();
     VOID EnableModule(HMODULE module);
     VOID DisableModule(HMODULE module);

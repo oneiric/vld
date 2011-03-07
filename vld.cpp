@@ -2493,11 +2493,16 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
     return status;
 }
 
-NTSTATUS VisualLeakDetector::RefreshModules()
+VOID VisualLeakDetector::RefreshModules()
 {
     ModuleSet::Iterator  moduleit;
     ModuleSet           *newmodules;
     ModuleSet           *oldmodules;
+    
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
 
     EnterCriticalSection(&vld.m_loaderlock);
 
@@ -2524,9 +2529,8 @@ NTSTATUS VisualLeakDetector::RefreshModules()
     delete oldmodules;
 
     LeaveCriticalSection(&vld.m_loaderlock);
-
-    return STATUS_SUCCESS;
 }
+
 void VisualLeakDetector::getcallstack( CallStack **&ppcallstack, context_t &context_ )
 {
     CallStack *callstack;
@@ -3147,6 +3151,11 @@ ULONG VisualLeakDetector::Release ()
 
 VOID VisualLeakDetector::ReportLeaks( ) 
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     HeapMap::Iterator    heapit;
     HANDLE               heap;
 
@@ -3183,11 +3192,21 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 
 void VisualLeakDetector::EnableModule(HMODULE module)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     ChangeModuleState(module,true);
 }
 
 void VisualLeakDetector::DisableModule(HMODULE module)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     ChangeModuleState(module,false);
 }
 
@@ -3290,6 +3309,11 @@ UINT32 VisualLeakDetector::GetOptions()
 
 void VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     m_options &= ~OptionsMask; // clear used bits
     m_options |= option_mask & OptionsMask;
 
@@ -3306,6 +3330,11 @@ void VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT
 
 void VisualLeakDetector::SetModulesList(CONST WCHAR *modules, BOOL includeModules)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
     _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
     if (includeModules)
@@ -3316,17 +3345,34 @@ void VisualLeakDetector::SetModulesList(CONST WCHAR *modules, BOOL includeModule
 
 bool VisualLeakDetector::GetModulesList(WCHAR *modules, UINT size)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        modules[0] = '\0';
+        return true;
+    }
+
     wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
     return (m_options & VLD_OPT_MODULE_LIST_INCLUDE) > 0;
 }
 
 void VisualLeakDetector::GetReportFilename(WCHAR *filename)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        m_reportfilepath[0] = '\0';
+        return;
+    }
+
     wcsncpy_s(filename, MAX_PATH, m_reportfilepath, _TRUNCATE);
 }
 
 void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
     m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
         VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
 
