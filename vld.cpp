@@ -885,9 +885,9 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
         regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
         if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
         {
-            strapp(&path, L";cache*");
+            strapp(&path, L";srv*");
             strapp(&path, symbolCacheDir);
-            strapp(&path, L"\\MicrosoftPublicSymbols;cache*");
+            strapp(&path, L"\\MicrosoftPublicSymbols;srv*");
             strapp(&path, symbolCacheDir);
         }
         RegCloseKey(debuggerkey);
@@ -2663,6 +2663,26 @@ BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
     return excluded;
 }
 
+// Find name of the module.
+BOOL VisualLeakDetector::GetModuleName(UINT_PTR address, LPSTR modulepath, ULONG modulelength)
+{
+    BOOL                 succeded = FALSE;
+    moduleinfo_t         moduleinfo;
+    ModuleSet::Iterator  moduleit;
+    moduleinfo.addrhigh = address;
+    moduleinfo.addrlow  = address;
+    EnterCriticalSection(&m_moduleslock);
+    moduleit = m_loadedmodules->find(moduleinfo);
+    if (moduleit != m_loadedmodules->end()) {
+        strncpy_s(modulepath, modulelength, (*moduleit).name, _TRUNCATE);
+        succeded = true;
+    }
+    else
+        modulepath[0] = '\0';
+    LeaveCriticalSection(&m_moduleslock);
+    return succeded;
+}
+
 // _RtlReAllocateHeap - Calls to RtlReAllocateHeap are patched through to this
 //   function. This function invokes the real RtlReAllocateHeap and then calls
 //   VLD's reallocation tracking function. All arguments passed to this function
@@ -3329,6 +3349,11 @@ void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filen
 
     if (m_options & VLD_OPT_REPORT_TO_FILE) {
         SetupReporting();
+    }
+    else {
+        //Close the previous report file if needed.
+        if ( m_reportfile )
+            fclose(m_reportfile);
     }
 }
 

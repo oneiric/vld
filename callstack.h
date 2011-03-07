@@ -74,6 +74,8 @@ protected:
     UINT32 m_status;                    // Status flags:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
+    HMODULE GetCallingModule(UINT_PTR pCaller) const;
+
 private:
     // The chunk list is made of a linked list of Chunks.
     typedef struct chunk_s {

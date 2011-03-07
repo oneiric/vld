@@ -253,6 +253,7 @@ private:
     // Utils
     static BOOL IsModuleExcluded (UINT_PTR returnaddress);
     static void getcallstack( CallStack **&ppcallstack, context_t &context );
+    BOOL GetModuleName(UINT_PTR address, LPSTR modulepath, ULONG modulelength);
     void SetupReporting();
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -175,6 +175,24 @@ VOID CallStack::clear ()
     m_topindex = 0;
 }
 
+// GetCallingModule - Return calling module by address.
+//
+//  Return Value:
+//
+//    Module handle.
+//
+HMODULE CallStack::GetCallingModule( UINT_PTR pCaller ) const
+{
+    HMODULE hModule = NULL;
+    MEMORY_BASIC_INFORMATION mbi;
+    if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
+    {
+        // the allocation base is the beginning of a PE file 
+        hModule = (HMODULE) mbi.AllocationBase;
+    }
+    return hModule;
+}
+
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.
 //
@@ -199,6 +217,9 @@ VOID CallStack::dump (BOOL showinternalframes) const
     UINT_PTR         programcounter;
     IMAGEHLP_LINE64  sourceinfo = { 0 };
     BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+    WCHAR            undecoratedname [MAXSYMBOLNAMELENGTH];
+    WCHAR            callingmodulename [MAX_PATH];
+    LPWSTR           modulename;
 
     if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
         // This call stack appears to be incomplete. Using StackWalk64 may be
@@ -237,7 +258,11 @@ VOID CallStack::dump (BOOL showinternalframes) const
         // Try to get the name of the function containing this program
         // counter address.
         if (SymFromAddrW(currentprocess, programcounter, &displacement64, functioninfo)) {
-            functionname = functioninfo->Name;
+            // Undecorate function name.
+            if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
+                functionname = undecoratedname;
+            else
+                functionname = functioninfo->Name;
         }
         else {
             functionname = L"(Function name unavailable)";
@@ -245,19 +270,33 @@ VOID CallStack::dump (BOOL showinternalframes) const
         }
         LeaveCriticalSection(&symbollock);
 
+        HMODULE hCallingModule = GetCallingModule(programcounter);
+        modulename = L"(Module name unavailable)";
+        if (hCallingModule && 
+            GetModuleFileName(hCallingModule, callingmodulename, sizeof(callingmodulename)) > 0)
+        {
+            modulename = wcsrchr(callingmodulename, L'\\');
+            if (modulename == NULL)
+                modulename = wcsrchr(callingmodulename, L'/');
+            if (modulename != NULL)
+                modulename++;
+            else
+                modulename = callingmodulename;
+        }
+
         // Display the current stack frame's information.
         if (foundline) {
             if (displacement == 0)
-                report(L"    %s (%d): %s\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname);
+                report(L"    %s (%d): %s!%s\n", sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname);
             else
-                report(L"    %s (%d): %s + 0x%X bytes\n", sourceinfo.FileName, sourceinfo.LineNumber, functionname, displacement);
+                report(L"    %s (%d): %s!%s + 0x%X bytes\n", sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname, displacement);
         }
         else {
             report(L"    " ADDRESSFORMAT L" (File and line number not available): ", (*this)[frame]);
             if (displacement64 == 0)
-                report(L"%s\n", functionname);
+                report(L"%s!%s\n", modulename, functionname);
              else
-                report(L"%s + 0x%X bytes\n", functionname, (DWORD)displacement64);
+                report(L"%s!%s + 0x%X bytes\n", modulename, functionname, (DWORD)displacement64);
        }
     }
 }
