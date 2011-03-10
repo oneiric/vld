@@ -142,6 +142,9 @@ void* operator new [] (size_t size, const char *file, int line)
 //
 void vlddelete (void *block)
 {
+    if (block == NULL)
+        return;
+
     BOOL              freed;
     vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
