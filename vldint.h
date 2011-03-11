@@ -293,6 +293,7 @@ private:
     CRITICAL_SECTION     m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
     UINT32               m_options;           // Configuration options:
 
+    static patchentry_t  m_kernelbasePatch [];
     static patchentry_t  m_kernel32Patch [];
     static patchentry_t  m_ntdllPatch [];
     static patchentry_t  m_ole32Patch [];

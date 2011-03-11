@@ -66,8 +66,12 @@ __declspec(dllexport) VisualLeakDetector vld;
 // The import patch table: lists the heap-related API imports that VLD patches
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
-patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
+patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
     "GetProcAddress",     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+    NULL,                 NULL
+};
+
+patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
     "HeapAlloc",          _RtlAllocateHeap,
     "HeapCreate",         _HeapCreate,
     "HeapDestroy",        _HeapDestroy,
@@ -76,127 +80,128 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
     NULL,                 NULL
 };
 
+#define ORDINAL(x)          (LPCSTR)x
 #if !defined(_M_X64)
-#define ORDINAL(x86, x64)	(LPCSTR)x86
+#define ORDINAL2(x86, x64)  (LPCSTR)x86
 #else
-#define ORDINAL(x86, x64)	(LPCSTR)x64
+#define ORDINAL2(x86, x64)  (LPCSTR)x64
 #endif
 
 VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcAddress = NULL;
 
 static patchentry_t mfc42dPatch [] = {
     // XXX why are the vector new operators missing for mfc42d.dll?
-    (LPCSTR)711,          VS60::mfcd_scalar_new,
-    (LPCSTR)712,          VS60::mfcd__scalar_new_dbg_4p,
-    (LPCSTR)714,          VS60::mfcd__scalar_new_dbg_3p,
+    ORDINAL(711),         VS60::mfcd_scalar_new,
+    ORDINAL(712),         VS60::mfcd__scalar_new_dbg_4p,
+    ORDINAL(714),         VS60::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc42udPatch [] = {
     // XXX why are the vector new operators missing for mfc42ud.dll?
-    (LPCSTR)711,          VS60::mfcud_scalar_new,
-    (LPCSTR)712,          VS60::mfcud__scalar_new_dbg_4p,
-    (LPCSTR)714,          VS60::mfcud__scalar_new_dbg_3p,
+    ORDINAL(711),         VS60::mfcud_scalar_new,
+    ORDINAL(712),         VS60::mfcud__scalar_new_dbg_4p,
+    ORDINAL(714),         VS60::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc70dPatch [] = {
-    (LPCSTR)257,          VS70::mfcd_vector_new,
-    (LPCSTR)258,          VS70::mfcd__vector_new_dbg_4p,
-    (LPCSTR)259,          VS70::mfcd__vector_new_dbg_3p,
-    (LPCSTR)832,          VS70::mfcd_scalar_new,
-    (LPCSTR)833,          VS70::mfcd__scalar_new_dbg_4p,
-    (LPCSTR)834,          VS70::mfcd__scalar_new_dbg_3p,
+    ORDINAL(257),         VS70::mfcd_vector_new,
+    ORDINAL(258),         VS70::mfcd__vector_new_dbg_4p,
+    ORDINAL(259),         VS70::mfcd__vector_new_dbg_3p,
+    ORDINAL(832),         VS70::mfcd_scalar_new,
+    ORDINAL(833),         VS70::mfcd__scalar_new_dbg_4p,
+    ORDINAL(834),         VS70::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc70udPatch [] = {
-    (LPCSTR)258,          VS70::mfcud_vector_new,
-    (LPCSTR)259,          VS70::mfcud__vector_new_dbg_4p,
-    (LPCSTR)260,          VS70::mfcud__vector_new_dbg_3p,
-    (LPCSTR)833,          VS70::mfcud_scalar_new,
-    (LPCSTR)834,          VS70::mfcud__scalar_new_dbg_4p,
-    (LPCSTR)835,          VS70::mfcud__scalar_new_dbg_3p,
+    ORDINAL(258),         VS70::mfcud_vector_new,
+    ORDINAL(259),         VS70::mfcud__vector_new_dbg_4p,
+    ORDINAL(260),         VS70::mfcud__vector_new_dbg_3p,
+    ORDINAL(833),         VS70::mfcud_scalar_new,
+    ORDINAL(834),         VS70::mfcud__scalar_new_dbg_4p,
+    ORDINAL(835),         VS70::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc71dPatch [] = {
-    (LPCSTR)267,          VS71::mfcd_vector_new,
-    (LPCSTR)268,          VS71::mfcd__vector_new_dbg_4p,
-    (LPCSTR)269,          VS71::mfcd__vector_new_dbg_3p,
-    (LPCSTR)893,          VS71::mfcd_scalar_new,
-    (LPCSTR)894,          VS71::mfcd__scalar_new_dbg_4p,
-    (LPCSTR)895,          VS71::mfcd__scalar_new_dbg_3p,
+    ORDINAL(267),         VS71::mfcd_vector_new,
+    ORDINAL(268),         VS71::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         VS71::mfcd__vector_new_dbg_3p,
+    ORDINAL(893),         VS71::mfcd_scalar_new,
+    ORDINAL(894),         VS71::mfcd__scalar_new_dbg_4p,
+    ORDINAL(895),         VS71::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc71udPatch [] = {
-    (LPCSTR)267,          VS71::mfcud_vector_new,
-    (LPCSTR)268,          VS71::mfcud__vector_new_dbg_4p,
-    (LPCSTR)269,          VS71::mfcud__vector_new_dbg_3p,
-    (LPCSTR)893,          VS71::mfcud_scalar_new,
-    (LPCSTR)894,          VS71::mfcud__scalar_new_dbg_4p,
-    (LPCSTR)895,          VS71::mfcud__scalar_new_dbg_3p,
+    ORDINAL(267),         VS71::mfcud_vector_new,
+    ORDINAL(268),         VS71::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         VS71::mfcud__vector_new_dbg_3p,
+    ORDINAL(893),         VS71::mfcud_scalar_new,
+    ORDINAL(894),         VS71::mfcud__scalar_new_dbg_4p,
+    ORDINAL(895),         VS71::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc80dPatch [] = {
-    (LPCSTR)267,          VS80::mfcd_vector_new,
-    (LPCSTR)268,          VS80::mfcd__vector_new_dbg_4p,
-    (LPCSTR)269,          VS80::mfcd__vector_new_dbg_3p,
-    ORDINAL(893,907),     VS80::mfcd_scalar_new,
-    ORDINAL(894,908),     VS80::mfcd__scalar_new_dbg_4p,
-    ORDINAL(895,909),     VS80::mfcd__scalar_new_dbg_3p,
+    ORDINAL(267),         VS80::mfcd_vector_new,
+    ORDINAL(268),         VS80::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         VS80::mfcd__vector_new_dbg_3p,
+    ORDINAL2(893,907),    VS80::mfcd_scalar_new,
+    ORDINAL2(894,908),    VS80::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    VS80::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc80udPatch [] = {
-    (LPCSTR)267,          VS80::mfcud_vector_new,
-    (LPCSTR)268,          VS80::mfcud__vector_new_dbg_4p,
-    (LPCSTR)269,          VS80::mfcud__vector_new_dbg_3p,
-    ORDINAL(893,907),     VS80::mfcud_scalar_new,
-    ORDINAL(894,908),     VS80::mfcud__scalar_new_dbg_4p,
-    ORDINAL(895,909),     VS80::mfcud__scalar_new_dbg_3p,
+    ORDINAL(267),         VS80::mfcud_vector_new,
+    ORDINAL(268),         VS80::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         VS80::mfcud__vector_new_dbg_3p,
+    ORDINAL2(893,907),    VS80::mfcud_scalar_new,
+    ORDINAL2(894,908),    VS80::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    VS80::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc90dPatch [] = {
-    (LPCSTR)267,          VS90::mfcd_vector_new,
-    (LPCSTR)268,          VS90::mfcd__vector_new_dbg_4p,
-    (LPCSTR)269,          VS90::mfcd__vector_new_dbg_3p,
-    ORDINAL(931, 909),    VS90::mfcd_scalar_new,
-    ORDINAL(932, 910),    VS90::mfcd__scalar_new_dbg_4p,
-    ORDINAL(933, 911),    VS90::mfcd__scalar_new_dbg_3p,
+    ORDINAL(267),         VS90::mfcd_vector_new,
+    ORDINAL(268),         VS90::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         VS90::mfcd__vector_new_dbg_3p,
+    ORDINAL2(931, 909),   VS90::mfcd_scalar_new,
+    ORDINAL2(932, 910),   VS90::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(933, 911),   VS90::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc90udPatch [] = {
-    (LPCSTR)267,          VS90::mfcud_vector_new,
-    (LPCSTR)268,          VS90::mfcud__vector_new_dbg_4p,
-    (LPCSTR)269,          VS90::mfcud__vector_new_dbg_3p,
-    ORDINAL(935, 913),    VS90::mfcud_scalar_new,
-    ORDINAL(936, 914),    VS90::mfcud__scalar_new_dbg_4p,
-    ORDINAL(937, 915),    VS90::mfcud__scalar_new_dbg_3p,
+    ORDINAL(267),         VS90::mfcud_vector_new,
+    ORDINAL(268),         VS90::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         VS90::mfcud__vector_new_dbg_3p,
+    ORDINAL2(935, 913),   VS90::mfcud_scalar_new,
+    ORDINAL2(936, 914),   VS90::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(937, 915),   VS90::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc100dPatch [] = {
-    (LPCSTR)267,          VS100::mfcd_vector_new,
-    (LPCSTR)268,          VS100::mfcd__vector_new_dbg_4p,
-    (LPCSTR)269,          VS100::mfcd__vector_new_dbg_3p,
-    ORDINAL(1427, 1405),  VS100::mfcd_scalar_new,
-    ORDINAL(1428, 1406),  VS100::mfcd__scalar_new_dbg_4p,
-    ORDINAL(1429, 1407),  VS100::mfcd__scalar_new_dbg_3p,
+    ORDINAL(267),         VS100::mfcd_vector_new,
+    ORDINAL(268),         VS100::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         VS100::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1427, 1405), VS100::mfcd_scalar_new,
+    ORDINAL2(1428, 1406), VS100::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1429, 1407), VS100::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
 static patchentry_t mfc100udPatch [] = {
-    (LPCSTR)267,          VS100::mfcud_vector_new,
-    (LPCSTR)268,          VS100::mfcud__vector_new_dbg_4p,
-    (LPCSTR)269,          VS100::mfcud__vector_new_dbg_3p,
-    ORDINAL(1434, 1412),  VS100::mfcud_scalar_new,
-    ORDINAL(1435, 1413),  VS100::mfcud__scalar_new_dbg_4p,
-    ORDINAL(1436, 1414),  VS100::mfcud__scalar_new_dbg_3p,
+    ORDINAL(267),         VS100::mfcud_vector_new,
+    ORDINAL(268),         VS100::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         VS100::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1434, 1412), VS100::mfcud_scalar_new,
+    ORDINAL2(1435, 1413), VS100::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1436, 1414), VS100::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL
 };
 
@@ -300,6 +305,7 @@ patchentry_t VisualLeakDetector::m_ole32Patch [] = {
 
 moduleentry_t VisualLeakDetector::m_patchtable [] = {
     // Win32 heap APIs.
+    "kernel32.dll", 0x0, m_kernelbasePatch, // we patch this record on Win7
     "kernel32.dll", 0x0, m_kernel32Patch,
 
     // MFC new operators (exported by ordinal).
@@ -313,8 +319,8 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
     "mfc80ud.dll",  0x0, mfc80udPatch,
     "mfc90d.dll",   0x0, mfc90dPatch,
     "mfc90ud.dll",  0x0, mfc90udPatch,
-    "mfc100d.dll",   0x0, mfc100dPatch,
-    "mfc100ud.dll",  0x0, mfc100udPatch,
+    "mfc100d.dll",  0x0, mfc100dPatch,
+    "mfc100ud.dll", 0x0, mfc100udPatch,
 
     // CRT new operators and heap APIs.
     "msvcrtd.dll",  0x0, msvcrtdPatch,
@@ -322,14 +328,27 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
     "msvcr71d.dll", 0x0, msvcr71dPatch,
     "msvcr80d.dll", 0x0, msvcr80dPatch,
     "msvcr90d.dll", 0x0, msvcr90dPatch,
-    "msvcr100d.dll", 0x0, msvcr100dPatch,
+    "msvcr100d.dll",0x0, msvcr100dPatch,
 
     // NT APIs.
-    "ntdll.dll", 0x0, m_ntdllPatch,
+    "ntdll.dll",    0x0, m_ntdllPatch,
 
     // COM heap APIs.
-    "ole32.dll", 0x0, m_ole32Patch
+    "ole32.dll",    0x0, m_ole32Patch
 };
+
+BOOL IsWin7OrBetter()
+{
+    OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
+    GetVersionEx((LPOSVERSIONINFO)&info);
+    if (info.dwMajorVersion > 6)
+        return TRUE;
+
+    if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 1)
+        return TRUE;
+
+    return FALSE;
+}
 
 // Constructor - Initializes private data, loads configuration options, and
 //   attaches Visual Leak Detector to all other modules loaded into the current
@@ -337,7 +356,8 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    HMODULE    kernel32, kernelBase;
+    HMODULE    kernel32;
+    HMODULE	   kernelBase;
     ModuleSet *newmodules;
     HMODULE    ntdll;
     LPWSTR     symbolpath;
@@ -362,7 +382,15 @@ VisualLeakDetector::VisualLeakDetector ()
     kernelBase = GetModuleHandleW(L"KernelBase.dll");
     ntdll = GetModuleHandleW(L"ntdll.dll");
 
-    m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+    if (!IsWin7OrBetter()) // kernel32.dll
+        m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+    else
+    {
+        assert(m_patchtable[0].patchtable == m_kernelbasePatch);
+        m_patchtable[0].exportmodulename = "kernelbase.dll";
+        m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
+    }
+
     // Initialize global variables.
     currentprocess    = GetCurrentProcess();
     currentthread     = GetCurrentThread();
@@ -2319,7 +2347,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
             if ((SIZE_T)patchentry->importname < (SIZE_T)vld.m_vldbase) {
                 // This entry's import name is not a valid pointer to data in
                 // vld.dll. It must be an ordinal value.
-                if ((UINT)patchentry->importname == (UINT)procname) {
+                if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
                     return (FARPROC)patchentry->replacement;
                 }
             }
@@ -2332,7 +2360,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
-                    if ((UINT)patchentry->importname == (UINT)procname) {
+                    if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
                         return (FARPROC)patchentry->replacement;
                     }                	
                 }

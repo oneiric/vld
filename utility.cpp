@@ -193,6 +193,53 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     }
 }
 
+// findoriginalimportdescriptor - Determines if the specified module imports the named import
+//   from the named exporting module.
+//
+//  - importmodule (IN): Handle (base address) of the module to be searched to
+//      see if it imports the specified import.
+//
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      exports the import to be searched for.
+//
+//  Return Value:
+//
+//    Returns pointer to descriptor.
+//
+IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPCSTR exportmodulename)
+{
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
+
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return NULL;
+    }
+    while (idte->OriginalFirstThunk != 0x0) {
+        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+        if (_stricmp(name, exportmodulename) == 0) {
+            // Found the IDT entry for the exporting module.
+            break;
+        }
+        idte++;
+    }
+    if (idte->OriginalFirstThunk == 0x0) {
+        // The importing module does not import anything from the exporting
+        // module.
+        return NULL;
+    }
+    return idte;
+}
+
 // findimport - Determines if the specified module imports the named import
 //   from the named exporting module.
 //
@@ -216,36 +263,13 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //
 BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname)
 {
-    IMAGE_THUNK_DATA        *iate;
     IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_THUNK_DATA        *iate;
     FARPROC                  import;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
-            
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-                                                                  IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
+
+    idte = findoriginalimportdescriptor(importmodule, exportmodulename);
+    if (idte == NULL)
         return FALSE;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return FALSE;
-    }
     
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found that the module does import the named import.
@@ -287,33 +311,10 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
 BOOL findpatch (HMODULE importmodule, moduleentry_t *module)
 {
     IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
+    idte = findoriginalimportdescriptor(importmodule, module->exportmodulename);
+    if (idte == NULL)
         return FALSE;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), module->exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return FALSE;
-    }
 
     int i = 0;
     patchentry_t *entry = module->patchtable;
@@ -391,6 +392,53 @@ BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     return FALSE;
 }
 
+// findimportdescriptor - Determines if the specified module imports the named import
+//   from the named exporting module.
+//
+//  - importmodule (IN): Handle (base address) of the module to be searched to
+//      see if it imports the specified import.
+//
+//  - exportmodulename (IN): ANSI string containing the name of the module that
+//      exports the import to be searched for.
+//
+//  Return Value:
+//
+//    Returns pointer to descriptor.
+//
+IMAGE_IMPORT_DESCRIPTOR* findimportdescriptor (HMODULE importmodule, LPCSTR exportmodulename)
+{
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
+
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
+    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    LeaveCriticalSection(&imagelock);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return NULL;
+    }
+    while (idte->FirstThunk != 0x0) {
+        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+        if (_stricmp(name, exportmodulename) == 0) {
+            // Found the IDT entry for the exporting module.
+            break;
+        }
+        idte++;
+    }
+    if (idte->FirstThunk == 0x0) {
+        // The importing module does not import anything from the exporting
+        // module.
+        return NULL;
+    }
+    return idte;
+}
+
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
@@ -426,35 +474,11 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
     DWORD result = 0;
     HMODULE exportmodule = (HMODULE)module->modulebase;
     LPCSTR exportmodulename = module->exportmodulename;
-
     IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
+    idte = findimportdescriptor(importmodule, exportmodulename);
+    if (idte == NULL)
         return FALSE;
-    }
-    while (idte->FirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->FirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return FALSE;
-    }
 
     patchentry_t *entry = module->patchtable;
     int i = 0;
@@ -631,36 +655,13 @@ VOID report (LPCWSTR format, ...)
 VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 {
     IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
 
     HMODULE exportmodule = (HMODULE)module->modulebase;
     LPCSTR exportmodulename = module->exportmodulename;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
+    idte = findoriginalimportdescriptor(importmodule, exportmodulename);
+    if (idte == NULL)
         return;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        if (_stricmp((PCHAR)R2VA(importmodule, idte->Name), exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return;
-    }
 
     int i = 0;
     patchentry_t *entry = module->patchtable;

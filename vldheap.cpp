@@ -168,10 +168,10 @@ void vlddelete (void *block)
 }
 
 // vldnew - Local helper function that actually allocates memory from VLD's
-//   private heap. Prepends a header, which is used for bookeeping information
+//   private heap. Prepends a header, which is used for bookkeeping information
 //   that allows VLD to detect and report internal memory leaks, to the returned
 //   block, but the header is transparent to the caller because the returned
-//   pointer points to the useable section of memory requested by the caller, it
+//   pointer points to the usable section of memory requested by the caller, it
 //   does not point to the block header.
 //
 //  - size (IN): Size of the memory block to be allocated.
