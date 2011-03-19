@@ -112,4 +112,9 @@ __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *
     vld.SetReportOptions(option_mask,filename);
 }
 
+__declspec(dllexport) void VLDResolveCallstacks()
+{
+	vld.ResolveCallstacks();
+}
+
 }

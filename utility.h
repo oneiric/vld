@@ -121,6 +121,7 @@ VOID insertreportdelay ();
 BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 BOOL patchimport (HMODULE importmodule, moduleentry_t *module);
 BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
+VOID print (LPCWSTR message);
 VOID report (LPCWSTR format, ...);
 VOID restoreimport (HMODULE importmodule, moduleentry_t* module);
 VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
@@ -133,3 +134,5 @@ DWORD _GetProcessIdOfThread (HANDLE thread);
 #define GetProcessIdOfThread _GetProcessIdOfThread
 #endif
 DWORD CalculateCRC32(UINT_PTR p, UINT startValue = 0xD202EF8D);
+void GetFormattedMessage(DWORD last_error);
+

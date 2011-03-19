@@ -25,8 +25,8 @@
 
 #ifndef VLDBUILD
 #error \
-"This header should only be included by Visual Leak Detector when building it from source. \
-Applications should never include this header."
+	"This header should only be included by Visual Leak Detector when building it from source. \
+	Applications should never include this header."
 #endif
 
 #include <windows.h>
@@ -53,42 +53,75 @@ Applications should never include this header."
 //    way, the CallStack can grow dynamically as needed. New frames are always
 //    pushed onto the chunk at the end of the list known as the "top" chunk.
 //
+//    IMPORTANT NOTE: This class as originally written makes two fatal assumptions: 
+//    First: That the application will never load modules (call LoadLibrary) during the 
+//           lifetime of the app.
+//    Second: That modules will never get unloaded (call to FreeLibrary)
+//            during the lifetime of the app.
+//    The result of this assumption is that
+//    memory allocations whose call stacks goes through dynamically loaded modules
+//    will be incomplete. This is manifested by stack frames that cannot be resolved
+//    when the stack is 'dumped' because the binaries have been unloaded from the
+//    process. 
+//    To rectify this situation, it is up to the caller to resolve or format the call stacks
+//    into human readable form, BEFORE the callers process unloads any modules. That is
+//    done by calling VisualLeakDetector::ResolveCallstacks, which can be called from 
+//    external code by the exported VLDResolveCallstacks function.
+//    When this happens, the call stacks are formatted, and then cached for later dumping.
+//    This has performance penalties, as the current implementation saves all info to heap memory,
+//    and it is wasteful, as some of the 'converted' memory is not a true leak, but will get
+//    properly de-allocated at a later time. However there is no other way to work around the
+//    fact that the call stacks can only get formatted when the binary is loaded in the process.
+// 
 class CallStack
 {
 public:
-    CallStack ();
-    CallStack (const CallStack &other);
-    ~CallStack ();
+	CallStack ();
+	~CallStack ();
 
-    // Public APIs - see each function definition for details.
-    VOID clear ();
-    VOID dump (BOOL showinternalframes) const;
-    DWORD getHashValue () const;
-    virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
-    CallStack& operator = (const CallStack &other);
-    BOOL operator == (const CallStack &other) const;
-    UINT_PTR operator [] (UINT32 index) const;
-    VOID push_back (const UINT_PTR programcounter);
+	// Public APIs - see each function definition for details.
+	VOID clear ();
+	VOID dump (BOOL showinternalframes);
+	VOID Resolve(BOOL showinternalframes);
+	DWORD getHashValue () const;
+	virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
+	CallStack& operator = (const CallStack &other);
+	BOOL operator == (const CallStack &other) const;
+	UINT_PTR operator [] (UINT32 index) const;
+	VOID push_back (const UINT_PTR programcounter);
+
 protected:
-    // Protected data.
-    UINT32 m_status;                    // Status flags:
+	// Protected data.
+	UINT32 m_status;                    // Status flags:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
-    HMODULE GetCallingModule(UINT_PTR pCaller) const;
+	HMODULE GetCallingModule(UINT_PTR pCaller) const;
 
 private:
-    // The chunk list is made of a linked list of Chunks.
-    typedef struct chunk_s {
-        struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.
-        UINT_PTR        frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
-    } chunk_t;
+	CallStack (const CallStack &other); // Don't allow this!!
+	// Performs the actual formatting of the callstack into human readable form.
+	void resolve(BOOL showinternalframes, BOOL ResolveOnly);
+	// The chunk list is made of a linked list of Chunks.
+	typedef struct chunk_s {
+		struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.
+		UINT_PTR        frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
+	} chunk_t;
 
-    // Private data.
-    UINT32              m_capacity; // Current capacity limit (in frames)
-    UINT32              m_size;     // Current size (in frames)
-    CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
-    CallStack::chunk_t *m_topchunk; // Pointer to the chunk at the top of the stack
-    UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
+	// Private data.
+	UINT32              m_capacity; // Current capacity limit (in frames)
+	UINT32              m_size;     // Current size (in frames)
+	CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
+	CallStack::chunk_t *m_topchunk; // Pointer to the chunk at the top of the stack
+	UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
+
+	// An array of strings that contains the stack converted into a human readable format.
+	// The number of strings is always equal to m_size
+	// Currently I'm only allowing a maximum of (MAX_PATH * 2) characters in each string.
+	// This is always NULL if the callstack has not been 'converted'.
+	WCHAR**              m_Resolved; 
+	// Prints out the strings in m_Resolved when the time comes to report the callstack in
+	// human readable form. Currently this is only called by the dump method.
+	void DumpResolved() const;
 };
 
 
@@ -102,7 +135,7 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, context_t& context);
+	VOID getstacktrace (UINT32 maxdepth, context_t& context);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -115,5 +148,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-    VOID getstacktrace (UINT32 maxdepth, context_t& context);
+	VOID getstacktrace (UINT32 maxdepth, context_t& context);
 };

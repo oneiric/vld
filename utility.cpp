@@ -565,14 +565,11 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
     return patched;
 }
 
-// report - Sends a printf-style formatted message to the debugger for display
+// print - Sends a message to the debugger for display
 //   and/or to a file.
 //
 //   Note: A message longer than MAXREPORTLENGTH characters will be truncated
 //     to MAXREPORTLENGTH.
-//
-//  - format (IN): Specifies a printf-compliant format string containing the
-//      message to be sent to the debugger.
 //
 //  - ... (IN): Arguments to be formatted using the specified format string.
 //
@@ -580,17 +577,9 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
 //
 //    None.
 //
-VOID report (LPCWSTR format, ...)
+VOID print (LPCWSTR messagew)
 {
-    va_list args;
     size_t  count;
-    CHAR    messagea [MAXREPORTLENGTH + 1];
-    WCHAR   messagew [MAXREPORTLENGTH + 1];
-
-    va_start(args, format);
-    _vsnwprintf_s(messagew, MAXREPORTLENGTH + 1, _TRUNCATE, format, args);
-    va_end(args);
-    messagew[MAXREPORTLENGTH] = L'\0';
 
     if (reportencoding == unicode) {
         if (reportfile != NULL) {
@@ -605,6 +594,7 @@ VOID report (LPCWSTR format, ...)
         }
     }
     else {
+        CHAR    messagea [MAXREPORTLENGTH + 1];
         if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
             // Failed to convert the Unicode message to ASCII.
             assert(FALSE);
@@ -627,6 +617,35 @@ VOID report (LPCWSTR format, ...)
     if (reporttodebugger && (reportdelay == TRUE)) {
         Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
     }
+}
+
+// report - Sends a printf-style formatted message to the debugger for display
+//   and/or to a file.
+//
+//   Note: A message longer than MAXREPORTLENGTH characters will be truncated
+//     to MAXREPORTLENGTH.
+//
+//  - format (IN): Specifies a printf-compliant format string containing the
+//      message to be sent to the debugger.
+//
+//  - ... (IN): Arguments to be formatted using the specified format string.
+//
+//  Return Value:
+//
+//    None.
+//
+VOID report (LPCWSTR format, ...)
+{
+    va_list args;
+    WCHAR   messagew [MAXREPORTLENGTH + 1];
+
+    va_start(args, format);
+    int result = _vsnwprintf_s(messagew, MAXREPORTLENGTH + 1, _TRUNCATE, format, args);
+    va_end(args);
+    messagew[MAXREPORTLENGTH] = L'\0';
+
+    if (result >= 0)
+        print(messagew);
 }
 
 // restoreimport - Restores the IAT entry for an import previously patched via
@@ -939,3 +958,25 @@ DWORD CalculateCRC32(UINT_PTR p, UINT startValue)
 #endif
     return hash;
 }
+
+// Formats a message string using the specified message and variable
+// list of arguments.
+void GetFormattedMessage(DWORD last_error)
+{
+    // Retrieve the system error message for the last-error code
+    WCHAR lpMsgBuf[MAX_PATH] = {0};
+
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        last_error,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        lpMsgBuf,
+        MAX_PATH,
+        NULL );
+
+    // Display the error message and exit the process
+    report(L"%s", lpMsgBuf);
+}
+

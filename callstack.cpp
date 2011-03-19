@@ -47,6 +47,7 @@ CallStack::CallStack ()
     m_store.next = NULL;
     m_topchunk   = &m_store;
     m_topindex   = 0;
+    m_Resolved   = NULL;
 }
 
 // Copy Constructor - For efficiency, we want to avoid ever making copies of
@@ -72,6 +73,18 @@ CallStack::~CallStack ()
         chunk = temp->next;
         delete temp;
     }
+
+    if (m_Resolved)
+    {
+        for (UINT32 frame = 0; frame < m_size; frame++)
+        {
+            delete m_Resolved[frame];
+            m_Resolved[frame] = NULL;
+        }
+        delete [] m_Resolved;
+    }
+
+    m_Resolved = NULL;
 }
 
 // operator = - Assignment operator. For efficiency, we want to avoid ever
@@ -193,9 +206,17 @@ HMODULE CallStack::GetCallingModule( UINT_PTR pCaller ) const
     return hModule;
 }
 
+
+
+
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.
-//
+//   Had to get rid of the const qualifier because calling resolve can modify
+//   a member variable. This is a result of the combined duties of CallStack::resolve
+//   which can both dump or save the formatted stack info. Otherwise there would
+//   be nearly identical code in both methods, which is worse than removing a mere 
+//   const qualifier
+
 //   Note: The symbol handler must be initialized prior to calling this
 //     function.
 //
@@ -206,42 +227,82 @@ HMODULE CallStack::GetCallingModule( UINT_PTR pCaller ) const
 //
 //    None.
 //
-VOID CallStack::dump (BOOL showinternalframes) const
+VOID CallStack::dump (BOOL showinternalframes)
 {
-    DWORD            displacement;
-    DWORD64          displacement64;
-    BOOL             foundline;
-    UINT32           frame;
-    SYMBOL_INFO     *functioninfo;
-    LPWSTR           functionname;
-    UINT_PTR         programcounter;
-    IMAGEHLP_LINE64  sourceinfo = { 0 };
-    BYTE             symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
-    WCHAR            undecoratedname [MAXSYMBOLNAMELENGTH];
-    WCHAR            callingmodulename [MAX_PATH];
-    LPWSTR           modulename;
+    // The stack was dumped already
+    if (m_Resolved)
+    {
+        DumpResolved();
+        return;
+    }
 
+    resolve(showinternalframes, FALSE);
+}
+
+void CallStack::Resolve(BOOL showinternalframes)
+{
+    if (m_Resolved != NULL)
+    {
+        resolve(showinternalframes, TRUE);
+    }
+}
+
+// Resolve - Creates a nicely formatted rendition of the CallStack, including
+//   symbolic information (function names and line numbers) if available. and 
+//   saves it for later retrieval. This is almost identical to Callstack::dump above.
+//
+//   Note: The symbol handler must be initialized prior to calling this
+//     function.
+//
+//  - showinternalframes (IN): If true, then all frames in the CallStack will be
+//      dumped. Otherwise, frames internal to the heap will not be dumped.
+//
+//  - ResolveOnly (IN): If true, it does not print the results out to the standard
+//    outputs, but saves the formatted rendition for later retrieval.
+//
+//  Return Value:
+//
+//    None.
+//
+void CallStack::resolve(BOOL showinternalframes, BOOL ResolveOnly)
+{
     if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
         // This call stack appears to be incomplete. Using StackWalk64 may be
         // more reliable.
         report(L"    HINT: The following call stack may be incomplete. Setting \"StackWalkMethod\"\n"
-               L"      in the vld.ini file to \"safe\" instead of \"fast\" may result in a more\n"
-               L"      complete stack trace.\n");
+            L"      in the vld.ini file to \"safe\" instead of \"fast\" may result in a more\n"
+            L"      complete stack trace.\n");
     }
 
-    // Initialize structures passed to the symbol handler.
-    functioninfo = (SYMBOL_INFO*)&symbolbuffer;
-    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-    functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+    IMAGEHLP_LINE64  sourceinfo = { 0 };
     sourceinfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
+    if (ResolveOnly)
+    {
+        m_Resolved = new WCHAR*[m_size];
+        ZeroMemory(m_Resolved, sizeof(WCHAR*) * m_size);
+    }
+
+    const UINT32 symbolBufSize = sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1;
+    BYTE symbolbuffer [symbolBufSize] = { 0 };
+    // Use static here to increase performance, and avoid heap allocs. Hopefully this won't
+    // prove to be an issue in thread safety. If it does, it will have to be simply non-static.
+    static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
+    WCHAR undecoratedname [MAXSYMBOLNAMELENGTH];
+    WCHAR callingmodulename [MAX_PATH];
+
     // Iterate through each frame in the call stack.
-    for (frame = 0; frame < m_size; frame++) {
+    for (UINT32 frame = 0; frame < m_size; frame++)
+    {
         // Try to get the source file and line number associated with
         // this program counter address.
-        programcounter = (*this)[frame];
+        SIZE_T programcounter = (*this)[frame];
         EnterCriticalSection(&symbollock);
-        if ((foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo)) == TRUE) {
+        BOOL             foundline = FALSE;
+        DWORD            displacement = 0;
+        foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
+        if (foundline)
+        {
             if (!showinternalframes) {
                 _wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
                 if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
@@ -249,14 +310,23 @@ VOID CallStack::dump (BOOL showinternalframes) const
                     wcsstr(sourceinfo.FileName, L"malloc.c") ||
                     wcsstr(sourceinfo.FileName, L"new.cpp") ||
                     wcsstr(sourceinfo.FileName, L"newaop.cpp")) {
-                    // Don't show frames in files internal to the heap.
-                    continue;
+                        // Don't show frames in files internal to the heap.
+                        LeaveCriticalSection(&symbollock);
+                        continue;
+                        
                 }
             }
         }
 
+        // Initialize structures passed to the symbol handler.
+        SYMBOL_INFO* functioninfo = (SYMBOL_INFO*)&symbolbuffer;
+        functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+        functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+
         // Try to get the name of the function containing this program
         // counter address.
+        DWORD64          displacement64 = 0;
+        LPWSTR           functionname;
         if (SymFromAddrW(currentprocess, programcounter, &displacement64, functioninfo)) {
             // Undecorate function name.
             if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
@@ -265,13 +335,14 @@ VOID CallStack::dump (BOOL showinternalframes) const
                 functionname = functioninfo->Name;
         }
         else {
+            // GetFormattedMessage( GetLastError() );
             functionname = L"(Function name unavailable)";
             displacement64 = 0;
         }
         LeaveCriticalSection(&symbollock);
 
         HMODULE hCallingModule = GetCallingModule(programcounter);
-        modulename = L"(Module name unavailable)";
+        LPWSTR modulename = L"(Module name unavailable)";
         if (hCallingModule && 
             GetModuleFileName(hCallingModule, callingmodulename, sizeof(callingmodulename)) > 0)
         {
@@ -284,22 +355,51 @@ VOID CallStack::dump (BOOL showinternalframes) const
                 modulename = callingmodulename;
         }
 
+        int NumChars = -1;
         // Display the current stack frame's information.
         if (foundline) {
             if (displacement == 0)
-                report(L"    %s (%d): %s!%s\n", sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname);
+                NumChars = _snwprintf_s(stack_line, _TRUNCATE, L"    %s (%d): %s!%s\n", 
+                    sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname);
             else
-                report(L"    %s (%d): %s!%s + 0x%X bytes\n", sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname, displacement);
+                NumChars = _snwprintf_s(stack_line, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n", 
+                    sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname, displacement);
         }
         else {
-            report(L"    " ADDRESSFORMAT L" (File and line number not available): ", (*this)[frame]);
             if (displacement64 == 0)
-                report(L"%s!%s\n", modulename, functionname);
-             else
-                report(L"%s!%s + 0x%X bytes\n", modulename, functionname, (DWORD)displacement64);
-       }
+                NumChars = _snwprintf_s(stack_line, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n", 
+                    programcounter, modulename, functionname);
+            else
+                NumChars = _snwprintf_s(stack_line, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n", 
+                    programcounter, modulename, functionname, (DWORD)displacement64);	
+        }
+        if (ResolveOnly) {
+            // Just truncate anything that is too long.
+            if (NumChars >= 0)
+            {
+                m_Resolved[frame] = new WCHAR[NumChars + 1];
+                wcscpy_s(m_Resolved[frame], NumChars + 1, stack_line);
+            }
+        }
+        else {
+            print(stack_line);
+        }
     }
 }
+
+// DumpResolve
+void CallStack::DumpResolved() const
+{
+    if (m_Resolved)
+    {
+        for (UINT32 frame = 0; frame < m_size; frame++)
+        {
+            report(L"%s", m_Resolved[frame]);
+        }
+    }
+}
+
+
 
 // getHashValue - Generate callstack hash value.
 //
@@ -493,9 +593,9 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
     currentcontext.BPREG  = (DWORD64)framepointer;
     currentcontext.IPREG  = context.Rip;
 #else
-// If you want to retarget Visual Leak Detector to another processor
-// architecture then you'll need to provide architecture-specific code to
-// obtain the program counter and stack pointer from the given frame pointer.
+    // If you want to retarget Visual Leak Detector to another processor
+    // architecture then you'll need to provide architecture-specific code to
+    // obtain the program counter and stack pointer from the given frame pointer.
 #error "Visual Leak Detector is not supported on this architecture."
 #endif // _M_IX86 || _M_X64
 
@@ -514,9 +614,9 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
     while (count < maxdepth) {
         count++;
         if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &currentcontext, NULL,
-                         SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
-            // Couldn't trace back through any more frames.
-            break;
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+                // Couldn't trace back through any more frames.
+                break;
         }
         if (frame.AddrFrame.Offset == 0) {
             // End of stack.
