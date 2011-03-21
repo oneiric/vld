@@ -1114,35 +1114,30 @@ BOOL VisualLeakDetector::enabled ()
 //
 SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
 {
-    BlockMap::Iterator  blockit;
-    BlockMap           *blockmap;
-    blockinfo_t        *elementinfo;
-    SIZE_T              erased = 0;
-    HeapMap::Iterator   heapit;
-    blockinfo_t        *info;
-    BlockMap::Iterator  previt;
+    SIZE_T       erased = 0;
+    blockinfo_t *elementinfo = (*element).second;
 
-    elementinfo = (*element).second;
+    if (elementinfo->callstack == NULL)
+        return erased;
 
     // Iteratate through all block maps, looking for blocks with the same size
     // and callstack as the specified element.
-    for (heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-        blockmap = &(*heapit).second->blockmap;
-        for (blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+    for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+        BlockMap *blockmap = &(*heapit).second->blockmap;
+        for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
             if (blockit == element) {
                 // Don't delete the element of which we are searching for
                 // duplicates.
                 continue;
             }
-            info = (*blockit).second;
-            if ((info->callstack == NULL) || elementinfo->callstack == NULL) {
+            blockinfo_t *info = (*blockit).second;
+            if (info->callstack == NULL)
                 continue;
-            }
             if ((info->size == elementinfo->size) && (*(info->callstack) == *(elementinfo->callstack))) {
                 // Found a duplicate. Erase it.
                 delete info->callstack;
                 delete info;
-                previt = blockit - 1;
+                BlockMap::Iterator previt = blockit - 1;
                 blockmap->erase(blockit);
                 blockit = previt;
                 erased++;
