@@ -239,6 +239,7 @@ VOID CallStack::dump (BOOL showinternalframes)
     resolve(showinternalframes, FALSE);
 }
 
+// Formats the stack frame into a human readable format, and saves it for later retrieval.
 void CallStack::Resolve(BOOL showinternalframes)
 {
     if (m_Resolved != NULL)

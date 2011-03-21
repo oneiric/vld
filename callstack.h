@@ -81,7 +81,10 @@ public:
 
 	// Public APIs - see each function definition for details.
 	VOID clear ();
+	// Prints the Callstack to one of either / or the debug output window and or 
+	// a log file.
 	VOID dump (BOOL showinternalframes);
+	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	VOID Resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
 	virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;

@@ -134,5 +134,7 @@ DWORD _GetProcessIdOfThread (HANDLE thread);
 #define GetProcessIdOfThread _GetProcessIdOfThread
 #endif
 DWORD CalculateCRC32(UINT_PTR p, UINT startValue = 0xD202EF8D);
+// Formats a message string using the specified message and variable
+// list of arguments.
 void GetFormattedMessage(DWORD last_error);
 

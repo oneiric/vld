@@ -232,6 +232,19 @@ __declspec(dllimport) BOOL VLDGetModulesList(WCHAR *modules, UINT size);
 //
 __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
 
+// VLDResolveCallstacks - Performs symbol resolution for all saved extent CallStack's that have
+// been tracked by Visual Leak Detector. This function is necessary for applications that 
+// dynamically load and unload modules, and through which memory leaks might be included.
+// If this is NOT called, stack traces may have stack frames with no symbol information. This 
+// happens because the symbol API's cannot look up symbols for a binary / module that has been unloaded
+// from the process.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllexport) void VLDResolveCallstacks();
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
