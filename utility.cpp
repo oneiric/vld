@@ -204,8 +204,15 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    __try
+    {
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    }
+    __except(1)
+    {
+        idte = NULL;
+    }
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
@@ -410,8 +417,15 @@ IMAGE_IMPORT_DESCRIPTOR* findimportdescriptor (HMODULE importmodule, LPCSTR expo
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     EnterCriticalSection(&imagelock);
-    idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-        IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    __try
+    {
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    }
+    __except(1)
+    {
+        idte = NULL;
+    }
     LeaveCriticalSection(&imagelock);
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
