@@ -699,45 +699,31 @@ VisualLeakDetector::~VisualLeakDetector ()
 //
 VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 {
-    size_t                count;
-    DWORD64               modulebase;
-    UINT32                moduleflags;
-    IMAGEHLP_MODULE64     moduleimageinfo;
-    LPCSTR                modulename;
-#define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
-    WCHAR                 modulenamew [MAXMODULENAME];
-    LPCSTR                modulepath;
-    DWORD                 modulesize;
-    ModuleSet::Iterator   newit;
-    ModuleSet::Iterator   oldit;
-    ModuleSet            *oldmodules;
-    BOOL                  refresh;
-    UINT                  tablesize = _countof(m_patchtable);
-    ModuleSet::Muterator  updateit;
+	ModuleSet::Muterator  updateit;
 
     // Iterate through the supplied set, until all modules have been attached.
-    for (newit = newmodules->begin(); newit != newmodules->end(); ++newit) {
-        modulebase  = (DWORD64)(*newit).addrlow;
-        moduleflags = 0x0;
-        modulename  = (*newit).name;
-        modulepath  = (*newit).path;
-        modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
+    for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit) {
+		DWORD64 modulebase  = (DWORD64)(*newit).addrlow;
+        UINT32 moduleflags = 0x0;
+        LPCSTR modulename  = (*newit).name;
+        LPCSTR modulepath  = (*newit).path;
+        DWORD modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
 
-        refresh = FALSE;
-        EnterCriticalSection(&m_moduleslock);
-        oldmodules = m_loadedmodules;
+		BOOL refresh = FALSE;
+		EnterCriticalSection(&m_moduleslock);
+		ModuleSet* oldmodules = m_loadedmodules;
         if (oldmodules != NULL) {
             // This is not the first time we have been called to attach to the
             // currently loaded modules.
-            oldit = oldmodules->find(*newit);
+			ModuleSet::Iterator oldit = oldmodules->find(*newit);
             if (oldit != oldmodules->end()) {
                 // We've seen this "new" module loaded in the process before.
                 moduleflags = (*oldit).flags;
-                LeaveCriticalSection(&m_moduleslock);
-                if (moduleispatched((HMODULE)modulebase, m_patchtable, tablesize)) {
+				LeaveCriticalSection(&m_moduleslock);
+                if (moduleispatched((HMODULE)modulebase, m_patchtable, _countof(m_patchtable))) {
                     // This module is already attached. Just update the module's
                     // flags, nothing more.
-                    updateit = newit;
+					updateit = newit;
                     (*updateit).flags = moduleflags;
                     continue;
                 }
@@ -768,7 +754,8 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         // Try to load the module's symbols. This ensures that we have loaded
         // the symbols for every module that has ever been loaded into the
         // process, guaranteeing the symbols' availability when generating the
-        // leak report.
+		// leak report.
+		IMAGEHLP_MODULE64     moduleimageinfo;
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         BOOL SymbolsLoaded = SymGetModuleInfoW64(currentprocess, modulebase, &moduleimageinfo);
         if (!SymbolsLoaded)
@@ -788,6 +775,9 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
             continue;
         }
 
+		size_t count;
+#define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
+		WCHAR                 modulenamew [MAXMODULENAME];
         mbstowcs_s(&count, modulenamew, MAXMODULENAME, modulename, _TRUNCATE);
         if ((findimport((HMODULE)modulebase, m_vldbase, VLDDLL, "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
             (wcsstr(vld.m_forcedmodulelist, modulenamew) == NULL)) {
@@ -809,8 +799,8 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         updateit = newit;
         (*updateit).flags = moduleflags;
 
-        // Attach to the module.
-        patchmodule((HMODULE)modulebase, m_patchtable, tablesize);
+		// Attach to the module.
+        patchmodule((HMODULE)modulebase, m_patchtable, _countof(m_patchtable));
     }
 }
 
@@ -1630,27 +1620,18 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 //
 BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    size_t        count;
-    moduleentry_t *entry;
-    CHAR          extension [_MAX_EXT];
-    CHAR          filename [_MAX_FNAME];
-    UINT          index;
-    moduleinfo_t  moduleinfo;
-    LPSTR         modulenamea;
-    LPSTR         modulepatha;
-    ModuleSet*    newmodules = (ModuleSet*)context;
-    SIZE_T        size;
-    UINT          tablesize = _countof(m_patchtable);
-
     // Convert the module path to ASCII.
-    size = wcslen(modulepath) + 1;
-    modulepatha = new CHAR [size];
+    SIZE_T size = wcslen(modulepath) + 1;
+    LPSTR modulepatha = new CHAR [size];
+	size_t count;
     wcstombs_s(&count, modulepatha, size, modulepath, _TRUNCATE);
 
-    // Extract just the filename and extension from the module path.
+	// Extract just the filename and extension from the module path.
+	CHAR filename [_MAX_FNAME];
+	CHAR extension [_MAX_EXT];
     _splitpath_s(modulepatha, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
     size = strlen(filename) + strlen(extension) + 1;
-    modulenamea = new CHAR [size];
+    LPSTR modulenamea = new CHAR [size];
     strncpy_s(modulenamea, size, filename, _TRUNCATE);
     strncat_s(modulenamea, size, extension, _TRUNCATE);
     _strlwr_s(modulenamea, size);
@@ -1661,21 +1642,25 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
     }
     else {
         // See if this is a module listed in the patch table. If it is, update
-        // the corresponding patch table entries' module base address.
-        for (index = 0; index < tablesize; index++) {
-            entry = &m_patchtable[index];
+		// the corresponding patch table entries' module base address.
+		UINT          tablesize = _countof(m_patchtable);
+        for (UINT index = 0; index < tablesize; index++) {
+            moduleentry_t *entry = &m_patchtable[index];
             if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
                 entry->modulebase = (UINT_PTR)modulebase;
             }
         }
     }
 
-    // Record the module's information and store it in the set.
+	// Record the module's information and store it in the set.
+	moduleinfo_t  moduleinfo;
     moduleinfo.addrlow  = (UINT_PTR)modulebase;
     moduleinfo.addrhigh = (UINT_PTR)(modulebase + modulesize) - 1;
     moduleinfo.flags    = 0x0;
     moduleinfo.name     = modulenamea;
-    moduleinfo.path     = modulepatha;
+	moduleinfo.path     = modulepatha;
+
+	ModuleSet*    newmodules = (ModuleSet*)context;
     newmodules->insert(moduleinfo);
 
     return TRUE;
@@ -2317,14 +2302,11 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 //
 FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
-    moduleentry_t *entry;
-    UINT          index;
-    UINT          tablesize = _countof(vld.m_patchtable);
-
     // See if there is an entry in the patch table that matches the requested
     // function.
-    for (index = 0; index < tablesize; index++) {
-        entry = &vld.m_patchtable[index];
+	UINT tablesize = _countof(vld.m_patchtable);
+    for (UINT index = 0; index < tablesize; index++) {
+        moduleentry_t *entry = &vld.m_patchtable[index];
         if ((entry->modulebase == 0x0) || ((HMODULE)entry->modulebase != module)) {
             // This patch table entry is for a different module.
             continue;
@@ -3538,3 +3520,20 @@ void VisualLeakDetector::ResolveCallstacks()
     }
 }
 
+HMODULE VisualLeakDetector::GetSxSModuleHandle(LPCSTR modulenamea)
+{
+	HMODULE hDll = NULL;
+	UINT          tablesize = _countof(m_patchtable);
+	for (UINT index = 0; index < tablesize; index++) {
+		moduleentry_t *entry = &m_patchtable[index];
+		if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
+			hDll = (HMODULE)entry->modulebase;
+			break;
+		}
+	}
+	
+	if (hDll == NULL)
+		hDll = GetModuleHandleA(modulenamea);
+
+	return hDll;
+}

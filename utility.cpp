@@ -980,3 +980,20 @@ void GetFormattedMessage(DWORD last_error)
 	report(L"%s", lpMsgBuf);
 }
 
+// GetCallingModule - Return calling module by address.
+//
+//  Return Value:
+//
+//    Module handle.
+//
+HMODULE GetCallingModule( UINT_PTR pCaller )
+{
+	HMODULE hModule = NULL;
+	MEMORY_BASIC_INFORMATION mbi;
+	if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
+	{
+		// the allocation base is the beginning of a PE file 
+		hModule = (HMODULE) mbi.AllocationBase;
+	}
+	return hModule;
+}

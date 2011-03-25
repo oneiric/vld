@@ -188,26 +188,6 @@ VOID CallStack::clear ()
     m_topindex = 0;
 }
 
-// GetCallingModule - Return calling module by address.
-//
-//  Return Value:
-//
-//    Module handle.
-//
-HMODULE CallStack::GetCallingModule( UINT_PTR pCaller ) const
-{
-    HMODULE hModule = NULL;
-    MEMORY_BASIC_INFORMATION mbi;
-    if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
-    {
-        // the allocation base is the beginning of a PE file 
-        hModule = (HMODULE) mbi.AllocationBase;
-    }
-    return hModule;
-}
-
-
-
 
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.

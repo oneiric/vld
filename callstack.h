@@ -98,8 +98,6 @@ protected:
 	UINT32 m_status;                    // Status flags:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
-	HMODULE GetCallingModule(UINT_PTR pCaller) const;
-
 private:
 	CallStack (const CallStack &other); // Don't allow this!!
 	// Performs the actual formatting of the callstack into human readable form.

@@ -33,7 +33,7 @@ Applications should never include this header."
 extern __declspec(dllexport) VisualLeakDetector vld;
 
 #define TEMPLATE_HEADER \
-template<wchar_t const *crtddll, wchar_t const *mfcddll, wchar_t const *mfcuddll,\
+template<char const *crtddll, char const *mfcddll, char const *mfcuddll,\
     char const *crtd_vector_new_name, char const *crtd_vector_new_dbg_name,\
     char const *crtd_scalar_new_name, char const *crtd_scalar_new_dbg_name,\
     int mfcd_vector_new_ordinal, int mfcd_vector_new_dbg_4p_ordinal, int mfcd_vector_new_dbg_3p_ordinal,\
@@ -83,11 +83,11 @@ public:
     static void* __cdecl mfcud__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
     static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
-    template<wchar_t const *mfcdll, int ordinal>
+    template<char const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, int type, char const *file, int line);
-    template<wchar_t const *mfcdll, int ordinal>
+    template<char const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, char const *file, int line);
-    template<wchar_t const *mfcdll, int ordinal>
+    template<char const *mfcdll, int ordinal>
     static void* __cdecl mfcd_new (context_t& context, size_t size);
 };
 
@@ -133,7 +133,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
     if (pcrtxxd__calloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _calloc_dbg.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__calloc_dbg = (_calloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_calloc_dbg");
     }
@@ -173,7 +173,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
     if (pcrtxxd__malloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _malloc_dbg.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__malloc_dbg = (_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_malloc_dbg");
     }
@@ -216,7 +216,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
     if (pcrtxxd__realloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _realloc_dbg.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__realloc_dbg = (_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_realloc_dbg");
     }
@@ -305,7 +305,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
 
     if (pcrtxxd_calloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_calloc = (calloc_t)vld._RGetProcAddress(msvcrxxd, "calloc");
     }
@@ -336,7 +336,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
 
     if (pcrtxxd_malloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_malloc = (malloc_t)vld._RGetProcAddress(msvcrxxd, "malloc");
     }
@@ -369,7 +369,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 
     if (pcrtxxd_realloc == NULL) {
         // This is the first call to this function. Link to the real realloc.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_realloc = (realloc_t)vld._RGetProcAddress(msvcrxxd, "realloc");
     }
@@ -448,7 +448,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
     if (pcrtxxd_new_dbg == NULL) {
         // This is the first call to this function. Link to the real CRT debug
         // new operator.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
@@ -480,7 +480,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
     if (pcrtxxd_scalar_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        msvcrxxd = GetModuleHandleW(crtddll);
+        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_scalar_new = (new_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
@@ -809,7 +809,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (size_t size)
 //    Returns the value returned by the MFC debug new operator.
 //
 TEMPLATE_HEADER
-template<wchar_t const *mfcdll, int ordinal>
+template<char const *mfcdll, int ordinal>
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
                                                 size_t      size,
                                                 int         type,
@@ -823,7 +823,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = GetModuleHandleW(mfcdll);
+        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
@@ -852,7 +852,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
 //    Returns the value returned by the MFC debug new operator.
 //
 TEMPLATE_HEADER
-template<wchar_t const *mfcdll, int ordinal>
+template<char const *mfcdll, int ordinal>
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
                                                 size_t      size,
                                                 char const *file,
@@ -865,7 +865,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = GetModuleHandleW(mfcdll);
+        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_mfc_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
@@ -887,7 +887,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
 //    Returns the value returned by the MFC new operator.
 //
 TEMPLATE_HEADER
-template<wchar_t const *mfcdll, int ordinal>
+template<char const *mfcdll, int ordinal>
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
 {
     static new_t pmfcxxd_new = NULL;
@@ -897,7 +897,7 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
     if (pmfcxxd_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        mfcxxd = GetModuleHandleW(mfcdll);
+        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd_new = (new_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
@@ -928,24 +928,24 @@ const extern char    scalar_new_name[] = "??2@YAPEAX_K@Z";
 const extern char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 #endif
 
-const extern wchar_t msvcrtd_dll[]  = L"msvcrtd.dll";
-const extern wchar_t mfc42d_dll[]   = L"mfc42d.dll";
-const extern wchar_t mfc42ud_dll[]  = L"mfc42ud.dll";
-const extern wchar_t msvcr70d_dll[] = L"msvcr70d.dll";
-const extern wchar_t mfc70d_dll[]   = L"mfc70d.dll";
-const extern wchar_t mfc70ud_dll[]  = L"mfc70ud.dll";
-const extern wchar_t msvcr71d_dll[] = L"msvcr71d.dll";
-const extern wchar_t mfc71d_dll[]   = L"mfc71d.dll";
-const extern wchar_t mfc71ud_dll[]  = L"mfc71ud.dll";
-const extern wchar_t msvcr80d_dll[] = L"msvcr80d.dll";
-const extern wchar_t mfc80d_dll[]   = L"mfc80d.dll";
-const extern wchar_t mfc80ud_dll[]  = L"mfc80ud.dll";
-const extern wchar_t msvcr90d_dll[] = L"msvcr90d.dll";
-const extern wchar_t mfc90d_dll[]   = L"mfc90d.dll";
-const extern wchar_t mfc90ud_dll[]  = L"mfc90ud.dll";
-const extern wchar_t msvcr100d_dll[] = L"msvcr100d.dll";
-const extern wchar_t mfc100d_dll[]   = L"mfc100d.dll";
-const extern wchar_t mfc100ud_dll[]  = L"mfc100ud.dll";
+const extern char msvcrtd_dll[]   = "msvcrtd.dll";
+const extern char mfc42d_dll[]    = "mfc42d.dll";
+const extern char mfc42ud_dll[]   = "mfc42ud.dll";
+const extern char msvcr70d_dll[]  = "msvcr70d.dll";
+const extern char mfc70d_dll[]    = "mfc70d.dll";
+const extern char mfc70ud_dll[]   = "mfc70ud.dll";
+const extern char msvcr71d_dll[]  = "msvcr71d.dll";
+const extern char mfc71d_dll[]    = "mfc71d.dll";
+const extern char mfc71ud_dll[]   = "mfc71ud.dll";
+const extern char msvcr80d_dll[]  = "msvcr80d.dll";
+const extern char mfc80d_dll[]    = "mfc80d.dll";
+const extern char mfc80ud_dll[]   = "mfc80ud.dll";
+const extern char msvcr90d_dll[]  = "msvcr90d.dll";
+const extern char mfc90d_dll[]    = "mfc90d.dll";
+const extern char mfc90ud_dll[]   = "mfc90ud.dll";
+const extern char msvcr100d_dll[] = "msvcr100d.dll";
+const extern char mfc100d_dll[]   = "mfc100d.dll";
+const extern char mfc100ud_dll[]  = "mfc100ud.dll";
 
 // Visual Studio 6.0
 typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
