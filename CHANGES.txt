@@ -3,19 +3,22 @@ Visual Leak Detector (VLD) Version 2.1
   
   Change Log / Release Notes
 
-2.1 (06 March 2011)
+2.1 (26 March 2011)
 ----------------------------
   Enhancements:
   + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions, 
     VLDGetReportFilename, VLDSetOptions, VLDSetModulesList,
-    VLDGetModulesList (see vld.h).
+    VLDGetModulesList, VLDResolveCallstacks (see vld.h).
   + Option VLD_OPT_SKIP_HEAPFREE_LEAKS added.
   + Hash for each leak added
   + Supported loading symbols from Visual Studio symbol cache directory
  
   Bugs Fixed:
-  + Improved LdrLoadDll hooking on Windows 7.
+  + Improved LdrLoadDll, GetProcAddress hooking on Windows 7.
   + "HMODULE not founded" bug fixed.
+  + Bugs fixed when VLD off.
+  + Problem fixed with GetModuleHandleW for SxS dll's (mfc*.dll, msvcr*.dll).
+  + Unicode-to-multibyte conversion fixed.
 
 2.0b (24 August 2010)
 ----------------------------
