@@ -126,14 +126,13 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
     static _calloc_dbg_t pcrtxxd__calloc_dbg = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd__calloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _calloc_dbg.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__calloc_dbg = (_calloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_calloc_dbg");
     }
@@ -166,14 +165,13 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
     static _malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd__malloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _malloc_dbg.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__malloc_dbg = (_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_malloc_dbg");
     }
@@ -209,14 +207,13 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
     static _realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd__realloc_dbg == NULL) {
         // This is the first call to this function. Link to the real
         // _realloc_dbg.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd__realloc_dbg = (_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_realloc_dbg");
     }
@@ -299,13 +296,12 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
     static calloc_t pcrtxxd_calloc = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd_calloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_calloc = (calloc_t)vld._RGetProcAddress(msvcrxxd, "calloc");
     }
@@ -330,13 +326,12 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
     static malloc_t pcrtxxd_malloc = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd_malloc == NULL) {
         // This is the first call to this function. Link to the real malloc.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_malloc = (malloc_t)vld._RGetProcAddress(msvcrxxd, "malloc");
     }
@@ -363,13 +358,12 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
     static realloc_t pcrtxxd_realloc = NULL;
 
     context_t context;
-    HMODULE msvcrxxd;
 
     CAPTURE_CONTEXT(context);
 
     if (pcrtxxd_realloc == NULL) {
         // This is the first call to this function. Link to the real realloc.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_realloc = (realloc_t)vld._RGetProcAddress(msvcrxxd, "realloc");
     }
@@ -442,13 +436,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
                                                 int         line)
 {
     static new_dbg_crt_t pcrtxxd_new_dbg = NULL;
-
-    HMODULE msvcrxxd;
-
+    
     if (pcrtxxd_new_dbg == NULL) {
         // This is the first call to this function. Link to the real CRT debug
         // new operator.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
@@ -474,13 +466,11 @@ template<char const *procname>
 void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
 {
     static new_t pcrtxxd_scalar_new = NULL;
-
-    HMODULE msvcrxxd;
-
+    
     if (pcrtxxd_scalar_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
         assert(msvcrxxd != NULL);
         pcrtxxd_scalar_new = (new_t)vld._RGetProcAddress(msvcrxxd, procname);
     }
@@ -817,13 +807,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
                                                 int         line)
 {
     static new_dbg_crt_t pmfcxxd__new_dbg = NULL;
-
-    HMODULE mfcxxd;
-
+    
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
+        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
@@ -859,13 +847,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
                                                 int         line)
 {
     static new_dbg_mfc_t pmfcxxd__new_dbg = NULL;
-
-    HMODULE mfcxxd;
-
+    
     if (pmfcxxd__new_dbg == NULL) {
         // This is the first call to this function. Link to the real MFC debug
         // new operator.
-        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
+        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd__new_dbg = (new_dbg_mfc_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }
@@ -891,13 +877,11 @@ template<char const *mfcdll, int ordinal>
 void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
 {
     static new_t pmfcxxd_new = NULL;
-
-    HMODULE mfcxxd;
-
+    
     if (pmfcxxd_new == NULL) {
         // This is the first call to this function. Link to the real CRT new
         // operator.
-        mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
+        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
         assert(mfcxxd != NULL);
         pmfcxxd_new = (new_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
     }

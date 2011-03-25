@@ -112,11 +112,6 @@ CallStack& CallStack::operator = (const CallStack &)
 //
 BOOL CallStack::operator == (const CallStack &other) const
 {
-    const CallStack::chunk_t *chunk = &m_store;
-    UINT32                    index;
-    const CallStack::chunk_t *otherchunk = &other.m_store;
-    const CallStack::chunk_t *prevchunk = NULL;
-
     if (m_size != other.m_size) {
         // They can't be equal if the sizes are different.
         return FALSE;
@@ -124,8 +119,11 @@ BOOL CallStack::operator == (const CallStack &other) const
 
     // Walk the chunk list and within each chunk walk the frames array until we
     // either find a mismatch, or until we reach the end of the call stacks.
+    const CallStack::chunk_t *prevchunk = NULL;
+    const CallStack::chunk_t *chunk = &m_store;
+    const CallStack::chunk_t *otherchunk = &other.m_store;
     while (prevchunk != m_topchunk) {
-        for (index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
+        for (UINT32 index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
             if (chunk->frames[index] != otherchunk->frames[index]) {
                 // Found a mismatch. They are not equal.
                 return FALSE;
@@ -159,11 +157,10 @@ BOOL CallStack::operator == (const CallStack &other) const
 //
 UINT_PTR CallStack::operator [] (UINT32 index) const
 {
-    UINT32                    count;
-    const CallStack::chunk_t *chunk = &m_store;
     UINT32                    chunknumber = index / CALLSTACKCHUNKSIZE;
+    const CallStack::chunk_t *chunk = &m_store;
 
-    for (count = 0; count < chunknumber; count++) {
+    for (UINT32 count = 0; count < chunknumber; count++) {
         chunk = chunk->next;
     }
 
@@ -390,13 +387,11 @@ void CallStack::DumpResolved() const
 //
 DWORD CallStack::getHashValue () const
 {
-    UINT32      frame;
-    UINT_PTR    programcounter;
     DWORD       hashcode = 0xD202EF8D;
 
     // Iterate through each frame in the call stack.
-    for (frame = 0; frame < m_size; frame++) {
-        programcounter = (*this)[frame];
+    for (UINT32 frame = 0; frame < m_size; frame++) {
+        UINT_PTR programcounter = (*this)[frame];
         hashcode = CalculateCRC32(programcounter, hashcode);
     }
     return hashcode;
@@ -417,11 +412,9 @@ DWORD CallStack::getHashValue () const
 //
 VOID CallStack::push_back (const UINT_PTR programcounter)
 {
-    CallStack::chunk_t *chunk;
-
     if (m_size == m_capacity) {
         // At current capacity. Allocate additional storage.
-        chunk = new CallStack::chunk_t;
+        CallStack::chunk_t *chunk = new CallStack::chunk_t;
         chunk->next = NULL;
         m_topchunk->next = chunk;
         m_topchunk = chunk;
@@ -551,14 +544,9 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 //
 VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 {
-    DWORD        architecture;
-    CONTEXT      currentcontext;
-    UINT32       count = 0;
-    STACKFRAME64 frame;
-
     UINT_PTR* framepointer = context.fp;
-
-    architecture   = X86X64ARCHITECTURE;
+    DWORD   architecture   = X86X64ARCHITECTURE;
+    CONTEXT currentcontext;
     memset(&currentcontext, 0, sizeof(currentcontext));
 
     // Get the required values for initialization of the STACKFRAME64 structure
@@ -581,6 +569,7 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 #endif // _M_IX86 || _M_X64
 
     // Initialize the STACKFRAME64 structure.
+    STACKFRAME64 frame;
     memset(&frame, 0x0, sizeof(frame));
     frame.AddrPC.Offset       = currentcontext.IPREG;
     frame.AddrPC.Mode         = AddrModeFlat;
@@ -592,6 +581,7 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 
     // Walk the stack.
     EnterCriticalSection(&stackwalklock);
+    UINT32 count = 0;
     while (count < maxdepth) {
         count++;
         if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &currentcontext, NULL,

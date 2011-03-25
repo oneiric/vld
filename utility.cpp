@@ -51,17 +51,8 @@ static encoding_e  reportencoding = ascii;  // Output encoding of the memory lea
 //
 VOID dumpmemorya (LPCVOID address, SIZE_T size)
 {
-    WCHAR  ascdump [18] = {0};
-    SIZE_T ascindex;
-    BYTE   byte;
-    SIZE_T byteindex;
-    SIZE_T bytesdone;
-    SIZE_T dumplen;
-    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
-    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
-    SIZE_T hexindex;
-
     // Each line of output is 16 bytes.
+    SIZE_T dumplen;
     if ((size % 16) == 0) {
         // No padding needed.
         dumplen = size;
@@ -73,12 +64,15 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
 
     // For each byte of data, get both the ASCII equivalent (if it is a
     // printable character) and the hex representation.
-    bytesdone = 0;
-    for (byteindex = 0; byteindex < dumplen; byteindex++) {
-        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        ascindex = (byteindex % 16) + (byteindex % 16) / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
+    SIZE_T bytesdone = 0;
+    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
+    WCHAR  ascdump [18] = {0};
+    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+    for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
+        SIZE_T hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        SIZE_T ascindex = (byteindex % 16) + (byteindex % 16) / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
-            byte = ((PBYTE)address)[byteindex];
+            BYTE byte = ((PBYTE)address)[byteindex];
             _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
             formatbuf[3] = '\0';
             wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
@@ -126,18 +120,8 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
 //
 VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 {
-    BYTE   byte;
-    SIZE_T byteindex;
-    SIZE_T bytesdone;
-    SIZE_T dumplen;
-    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
-    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
-    SIZE_T hexindex;
-    WORD   word;
-    WCHAR  unidump [18] = {0};
-    SIZE_T uniindex;
-
     // Each line of output is 16 bytes.
+    SIZE_T dumplen;
     if ((size % 16) == 0) {
         // No padding needed.
         dumplen = size;
@@ -149,18 +133,21 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 
     // For each word of data, get both the Unicode equivalent and the hex
     // representation.
-    bytesdone = 0;
-    for (byteindex = 0; byteindex < dumplen; byteindex++) {
-        hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4));   // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        uniindex = ((byteindex / 2) % 8) + ((byteindex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
+    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
+    WCHAR  unidump [18] = {0};
+    SIZE_T bytesdone = 0;
+    for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
+        SIZE_T hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4));   // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        SIZE_T uniindex = ((byteindex / 2) % 8) + ((byteindex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
-            byte = ((PBYTE)address)[byteindex];
+            BYTE byte = ((PBYTE)address)[byteindex];
             _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
             formatbuf[BYTEFORMATBUFFERLENGTH - 1] = '\0';
             wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
             if (((byteindex % 2) == 0) && ((byteindex + 1) < dumplen)) {
                 // On every even byte, print one character.
-                word = ((PWORD)address)[byteindex / 2];
+                WORD   word = ((PWORD)address)[byteindex / 2];
                 if ((word == 0x0000) || (word == 0x0020)) {
                     unidump[uniindex] = L'.';
                 }
@@ -274,7 +261,17 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found that the module does import the named import.
     import = GetProcAddress(exportmodule, importname);
-    assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+
+    // Perhaps the named export module does not actually export the named import?
+    //assert(import != NULL);   - on my Windows 7 x64, VS 9 SP1, Win x32 project assertion failure will cause new DLL loading, and then infinite loop of calls to findimport() and stack overflow. Maybe it's caused by antivirus, nevertheless this solution fixes infinite loop
+    if ( import == NULL )    // - instead of assert
+    {
+        OutputDebugStringW(__FUNCTIONW__ L"(" __FILEW__ L") : import == NULL\n" );
+        if ( ::IsDebuggerPresent() )
+            __debugbreak();
+
+        return FALSE;
+    }
 
     // Locate the import's IAT entry.
     iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
@@ -372,15 +369,12 @@ VOID insertreportdelay ()
 //
 BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
-    moduleentry_t *entry;
-    BOOL          found = FALSE;
-    UINT          index;
-
     // Loop through the import patch table, individually checking each patch
     // entry to see if it is installed in the import module. If any patch entry
     // is installed in the import module, then the module has been patched.
-    for (index = 0; index < tablesize; index++) {
-        entry = &patchtable[index];
+    BOOL found = FALSE;
+    for (UINT index = 0; index < tablesize; index++) {
+        moduleentry_t *entry = &patchtable[index];
         found = findpatch(importmodule, entry);
         if (found == TRUE) {
             // Found one of the listed patches installed in the import module.
@@ -807,11 +801,8 @@ VOID setreportfile (FILE *file, BOOL copydebugger, BOOL tostdout)
 //
 VOID strapp (LPWSTR *dest, LPCWSTR source)
 {
-    SIZE_T length;
-    LPWSTR temp;
-
-    temp = *dest;
-    length = wcslen(*dest) + wcslen(source);
+    LPWSTR temp = *dest;
+    SIZE_T length = wcslen(*dest) + wcslen(source);
     *dest = new WCHAR [length + 1];
     wcsncpy_s(*dest, length + 1, temp, _TRUNCATE);
     wcsncat_s(*dest, length + 1, source, _TRUNCATE);
@@ -963,21 +954,21 @@ DWORD CalculateCRC32(UINT_PTR p, UINT startValue)
 // list of arguments.
 void GetFormattedMessage(DWORD last_error)
 {
-	// Retrieve the system error message for the last-error code
-	WCHAR lpMsgBuf[MAX_PATH] = {0};
+    // Retrieve the system error message for the last-error code
+    WCHAR lpMsgBuf[MAX_PATH] = {0};
 
-	FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		last_error,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		lpMsgBuf,
-		MAX_PATH,
-		NULL );
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        last_error,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        lpMsgBuf,
+        MAX_PATH,
+        NULL );
 
-	// Display the error message.
-	report(L"%s", lpMsgBuf);
+    // Display the error message.
+    report(L"%s", lpMsgBuf);
 }
 
 // GetCallingModule - Return calling module by address.
@@ -988,12 +979,12 @@ void GetFormattedMessage(DWORD last_error)
 //
 HMODULE GetCallingModule( UINT_PTR pCaller )
 {
-	HMODULE hModule = NULL;
-	MEMORY_BASIC_INFORMATION mbi;
-	if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
-	{
-		// the allocation base is the beginning of a PE file 
-		hModule = (HMODULE) mbi.AllocationBase;
-	}
-	return hModule;
+    HMODULE hModule = NULL;
+    MEMORY_BASIC_INFORMATION mbi;
+    if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
+    {
+        // the allocation base is the beginning of a PE file 
+        hModule = (HMODULE) mbi.AllocationBase;
+    }
+    return hModule;
 }
