@@ -564,7 +564,7 @@ VisualLeakDetector::~VisualLeakDetector ()
                 report(L"No memory leaks detected.\n");
             }
             else {
-                report(L"Visual Leak Detector detected %lu memory leak", m_leaksfound);
+                report(L"Visual Leak Detector detected %Iu memory leak", m_leaksfound);
                 report((m_leaksfound > 1) ? L"s.\n" : L".\n");
             }
         }
@@ -1350,7 +1350,7 @@ VOID VisualLeakDetector::reportconfig ()
             report(L"    Suppressing data dumps.\n");
         }
         else {
-            report(L"    Limiting data dumps to %lu bytes.\n", m_maxdatadump);
+            report(L"    Limiting data dumps to %Iu bytes.\n", m_maxdatadump);
         }
     }
     if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
@@ -1448,7 +1448,8 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
             if (duplicates > 1)
                 m_leaksfound += duplicates;
 
-            report(L"Leak Hash: 0x%08IX Count: %lu\n", CalculateCRC32(info->size, info->callstack->getHashValue()), duplicates);
+			DWORD callstackCRC = CalculateCRC32(info->size, info->callstack->getHashValue());
+            report(L"Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, duplicates);
         }
         // Dump the call stack.
         report(L"  Call Stack:\n");

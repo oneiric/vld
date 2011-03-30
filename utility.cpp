@@ -67,10 +67,11 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
     SIZE_T bytesdone = 0;
     WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
     WCHAR  ascdump [18] = {0};
-    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+	WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
     for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
-        SIZE_T hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        SIZE_T ascindex = (byteindex % 16) + (byteindex % 16) / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
+		SIZE_T wordIndex = byteindex % 16;
+        SIZE_T hexindex = 3 * (wordIndex + (wordIndex / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        SIZE_T ascindex = wordIndex + wordIndex / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
             BYTE byte = ((PBYTE)address)[byteindex];
             _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);

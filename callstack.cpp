@@ -460,7 +460,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 
 #if defined(_M_IX86)
     while (count < maxdepth) {
-        if (*framepointer < (UINT)framepointer) {
+        if (*framepointer < (UINT_PTR)framepointer) {
             if (*framepointer == NULL) {
                 // Looks like we reached the end of the stack.
                 break;
