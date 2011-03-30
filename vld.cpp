@@ -609,7 +609,7 @@ VisualLeakDetector::~VisualLeakDetector ()
             leakline = header->line;
             mbstowcs_s(&count, leakfilew, MAX_PATH, leakfile, _TRUNCATE);
             report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
-            report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber,
+            report(L"---------- Block %Iu at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber,
                 VLDBLOCKDATA(header), header->size);
             report(L"  Call Stack:\n");
             report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
