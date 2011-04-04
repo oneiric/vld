@@ -111,6 +111,7 @@
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>vld.dll.dependency.x86.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName).lib" "$(OutDir)vld.lib" /y</Command>
@@ -143,6 +144,7 @@
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>vld.dll.dependency.x64.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName).lib" "$(OutDir)vld.lib" /y</Command>
@@ -178,6 +180,7 @@
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>vld.dll.dependency.x86.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName).lib" "$(OutDir)vld.lib" /y</Command>
@@ -215,6 +218,7 @@
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>vld.dll.dependency.x64.manifest</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName).lib" "$(OutDir)vld.lib" /y</Command>

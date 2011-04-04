@@ -26,7 +26,7 @@
 !include "MUI.nsh"      # Provides the modern user-interface
 
 # Version number
-!define VLD_VERSION "2.1"
+!define VLD_VERSION "2.1.1"
 
 # Define build system paths
 #!define CRT_PATH     "C:\Program Files\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT"
@@ -168,10 +168,10 @@ addtopath:
 skipaddtopath:
     SetOutPath "${BIN_PATH}\Win32"
     !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "dbghelp\x86\${DHL_DLL}" "${BIN_PATH}\Win32\${DHL_DLL}" $INSTDIR
+    File "dbghelp\x86\Microsoft.DTfW.DHL.manifest"
     SetOutPath "${BIN_PATH}\Win64"
     !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "dbghelp\x64\${DHL_DLL}" "${BIN_PATH}\Win64\${DHL_DLL}" $INSTDIR
-#    !insertmacro InstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${CRT_PATH}\${CRT_DLL}" "${BIN_PATH}\${CRT_DLL}" $INSTDIR
-#    File "..\Microsoft.DTfW.DHL.manifest"
+    File "dbghelp\x64\Microsoft.DTfW.DHL.manifest"
 #    File "${CRT_PATH}\${CRT_MANIFEST}"
 SectionEnd
 
@@ -187,7 +187,7 @@ Section "Source Code"
     File "..\vld.vcproj"
     File "..\vld.vcxproj"
     File "..\vld.vcxproj.filters"
-#    File "..\*.manifest"
+    File "..\*.manifest"
     File "..\*.rc"
 SectionEnd
 
@@ -240,11 +240,11 @@ Section "un.Dynamic Link Libraries"
     System::Call "editenv::pathRemove(i ${ES_SYSTEM}, t '${BIN_PATH}\Win64') ? u"
     Delete "$PLUGINSDIR\${EDITENV_DLL}"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win32\${DHL_DLL}"
+    Delete "${BIN_PATH}\Win32\Microsoft.DTfW.DHL.manifest"
     RMDir "${BIN_PATH}\Win32"
     !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\Win64\${DHL_DLL}"
+    Delete "${BIN_PATH}\Win64\Microsoft.DTfW.DHL.manifest"
     RMDir "${BIN_PATH}\Win64"
-#    !insertmacro UnInstallLib DLL NOTSHARED NOREBOOT_NOTPROTECTED "${BIN_PATH}\${CRT_DLL}"
-#    Delete "${BIN_PATH}\Microsoft.DTfW.DHL.manifest"
 #    Delete "${BIN_PATH}\${CRT_MANIFEST}"
     RMDir "${BIN_PATH}"
 SectionEnd
