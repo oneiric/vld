@@ -83,12 +83,12 @@ public:
 	VOID clear ();
 	// Prints the Callstack to one of either / or the debug output window and or 
 	// a log file.
-	VOID dump (BOOL showinternalframes);
+	VOID dump (BOOL showinternalframes) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	VOID Resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
 	virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
-	CallStack& operator = (const CallStack &other);
+	
 	BOOL operator == (const CallStack &other) const;
 	UINT_PTR operator [] (UINT32 index) const;
 	VOID push_back (const UINT_PTR programcounter);
@@ -99,9 +99,11 @@ protected:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
 
 private:
-	CallStack (const CallStack &other); // Don't allow this!!
-	// Performs the actual formatting of the callstack into human readable form.
-	void resolve(BOOL showinternalframes, BOOL ResolveOnly);
+	// Don't allow this!!
+	CallStack (const CallStack &other); 
+	// Don't allow this!!
+	CallStack& operator = (const CallStack &other);
+
 	// The chunk list is made of a linked list of Chunks.
 	typedef struct chunk_s {
 		struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.

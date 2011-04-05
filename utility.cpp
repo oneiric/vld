@@ -588,44 +588,49 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
 //
 VOID print (LPCWSTR messagew)
 {
-    size_t  count;
+	if (NULL == messagew)
+	{
+		return;
+	}
 
-    if (reportencoding == unicode) {
-        if (reportfile != NULL) {
-            // Send the report to the previously specified file.
-            fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
-        }
-        if ( reporttostdout )
-            fwprintf(stdout,messagew);
+	size_t  count = 0;
 
-        if (reporttodebugger) {
-            OutputDebugStringW(messagew);
-        }
-    }
-    else {
-        CHAR    messagea [MAXREPORTLENGTH + 1];
-        if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
-            // Failed to convert the Unicode message to ASCII.
-            assert(FALSE);
-            return;
-        }
-        messagea[MAXREPORTLENGTH] = '\0';
-        if (reportfile != NULL) {
-            // Send the report to the previously specified file.
-            fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
-        }
+	if (reportencoding == unicode) {
+		if (reportfile != NULL) {
+			// Send the report to the previously specified file.
+			fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
+		}
+		if ( reporttostdout )
+			fwprintf(stdout,messagew);
 
-        if ( reporttostdout )
-            printf(messagea);
+		if (reporttodebugger) {
+			OutputDebugStringW(messagew);
+		}
+	}
+	else {
+		CHAR    messagea [MAXREPORTLENGTH + 1];
+		if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
+			// Failed to convert the Unicode message to ASCII.
+			assert(FALSE);
+			return;
+		}
+		messagea[MAXREPORTLENGTH] = '\0';
+		if (reportfile != NULL) {
+			// Send the report to the previously specified file.
+			fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
+		}
 
-        if (reporttodebugger) {
-            OutputDebugStringA(messagea);
-        }
-    }
+		if ( reporttostdout )
+			printf(messagea);
 
-    if (reporttodebugger && (reportdelay == TRUE)) {
-        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
-    }
+		if (reporttodebugger) {
+			OutputDebugStringA(messagea);
+		}
+	}
+
+	if (reporttodebugger && (reportdelay == TRUE)) {
+		Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
+	}
 }
 
 // report - Sends a printf-style formatted message to the debugger for display
