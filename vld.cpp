@@ -356,141 +356,150 @@ BOOL IsWin7OrBetter()
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
-    // Initialize configuration options and related private data.
-    _wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
-    m_maxdatadump    = 0xffffffff;
-    m_maxtraceframes = 0xffffffff;
-    m_options        = 0x0;
-    m_reportfile     = NULL;
-    wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
-    m_status         = 0x0;
+	// Initialize configuration options and related private data.
+	_wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
+	m_maxdatadump    = 0xffffffff;
+	m_maxtraceframes = 0xffffffff;
+	m_options        = 0x0;
+	m_reportfile     = NULL;
+	wcsncpy_s(m_reportfilepath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
+	m_status         = 0x0;
 
-    // Load configuration options.
-    configure();
-    if (m_options & VLD_OPT_VLDOFF) {
-        report(L"Visual Leak Detector is turned off.\n");
-        return;
-    }
+	// Load configuration options.
+	configure();
+	if (m_options & VLD_OPT_VLDOFF) {
+		report(L"Visual Leak Detector is turned off.\n");
+		return;
+	}
 
-    HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
-    HMODULE kernelBase = GetModuleHandleW(L"KernelBase.dll");
-    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+	HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+	HMODULE kernelBase = GetModuleHandleW(L"KernelBase.dll");
+	HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
 
-    if (!IsWin7OrBetter()) // kernel32.dll
-        m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
-    else
-    {
-        assert(m_patchtable[0].patchtable == m_kernelbasePatch);
-        m_patchtable[0].exportmodulename = "kernelbase.dll";
-        m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
-    }
+	if (!IsWin7OrBetter()) // kernel32.dll
+		m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+	else
+	{
+		assert(m_patchtable[0].patchtable == m_kernelbasePatch);
+		m_patchtable[0].exportmodulename = "kernelbase.dll";
+		m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
+	}
 
-    // Initialize global variables.
-    currentprocess    = GetCurrentProcess();
-    currentthread     = GetCurrentThread();
-    InitializeCriticalSection(&imagelock);
-    LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
-    processheap       = GetProcessHeap();
-    RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
-    RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
-    RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
-    InitializeCriticalSection(&stackwalklock);
-    InitializeCriticalSection(&symbollock);
-    vldheap           = HeapCreate(0x0, 0, 0);
-    InitializeCriticalSection(&vldheaplock);
+	// Initialize global variables.
+	currentprocess    = GetCurrentProcess();
+	currentthread     = GetCurrentThread();
+	InitializeCriticalSection(&imagelock);
+	LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+	processheap       = GetProcessHeap();
+	RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
+	RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
+	RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+	InitializeCriticalSection(&stackwalklock);
+	InitializeCriticalSection(&symbollock);
+	vldheap           = HeapCreate(0x0, 0, 0);
+	InitializeCriticalSection(&vldheaplock);
 
-    // Initialize remaining private data.
-    m_heapmap         = new HeapMap;
-    m_heapmap->reserve(HEAPMAPRESERVE);
-    m_imalloc         = NULL;
-    m_leaksfound      = 0;
-    m_loadedmodules   = NULL;
-    InitializeCriticalSection(&m_loaderlock);
-    InitializeCriticalSection(&m_maplock);
-    InitializeCriticalSection(&m_moduleslock);
-    m_selftestfile    = __FILE__;
-    m_selftestline    = 0;
-    m_tlsindex        = TlsAlloc();
-    InitializeCriticalSection(&m_tlslock);
-    m_tlsset          = new TlsSet;
+	// Initialize remaining private data.
+	m_heapmap         = new HeapMap;
+	m_heapmap->reserve(HEAPMAPRESERVE);
+	m_imalloc         = NULL;
+	m_leaksfound      = 0;
+	m_loadedmodules   = NULL;
+	InitializeCriticalSection(&m_loaderlock);
+	InitializeCriticalSection(&m_maplock);
+	InitializeCriticalSection(&m_moduleslock);
+	m_selftestfile    = __FILE__;
+	m_selftestline    = 0;
+	m_tlsindex        = TlsAlloc();
+	InitializeCriticalSection(&m_tlslock);
+	m_tlsset          = new TlsSet;
 
-    if (m_options & VLD_OPT_SELF_TEST) {
-        // Self-test mode has been enabled. Intentionally leak a small amount of
-        // memory so that memory leak self-checking can be verified.
-        if (m_options & VLD_OPT_UNICODE_REPORT) {
-            wcsncpy_s(new WCHAR [wcslen(SELFTESTTEXTW) + 1], wcslen(SELFTESTTEXTW) + 1, SELFTESTTEXTW, _TRUNCATE);
-            m_selftestline = __LINE__ - 1;
-        }
-        else {
-            strncpy_s(new CHAR [strlen(SELFTESTTEXTA) + 1], strlen(SELFTESTTEXTA) + 1, SELFTESTTEXTA, _TRUNCATE);
-            m_selftestline = __LINE__ - 1;
-        }
-    }
-    if (m_options & VLD_OPT_START_DISABLED) {
-        // Memory leak detection will initially be disabled.
-        m_status |= VLD_STATUS_NEVER_ENABLED;
-    }
-    if (m_options & VLD_OPT_REPORT_TO_FILE) {
-        SetupReporting();
-    }
-    if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
-        // Insert a slight delay between messages sent to the debugger for
-        // output. (For working around a bug in VC6 where data sent to the
-        // debugger gets lost if it's sent too fast).
-        insertreportdelay();
-    }
+	if (m_options & VLD_OPT_SELF_TEST) {
+		// Self-test mode has been enabled. Intentionally leak a small amount of
+		// memory so that memory leak self-checking can be verified.
+		if (m_options & VLD_OPT_UNICODE_REPORT) {
+			wcsncpy_s(new WCHAR [wcslen(SELFTESTTEXTW) + 1], wcslen(SELFTESTTEXTW) + 1, SELFTESTTEXTW, _TRUNCATE);
+			m_selftestline = __LINE__ - 1;
+		}
+		else {
+			strncpy_s(new CHAR [strlen(SELFTESTTEXTA) + 1], strlen(SELFTESTTEXTA) + 1, SELFTESTTEXTA, _TRUNCATE);
+			m_selftestline = __LINE__ - 1;
+		}
+	}
+	if (m_options & VLD_OPT_START_DISABLED) {
+		// Memory leak detection will initially be disabled.
+		m_status |= VLD_STATUS_NEVER_ENABLED;
+	}
+	if (m_options & VLD_OPT_REPORT_TO_FILE) {
+		SetupReporting();
+	}
+	if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
+		// Insert a slight delay between messages sent to the debugger for
+		// output. (For working around a bug in VC6 where data sent to the
+		// debugger gets lost if it's sent too fast).
+		insertreportdelay();
+	}
 
-    // This is highly unlikely to happen, but just in case, check to be sure
-    // we got a valid TLS index.
-    if (m_tlsindex == TLS_OUT_OF_INDEXES) {
-        report(L"ERROR: Visual Leak Detector could not be installed because thread local"
-            L"  storage could not be allocated.");
-        return;
-    }
+	// This is highly unlikely to happen, but just in case, check to be sure
+	// we got a valid TLS index.
+	if (m_tlsindex == TLS_OUT_OF_INDEXES) {
+		report(L"ERROR: Visual Leak Detector could not be installed because thread local"
+			L"  storage could not be allocated.");
+		return;
+	}
 
-    // Initialize the symbol handler. We use it for obtaining source file/line
-    // number information and function names for the memory leak report.
-    LPWSTR symbolpath = buildsymbolsearchpath();
-#ifdef _DEBUG
-    SymSetOptions(SYMOPT_DEBUG | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+	// Initialize the symbol handler. We use it for obtaining source file/line
+	// number information and function names for the memory leak report.
+	LPWSTR symbolpath = buildsymbolsearchpath();
+#ifdef NOISY_DBGHELP_DIAGOSTICS
+	// From MSDN docs about SYMOPT_DEBUG:
+	/* To view all attempts to load symbols, call SymSetOptions with SYMOPT_DEBUG. 
+	This causes DbgHelp to call the OutputDebugString function with detailed 
+	information on symbol searches, such as the directories it is searching and and error messages.
+	In other words, this will really pollute the debug output window with extra messages.
+	To enable this debug output to be displayed to the console without changing your source code, 
+	set the DBGHELP_DBGOUT environment variable to a non-NULL value before calling the SymInitialize function. 
+	To log the information to a file, set the DBGHELP_LOG environment variable to the name of the log file to be used.
+	*/
+	SymSetOptions(SYMOPT_DEBUG | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
 #else
-    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+	SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
 #endif
-    if (!SymInitializeW(currentprocess, symbolpath, FALSE)) {
-        report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
-            L"    File and function names will probably not be available in call stacks.\n", GetLastError());
-    }
-    delete [] symbolpath;
+	if (!SymInitializeW(currentprocess, symbolpath, FALSE)) {
+		report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
+			L"    File and function names will probably not be available in call stacks.\n", GetLastError());
+	}
+	delete [] symbolpath;
 
-    patchentry_t ntdllPatch [] = {
-        "LdrLoadDll",    _LdrLoadDll,
-        NULL,                 NULL
-    };
-    moduleentry_t ldrLoadDllPatch [] = {
-        "ntdll.dll", (UINT_PTR)ntdll, ntdllPatch,
-    };
-    patchimport(kernel32, ldrLoadDllPatch);
-    if (kernelBase != NULL)
-        patchimport(kernelBase, ldrLoadDllPatch);
+	patchentry_t ntdllPatch [] = {
+		"LdrLoadDll",    _LdrLoadDll,
+		NULL,                 NULL
+	};
+	moduleentry_t ldrLoadDllPatch [] = {
+		"ntdll.dll", (UINT_PTR)ntdll, ntdllPatch,
+	};
+	patchimport(kernel32, ldrLoadDllPatch);
+	if (kernelBase != NULL)
+		patchimport(kernelBase, ldrLoadDllPatch);
 
-    // Attach Visual Leak Detector to every module loaded in the process.
-    ModuleSet* newmodules = new ModuleSet();
-    newmodules->reserve(MODULESETRESERVE);
-    EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
-    attachtoloadedmodules(newmodules);
-    m_loadedmodules = newmodules;
-    m_status |= VLD_STATUS_INSTALLED;
+	// Attach Visual Leak Detector to every module loaded in the process.
+	ModuleSet* newmodules = new ModuleSet();
+	newmodules->reserve(MODULESETRESERVE);
+	EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+	attachtoloadedmodules(newmodules);
+	m_loadedmodules = newmodules;
+	m_status |= VLD_STATUS_INSTALLED;
 
-    report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
-    if (m_status & VLD_STATUS_FORCE_REPORT_TO_FILE) {
-        // The report is being forced to a file. Let the human know why.
-        report(L"NOTE: Visual Leak Detector: Unicode-encoded reporting has been enabled, but the\n"
-            L"  debugger is the only selected report destination. The debugger cannot display\n"
-            L"  Unicode characters, so the report will also be sent to a file. If no file has\n"
-            L"  been specified, the default file name is \"" VLD_DEFAULT_REPORT_FILE_NAME L"\".\n");
+	report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
+	if (m_status & VLD_STATUS_FORCE_REPORT_TO_FILE) {
+		// The report is being forced to a file. Let the human know why.
+		report(L"NOTE: Visual Leak Detector: Unicode-encoded reporting has been enabled, but the\n"
+			L"  debugger is the only selected report destination. The debugger cannot display\n"
+			L"  Unicode characters, so the report will also be sent to a file. If no file has\n"
+			L"  been specified, the default file name is \"" VLD_DEFAULT_REPORT_FILE_NAME L"\".\n");
 
-    }
-    reportconfig();
+	}
+	reportconfig();
 }
 
 // Destructor - Detaches Visual Leak Detector from all modules loaded in the
