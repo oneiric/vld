@@ -917,139 +917,139 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 //
 VOID VisualLeakDetector::configure ()
 {
-    WCHAR        inipath [MAX_PATH] = {0};
-    struct _stat s;
-    if (_wstat(L".\\vld.ini", &s) == 0) {
-        // Found a copy of vld.ini in the working directory. Use it.
-        wcsncpy_s(inipath, MAX_PATH, L".\\vld.ini", _TRUNCATE);
-    }
-    else {
-        BOOL         keyopen = FALSE;
-        HKEY         productkey = 0;
-        DWORD        length = 0;
-        DWORD        valuetype = 0;
+	WCHAR  inipath [MAX_PATH] = {0};
+	struct _stat s;
+	if (_wstat(L".\\vld.ini", &s) == 0) {
+		// Found a copy of vld.ini in the working directory. Use it.
+		wcsncpy_s(inipath, MAX_PATH, L".\\vld.ini", _TRUNCATE);
+	}
+	else {
+		BOOL         keyopen = FALSE;
+		HKEY         productkey = 0;
+		DWORD        length = 0;
+		DWORD        valuetype = 0;
 
-        // Get the location of the vld.ini file from the registry.
-        LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-        if (regstatus == ERROR_SUCCESS) {
-            keyopen = TRUE;
-            length = MAX_PATH * sizeof(WCHAR);
-            regstatus = RegQueryValueExW(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-        }
-        if (keyopen) {
-            RegCloseKey(productkey);
-        }
+		// Get the location of the vld.ini file from the registry.
+		LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+		if (regstatus == ERROR_SUCCESS) {
+			keyopen = TRUE;
+			length = MAX_PATH * sizeof(WCHAR);
+			regstatus = RegQueryValueExW(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
+		}
+		if (keyopen) {
+			RegCloseKey(productkey);
+		}
 
-        if (!keyopen)
-        {
-            // Get the location of the vld.ini file from the registry.
-            regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-            if (regstatus == ERROR_SUCCESS) {
-                keyopen = TRUE;
-                length = MAX_PATH * sizeof(WCHAR);
-                regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-            }
-            if (keyopen) {
-                RegCloseKey(productkey);
-            }
-        }
+		if (!keyopen)
+		{
+			// Get the location of the vld.ini file from the registry.
+			regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+			if (regstatus == ERROR_SUCCESS) {
+				keyopen = TRUE;
+				length = MAX_PATH * sizeof(WCHAR);
+				regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
+			}
+			if (keyopen) {
+				RegCloseKey(productkey);
+			}
+		}
 
-        if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
-            // The location of vld.ini could not be read from the registry. As a
-            // last resort, look in the Windows directory.
-            wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
-        }
-    }
+		if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
+			// The location of vld.ini could not be read from the registry. As a
+			// last resort, look in the Windows directory.
+			wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
+		}
+	}
 
 #define BSIZE 64
-    WCHAR        buffer [BSIZE] = {0};
-    // Read the boolean options.
-    GetPrivateProfileString(L"Options", L"VLD", L"on", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == FALSE) {
-        m_options |= VLD_OPT_VLDOFF;
-        return;
-    }
+	WCHAR        buffer [BSIZE] = {0};
+	// Read the boolean options.
+	GetPrivateProfileString(L"Options", L"VLD", L"on", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == FALSE) {
+		m_options |= VLD_OPT_VLDOFF;
+		return;
+	}
 
-    GetPrivateProfileString(L"Options", L"AggregateDuplicates", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_AGGREGATE_DUPLICATES;
-    }
+	GetPrivateProfileString(L"Options", L"AggregateDuplicates", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_AGGREGATE_DUPLICATES;
+	}
 
-    GetPrivateProfileString(L"Options", L"SelfTest", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_SELF_TEST;
-    }
+	GetPrivateProfileString(L"Options", L"SelfTest", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_SELF_TEST;
+	}
 
-    GetPrivateProfileString(L"Options", L"SlowDebuggerDump", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_SLOW_DEBUGGER_DUMP;
-    }
+	GetPrivateProfileString(L"Options", L"SlowDebuggerDump", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_SLOW_DEBUGGER_DUMP;
+	}
 
-    GetPrivateProfileString(L"Options", L"StartDisabled", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_START_DISABLED;
-    }
+	GetPrivateProfileString(L"Options", L"StartDisabled", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_START_DISABLED;
+	}
 
-    GetPrivateProfileString(L"Options", L"TraceInternalFrames", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_TRACE_INTERNAL_FRAMES;
-    }
+	GetPrivateProfileString(L"Options", L"TraceInternalFrames", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_TRACE_INTERNAL_FRAMES;
+	}
 
-    GetPrivateProfileString(L"Options", L"SkipHeapFreeLeaks", L"", buffer, BSIZE, inipath);
-    if (strtobool(buffer) == TRUE) {
-        m_options |= VLD_OPT_SKIP_HEAPFREE_LEAKS;
-    }
+	GetPrivateProfileString(L"Options", L"SkipHeapFreeLeaks", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_SKIP_HEAPFREE_LEAKS;
+	}
 
-    // Read the integer configuration options.
-    m_maxdatadump = GetPrivateProfileInt(L"Options", L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
-    m_maxtraceframes = GetPrivateProfileInt(L"Options", L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
-    if (m_maxtraceframes < 1) {
-        m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
-    }
+	// Read the integer configuration options.
+	m_maxdatadump = GetPrivateProfileInt(L"Options", L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
+	m_maxtraceframes = GetPrivateProfileInt(L"Options", L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
+	if (m_maxtraceframes < 1) {
+		m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
+	}
 
-    // Read the force-include module list.
-    GetPrivateProfileString(L"Options", L"ForceIncludeModules", L"", m_forcedmodulelist, MAXMODULELISTLENGTH, inipath);
-    _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
+	// Read the force-include module list.
+	GetPrivateProfileString(L"Options", L"ForceIncludeModules", L"", m_forcedmodulelist, MAXMODULELISTLENGTH, inipath);
+	_wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
 
-    // Read the report destination (debugger, file, or both).
-    WCHAR filename [MAX_PATH] = {0};
-    GetPrivateProfileString(L"Options", L"ReportFile", L"", filename, MAX_PATH, inipath);
-    if (wcslen(filename) == 0) {
-        wcsncpy_s(filename, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
-    }
-    _wfullpath(m_reportfilepath, filename, MAX_PATH);
-    GetPrivateProfileString(L"Options", L"ReportTo", L"", buffer, BSIZE, inipath);
-    if (_wcsicmp(buffer, L"both") == 0) {
-        m_options |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
-    }
-    else if (_wcsicmp(buffer, L"file") == 0) {
-        m_options |= VLD_OPT_REPORT_TO_FILE;
-    }
-    else if (_wcsicmp(buffer, L"stdout") == 0) {
-        m_options |= VLD_OPT_REPORT_TO_STDOUT;
-    }
-    else {
-        m_options |= VLD_OPT_REPORT_TO_DEBUGGER;
-    }
+	// Read the report destination (debugger, file, or both).
+	WCHAR filename [MAX_PATH] = {0};
+	GetPrivateProfileString(L"Options", L"ReportFile", L"", filename, MAX_PATH, inipath);
+	if (wcslen(filename) == 0) {
+		wcsncpy_s(filename, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
+	}
+	_wfullpath(m_reportfilepath, filename, MAX_PATH);
+	GetPrivateProfileString(L"Options", L"ReportTo", L"", buffer, BSIZE, inipath);
+	if (_wcsicmp(buffer, L"both") == 0) {
+		m_options |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
+	}
+	else if (_wcsicmp(buffer, L"file") == 0) {
+		m_options |= VLD_OPT_REPORT_TO_FILE;
+	}
+	else if (_wcsicmp(buffer, L"stdout") == 0) {
+		m_options |= VLD_OPT_REPORT_TO_STDOUT;
+	}
+	else {
+		m_options |= VLD_OPT_REPORT_TO_DEBUGGER;
+	}
 
-    // Read the report file encoding (ascii or unicode).
-    GetPrivateProfileString(L"Options", L"ReportEncoding", L"", buffer, BSIZE, inipath);
-    if (_wcsicmp(buffer, L"unicode") == 0) {
-        m_options |= VLD_OPT_UNICODE_REPORT;
-    }
-    if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
-        // If Unicode report encoding is enabled, then the report needs to be
-        // sent to a file because the debugger will not display Unicode
-        // characters, it will display question marks in their place instead.
-        m_options |= VLD_OPT_REPORT_TO_FILE;
-        m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
-    }
+	// Read the report file encoding (ascii or unicode).
+	GetPrivateProfileString(L"Options", L"ReportEncoding", L"", buffer, BSIZE, inipath);
+	if (_wcsicmp(buffer, L"unicode") == 0) {
+		m_options |= VLD_OPT_UNICODE_REPORT;
+	}
+	if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
+		// If Unicode report encoding is enabled, then the report needs to be
+		// sent to a file because the debugger will not display Unicode
+		// characters, it will display question marks in their place instead.
+		m_options |= VLD_OPT_REPORT_TO_FILE;
+		m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
+	}
 
-    // Read the stack walking method.
-    GetPrivateProfileString(L"Options", L"StackWalkMethod", L"", buffer, BSIZE, inipath);
-    if (_wcsicmp(buffer, L"safe") == 0) {
-        m_options |= VLD_OPT_SAFE_STACK_WALK;
-    }
+	// Read the stack walking method.
+	GetPrivateProfileString(L"Options", L"StackWalkMethod", L"", buffer, BSIZE, inipath);
+	if (_wcsicmp(buffer, L"safe") == 0) {
+		m_options |= VLD_OPT_SAFE_STACK_WALK;
+	}
 }
 
 // enabled - Determines if memory leak detection is enabled for the current
@@ -1404,84 +1404,88 @@ VOID VisualLeakDetector::reportconfig ()
 //
 VOID VisualLeakDetector::reportleaks (HANDLE heap)
 {
-    assert(heap != NULL);
+	assert(heap != NULL);
 
-    // Find the heap's information (blockmap, etc).
-    EnterCriticalSection(&m_maplock);
-    HeapMap::Iterator heapit = m_heapmap->find(heap);
-    if (heapit == m_heapmap->end()) {
-        // Nothing is allocated from this heap. No leaks.
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// Find the heap's information (blockmap, etc).
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// Nothing is allocated from this heap. No leaks.
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    heapinfo_t* heapinfo = (*heapit).second;
-    BlockMap* blockmap   = &heapinfo->blockmap;
+	heapinfo_t* heapinfo = (*heapit).second;
+	BlockMap* blockmap   = &heapinfo->blockmap;
 
-    for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
-    {
-        // Found a block which is still in the BlockMap. We've identified a
-        // potential memory leak.
-        LPCVOID block = (*blockit).first;
-        blockinfo_t* info = (*blockit).second;
-        LPCVOID address = block;
-        SIZE_T size = info->size;
+	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
+	{
+		// Found a block which is still in the BlockMap. We've identified a
+		// potential memory leak.
+		LPCVOID block = (*blockit).first;
+		blockinfo_t* info = (*blockit).second;
+		LPCVOID address = block;
+		SIZE_T size = info->size;
 
-        if (heapinfo->flags & VLD_HEAP_CRT) {
-            // This block is allocated to a CRT heap, so the block has a CRT
-            // memory block header prepended to it.
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
-                // This block is marked as being used internally by the CRT.
-                // The CRT will free the block after VLD is destroyed.
-                continue;
-            }
-            // The CRT header is more or less transparent to the user, so
-            // the information about the contained block will probably be
-            // more useful to the user. Accordingly, that's the information
-            // we'll include in the report.
-            address = CRTDBGBLOCKDATA(block);
-            size = crtheader->size;
-        }
+		if (heapinfo->flags & VLD_HEAP_CRT) {
+			// This block is allocated to a CRT heap, so the block has a CRT
+			// memory block header prepended to it.
+			crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+			if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
+				// This block is marked as being used internally by the CRT.
+				// The CRT will free the block after VLD is destroyed.
+				continue;
+			}
+			// The CRT header is more or less transparent to the user, so
+			// the information about the contained block will probably be
+			// more useful to the user. Accordingly, that's the information
+			// we'll include in the report.
+			address = CRTDBGBLOCKDATA(block);
+			size = crtheader->size;
+		}
 
-        // It looks like a real memory leak.
-        if (m_leaksfound == 0) { // A confusing way to only display this message once
-            report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
-        }
-        m_leaksfound++;
-        report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, address, size);
-        if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
-            // Aggregate all other leaks which are duplicates of this one
-            // under this same heading, to cut down on clutter.
-            SIZE_T duplicates = eraseduplicates(blockit) + 1;
-            if (duplicates > 1)
-                m_leaksfound += duplicates;
+		// It looks like a real memory leak.
+		if (m_leaksfound == 0) { // A confusing way to only display this message once
+			report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
+		}
+		m_leaksfound++;
+		report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, address, size);
+		if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
+			// Aggregate all other leaks which are duplicates of this one
+			// under this same heading, to cut down on clutter.
+			SIZE_T erased = eraseduplicates(blockit);
+			if (erased > 1)
+			{
+				// add only the number that were erased, since the 'one left over'
+				// is already recorded as a leak
+				m_leaksfound += erased;
+			}
 
 			DWORD callstackCRC = CalculateCRC32(info->size, info->callstack->getHashValue());
-            report(L"Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, duplicates);
-        }
-        // Dump the call stack.
-        report(L"  Call Stack:\n");
-        assert(info->callstack);
-        if (info->callstack)
-        {
-            info->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
-        }
-        
-        // Dump the data in the user data section of the memory block.
-        if (m_maxdatadump != 0) {
-            report(L"  Data:\n");
-            if (m_options & VLD_OPT_UNICODE_REPORT) {
-                dumpmemoryw(address, (m_maxdatadump < size) ? m_maxdatadump : size);
-            }
-            else {
-                dumpmemorya(address, (m_maxdatadump < size) ? m_maxdatadump : size);
-            }
-        }
-        report(L"\n\n");
-    }
+			report(L"Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, erased + 1);
+		}
+		// Dump the call stack.
+		report(L"  Call Stack:\n");
+		assert(info->callstack);
+		if (info->callstack)
+		{
+			info->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+		}
 
-    LeaveCriticalSection(&m_maplock);
+		// Dump the data in the user data section of the memory block.
+		if (m_maxdatadump != 0) {
+			report(L"  Data:\n");
+			if (m_options & VLD_OPT_UNICODE_REPORT) {
+				dumpmemoryw(address, (m_maxdatadump < size) ? m_maxdatadump : size);
+			}
+			else {
+				dumpmemorya(address, (m_maxdatadump < size) ? m_maxdatadump : size);
+			}
+		}
+		report(L"\n\n");
+	}
+
+	LeaveCriticalSection(&m_maplock);
 }
 
 // unmapblock - Tracks memory blocks that are freed. Unmaps the specified block
