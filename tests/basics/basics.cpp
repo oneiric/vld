@@ -4,8 +4,15 @@
 #include "stdafx.h"
 #include "../../vld.h"
 #include "Allocs.h"
-#include <vector>
 
+void PrintUsage() 
+{
+	wprintf(_T("Usage:\n"));
+	wprintf(_T("\ttest_basics <type> <repeat>\n"));
+	wprintf(_T("\t<type>   - The type of memory allocation to test with. This can be one of the following:\n"));
+	wprintf(_T("\t           [malloc,new,new_array,calloc,realloc]\n"));
+	wprintf(_T("\t<repeat> - The number of times to repeat each unique memory leak.\n\n"));
+}
 
 void LeakMemory(LeakOption type, int repeat)
 {
@@ -15,16 +22,19 @@ void LeakMemory(LeakOption type, int repeat)
 	}
 }
 
-
 int _tmain(int argc, _TCHAR* argv[])
 {
 	wprintf(_T("======================================\n"));
-	wprintf(_T("VLD Tests: basics\n"));
+	wprintf(_T("==\n"));
+	wprintf(_T("==    VLD Tests: basics\n"));
+	wprintf(_T("==\n"));
 	wprintf(_T("======================================\n"));
 	if (argc == 3)
 	{
-		LeakOption leak_type = eMalloc;
-		wprintf(_T("Memory leaks will be created \n"));
+		LeakOption leak_type = eMalloc; // default
+		
+		// Pick up options to determine which type of memory allocator
+		// to test with
 		if (_tcsicmp(_T("malloc"), argv[1]) == 0)
 		{
 			leak_type = eMalloc;
@@ -45,14 +55,24 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			leak_type = eRealloc;
 		}
+		else
+		{
+			wprintf(_T("Error!: Invalid arguments\n"));
+			PrintUsage();
+			return -1;
+		}
 
+		wprintf(_T("Options: %s \nNumber of Leaks: %s\n"), argv[1], argv[2]);
+		// Convert the string into it's integer equivalent
 		int repeat = _tstoi(argv[2]);
 		LeakMemory(leak_type,repeat);
 	} 
 	else
 	{
-		wprintf(_T("No memory leaks will be created \n"));
+		wprintf(_T("Error!: Invalid arguments\n"));
+		PrintUsage();
 	}
+	wprintf(_T("End of test app...\n\n"));
 	return 0;
 }
 

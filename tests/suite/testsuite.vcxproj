@@ -130,6 +130,12 @@
       <AdditionalLibraryDirectories>$(SolutionDir)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.dll $(Outdir)\vld_x86.dll /y
+copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.pdb $(Outdir)\vld_x86.pdb /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\dbghelp.dll $(OutDir)\dbghelp.dll /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -189,10 +195,10 @@
     </Link>
     <PostBuildEvent />
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)..\$(Platform)\$(Configuration)\vld_x64.dll $(Outdir)\vld_x64.dll /y
-copy $(ProjectDir)..\$(Platform)\$(Configuration)\vld_x64.pdb $(Outdir)\vld_x64.pdb /y
-copy $(ProjectDir)..\setup\dbghelp\x64\dbghelp.dll $(OutDir)\dbghelp.dll /y
-copy $(ProjectDir)..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
+      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.dll $(Outdir)\vld_x64.dll /y
+copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.pdb $(Outdir)\vld_x64.pdb /y
+copy $(ProjectDir)..\..\setup\dbghelp\x64\dbghelp.dll $(OutDir)\dbghelp.dll /y
+copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -242,16 +248,6 @@ copy $(ProjectDir)..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Mic
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="testsuite.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\vld.vcxproj">
-      <Project>{0d30ffcb-45da-4d2b-8e3c-81bc145bf2de}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

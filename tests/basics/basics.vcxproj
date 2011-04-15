@@ -96,6 +96,12 @@
       <Version>2.1</Version>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.dll $(Outdir)\vld_x86.dll /y
+copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.pdb $(Outdir)\vld_x86.pdb /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\dbghelp.dll $(OutDir)\dbghelp.dll /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
