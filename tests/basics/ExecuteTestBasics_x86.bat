@@ -7,6 +7,7 @@
 .\Win32\Debug\test_basics new_array 5
 .\Win32\Debug\test_basics calloc 5
 .\Win32\Debug\test_basics realloc 5
+.\Win32\Debug\test_basics CoTaskMem 5
 
 pause
 

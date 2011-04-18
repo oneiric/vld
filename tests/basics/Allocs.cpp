@@ -3,6 +3,7 @@
 
 #include <new> // for placement new
 #include <crtdbg.h>
+#include <ObjBase.h>
 
 void AllocF(LeakOption type)
 {
@@ -40,6 +41,12 @@ void AllocF(LeakOption type)
 		leaked_memory = (int*)realloc(temp, 23);
 		int* temp_dbg = (int*)malloc(9);
 		leaked_memory_dbg = (int*)_realloc_dbg(temp_dbg, 21, _NORMAL_BLOCK, __FILE__, __LINE__);
+	}
+	else if (type == eCoTaskMem)
+	{
+		void* leaked = CoTaskMemAlloc(7);
+		void* realloced = NULL;
+		CoTaskMemRealloc(leaked, 29);
 	}
 }
 

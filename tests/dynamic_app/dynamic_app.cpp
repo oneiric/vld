@@ -42,6 +42,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	} 
 
 	RunLoaderTests(resolve);
+	RunMFCLoaderTests();
 	LeakDuplicateLeaks();
 
 	return 0;

@@ -1813,36 +1813,35 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t 
 //
 void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	tls_t* tls = vld.gettls();
 
-    // The new operator is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// The new operator is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pnew(size);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = pnew(size);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
 
-    return block;
+	return block;
 }
 
 // _realloc - This function is just a wrapper around the real realloc that sets

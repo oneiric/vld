@@ -55,6 +55,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			leak_type = eRealloc;
 		}
+		else if (_tcsicmp(_T("CoTaskMem"), argv[1]) == 0)
+		{
+			leak_type = eCoTaskMem;
+		}
 		else
 		{
 			wprintf(_T("Error!: Invalid arguments\n"));

@@ -47,9 +47,9 @@ void CallDynamicMethods(const CHAR* function)
 
 void RunLoaderTests( bool resolve ) 
 {
-	HMODULE hVLD = LoadLibrary(_T("dynamic.dll"));
-	assert(hVLD);
-	if (hVLD)
+	HMODULE hdyn = LoadLibrary(_T("dynamic.dll"));
+	assert(hdyn);
+	if (hdyn)
 	{
 		// Now leak some memory
 		CallDynamicMethods("SimpleLeak_New"); // This requires ansi, not Unicode strings
@@ -59,7 +59,40 @@ void RunLoaderTests( bool resolve )
 			CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
 		}
 
-		FreeLibrary(hVLD);
+		FreeLibrary(hdyn);
+	}
+}
+
+void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function ) 
+{
+	HMODULE dynamic_module = hmfcLib;
+	assert(dynamic_module);
+	typedef void (__cdecl *DYNAPI_FNC)();
+	if (dynamic_module != NULL)
+	{
+		DYNAPI_FNC func = (DYNAPI_FNC)GetProcAddress(dynamic_module, function );
+		//GetFormattedMessage(GetLastError());
+		assert(func);
+		if (func)
+		{
+			func();
+		}
+	}
+}
+
+void RunMFCLoaderTests()
+{
+	HMODULE hmfcLib = LoadLibrary(_T("test_mfc.dll"));
+	assert(hmfcLib);
+	if (hmfcLib)
+	{
+		// Now leak some memory
+		CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // This requires ansi, not Unicode strings
+		CallLibraryMethods(hmfcLib, "MFC_LeakArray");
+
+		//CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+		
+		FreeLibrary(hmfcLib);
 	}
 }
 
