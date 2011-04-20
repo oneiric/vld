@@ -50,17 +50,6 @@ CallStack::CallStack ()
     m_Resolved   = NULL;
 }
 
-// Copy Constructor - For efficiency, we want to avoid ever making copies of
-//   CallStacks (only pointer passing or reference passing should be performed).
-//   The sole purpose of this copy constructor is to ensure that no copying is
-//   being done inadvertently.
-//
-CallStack::CallStack (const CallStack &)
-{
-    // Don't make copies of CallStacks!
-    assert(FALSE);
-}
-
 // Destructor - Frees all memory allocated to the CallStack.
 //
 CallStack::~CallStack ()
@@ -373,7 +362,13 @@ void CallStack::Resolve(BOOL showinternalframes)
 		EnterCriticalSection(&symbollock);
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
+
+		// It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
+		// in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns. 
+		// When that happens there is nothing we can do except crash.
 		foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
+		assert(m_Resolved != NULL);
+
 		if (foundline)
 		{
 			if (!showinternalframes) {
