@@ -26,22 +26,18 @@ void CallVLDExportedMethod(const CHAR* function)
 	}
 }
 
-void CallDynamicMethods(const CHAR* function) 
+void CallDynamicMethods(HMODULE module, const CHAR* function) 
 {
-	HMODULE dynamic_module =  GetModuleHandle(_T("dynamic.dll"));
-	assert(dynamic_module);
-	typedef int (__cdecl *DYNAPI_FNC)();
-	if (dynamic_module != NULL)
+	typedef void (__cdecl *DYNAPI_FNC)();
+	if (module != NULL)
 	{
-		DYNAPI_FNC func = (DYNAPI_FNC)GetProcAddress(dynamic_module, function );
+		DYNAPI_FNC func = (DYNAPI_FNC)GetProcAddress(module, function );
 		//GetFormattedMessage(GetLastError());
 		assert(func);
-		int result = -1;
 		if (func)
 		{
-			result = func();
+			func();
 		}
-		assert(42 == result);
 	}
 }
 
@@ -51,8 +47,13 @@ void RunLoaderTests( bool resolve )
 	assert(hdyn);
 	if (hdyn)
 	{
-		// Now leak some memory
-		CallDynamicMethods("SimpleLeak_New"); // This requires ansi, not Unicode strings
+		VLDEnableModule(hdyn);
+
+		// Should leak 18 memory allocations in total
+		// These requires ansi, not Unicode strings
+		CallDynamicMethods(hdyn, "SimpleLeak_Malloc");    // leaks 6
+		CallDynamicMethods(hdyn, "SimpleLeak_New");       // leaks 6
+		CallDynamicMethods(hdyn, "SimpleLeak_New_Array"); // leaks 6
 
 		if (resolve)
 		{
@@ -80,17 +81,23 @@ void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
 	}
 }
 
-void RunMFCLoaderTests()
+
+void RunMFCLoaderTests(bool resolve)
 {
 	HMODULE hmfcLib = LoadLibrary(_T("test_mfc.dll"));
 	assert(hmfcLib);
 	if (hmfcLib)
 	{
-		// Now leak some memory
-		CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // This requires ansi, not Unicode strings
-		CallLibraryMethods(hmfcLib, "MFC_LeakArray");
+		VLDEnableModule(hmfcLib);
+		// Should leak 7 memory allocations in total
+		// This requires ansi, not Unicode strings
+		CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4
+		CallLibraryMethods(hmfcLib, "MFC_LeakArray");  // leaks 3
 
-		//CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+		if (resolve)
+		{
+			CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+		}
 		
 		FreeLibrary(hmfcLib);
 	}

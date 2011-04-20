@@ -21,14 +21,13 @@ void AllocF(LeakOption type)
 	}
 	else if (type == eNewArray)
 	{
-		leaked_memory = new int[45];
-		leaked_memory_dbg = new (_NORMAL_BLOCK,__FILE__,__LINE__) int[7];
+		leaked_memory = new int[3];
+		leaked_memory_dbg = new (_NORMAL_BLOCK,__FILE__,__LINE__) int[3];
 
 		// placement new operator
-		int temp[4];
+		int temp[3];
 		void* place = temp;
-		float* placed_mem = new (place) float[4]; // doesn't work. Nothing gets patched by vld
-		float f = 4.5f;
+		float* placed_mem = new (place) float[3]; // doesn't work. Nothing gets patched by vld
 	}
 	else if (type == eCalloc)
 	{

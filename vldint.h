@@ -100,7 +100,7 @@ typedef Map<HANDLE, heapinfo_t*> HeapMap;
 typedef struct moduleinfo_s {
 	BOOL operator < (const struct moduleinfo_s &other) const
 	{
-		if (addrlow < other.addrlow) {
+		if (addrhigh < other.addrlow) {
 			return TRUE;
 		}
 		else {
@@ -254,7 +254,6 @@ private:
 	// Utils
 	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
 	static void getcallstack( CallStack **&ppcallstack, context_t &context );
-	BOOL GetModuleName(UINT_PTR address, LPSTR modulepath, ULONG modulelength);
 	void SetupReporting();
 
 	////////////////////////////////////////////////////////////////////////////////

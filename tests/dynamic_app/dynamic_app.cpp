@@ -11,6 +11,7 @@ void PrintUsage()
 	wprintf(_T("\t<resolve> - [OPTIONAL] Resolves callstacks before unloading the dynamic DLL.\n"));
 }
 
+// Leaks 6 memory allocations
 void LeakDuplicateLeaks() 
 {
 	// For testing aggregation
@@ -41,9 +42,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		resolve = _tcsicmp(_T("true"), argv[1]) == 0;
 	} 
 
-	RunLoaderTests(resolve);
-	RunMFCLoaderTests();
-	LeakDuplicateLeaks();
+	RunLoaderTests(resolve);    // leaks 18
+	RunMFCLoaderTests(resolve); // leaks 7
+	LeakDuplicateLeaks();       // leaks 6
+	// ..................Total:    31 leaks total
 
 	return 0;
 }

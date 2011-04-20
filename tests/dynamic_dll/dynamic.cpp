@@ -19,19 +19,20 @@ void LeakMemory(LeakOption type, int repeat)
 }
 
 // This is an example of an exported function.
-DYNAMIC_API int SimpleLeak_New(void)
+
+void SimpleLeak_Malloc(void)
 {
+	LeakMemory(eMalloc, 3); // leaks 6
+}
 
-	LeakMemory(eMalloc, 3);
-	LeakMemory(eNew, 3);
-	LeakMemory(eNewArray, 3);
-	LeakMemory(eCalloc, 3);
-	LeakMemory(eRealloc, 3);
+void SimpleLeak_New(void)
+{
+	LeakMemory(eNew, 3); // leaks 6
+}
 
-
-	int* pint = new int(5);
-
-	return 42;
+void SimpleLeak_New_Array(void)
+{
+	LeakMemory(eNewArray, 3); // leaks 6
 }
 
 // This is the constructor of a class that has been exported.

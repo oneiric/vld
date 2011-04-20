@@ -20,7 +20,12 @@ public:
 
 extern DYNAMIC_API int ndynamic;
 
-DYNAMIC_API int SimpleLeak_New(void);
+// Leaks 2*3=6 allocations
+DYNAMIC_API void SimpleLeak_Malloc(void);
+// Leaks 2*3=6 allocations
+DYNAMIC_API void SimpleLeak_New(void);
+// Leaks 2*3=6 allocations
+DYNAMIC_API void SimpleLeak_New_Array(void);
 
 }
 

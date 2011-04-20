@@ -2626,38 +2626,23 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 // Find the information for the module that initiated this reallocation.
 BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 {
-    BOOL                 excluded = FALSE;
-    moduleinfo_t         moduleinfo;
-    ModuleSet::Iterator  moduleit;
-    moduleinfo.addrhigh = address;
-    moduleinfo.addrlow  = address;
-    EnterCriticalSection(&vld.m_moduleslock);
-    moduleit = vld.m_loadedmodules->find(moduleinfo);
-    if (moduleit != vld.m_loadedmodules->end()) {
-        excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
-    }
-    LeaveCriticalSection(&vld.m_moduleslock);
-    return excluded;
-}
+	BOOL excluded = FALSE;
 
-// Find name of the module.
-BOOL VisualLeakDetector::GetModuleName(UINT_PTR address, LPSTR modulepath, ULONG modulelength)
-{
-    BOOL                 succeded = FALSE;
-    moduleinfo_t         moduleinfo;
-    ModuleSet::Iterator  moduleit;
-    moduleinfo.addrhigh = address;
-    moduleinfo.addrlow  = address;
-    EnterCriticalSection(&m_moduleslock);
-    moduleit = m_loadedmodules->find(moduleinfo);
-    if (moduleit != m_loadedmodules->end()) {
-        strncpy_s(modulepath, modulelength, (*moduleit).name, _TRUNCATE);
-        succeded = true;
-    }
-    else
-        modulepath[0] = '\0';
-    LeaveCriticalSection(&m_moduleslock);
-    return succeded;
+	EnterCriticalSection(&vld.m_moduleslock);
+	for (ModuleSet::Iterator it = vld.m_loadedmodules->begin();
+		it != vld.m_loadedmodules->end();
+		it++)
+	{
+		moduleinfo_t mod = (*it);
+		if ((mod.addrlow <= address) && (address <= mod.addrhigh))
+		{
+			excluded = mod.flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
+			break;
+		}
+	}
+
+	LeaveCriticalSection(&vld.m_moduleslock);
+	return excluded;
 }
 
 // _RtlReAllocateHeap - Calls to RtlReAllocateHeap are patched through to this

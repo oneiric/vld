@@ -69,6 +69,7 @@ int CmfcApp::ExitInstance()
 	return 0;
 }
 
+// Leaks 4 memory allocations
 extern "C" void __declspec(dllexport) MFC_LeakSimple()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -80,6 +81,7 @@ extern "C" void __declspec(dllexport) MFC_LeakSimple()
 	CString* str_d = new (_NORMAL_BLOCK, __FILE__, __LINE__) CString(_T("4 parameter new for mfc"));
 }
 
+// Leaks 3 memory allocations
 extern "C" void __declspec(dllexport) MFC_LeakArray()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());

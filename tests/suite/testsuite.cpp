@@ -61,8 +61,8 @@ enum action_e {
 #define MAXSIZE      64                      // Maximum block size to allocate
 #define MINDEPTH     0                       // Minimum depth of the allocation call stack
 #define MINSIZE      16                      // Minimum block size to allocate
-#define NUMDUPLEAKS  3                       // Number of times to duplicate each leak
-#define NUMTHREADS   72                      // Number of threads to run simultaneously
+static const int NUMDUPLEAKS = 3;            // Number of times to duplicate each leak
+static const int NUMTHREADS = 63;            // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 typedef struct blockholder_s {
@@ -261,7 +261,7 @@ VOID recursivelyallocate (UINT depth, action_e action, SIZE_T size)
 	}
 }
 
-DWORD __stdcall runtestsuite (LPVOID param)
+DWORD __stdcall threadproc_test (LPVOID param)
 {
 	action_e         action;
 	USHORT           action_index;
@@ -367,6 +367,7 @@ int main (int argc, char *argv [])
 
 	// Select a random thread to be the leaker.
 	UINT leakythread = random(NUMTHREADS - 1);
+	HANDLE threads[NUMTHREADS] = {0};
 
 	for (UINT index = 0; index < NUMTHREADS; ++index) {
 		contexts[index].index = index;
@@ -376,18 +377,45 @@ int main (int argc, char *argv [])
 			contexts[index].leaky = FALSE;
 		contexts[index].seed = random(RAND_MAX);
 		contexts[index].terminated = FALSE;
-		CreateThread(NULL, 0, runtestsuite, &contexts[index], 0, &contexts[index].threadid);
+		HANDLE hthread = CreateThread(NULL, 0, threadproc_test, &contexts[index], 0, &contexts[index].threadid);
+		threads[index] = hthread;
 	}
-
+	
 	// Wait for all threads to terminate.
-	// BTW: This is NOT how to wait for the threads to finish. 
-	// TODO: Fix this to use WaitForMultipleObjects...
-	// As a result of this, I'm getting asserts up at assert(total_allocs == 0), 
-	// at the end of the threaded function
-	for (UINT index = 0; index < NUMTHREADS; ++index) {
-		while (contexts[index].terminated == FALSE) {
-			Sleep(10);
+	BOOL wait_for_all = TRUE;
+	DWORD result = WaitForMultipleObjects(NUMTHREADS, threads, wait_for_all, 45*1000);
+	switch (result)
+	{
+	case WAIT_OBJECT_0:
+		_tprintf(_T("All threads finished correctly.\n"));
+		break;
+	case WAIT_ABANDONED_0:
+		_tprintf(_T("Abandoned mutex.\n"));
+		break;
+	case WAIT_TIMEOUT:
+		_tprintf(_T("All threads timed out\n"));
+		break;
+	case WAIT_FAILED:
+		{
+			_tprintf(_T("Function call to Wait failed with unknown error\n"));
+			TCHAR lpMsgBuf[MAX_PATH] = {0};
+			FormatMessage(
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				GetLastError(),
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				lpMsgBuf,
+				MAX_PATH,
+				NULL );
+	
+			_tprintf(_T("%s"), lpMsgBuf);
 		}
+
+		break;
+	default:
+		_tprintf(_T("Some other return value\n"));
+		break;
 	}
 
 	DWORD end = GetTickCount();
