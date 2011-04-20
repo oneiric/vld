@@ -100,7 +100,7 @@ typedef Map<HANDLE, heapinfo_t*> HeapMap;
 typedef struct moduleinfo_s {
 	BOOL operator < (const struct moduleinfo_s &other) const
 	{
-		if (addrhigh < other.addrlow) {
+		if (addrlow < other.addrlow) {
 			return TRUE;
 		}
 		else {
