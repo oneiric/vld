@@ -2626,21 +2626,18 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 // Find the information for the module that initiated this reallocation.
 BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 {
-	BOOL excluded = FALSE;
+	BOOL                 excluded = FALSE;
+	moduleinfo_t         moduleinfo;
+	ModuleSet::Iterator  moduleit;
+	moduleinfo.addrhigh = address;
+	moduleinfo.addrlow  = address + 1024;
+	moduleinfo.flags = 0;
 
 	EnterCriticalSection(&vld.m_moduleslock);
-	for (ModuleSet::Iterator it = vld.m_loadedmodules->begin();
-		it != vld.m_loadedmodules->end();
-		it++)
-	{
-		moduleinfo_t mod = (*it);
-		if ((mod.addrlow <= address) && (address <= mod.addrhigh))
-		{
-			excluded = mod.flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
-			break;
-		}
+	moduleit = vld.m_loadedmodules->find(moduleinfo);
+	if (moduleit != vld.m_loadedmodules->end()) {
+		excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
 	}
-
 	LeaveCriticalSection(&vld.m_moduleslock);
 	return excluded;
 }
