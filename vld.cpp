@@ -2629,8 +2629,8 @@ BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 	BOOL                 excluded = FALSE;
 	moduleinfo_t         moduleinfo;
 	ModuleSet::Iterator  moduleit;
-	moduleinfo.addrhigh = address;
-	moduleinfo.addrlow  = address + 1024;
+	moduleinfo.addrlow  = address;
+	moduleinfo.addrhigh = address + 1024;
 	moduleinfo.flags = 0;
 
 	EnterCriticalSection(&vld.m_moduleslock);
