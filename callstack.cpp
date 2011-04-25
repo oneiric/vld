@@ -67,7 +67,7 @@ CallStack::~CallStack ()
 	{
 		for (UINT32 frame = 0; frame < m_size; frame++)
 		{
-			delete m_Resolved[frame];
+			delete [] m_Resolved[frame];
 			m_Resolved[frame] = NULL;
 		}
 		delete [] m_Resolved;
