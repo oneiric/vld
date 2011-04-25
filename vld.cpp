@@ -597,8 +597,8 @@ VisualLeakDetector::~VisualLeakDetector ()
 
         // Free internally allocated resources used by the loaded module set.
         for (ModuleSet::Iterator moduleit = m_loadedmodules->begin(); moduleit != m_loadedmodules->end(); ++moduleit) {
-            delete (*moduleit).name;
-            delete (*moduleit).path;
+            delete [] (*moduleit).name;
+            delete [] (*moduleit).path;
         }
         delete m_loadedmodules;
 
@@ -2462,8 +2462,8 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
 
 		// Free resources used by the old module list.
 		for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
-			delete (*moduleit).name;
-			delete (*moduleit).path;
+			delete [] (*moduleit).name;
+			delete [] (*moduleit).path;
 		}
 		delete oldmodules;
 	}
@@ -2499,8 +2499,8 @@ VOID VisualLeakDetector::RefreshModules()
 
     // Free resources used by the old module list.
     for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
-        delete (*moduleit).name;
-        delete (*moduleit).path;
+        delete [] (*moduleit).name;
+        delete [] (*moduleit).path;
     }
     delete oldmodules;
 
