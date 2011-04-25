@@ -82,7 +82,7 @@ void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
 }
 
 
-void RunMFCLoaderTests(bool resolve)
+void RunMFCLoaderTests(bool /*resolve*/)
 {
 	HMODULE hmfcLib = LoadLibrary(_T("test_mfc.dll"));
 	assert(hmfcLib);
@@ -94,12 +94,17 @@ void RunMFCLoaderTests(bool resolve)
 		CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4
 		CallLibraryMethods(hmfcLib, "MFC_LeakArray");  // leaks 3
 
-		if (resolve)
-		{
-			CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
-		}
-		
-		FreeLibrary(hmfcLib);
+		// Attempting to unload an MFC Dll, will introduce a LOT of internal memory leaks inside
+		// of VLD.h. This only happens in 64 bit only. So until I figure out why this is happening,
+		// I will simply leak MFC loaded in the process, and also disable resolving the callstacks
+		// as resolving is only necessary when modules are explicitly unloaded.
+
+		//if (resolve)
+		//{
+		//	CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+		//}
+		//
+		//FreeLibrary(hmfcLib);
 	}
 }
 

@@ -412,7 +412,7 @@ VisualLeakDetector::VisualLeakDetector ()
 	m_selftestline    = 0;
 	m_tlsindex        = TlsAlloc();
 	InitializeCriticalSection(&m_tlslock);
-	m_tlsset          = new TlsSet;
+	m_tlsmap          = new TlsMap;
 
 	if (m_options & VLD_OPT_SELF_TEST) {
 		// Self-test mode has been enabled. Intentionally leak a small amount of
@@ -527,13 +527,13 @@ VisualLeakDetector::~VisualLeakDetector ()
 
         // See if any threads that have ever entered VLD's code are still active.
         EnterCriticalSection(&m_tlslock);
-        for (TlsSet::Iterator tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
-            if ((*tlsit)->threadid == GetCurrentThreadId()) {
+        for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+            if ((*tlsit).second->threadid == GetCurrentThreadId()) {
                 // Don't wait for the current thread to exit.
                 continue;
             }
 
-            HANDLE thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, (*tlsit)->threadid);
+            HANDLE thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, (*tlsit).second->threadid);
             if (thread == NULL) {
                 // Couldn't query this thread. We'll assume that it exited.
                 continue; // XXX should we check GetLastError()?
@@ -603,10 +603,10 @@ VisualLeakDetector::~VisualLeakDetector ()
         delete m_loadedmodules;
 
         // Free internally allocated resources used for thread local storage.
-        for (TlsSet::Iterator tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
-            delete *tlsit;
+        for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+            delete (*tlsit).second;
         }
-        delete m_tlsset;
+        delete m_tlsmap;
 
         // Do a memory leak self-check.
         vldblockheader_t *header = vldblocklist;
@@ -652,7 +652,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     else {
         // VLD failed to load properly.
         delete m_heapmap;
-        delete m_tlsset;
+        delete m_tlsmap;
     }
     HeapDestroy(vldheap);
 
@@ -1155,7 +1155,7 @@ tls_t* VisualLeakDetector::gettls ()
 
 		// Add this thread's TLS to the TlsSet.
 		EnterCriticalSection(&m_tlslock);
-        m_tlsset->insert(tls);
+		m_tlsmap->insert(tls->threadid,tls);
 		LeaveCriticalSection(&m_tlslock);
 	}
 
@@ -3222,11 +3222,11 @@ void VisualLeakDetector::GlobalDisableLeakDetection ()
 
     // Disable memory leak detection for all threads.
     EnterCriticalSection(&m_tlslock);
-    TlsSet::Iterator     tlsit;
-    for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
-        (*tlsit)->oldflags = (*tlsit)->flags;
-        (*tlsit)->flags &= ~VLD_TLS_ENABLED;
-        (*tlsit)->flags |= VLD_TLS_DISABLED;
+    TlsMap::Iterator     tlsit;
+    for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+        (*tlsit).second->oldflags = (*tlsit).second->flags;
+        (*tlsit).second->flags &= ~VLD_TLS_ENABLED;
+        (*tlsit).second->flags |= VLD_TLS_DISABLED;
     }
     LeaveCriticalSection(&m_tlslock);
 }
@@ -3240,11 +3240,11 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 
     // Enable memory leak detection for all threads.
     EnterCriticalSection(&m_tlslock);
-    TlsSet::Iterator     tlsit;
-    for (tlsit = m_tlsset->begin(); tlsit != m_tlsset->end(); ++tlsit) {
-        (*tlsit)->oldflags = (*tlsit)->flags;
-        (*tlsit)->flags &= ~VLD_TLS_DISABLED;
-        (*tlsit)->flags |= VLD_TLS_ENABLED;
+    TlsMap::Iterator     tlsit;
+    for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+        (*tlsit).second->oldflags = (*tlsit).second->flags;
+        (*tlsit).second->flags &= ~VLD_TLS_DISABLED;
+        (*tlsit).second->flags |= VLD_TLS_ENABLED;
     }
     LeaveCriticalSection(&m_tlslock);
     m_status &= ~VLD_STATUS_NEVER_ENABLED;

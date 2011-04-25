@@ -73,11 +73,11 @@ typedef void* (__cdecl *realloc_t) (void *, size_t);
 // The data is stored in this structure and these structures are stored in
 // a BlockMap which maps each of these structures to its corresponding memory
 // block.
-typedef struct blockinfo_s {
+struct blockinfo_t {
 	CallStack *callstack;
 	SIZE_T     serialnumber;
 	SIZE_T     size;
-} blockinfo_t;
+};
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
 typedef Map<LPCVOID, blockinfo_t*> BlockMap;
@@ -85,11 +85,11 @@ typedef Map<LPCVOID, blockinfo_t*> BlockMap;
 // Information about each heap in the process is kept in this map. Primarily
 // this is used for mapping heaps to all of the blocks allocated from those
 // heaps.
-typedef struct heapinfo_s {
+struct heapinfo_t {
 	BlockMap blockmap;   // Map of all blocks allocated from this heap.
 	UINT32   flags;      // Heap status flags:
 #define VLD_HEAP_CRT 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
-} heapinfo_t;
+};
 
 // HeapMaps map heaps (via their handles) to BlockMaps.
 typedef Map<HANDLE, heapinfo_t*> HeapMap;
@@ -97,8 +97,8 @@ typedef Map<HANDLE, heapinfo_t*> HeapMap;
 // This structure stores information, primarily the virtual address range, about
 // a given module and can be used with the Set template because it supports the
 // '<' operator (sorts by virtual address range).
-typedef struct moduleinfo_s {
-	BOOL operator < (const struct moduleinfo_s &other) const
+struct moduleinfo_t {
+	BOOL operator < (const struct moduleinfo_t& other) const
 	{
 		if (addrhigh < other.addrlow) {
 			return TRUE;
@@ -115,7 +115,7 @@ typedef struct moduleinfo_s {
 #define VLD_MODULE_SYMBOLSLOADED 0x2 //   If set, this module's debug symbols have been loaded.
 	LPCSTR name;                     // The module's name (e.g. "kernel32.dll").
 	LPCSTR path;                     // The fully qualified path from where the module was loaded.
-} moduleinfo_t;
+};
 
 // ModuleSets store information about modules loaded in the process.
 typedef Set<moduleinfo_t> ModuleSet;
@@ -124,7 +124,7 @@ typedef Set<moduleinfo_t> ModuleSet;
 // of this structure. Thread specific information, such as the current leak
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
-typedef struct tls_s {
+struct tls_t {
 	context_t context;       // Address of return address at the first call that entered VLD's code for the current allocation.
 	UINT32 flags;            // Thread-local status flags:
 #define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
@@ -133,11 +133,11 @@ typedef struct tls_s {
 	UINT32 oldflags;         // Thread-local status old flags
 	DWORD  threadid;         // Thread ID of the thread that owns this TLS structure.
 	CallStack **ppcallstack; // Memory block callstack pointer.
-} tls_t;
+};
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
 // allocated in the process.
-typedef Set<tls_t*> TlsSet;
+typedef Map<DWORD,tls_t*> TlsMap;
 
 class CallStack;
 
@@ -310,7 +310,7 @@ private:
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
 	DWORD                m_tlsindex;          // Thread-local storage index.
 	CRITICAL_SECTION     m_tlslock;           // Protects accesses to the Set of TLS structures.
-	TlsSet              *m_tlsset;            // Set of all all thread-local storage structres for the process.
+	TlsMap              *m_tlsmap;            // Set of all all thread-local storage structres for the process.
 	HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
 
 	typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
