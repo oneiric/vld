@@ -117,11 +117,11 @@ private:
 	CallStack::chunk_t *m_topchunk; // Pointer to the chunk at the top of the stack
 	UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
 
-	// An array of strings that contains the stack converted into a human readable format.
-	// The number of strings is always equal to m_size
-	// Currently I'm only allowing a maximum of (MAX_PATH * 2) characters in each string.
+	// The string that contains the stack converted into a human readable format.
 	// This is always NULL if the callstack has not been 'converted'.
-	WCHAR**              m_Resolved; 
+	WCHAR*              m_Resolved;
+	int                 m_ResolvedCapacity;
+	int                 m_ResolvedLength;
 	// Prints out the strings in m_Resolved when the time comes to report the callstack in
 	// human readable form. Currently this is only called by the dump method.
 	void DumpResolved() const;

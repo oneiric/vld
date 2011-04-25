@@ -41,13 +41,15 @@ extern CRITICAL_SECTION   symbollock;
 //
 CallStack::CallStack ()
 {
-    m_capacity   = CALLSTACKCHUNKSIZE;
-    m_size       = 0;
-    m_status     = 0x0;
-    m_store.next = NULL;
-    m_topchunk   = &m_store;
-    m_topindex   = 0;
-    m_Resolved   = NULL;
+	m_capacity   = CALLSTACKCHUNKSIZE;
+	m_size       = 0;
+	m_status     = 0x0;
+	m_store.next = NULL;
+	m_topchunk   = &m_store;
+	m_topindex   = 0;
+	m_Resolved   = NULL;
+	m_ResolvedCapacity   = 0;
+	m_ResolvedLength = 0;
 }
 
 // Destructor - Frees all memory allocated to the CallStack.
@@ -65,27 +67,12 @@ CallStack::~CallStack ()
 
 	if (m_Resolved)
 	{
-		for (UINT32 frame = 0; frame < m_size; frame++)
-		{
-			delete [] m_Resolved[frame];
-			m_Resolved[frame] = NULL;
-		}
 		delete [] m_Resolved;
 	}
 
 	m_Resolved = NULL;
-}
-
-// operator = - Assignment operator. For efficiency, we want to avoid ever
-//   making copies of CallStacks (only pointer passing or reference passing
-//   should be performed). The sole purpose of this assignment operator is to
-//   ensure that no copying is being done inadvertently.
-//
-CallStack& CallStack::operator = (const CallStack &)
-{
-    // Don't make copies of CallStacks!
-    assert(FALSE);
-    return *this;
+	m_ResolvedCapacity = 0;
+	m_ResolvedLength = 0;
 }
 
 // operator == - Equality operator. Compares the CallStack to another CallStack
@@ -172,14 +159,13 @@ VOID CallStack::clear ()
 	m_size     = 0;
 	m_topchunk = &m_store;
 	m_topindex = 0;
-
 	if (m_Resolved)
 	{
-		for (UINT32 frame = 0; frame < m_size; frame++)
-		{
-			m_Resolved[frame] = NULL;
-		}
+		delete [] m_Resolved;
+		m_Resolved = NULL;
 	}
+	m_ResolvedCapacity = 0;
+	m_ResolvedLength = 0;
 }
 
 
@@ -349,10 +335,13 @@ void CallStack::Resolve(BOOL showinternalframes)
 	WCHAR undecoratedname [MAXSYMBOLNAMELENGTH] = L"";
 	WCHAR callingmodulename [MAX_PATH] = L"";
 
-	m_Resolved = new WCHAR*[m_size];
-	ZeroMemory(m_Resolved, sizeof(WCHAR*) * m_size);
-	const size_t max_size = MAXREPORTLENGTH + 1;
-
+	const size_t max_line_length = MAXREPORTLENGTH + 1;
+	m_ResolvedCapacity = m_size * max_line_length;
+	m_Resolved = new WCHAR[m_ResolvedCapacity];
+	const size_t allocedBytes = m_ResolvedCapacity * sizeof(WCHAR);
+	ZeroMemory(m_Resolved, allocedBytes);
+	
+	
 	// Iterate through each frame in the call stack.
 	for (UINT32 frame = 0; frame < m_size; frame++)
 	{
@@ -424,30 +413,31 @@ void CallStack::Resolve(BOOL showinternalframes)
 
 		// Use static here to increase performance, and avoid heap allocs. Hopefully this won't
 		// prove to be an issue in thread safety. If it does, it will have to be simply non-static.
-		static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
+		static WCHAR stack_line[max_line_length] = L"";
 		int NumChars = -1;
 		// Display the current stack frame's information.
 		if (foundline) {
 			// Just truncate anything that is too long.
 			if (displacement == 0)
-				NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s\n", 
+				NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s\n", 
 				sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname);
 			else
-				NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n", 
+				NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n", 
 				sourceinfo.FileName, sourceinfo.LineNumber, modulename, functionname, displacement);
 		}
 		else {
 			if (displacement64 == 0)
-				NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n", 
+				NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n", 
 				programcounter, modulename, functionname);
 			else
-				NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n", 
+				NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n", 
 				programcounter, modulename, functionname, (DWORD)displacement64);
 		}
 
 		if (NumChars >= 0) {
-			m_Resolved[frame] = new WCHAR[NumChars + 1];
-			wcscpy_s(m_Resolved[frame], NumChars + 1, stack_line);
+			assert(m_Resolved != NULL);
+			m_ResolvedLength += NumChars;
+			wcsncat_s(m_Resolved, m_ResolvedCapacity, stack_line, NumChars);
 		}
 	} // end for loop
 }
@@ -457,9 +447,13 @@ void CallStack::DumpResolved() const
 {
 	if (m_Resolved)
 	{
-		for (UINT32 frame = 0; frame < m_size; frame++)
+		int index = 0;
+		WCHAR* resolved_stack = m_Resolved;
+		while(index < m_ResolvedLength)
 		{
-			print(m_Resolved[frame]);
+			print(resolved_stack);
+			resolved_stack += MAXREPORTLENGTH + 1;
+			index += MAXREPORTLENGTH + 1;
 		}
 	}
 }

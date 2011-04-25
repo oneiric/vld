@@ -508,169 +508,169 @@ VisualLeakDetector::VisualLeakDetector ()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    size_t               count;
-    SIZE_T               internalleaks = 0;
-    WCHAR                leakfilew [MAX_PATH];
-    const char          *leakfile = NULL;
-    int                  leakline = 0;
-    BOOL                 threadsactive= FALSE;
-    if (m_status & VLD_STATUS_INSTALLED) {
-        // Detach Visual Leak Detector from all previously attached modules.
-        EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
+	size_t               count;
+	SIZE_T               internalleaks = 0;
+	WCHAR                leakfilew [MAX_PATH];
+	BOOL                 threadsactive= FALSE;
+	if (m_status & VLD_STATUS_INSTALLED) {
+		// Detach Visual Leak Detector from all previously attached modules.
+		EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
 
-        DWORD dwCurProcessID = GetCurrentProcessId();
+		DWORD dwCurProcessID = GetCurrentProcessId();
 
-        // See if any threads that have ever entered VLD's code are still active.
-        EnterCriticalSection(&m_tlslock);
-        for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
-            if ((*tlsit).second->threadid == GetCurrentThreadId()) {
-                // Don't wait for the current thread to exit.
-                continue;
-            }
+		// See if any threads that have ever entered VLD's code are still active.
+		EnterCriticalSection(&m_tlslock);
+		for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+			if ((*tlsit).second->threadid == GetCurrentThreadId()) {
+				// Don't wait for the current thread to exit.
+				continue;
+			}
 
-            HANDLE thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, (*tlsit).second->threadid);
-            if (thread == NULL) {
-                // Couldn't query this thread. We'll assume that it exited.
-                continue; // XXX should we check GetLastError()?
-            }
-            if (GetProcessIdOfThread(thread) != dwCurProcessID) {
-                //The thread ID has been recycled.
-                CloseHandle(thread);
-                continue;
-            }
-            while (WaitForSingleObject(thread, 10000) == WAIT_TIMEOUT) { // 10 seconds
-                // There is still at least one other thread running. The CRT
-                // will stomp it dead when it cleans up, which is not a
-                // graceful way for a thread to go down. Warn about this,
-                // and wait until the thread has exited so that we know it
-                // can't still be off running somewhere in VLD's code.
-                // 
-                // Since we've been waiting a while, let the human know we are
-                // still here and alive.
-                threadsactive = TRUE;
-                report(L"Visual Leak Detector: Waiting for threads to terminate...\n");
-            }
-            CloseHandle(thread);
-        }
-        LeaveCriticalSection(&m_tlslock);
+			HANDLE thread = OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION, FALSE, (*tlsit).second->threadid);
+			if (thread == NULL) {
+				// Couldn't query this thread. We'll assume that it exited.
+				continue; // XXX should we check GetLastError()?
+			}
+			if (GetProcessIdOfThread(thread) != dwCurProcessID) {
+				//The thread ID has been recycled.
+				CloseHandle(thread);
+				continue;
+			}
+			while (WaitForSingleObject(thread, 10000) == WAIT_TIMEOUT) { // 10 seconds
+				// There is still at least one other thread running. The CRT
+				// will stomp it dead when it cleans up, which is not a
+				// graceful way for a thread to go down. Warn about this,
+				// and wait until the thread has exited so that we know it
+				// can't still be off running somewhere in VLD's code.
+				// 
+				// Since we've been waiting a while, let the human know we are
+				// still here and alive.
+				threadsactive = TRUE;
+				report(L"Visual Leak Detector: Waiting for threads to terminate...\n");
+			}
+			CloseHandle(thread);
+		}
+		LeaveCriticalSection(&m_tlslock);
 
-        if (m_status & VLD_STATUS_NEVER_ENABLED) {
-            // Visual Leak Detector started with leak detection disabled and
-            // it was never enabled at runtime. A lot of good that does.
-            report(L"WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
-        }
-        else {
-            // Generate a memory leak report for each heap in the process.
-            ReportLeaks();
+		if (m_status & VLD_STATUS_NEVER_ENABLED) {
+			// Visual Leak Detector started with leak detection disabled and
+			// it was never enabled at runtime. A lot of good that does.
+			report(L"WARNING: Visual Leak Detector: Memory leak detection was never enabled.\n");
+		}
+		else {
+			// Generate a memory leak report for each heap in the process.
+			ReportLeaks();
 
-            // Show a summary.
-            if (m_leaksfound == 0) {
-                report(L"No memory leaks detected.\n");
-            }
-            else {
-                report(L"Visual Leak Detector detected %Iu memory leak", m_leaksfound);
-                report((m_leaksfound > 1) ? L"s.\n" : L".\n");
-            }
-        }
+			// Show a summary.
+			if (m_leaksfound == 0) {
+				report(L"No memory leaks detected.\n");
+			}
+			else {
+				report(L"Visual Leak Detector detected %Iu memory leak", m_leaksfound);
+				report((m_leaksfound > 1) ? L"s.\n" : L".\n");
+			}
+		}
 
-        // Free resources used by the symbol handler.
-        if (!SymCleanup(currentprocess)) {
-            report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n",
-                GetLastError());
-        }
+		// Free resources used by the symbol handler.
+		if (!SymCleanup(currentprocess)) {
+			report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n",
+				GetLastError());
+		}
 
-        // Free internally allocated resources used by the heapmap and blockmap.
-        for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-            BlockMap *blockmap = &(*heapit).second->blockmap;
-            for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-                delete (*blockit).second->callstack;
-                delete (*blockit).second;
-            }
-            delete blockmap;
-        }
-        delete m_heapmap;
+		// Free internally allocated resources used by the heapmap and blockmap.
+		for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+			BlockMap *blockmap = &(*heapit).second->blockmap;
+			for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+				delete (*blockit).second->callstack;
+				delete (*blockit).second;
+			}
+			delete blockmap;
+		}
+		delete m_heapmap;
 
-        // Free internally allocated resources used by the loaded module set.
-        for (ModuleSet::Iterator moduleit = m_loadedmodules->begin(); moduleit != m_loadedmodules->end(); ++moduleit) {
-            delete [] (*moduleit).name;
-            delete [] (*moduleit).path;
-        }
-        delete m_loadedmodules;
+		// Free internally allocated resources used by the loaded module set.
+		for (ModuleSet::Iterator moduleit = m_loadedmodules->begin(); moduleit != m_loadedmodules->end(); ++moduleit) {
+			delete [] (*moduleit).name;
+			delete [] (*moduleit).path;
+		}
+		delete m_loadedmodules;
 
-        // Free internally allocated resources used for thread local storage.
-        for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
-            delete (*tlsit).second;
-        }
-        delete m_tlsmap;
+		// Free internally allocated resources used for thread local storage.
+		for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+			delete (*tlsit).second;
+		}
+		delete m_tlsmap;
 
-        // Do a memory leak self-check.
-        vldblockheader_t *header = vldblocklist;
-        while (header) {
-            // Doh! VLD still has an internally allocated block!
-            // This won't ever actually happen, right guys?... guys?
-            internalleaks++;
-            leakfile = header->file;
-            leakline = header->line;
-            mbstowcs_s(&count, leakfilew, MAX_PATH, leakfile, _TRUNCATE);
-            report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
-            report(L"---------- Block %Iu at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber,
-                VLDBLOCKDATA(header), header->size);
-            report(L"  Call Stack:\n");
-            report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
-            if (m_maxdatadump != 0) {
-                report(L"  Data:\n");
-                if (m_options & VLD_OPT_UNICODE_REPORT) {
-                    dumpmemoryw(VLDBLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
-                }
-                else {
-                    dumpmemorya(VLDBLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
-                }
-            }
-            report(L"\n");
-            header = header->next;
-        }
-        if (m_options & VLD_OPT_SELF_TEST) {
-            if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
-                report(L"Visual Leak Detector passed the memory leak self-test.\n");
-            }
-            else {
-                report(L"ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
-            }
-        }
+		const char* leakfile = NULL;
+		int leakline = 0;
 
-        if (threadsactive == TRUE) {
-            report(L"WARNING: Visual Leak Detector: Some threads appear to have not terminated normally.\n"
-                L"  This could cause inaccurate leak detection results, including false positives.\n");
-        }
-        report(L"Visual Leak Detector is now exiting.\n");
-    }
-    else {
-        // VLD failed to load properly.
-        delete m_heapmap;
-        delete m_tlsmap;
-    }
-    HeapDestroy(vldheap);
+		// Do a memory leak self-check.
+		vldblockheader_t *header = vldblocklist;
+		while (header) {
+			// Doh! VLD still has an internally allocated block!
+			// This won't ever actually happen, right guys?... guys?
+			internalleaks++;
+			leakfile = header->file;
+			leakline = header->line;
+			mbstowcs_s(&count, leakfilew, MAX_PATH, leakfile, _TRUNCATE);
+			report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
+			report(L"---------- Block %Iu at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialnumber, VLDBLOCKDATA(header), header->size);
+			report(L"  Call Stack:\n");
+			report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
+			if (m_maxdatadump != 0) {
+				report(L"  Data:\n");
+				if (m_options & VLD_OPT_UNICODE_REPORT) {
+					dumpmemoryw(VLDBLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+				}
+				else {
+					dumpmemorya(VLDBLOCKDATA(header), (m_maxdatadump < header->size) ? m_maxdatadump : header->size);
+				}
+			}
+			report(L"\n");
+			header = header->next;
+		}
+		if (m_options & VLD_OPT_SELF_TEST) {
+			if ((internalleaks == 1) && (strcmp(leakfile, m_selftestfile) == 0) && (leakline == m_selftestline)) {
+				report(L"Visual Leak Detector passed the memory leak self-test.\n");
+			}
+			else {
+				report(L"ERROR: Visual Leak Detector: Failed the memory leak self-test.\n");
+			}
+		}
 
-    DeleteCriticalSection(&imagelock);
-    DeleteCriticalSection(&m_loaderlock);
-    DeleteCriticalSection(&m_maplock);
-    DeleteCriticalSection(&m_moduleslock);
-    DeleteCriticalSection(&stackwalklock);
-    DeleteCriticalSection(&symbollock);
-    DeleteCriticalSection(&vldheaplock);
+		if (threadsactive == TRUE) {
+			report(L"WARNING: Visual Leak Detector: Some threads appear to have not terminated normally.\n"
+				L"  This could cause inaccurate leak detection results, including false positives.\n");
+		}
+		report(L"Visual Leak Detector is now exiting.\n");
+	}
+	else {
+		// VLD failed to load properly.
+		delete m_heapmap;
+		delete m_tlsmap;
+	}
+	HeapDestroy(vldheap);
 
-    if (m_tlsindex != TLS_OUT_OF_INDEXES) {
-        TlsFree(m_tlsindex);
-    }
+	DeleteCriticalSection(&imagelock);
+	DeleteCriticalSection(&m_loaderlock);
+	DeleteCriticalSection(&m_maplock);
+	DeleteCriticalSection(&m_moduleslock);
+	DeleteCriticalSection(&stackwalklock);
+	DeleteCriticalSection(&symbollock);
+	DeleteCriticalSection(&vldheaplock);
 
-    if (m_reportfile != NULL) {
-        fclose(m_reportfile);
-    }
+	if (m_tlsindex != TLS_OUT_OF_INDEXES) {
+		TlsFree(m_tlsindex);
+	}
+
+	if (m_reportfile != NULL) {
+		fclose(m_reportfile);
+	}
 }
 
 
