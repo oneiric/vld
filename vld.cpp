@@ -566,13 +566,14 @@ VisualLeakDetector::~VisualLeakDetector ()
 		}
 		else {
 			// Generate a memory leak report for each heap in the process.
-			ReportLeaks();
+			SIZE_T leaks_count = ReportLeaks();
 
 			// Show a summary.
 			if (m_leaksfound == 0) {
 				report(L"No memory leaks detected.\n");
 			}
 			else {
+				assert(m_leaksfound == leaks_count);
 				report(L"Visual Leak Detector detected %Iu memory leak", m_leaksfound);
 				report((m_leaksfound > 1) ? L"s.\n" : L".\n");
 			}
@@ -1459,7 +1460,7 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
 //
 //    None.
 //
-UINT VisualLeakDetector::reportleaks (HANDLE heap)
+SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 {
 	assert(heap != NULL);
 
@@ -3237,7 +3238,7 @@ SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
 	return leaksCount;
 }
 
-UINT VisualLeakDetector::ReportLeaks( ) 
+SIZE_T VisualLeakDetector::ReportLeaks( ) 
 {
 	if (m_options & VLD_OPT_VLDOFF) {
 		// VLD has been turned off.
@@ -3245,7 +3246,8 @@ UINT VisualLeakDetector::ReportLeaks( )
 	}
 
 	// Generate a memory leak report for each heap in the process.
-	UINT leaksCount = 0;
+	SIZE_T leaksCount = 0;
+	m_leaksfound = 0;
 	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
 		HANDLE heap = (*heapit).first;
 		leaksCount += reportleaks(heap);

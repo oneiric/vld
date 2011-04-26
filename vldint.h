@@ -217,7 +217,7 @@ public:
 
 	VOID RefreshModules();
 	SIZE_T GetLeaksCount(BOOL includingInternal);
-	UINT ReportLeaks();
+	SIZE_T ReportLeaks();
 	VOID EnableModule(HMODULE module);
 	VOID DisableModule(HMODULE module);
 	UINT32 GetOptions();
@@ -245,7 +245,7 @@ private:
 	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack);
 	VOID   reportconfig ();
 	SIZE_T getleakscount (HANDLE heap, BOOL includingInternal);
-	UINT   reportleaks (HANDLE heap);
+	SIZE_T reportleaks (HANDLE heap);
 	VOID   unmapblock (HANDLE heap, LPCVOID mem);
 	VOID   unmapheap (HANDLE heap);
 	void   resolveStacks(HANDLE heap);
