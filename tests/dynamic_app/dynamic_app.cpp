@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include <assert.h>
 #include "LoadTests.h"
 
 void PrintUsage() 
@@ -53,14 +54,23 @@ int _tmain(int argc, _TCHAR* argv[])
 	} 
 
 	RunLoaderTests(resolve);    // leaks 18
-	int leaks = (int)VLDGetLeaksCount();
-	RunMFCLoaderTests(resolve); // leaks 7
-	leaks = (int)VLDGetLeaksCount();
-	LeakDuplicateLeaks();       // leaks 6
-	leaks = (int)VLDGetLeaksCount();
-	// ..................Total:    31 leaks total
+	int totalleaks = (int)VLDGetLeaksCount();
+	int leaks1 = totalleaks;
+	assert(leaks1 == 18);
 
-	int diff = 31 - leaks;
+	RunMFCLoaderTests(resolve); // leaks 7
+	totalleaks = (int)VLDGetLeaksCount();
+	int leaks2 = totalleaks - leaks1;
+	assert(leaks2 == 7);
+
+	LeakDuplicateLeaks();       // leaks 6
+	int leaks3 = (int)VLDGetLeaksCount();
+	leaks3 -= totalleaks;
+	assert(leaks3 == 6);
+
+	// ..................Total:    31 leaks total
+	totalleaks = (int)VLDGetLeaksCount();
+	int diff = 31 - totalleaks;
 	return diff;
 }
 

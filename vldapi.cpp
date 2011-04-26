@@ -64,7 +64,7 @@ __declspec(dllexport) void VLDGlobalEnable ()
 
 __declspec(dllexport) UINT VLDReportLeaks ()
 {
-    return vld.ReportLeaks();
+    return (UINT)vld.ReportLeaks();
 }
 
 __declspec(dllexport) SIZE_T VLDGetLeaksCount (BOOL includingInternal)

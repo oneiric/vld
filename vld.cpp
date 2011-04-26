@@ -1098,12 +1098,12 @@ BOOL VisualLeakDetector::enabled ()
 //
 SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
 {
-	SIZE_T       erased = 0;
 	blockinfo_t *elementinfo = (*element).second;
 
 	if (elementinfo->callstack == NULL)
-		return erased;
+		return elementinfo->blocks - 1;
 
+	SIZE_T       erased = 0;
 	// Iterate through all block maps, looking for blocks with the same size
 	// and callstack as the specified element.
 	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
@@ -1129,7 +1129,9 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
 		}
 	}
 
-	return erased;
+	elementinfo->blocks += erased;
+
+	return elementinfo->blocks - 1;
 }
 
 // gettls - Obtains the thread local storage structure for the calling thread.
@@ -1194,6 +1196,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL c
 	ppcallstack = &blockinfo->callstack;
 	blockinfo->serialnumber = serialnumber++;
 	blockinfo->size = size;
+	blockinfo->blocks = 1;
 
 	// Insert the block's information into the block map.
 	EnterCriticalSection(&m_maplock);
@@ -1444,7 +1447,7 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
 			size = crtheader->size;
 		}
 
-		memoryleaks++;
+		memoryleaks += info->blocks;
 	}
 
 	LeaveCriticalSection(&m_maplock);
@@ -1515,12 +1518,10 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 			// Aggregate all other leaks which are duplicates of this one
 			// under this same heading, to cut down on clutter.
 			SIZE_T erased = eraseduplicates(blockit);
-			if (erased > 1)
-			{
-				// add only the number that were erased, since the 'one left over'
-				// is already recorded as a leak
-				leaksfound += erased;
-			}
+
+			// add only the number that were erased, since the 'one left over'
+			// is already recorded as a leak
+			leaksfound += erased;
 
 			DWORD callstackCRC = CalculateCRC32(info->size, info->callstack->getHashValue());
 			report(L"Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, erased + 1);

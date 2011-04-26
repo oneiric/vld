@@ -77,6 +77,7 @@ struct blockinfo_t {
 	CallStack *callstack;
 	SIZE_T     serialnumber;
 	SIZE_T     size;
+	SIZE_T     blocks;
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
