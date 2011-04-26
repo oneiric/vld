@@ -60,6 +60,8 @@ void RunLoaderTests( bool resolve )
 			CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
 		}
 
+		UINT leaks = VLDReportLeaks();
+
 		FreeLibrary(hdyn);
 	}
 }

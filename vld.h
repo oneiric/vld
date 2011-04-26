@@ -123,7 +123,7 @@ __declspec(dllimport) void VLDGlobalEnable ();
 //
 //    None.
 //
-__declspec(dllimport) void VLDReportLeaks ();
+__declspec(dllimport) UINT VLDReportLeaks ();
 
 
 // VLDRefreshModules - Look for recently loaded DLLs and patch them if necessary.
@@ -254,7 +254,7 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDEnable()
 #define VLDDisable()
 #define VLDRestore()
-#define VLDReportLeaks()
+#define VLDReportLeaks() 0
 #define VLDRefreshModules()
 #define VLDEnableModule(a)
 #define VLDDisableModule(b)

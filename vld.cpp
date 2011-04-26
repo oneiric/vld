@@ -518,7 +518,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 	size_t               count;
 	SIZE_T               internalleaks = 0;
 	WCHAR                leakfilew [MAX_PATH];
-	BOOL                 threadsactive= FALSE;
+	BOOL                 threadsactive = FALSE;
 	if (m_status & VLD_STATUS_INSTALLED) {
 		// Detach Visual Leak Detector from all previously attached modules.
 		EnumerateLoadedModulesW64(currentprocess, detachfrommodule, NULL);
@@ -1064,14 +1064,13 @@ VOID VisualLeakDetector::configure ()
 //
 BOOL VisualLeakDetector::enabled ()
 {
-	tls_t* tls = vld.gettls();
-
 	if (!(m_status & VLD_STATUS_INSTALLED)) {
 		// Memory leak detection is not yet enabled because VLD is still
 		// initializing.
 		return FALSE;
 	}
 
+	tls_t* tls = vld.gettls();
 	if (!(tls->flags & VLD_TLS_DISABLED) && !(tls->flags & VLD_TLS_ENABLED)) {
 		// The enabled/disabled state for the current thread has not been 
 		// initialized yet. Use the default state.
@@ -1323,7 +1322,8 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 	blockinfo_t* info = (*blockit).second;
 	if (info->callstack)
 	{
-		info->callstack->clear();
+		delete info->callstack;
+		info->callstack = NULL;
 	}
 
 	if (crtalloc) {
@@ -1334,6 +1334,7 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
 	// Update the block's size.
 	info->size = size;
+	ppcallstack = &info->callstack;
 }
 
 // reportconfig - Generates a brief report summarizing Visual Leak Detector's
@@ -1458,7 +1459,7 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
 //
 //    None.
 //
-VOID VisualLeakDetector::reportleaks (HANDLE heap)
+UINT VisualLeakDetector::reportleaks (HANDLE heap)
 {
 	assert(heap != NULL);
 
@@ -1468,11 +1469,13 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
 	if (heapit == m_heapmap->end()) {
 		// Nothing is allocated from this heap. No leaks.
 		LeaveCriticalSection(&m_maplock);
-		return;
+		return 0;
 	}
 
 	heapinfo_t* heapinfo = (*heapit).second;
 	BlockMap* blockmap   = &heapinfo->blockmap;
+	SIZE_T leaksfound = 0;
+	bool firstleak = (m_leaksfound == 0);
 
 	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
 	{
@@ -1501,10 +1504,11 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
 		}
 
 		// It looks like a real memory leak.
-		if (m_leaksfound == 0) { // A confusing way to only display this message once
+		if (firstleak) { // A confusing way to only display this message once
 			report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
+			firstleak = false;
 		}
-		m_leaksfound++;
+		leaksfound++;
 		report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialnumber, address, size);
 		if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
 			// Aggregate all other leaks which are duplicates of this one
@@ -1514,7 +1518,7 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
 			{
 				// add only the number that were erased, since the 'one left over'
 				// is already recorded as a leak
-				m_leaksfound += erased;
+				leaksfound += erased;
 			}
 
 			DWORD callstackCRC = CalculateCRC32(info->size, info->callstack->getHashValue());
@@ -1540,8 +1544,11 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
 		}
 		report(L"\n\n");
 	}
+	m_leaksfound += leaksfound;
 
 	LeaveCriticalSection(&m_maplock);
+
+	return leaksfound;
 }
 
 // unmapblock - Tracks memory blocks that are freed. Unmaps the specified block
@@ -2645,6 +2652,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 		return block;
 
 	tls_t* tls = vld.gettls();
+	tls->blockprocessed = TRUE;
 	BOOL firstcall = (tls->context.fp == 0x0);
 	context_t context;
 	if (firstcall) {
@@ -2672,7 +2680,6 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 	// The module that initiated this allocation is included in leak
 	// detection. Map this block to the specified heap.
 	vld.mapblock(heap, block, size, crtalloc, tls->ppcallstack);
-	tls->blockprocessed = TRUE;
 
 	if (firstcall)
 	{
@@ -2766,6 +2773,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 		return newmem;
 
 	tls_t *tls = vld.gettls();
+	tls->blockprocessed = TRUE;
 	BOOL firstcall = (tls->context.fp == 0x0);
 	context_t context;
 	if (firstcall) {
@@ -2800,7 +2808,6 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 	// The module that initiated this allocation is included in leak
 	// detection. Remap the block.
 	vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack);
-	tls->blockprocessed = TRUE;
 
 #ifdef _DEBUG
 	if(tls->context.fp != 0)
@@ -3230,18 +3237,20 @@ SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
 	return leaksCount;
 }
 
-VOID VisualLeakDetector::ReportLeaks( ) 
+UINT VisualLeakDetector::ReportLeaks( ) 
 {
 	if (m_options & VLD_OPT_VLDOFF) {
 		// VLD has been turned off.
-		return;
+		return 0;
 	}
 
 	// Generate a memory leak report for each heap in the process.
+	UINT leaksCount = 0;
 	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
 		HANDLE heap = (*heapit).first;
-		reportleaks(heap);
+		leaksCount += reportleaks(heap);
 	}
+	return leaksCount;
 }
 
 void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)

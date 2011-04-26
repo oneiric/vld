@@ -12,7 +12,7 @@ void AllocF(LeakOption type)
 	if (type == eMalloc)
 	{
 		leaked_memory     = (int*)malloc(78);
-		leaked_memory_dbg = (int*)_malloc_dbg(78, _NORMAL_BLOCK,__FILE__,__LINE__);
+		leaked_memory_dbg = (int*)_malloc_dbg(80, _NORMAL_BLOCK,__FILE__,__LINE__);
 	} 
 	else if (type == eNew)
 	{
@@ -22,7 +22,7 @@ void AllocF(LeakOption type)
 	else if (type == eNewArray)
 	{
 		leaked_memory = new int[3];
-		leaked_memory_dbg = new (_NORMAL_BLOCK,__FILE__,__LINE__) int[3];
+		leaked_memory_dbg = new (_NORMAL_BLOCK,__FILE__,__LINE__) int[4];
 
 		// placement new operator
 		int temp[3];
@@ -44,8 +44,7 @@ void AllocF(LeakOption type)
 	else if (type == eCoTaskMem)
 	{
 		void* leaked = CoTaskMemAlloc(7);
-		void* realloced = NULL;
-		CoTaskMemRealloc(leaked, 29);
+		void* realloced = CoTaskMemRealloc(leaked, 29);
 	}
 }
 

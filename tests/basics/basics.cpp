@@ -23,9 +23,13 @@ void LeakMemory(LeakOption type, int repeat)
 }
 
 // VLD internal API
+#ifdef _DEBUG
 extern "C" {
-__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal);
+	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
 }
+#else
+#define VLDGetLeaksCount() 0
+#endif
 
 int _tmain(int argc, _TCHAR* argv[])
 {

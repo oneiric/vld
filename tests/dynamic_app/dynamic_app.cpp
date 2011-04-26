@@ -29,9 +29,13 @@ void LeakDuplicateLeaks()
 }
 
 // VLD internal API
+#ifdef _DEBUG
 extern "C" {
 	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
 }
+#else
+#define VLDGetLeaksCount() 0
+#endif
 
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -49,13 +53,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	} 
 
 	RunLoaderTests(resolve);    // leaks 18
-	SIZE_T leaks = VLDGetLeaksCount();
+	int leaks = (int)VLDGetLeaksCount();
 	RunMFCLoaderTests(resolve); // leaks 7
-	leaks = VLDGetLeaksCount();
+	leaks = (int)VLDGetLeaksCount();
 	LeakDuplicateLeaks();       // leaks 6
-	leaks = VLDGetLeaksCount();
+	leaks = (int)VLDGetLeaksCount();
 	// ..................Total:    31 leaks total
 
-	return 31 - leaks;
+	int diff = 31 - leaks;
+	return diff;
 }
 
