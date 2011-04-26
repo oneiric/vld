@@ -22,6 +22,11 @@ void LeakMemory(LeakOption type, int repeat)
 	}
 }
 
+// VLD internal API
+extern "C" {
+__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal);
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	wprintf(_T("======================================\n"));
@@ -32,6 +37,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (argc == 3)
 	{
 		LeakOption leak_type = eMalloc; // default
+		int multiplayer = 2;
 		
 		// Pick up options to determine which type of memory allocator
 		// to test with
@@ -58,6 +64,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else if (_tcsicmp(_T("CoTaskMem"), argv[1]) == 0)
 		{
 			leak_type = eCoTaskMem;
+			multiplayer = 1;
 		}
 		else
 		{
@@ -70,13 +77,17 @@ int _tmain(int argc, _TCHAR* argv[])
 		// Convert the string into it's integer equivalent
 		int repeat = _tstoi(argv[2]);
 		LeakMemory(leak_type,repeat);
+		int leaks = (int)VLDGetLeaksCount(false);
+		wprintf(_T("End of test app...\n\n"));
+		int diff = repeat * multiplayer - leaks;
+		return diff;
 	} 
 	else
 	{
 		wprintf(_T("Error!: Invalid arguments\n"));
 		PrintUsage();
+		wprintf(_T("End of test app...\n\n"));
+		return 0;
 	}
-	wprintf(_T("End of test app...\n\n"));
-	return 0;
 }
 

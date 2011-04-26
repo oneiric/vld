@@ -125,14 +125,15 @@ typedef Set<moduleinfo_t> ModuleSet;
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 struct tls_t {
-	context_t context;       // Address of return address at the first call that entered VLD's code for the current allocation.
-	UINT32 flags;            // Thread-local status flags:
-#define VLD_TLS_CRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
-#define VLD_TLS_DISABLED 0x2 //   If set, memory leak detection is disabled for the current thread.
-#define VLD_TLS_ENABLED  0x4 //   If set, memory leak detection is enabled for the current thread.
-	UINT32 oldflags;         // Thread-local status old flags
-	DWORD  threadid;         // Thread ID of the thread that owns this TLS structure.
-	CallStack **ppcallstack; // Memory block callstack pointer.
+	context_t	context;       	  // Address of return address at the first call that entered VLD's code for the current allocation.
+	UINT32	    flags;            // Thread-local status flags:
+#define VLD_TLS_CRTALLOC 0x1 	  //   If set, the current allocation is a CRT allocation.
+#define VLD_TLS_DISABLED 0x2 	  //   If set, memory leak detection is disabled for the current thread.
+#define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
+	UINT32	    oldflags;         // Thread-local status old flags
+	BOOL	    blockprocessed;   // Internal diagnostic feature
+	DWORD 	    threadid;         // Thread ID of the thread that owns this TLS structure.
+	CallStack** ppcallstack; 	  // Memory block callstack pointer.
 };
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
@@ -215,6 +216,7 @@ public:
 	void GlobalEnableLeakDetection ();
 
 	VOID RefreshModules();
+	SIZE_T GetLeaksCount(BOOL includingInternal);
 	VOID ReportLeaks();
 	VOID EnableModule(HMODULE module);
 	VOID DisableModule(HMODULE module);
@@ -242,6 +244,7 @@ private:
 	VOID   mapheap (HANDLE heap);
 	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack);
 	VOID   reportconfig ();
+	SIZE_T getleakscount (HANDLE heap, BOOL includingInternal);
 	VOID   reportleaks (HANDLE heap);
 	VOID   unmapblock (HANDLE heap, LPCVOID mem);
 	VOID   unmapheap (HANDLE heap);

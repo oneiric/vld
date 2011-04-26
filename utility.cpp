@@ -67,9 +67,9 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
     SIZE_T bytesdone = 0;
     WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
     WCHAR  ascdump [18] = {0};
-	WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
+    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
     for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
-		SIZE_T wordIndex = byteindex % 16;
+        SIZE_T wordIndex = byteindex % 16;
         SIZE_T hexindex = 3 * (wordIndex + (wordIndex / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
         SIZE_T ascindex = wordIndex + wordIndex / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
         if (byteindex < size) {
@@ -394,60 +394,6 @@ BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     return FALSE;
 }
 
-// findimportdescriptor - Determines if the specified module imports the named import
-//   from the named exporting module.
-//
-//  - importmodule (IN): Handle (base address) of the module to be searched to
-//      see if it imports the specified import.
-//
-//  - exportmodulename (IN): ANSI string containing the name of the module that
-//      exports the import to be searched for.
-//
-//  Return Value:
-//
-//    Returns pointer to descriptor.
-//
-IMAGE_IMPORT_DESCRIPTOR* findimportdescriptor (HMODULE importmodule, LPCSTR exportmodulename)
-{
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
-
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    EnterCriticalSection(&imagelock);
-    __try
-    {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    }
-    __except(1)
-    {
-        idte = NULL;
-    }
-    LeaveCriticalSection(&imagelock);
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return NULL;
-    }
-    while (idte->FirstThunk != 0x0) {
-        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-        if (_stricmp(name, exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->FirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return NULL;
-    }
-    return idte;
-}
-
 // patchimport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
@@ -480,55 +426,83 @@ IMAGE_IMPORT_DESCRIPTOR* findimportdescriptor (HMODULE importmodule, LPCSTR expo
 //   
 BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 {
-    DWORD result = 0;
     HMODULE exportmodule = (HMODULE)module->modulebase;
-    LPCSTR exportmodulename = module->exportmodulename;
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-
-    idte = findimportdescriptor(importmodule, exportmodulename);
-    if (idte == NULL)
+    if (exportmodule == NULL)
         return FALSE;
 
-    patchentry_t *entry = module->patchtable;
-    int i = 0;
-    while(entry->importname)
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
+
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
+    __try
     {
-        LPCSTR importname   = entry->importname;
-        LPCVOID replacement = entry->replacement;
-        IMAGE_THUNK_DATA        *iate;
-        DWORD                    protect;
-        FARPROC                  import = NULL;
-        FARPROC                  import2 = NULL;
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    }
+    __except(1)
+    {
+        idte = NULL;
+    }
+    LeaveCriticalSection(&imagelock);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return NULL;
+    }
+    int result = 0;
+    while (idte->FirstThunk != 0x0) {
+        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+        UNREFERENCED_PARAMETER(name);
 
-        // Get the *real* address of the import. If we find this address in the IAT,
-        // then we've found the entry that needs to be patched.
-        import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
-        import = GetProcAddress(exportmodule, importname);
-        if ( import2 )
-            import = import2;
+        patchentry_t *entry = module->patchtable;
+        int i = 0;
+        while(entry->importname)
+        {
+            LPCSTR importname   = entry->importname;
+            LPCVOID replacement = entry->replacement;
 
-        assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+            // Get the *real* address of the import. If we find this address in the IAT,
+            // then we've found the entry that needs to be patched.
+            FARPROC import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
+            FARPROC import = GetProcAddress(exportmodule, importname);
+            if ( import2 )
+                import = import2;
 
-        // Locate the import's IAT entry.
-        iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-        while (iate->u1.Function != 0x0) {
-            if (iate->u1.Function == (DWORD_PTR)import) {
+            assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+
+            // Locate the import's IAT entry.
+            IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+            while (iate->u1.Function != 0x0)
+            {
+                if (iate->u1.Function != (DWORD_PTR)import) 
+                {
+                    iate++;
+                    continue;
+                }
+
                 // Found the IAT entry. Overwrite the address stored in the IAT
                 // entry with the address of the replacement. Note that the IAT
                 // entry may be write-protected, so we must first ensure that it is
                 // writable.
                 if ( import != replacement )
                 {
+                    DWORD protect;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
                     iate->u1.Function = (DWORD_PTR)replacement;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
                 }
                 // The patch has been installed in the import module.
                 result++;
+                iate++;
             }
-            iate++;
+            entry++; i++;
         }
-        entry++; i++;
+
+        idte++;
     }
 
     // The import's IAT entry was not found. The importing module does not
@@ -588,49 +562,49 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
 //
 VOID print (LPCWSTR messagew)
 {
-	if (NULL == messagew)
-	{
-		return;
-	}
+    if (NULL == messagew)
+    {
+        return;
+    }
 
-	size_t  count = 0;
+    size_t  count = 0;
 
-	if (reportencoding == unicode) {
-		if (reportfile != NULL) {
-			// Send the report to the previously specified file.
-			fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
-		}
-		if ( reporttostdout )
-			fwprintf(stdout,messagew);
+    if (reportencoding == unicode) {
+        if (reportfile != NULL) {
+            // Send the report to the previously specified file.
+            fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
+        }
+        if ( reporttostdout )
+            fwprintf(stdout,messagew);
 
-		if (reporttodebugger) {
-			OutputDebugStringW(messagew);
-		}
-	}
-	else {
-		CHAR    messagea [MAXREPORTLENGTH + 1];
-		if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
-			// Failed to convert the Unicode message to ASCII.
-			assert(FALSE);
-			return;
-		}
-		messagea[MAXREPORTLENGTH] = '\0';
-		if (reportfile != NULL) {
-			// Send the report to the previously specified file.
-			fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
-		}
+        if (reporttodebugger) {
+            OutputDebugStringW(messagew);
+        }
+    }
+    else {
+        CHAR    messagea [MAXREPORTLENGTH + 1];
+        if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
+            // Failed to convert the Unicode message to ASCII.
+            assert(FALSE);
+            return;
+        }
+        messagea[MAXREPORTLENGTH] = '\0';
+        if (reportfile != NULL) {
+            // Send the report to the previously specified file.
+            fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
+        }
 
-		if ( reporttostdout )
-			printf(messagea);
+        if ( reporttostdout )
+            printf(messagea);
 
-		if (reporttodebugger) {
-			OutputDebugStringA(messagea);
-		}
-	}
+        if (reporttodebugger) {
+            OutputDebugStringA(messagea);
+        }
+    }
 
-	if (reporttodebugger && (reportdelay == TRUE)) {
-		Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
-	}
+    if (reporttodebugger && (reportdelay == TRUE)) {
+        Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
+    }
 }
 
 // report - Sends a printf-style formatted message to the debugger for display

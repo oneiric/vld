@@ -67,17 +67,17 @@ __declspec(dllexport) VisualLeakDetector vld;
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
-    "GetProcAddress",     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
-    NULL,                 NULL
+	"GetProcAddress",     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+	NULL,                 NULL
 };
 
 patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
-    "HeapAlloc",          _RtlAllocateHeap,
-    "HeapCreate",         _HeapCreate,
-    "HeapDestroy",        _HeapDestroy,
-    "HeapFree",           _RtlFreeHeap,
-    "HeapReAlloc",        _RtlReAllocateHeap,
-    NULL,                 NULL
+	"HeapAlloc",          _RtlAllocateHeap,
+	"HeapCreate",         _HeapCreate,
+	"HeapDestroy",        _HeapDestroy,
+	"HeapFree",           _RtlFreeHeap,
+	"HeapReAlloc",        _RtlReAllocateHeap,
+	NULL,                 NULL
 };
 
 #define ORDINAL(x)          (LPCSTR)x
@@ -90,264 +90,264 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcAddress = NULL;
 
 static patchentry_t mfc42dPatch [] = {
-    // XXX why are the vector new operators missing for mfc42d.dll?
-    ORDINAL(711),         VS60::mfcd_scalar_new,
-    ORDINAL(712),         VS60::mfcd__scalar_new_dbg_4p,
-    ORDINAL(714),         VS60::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	// XXX why are the vector new operators missing for mfc42d.dll?
+	ORDINAL(711),         VS60::mfcd_scalar_new,
+	ORDINAL(712),         VS60::mfcd__scalar_new_dbg_4p,
+	ORDINAL(714),         VS60::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc42udPatch [] = {
-    // XXX why are the vector new operators missing for mfc42ud.dll?
-    ORDINAL(711),         VS60::mfcud_scalar_new,
-    ORDINAL(712),         VS60::mfcud__scalar_new_dbg_4p,
-    ORDINAL(714),         VS60::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	// XXX why are the vector new operators missing for mfc42ud.dll?
+	ORDINAL(711),         VS60::mfcud_scalar_new,
+	ORDINAL(712),         VS60::mfcud__scalar_new_dbg_4p,
+	ORDINAL(714),         VS60::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc70dPatch [] = {
-    ORDINAL(257),         VS70::mfcd_vector_new,
-    ORDINAL(258),         VS70::mfcd__vector_new_dbg_4p,
-    ORDINAL(259),         VS70::mfcd__vector_new_dbg_3p,
-    ORDINAL(832),         VS70::mfcd_scalar_new,
-    ORDINAL(833),         VS70::mfcd__scalar_new_dbg_4p,
-    ORDINAL(834),         VS70::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(257),         VS70::mfcd_vector_new,
+	ORDINAL(258),         VS70::mfcd__vector_new_dbg_4p,
+	ORDINAL(259),         VS70::mfcd__vector_new_dbg_3p,
+	ORDINAL(832),         VS70::mfcd_scalar_new,
+	ORDINAL(833),         VS70::mfcd__scalar_new_dbg_4p,
+	ORDINAL(834),         VS70::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc70udPatch [] = {
-    ORDINAL(258),         VS70::mfcud_vector_new,
-    ORDINAL(259),         VS70::mfcud__vector_new_dbg_4p,
-    ORDINAL(260),         VS70::mfcud__vector_new_dbg_3p,
-    ORDINAL(833),         VS70::mfcud_scalar_new,
-    ORDINAL(834),         VS70::mfcud__scalar_new_dbg_4p,
-    ORDINAL(835),         VS70::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(258),         VS70::mfcud_vector_new,
+	ORDINAL(259),         VS70::mfcud__vector_new_dbg_4p,
+	ORDINAL(260),         VS70::mfcud__vector_new_dbg_3p,
+	ORDINAL(833),         VS70::mfcud_scalar_new,
+	ORDINAL(834),         VS70::mfcud__scalar_new_dbg_4p,
+	ORDINAL(835),         VS70::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc71dPatch [] = {
-    ORDINAL(267),         VS71::mfcd_vector_new,
-    ORDINAL(268),         VS71::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         VS71::mfcd__vector_new_dbg_3p,
-    ORDINAL(893),         VS71::mfcd_scalar_new,
-    ORDINAL(894),         VS71::mfcd__scalar_new_dbg_4p,
-    ORDINAL(895),         VS71::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS71::mfcd_vector_new,
+	ORDINAL(268),         VS71::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         VS71::mfcd__vector_new_dbg_3p,
+	ORDINAL(893),         VS71::mfcd_scalar_new,
+	ORDINAL(894),         VS71::mfcd__scalar_new_dbg_4p,
+	ORDINAL(895),         VS71::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc71udPatch [] = {
-    ORDINAL(267),         VS71::mfcud_vector_new,
-    ORDINAL(268),         VS71::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         VS71::mfcud__vector_new_dbg_3p,
-    ORDINAL(893),         VS71::mfcud_scalar_new,
-    ORDINAL(894),         VS71::mfcud__scalar_new_dbg_4p,
-    ORDINAL(895),         VS71::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS71::mfcud_vector_new,
+	ORDINAL(268),         VS71::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         VS71::mfcud__vector_new_dbg_3p,
+	ORDINAL(893),         VS71::mfcud_scalar_new,
+	ORDINAL(894),         VS71::mfcud__scalar_new_dbg_4p,
+	ORDINAL(895),         VS71::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc80dPatch [] = {
-    ORDINAL(267),         VS80::mfcd_vector_new,
-    ORDINAL(268),         VS80::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         VS80::mfcd__vector_new_dbg_3p,
-    ORDINAL2(893,907),    VS80::mfcd_scalar_new,
-    ORDINAL2(894,908),    VS80::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    VS80::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS80::mfcd_vector_new,
+	ORDINAL(268),         VS80::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         VS80::mfcd__vector_new_dbg_3p,
+	ORDINAL2(893,907),    VS80::mfcd_scalar_new,
+	ORDINAL2(894,908),    VS80::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(895,909),    VS80::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc80udPatch [] = {
-    ORDINAL(267),         VS80::mfcud_vector_new,
-    ORDINAL(268),         VS80::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         VS80::mfcud__vector_new_dbg_3p,
-    ORDINAL2(893,907),    VS80::mfcud_scalar_new,
-    ORDINAL2(894,908),    VS80::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    VS80::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS80::mfcud_vector_new,
+	ORDINAL(268),         VS80::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         VS80::mfcud__vector_new_dbg_3p,
+	ORDINAL2(893,907),    VS80::mfcud_scalar_new,
+	ORDINAL2(894,908),    VS80::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(895,909),    VS80::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc90dPatch [] = {
-    ORDINAL(267),         VS90::mfcd_vector_new,
-    ORDINAL(268),         VS90::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         VS90::mfcd__vector_new_dbg_3p,
-    ORDINAL2(931, 909),   VS90::mfcd_scalar_new,
-    ORDINAL2(932, 910),   VS90::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(933, 911),   VS90::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS90::mfcd_vector_new,
+	ORDINAL(268),         VS90::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         VS90::mfcd__vector_new_dbg_3p,
+	ORDINAL2(931, 909),   VS90::mfcd_scalar_new,
+	ORDINAL2(932, 910),   VS90::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(933, 911),   VS90::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc90udPatch [] = {
-    ORDINAL(267),         VS90::mfcud_vector_new,
-    ORDINAL(268),         VS90::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         VS90::mfcud__vector_new_dbg_3p,
-    ORDINAL2(935, 913),   VS90::mfcud_scalar_new,
-    ORDINAL2(936, 914),   VS90::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(937, 915),   VS90::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS90::mfcud_vector_new,
+	ORDINAL(268),         VS90::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         VS90::mfcud__vector_new_dbg_3p,
+	ORDINAL2(935, 913),   VS90::mfcud_scalar_new,
+	ORDINAL2(936, 914),   VS90::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(937, 915),   VS90::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc100dPatch [] = {
-    ORDINAL(267),         VS100::mfcd_vector_new,
-    ORDINAL(268),         VS100::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         VS100::mfcd__vector_new_dbg_3p,
-    ORDINAL2(1427, 1405), VS100::mfcd_scalar_new,
-    ORDINAL2(1428, 1406), VS100::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(1429, 1407), VS100::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS100::mfcd_vector_new,
+	ORDINAL(268),         VS100::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         VS100::mfcd__vector_new_dbg_3p,
+	ORDINAL2(1427, 1405), VS100::mfcd_scalar_new,
+	ORDINAL2(1428, 1406), VS100::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(1429, 1407), VS100::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t mfc100udPatch [] = {
-    ORDINAL(267),         VS100::mfcud_vector_new,
-    ORDINAL(268),         VS100::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         VS100::mfcud__vector_new_dbg_3p,
-    ORDINAL2(1434, 1412), VS100::mfcud_scalar_new,
-    ORDINAL2(1435, 1413), VS100::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(1436, 1414), VS100::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL
+	ORDINAL(267),         VS100::mfcud_vector_new,
+	ORDINAL(268),         VS100::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         VS100::mfcud__vector_new_dbg_3p,
+	ORDINAL2(1434, 1412), VS100::mfcud_scalar_new,
+	ORDINAL2(1435, 1413), VS100::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(1436, 1414), VS100::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcrtdPatch [] = {
-    "_calloc_dbg",        VS60::crtd__calloc_dbg,
-    "_malloc_dbg",        VS60::crtd__malloc_dbg,
-    "_realloc_dbg",       VS60::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS60::crtd__scalar_new_dbg,
-    //vector_new_dbg_name,  VS60::crtd__vector_new_dbg,
-    "calloc",             VS60::crtd_calloc,
-    "malloc",             VS60::crtd_malloc,
-    "realloc",            VS60::crtd_realloc,
-    scalar_new_name,      VS60::crtd_scalar_new,
-    //vector_new_name,      VS60::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS60::crtd__calloc_dbg,
+	"_malloc_dbg",        VS60::crtd__malloc_dbg,
+	"_realloc_dbg",       VS60::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS60::crtd__scalar_new_dbg,
+	//vector_new_dbg_name,  VS60::crtd__vector_new_dbg,
+	"calloc",             VS60::crtd_calloc,
+	"malloc",             VS60::crtd_malloc,
+	"realloc",            VS60::crtd_realloc,
+	scalar_new_name,      VS60::crtd_scalar_new,
+	//vector_new_name,      VS60::crtd_vector_new,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcr70dPatch [] = {
-    "_calloc_dbg",        VS70::crtd__calloc_dbg,
-    "_malloc_dbg",        VS70::crtd__malloc_dbg,
-    "_realloc_dbg",       VS70::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS70::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  VS70::crtd__vector_new_dbg,
-    "calloc",             VS70::crtd_calloc,
-    "malloc",             VS70::crtd_malloc,
-    "realloc",            VS70::crtd_realloc,
-    scalar_new_name,      VS70::crtd_scalar_new,
-    vector_new_name,      VS70::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS70::crtd__calloc_dbg,
+	"_malloc_dbg",        VS70::crtd__malloc_dbg,
+	"_realloc_dbg",       VS70::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS70::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS70::crtd__vector_new_dbg,
+	"calloc",             VS70::crtd_calloc,
+	"malloc",             VS70::crtd_malloc,
+	"realloc",            VS70::crtd_realloc,
+	scalar_new_name,      VS70::crtd_scalar_new,
+	vector_new_name,      VS70::crtd_vector_new,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcr71dPatch [] = {
-    "_calloc_dbg",        VS71::crtd__calloc_dbg,
-    "_malloc_dbg",        VS71::crtd__malloc_dbg,
-    "_realloc_dbg",       VS71::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS71::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  VS71::crtd__vector_new_dbg,
-    "calloc",             VS71::crtd_calloc,
-    "malloc",             VS71::crtd_malloc,
-    "realloc",            VS71::crtd_realloc,
-    scalar_new_name,      VS71::crtd_scalar_new,
-    vector_new_name,      VS71::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS71::crtd__calloc_dbg,
+	"_malloc_dbg",        VS71::crtd__malloc_dbg,
+	"_realloc_dbg",       VS71::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS71::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS71::crtd__vector_new_dbg,
+	"calloc",             VS71::crtd_calloc,
+	"malloc",             VS71::crtd_malloc,
+	"realloc",            VS71::crtd_realloc,
+	scalar_new_name,      VS71::crtd_scalar_new,
+	vector_new_name,      VS71::crtd_vector_new,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcr80dPatch [] = {
-    "_calloc_dbg",        VS80::crtd__calloc_dbg,
-    "_malloc_dbg",        VS80::crtd__malloc_dbg,
-    "_realloc_dbg",       VS80::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS80::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  VS80::crtd__vector_new_dbg,
-    "calloc",             VS80::crtd_calloc,
-    "malloc",             VS80::crtd_malloc,
-    "realloc",            VS80::crtd_realloc,
-    scalar_new_name,      VS80::crtd_scalar_new,
-    vector_new_name,      VS80::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS80::crtd__calloc_dbg,
+	"_malloc_dbg",        VS80::crtd__malloc_dbg,
+	"_realloc_dbg",       VS80::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS80::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS80::crtd__vector_new_dbg,
+	"calloc",             VS80::crtd_calloc,
+	"malloc",             VS80::crtd_malloc,
+	"realloc",            VS80::crtd_realloc,
+	scalar_new_name,      VS80::crtd_scalar_new,
+	vector_new_name,      VS80::crtd_vector_new,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcr90dPatch [] = {
-    "_calloc_dbg",        VS90::crtd__calloc_dbg,
-    "_malloc_dbg",        VS90::crtd__malloc_dbg,
-    "_realloc_dbg",       VS90::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS90::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  VS90::crtd__vector_new_dbg,
-    "calloc",             VS90::crtd_calloc,
-    "malloc",             VS90::crtd_malloc,
-    "realloc",            VS90::crtd_realloc,
-    scalar_new_name,      VS90::crtd_scalar_new,
-    vector_new_name,      VS90::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS90::crtd__calloc_dbg,
+	"_malloc_dbg",        VS90::crtd__malloc_dbg,
+	"_realloc_dbg",       VS90::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS90::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS90::crtd__vector_new_dbg,
+	"calloc",             VS90::crtd_calloc,
+	"malloc",             VS90::crtd_malloc,
+	"realloc",            VS90::crtd_realloc,
+	scalar_new_name,      VS90::crtd_scalar_new,
+	vector_new_name,      VS90::crtd_vector_new,
+	NULL,                 NULL
 };
 
 static patchentry_t msvcr100dPatch [] = {
-    "_calloc_dbg",        VS100::crtd__calloc_dbg,
-    "_malloc_dbg",        VS100::crtd__malloc_dbg,
-    "_realloc_dbg",       VS100::crtd__realloc_dbg,
-    scalar_new_dbg_name,  VS100::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  VS100::crtd__vector_new_dbg,
-    "calloc",             VS100::crtd_calloc,
-    "malloc",             VS100::crtd_malloc,
-    "realloc",            VS100::crtd_realloc,
-    scalar_new_name,      VS100::crtd_scalar_new,
-    vector_new_name,      VS100::crtd_vector_new,
-    NULL,                 NULL
+	"_calloc_dbg",        VS100::crtd__calloc_dbg,
+	"_malloc_dbg",        VS100::crtd__malloc_dbg,
+	"_realloc_dbg",       VS100::crtd__realloc_dbg,
+	scalar_new_dbg_name,  VS100::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  VS100::crtd__vector_new_dbg,
+	"calloc",             VS100::crtd_calloc,
+	"malloc",             VS100::crtd_malloc,
+	"realloc",            VS100::crtd_realloc,
+	scalar_new_name,      VS100::crtd_scalar_new,
+	vector_new_name,      VS100::crtd_vector_new,
+	NULL,                 NULL
 };
 
 patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
-    "RtlAllocateHeap",    VisualLeakDetector::_RtlAllocateHeap,
-    "RtlFreeHeap",        VisualLeakDetector::_RtlFreeHeap,
-    "RtlReAllocateHeap",  VisualLeakDetector::_RtlReAllocateHeap,
-    NULL,                 NULL
+	"RtlAllocateHeap",    VisualLeakDetector::_RtlAllocateHeap,
+	"RtlFreeHeap",        VisualLeakDetector::_RtlFreeHeap,
+	"RtlReAllocateHeap",  VisualLeakDetector::_RtlReAllocateHeap,
+	NULL,                 NULL
 };
 
 patchentry_t VisualLeakDetector::m_ole32Patch [] = {
-    "CoGetMalloc",        VisualLeakDetector::_CoGetMalloc,
-    "CoTaskMemAlloc",     VisualLeakDetector::_CoTaskMemAlloc,
-    "CoTaskMemRealloc",   VisualLeakDetector::_CoTaskMemRealloc,
-    NULL,                 NULL
+	"CoGetMalloc",        VisualLeakDetector::_CoGetMalloc,
+	"CoTaskMemAlloc",     VisualLeakDetector::_CoTaskMemAlloc,
+	"CoTaskMemRealloc",   VisualLeakDetector::_CoTaskMemRealloc,
+	NULL,                 NULL
 };
 
 moduleentry_t VisualLeakDetector::m_patchtable [] = {
-    // Win32 heap APIs.
-    "kernel32.dll", 0x0, m_kernelbasePatch, // we patch this record on Win7
-    "kernel32.dll", 0x0, m_kernel32Patch,
+	// Win32 heap APIs.
+	"kernel32.dll", 0x0, m_kernelbasePatch, // we patch this record on Win7
+	"kernel32.dll", 0x0, m_kernel32Patch,
 
-    // MFC new operators (exported by ordinal).
-    "mfc42d.dll",   0x0, mfc42dPatch,
-    "mfc42ud.dll",  0x0, mfc42udPatch,
-    "mfc70d.dll",   0x0, mfc70dPatch,
-    "mfc70ud.dll",  0x0, mfc70udPatch,
-    "mfc71d.dll",   0x0, mfc71dPatch,
-    "mfc71ud.dll",  0x0, mfc71udPatch,
-    "mfc80d.dll",   0x0, mfc80dPatch,
-    "mfc80ud.dll",  0x0, mfc80udPatch,
-    "mfc90d.dll",   0x0, mfc90dPatch,
-    "mfc90ud.dll",  0x0, mfc90udPatch,
-    "mfc100d.dll",  0x0, mfc100dPatch,
-    "mfc100ud.dll", 0x0, mfc100udPatch,
+	// MFC new operators (exported by ordinal).
+	"mfc42d.dll",   0x0, mfc42dPatch,
+	"mfc42ud.dll",  0x0, mfc42udPatch,
+	"mfc70d.dll",   0x0, mfc70dPatch,
+	"mfc70ud.dll",  0x0, mfc70udPatch,
+	"mfc71d.dll",   0x0, mfc71dPatch,
+	"mfc71ud.dll",  0x0, mfc71udPatch,
+	"mfc80d.dll",   0x0, mfc80dPatch,
+	"mfc80ud.dll",  0x0, mfc80udPatch,
+	"mfc90d.dll",   0x0, mfc90dPatch,
+	"mfc90ud.dll",  0x0, mfc90udPatch,
+	"mfc100d.dll",  0x0, mfc100dPatch,
+	"mfc100ud.dll", 0x0, mfc100udPatch,
 
-    // CRT new operators and heap APIs.
-    "msvcrtd.dll",  0x0, msvcrtdPatch,
-    "msvcr70d.dll", 0x0, msvcr70dPatch,
-    "msvcr71d.dll", 0x0, msvcr71dPatch,
-    "msvcr80d.dll", 0x0, msvcr80dPatch,
-    "msvcr90d.dll", 0x0, msvcr90dPatch,
-    "msvcr100d.dll",0x0, msvcr100dPatch,
+	// CRT new operators and heap APIs.
+	"msvcrtd.dll",  0x0, msvcrtdPatch,
+	"msvcr70d.dll", 0x0, msvcr70dPatch,
+	"msvcr71d.dll", 0x0, msvcr71dPatch,
+	"msvcr80d.dll", 0x0, msvcr80dPatch,
+	"msvcr90d.dll", 0x0, msvcr90dPatch,
+	"msvcr100d.dll",0x0, msvcr100dPatch,
 
-    // NT APIs.
-    "ntdll.dll",    0x0, m_ntdllPatch,
+	// NT APIs.
+	"ntdll.dll",    0x0, m_ntdllPatch,
 
-    // COM heap APIs.
-    "ole32.dll",    0x0, m_ole32Patch
+	// COM heap APIs.
+	"ole32.dll",    0x0, m_ole32Patch
 };
 
 BOOL IsWin7OrBetter()
 {
-    OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
-    GetVersionEx((LPOSVERSIONINFO)&info);
-    if (info.dwMajorVersion > 6)
-        return TRUE;
+	OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
+	GetVersionEx((LPOSVERSIONINFO)&info);
+	if (info.dwMajorVersion > 6)
+		return TRUE;
 
-    if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 1)
-        return TRUE;
+	if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 1)
+		return TRUE;
 
-    return FALSE;
+	return FALSE;
 }
 
 // Constructor - Initializes private data, loads configuration options, and
@@ -356,6 +356,8 @@ BOOL IsWin7OrBetter()
 //
 VisualLeakDetector::VisualLeakDetector ()
 {
+	_set_error_mode(_OUT_TO_STDERR);
+
 	// Initialize configuration options and related private data.
 	_wcsnset_s(m_forcedmodulelist, MAXMODULELISTLENGTH, '\0', _TRUNCATE);
 	m_maxdatadump    = 0xffffffff;
@@ -815,98 +817,98 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 //
 LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 {
-    // Oddly, the symbol handler ignores the link to the PDB embedded in the
-    // executable image. So, we'll manually add the location of the executable
-    // to the search path since that is often where the PDB will be located.
-    WCHAR   directory [_MAX_DIR];
-    WCHAR   drive [_MAX_DRIVE];
-    LPWSTR  path = new WCHAR [MAX_PATH];
-    path[0] = L'\0';
-    HMODULE module = GetModuleHandleW(NULL);
-    GetModuleFileName(module, path, MAX_PATH);
-    _wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
-    wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
-    strapp(&path, directory);
+	// Oddly, the symbol handler ignores the link to the PDB embedded in the
+	// executable image. So, we'll manually add the location of the executable
+	// to the search path since that is often where the PDB will be located.
+	WCHAR   directory [_MAX_DIR];
+	WCHAR   drive [_MAX_DRIVE];
+	LPWSTR  path = new WCHAR [MAX_PATH];
+	path[0] = L'\0';
+	HMODULE module = GetModuleHandleW(NULL);
+	GetModuleFileName(module, path, MAX_PATH);
+	_wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
+	wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
+	strapp(&path, directory);
 
-    // When the symbol handler is given a custom symbol search path, it will no
-    // longer search the default directories (working directory, system root,
-    // etc). But we'd like it to still search those directories, so we'll add
-    // them to our custom search path.
-    //
-    // Append the working directory.
-    strapp(&path, L";.\\");
+	// When the symbol handler is given a custom symbol search path, it will no
+	// longer search the default directories (working directory, system root,
+	// etc). But we'd like it to still search those directories, so we'll add
+	// them to our custom search path.
+	//
+	// Append the working directory.
+	strapp(&path, L";.\\");
 
-    // Append the Windows directory.
-    WCHAR   windows [MAX_PATH];
-    if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
-        strapp(&path, L";");
-        strapp(&path, windows);
-    }
+	// Append the Windows directory.
+	WCHAR   windows [MAX_PATH];
+	if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
+		strapp(&path, L";");
+		strapp(&path, windows);
+	}
 
-    // Append the system directory.
-    WCHAR   system [MAX_PATH];
-    if (GetSystemDirectory(system, MAX_PATH) != 0) {
-        strapp(&path, L";");
-        strapp(&path, system);
-    }
+	// Append the system directory.
+	WCHAR   system [MAX_PATH];
+	if (GetSystemDirectory(system, MAX_PATH) != 0) {
+		strapp(&path, L";");
+		strapp(&path, system);
+	}
 
-    // Append %_NT_SYMBOL_PATH%.
-    DWORD   envlen = GetEnvironmentVariable(L"_NT_SYMBOL_PATH", NULL, 0);
-    if (envlen != 0) {
-        LPWSTR env = new WCHAR [envlen];
-        if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
-            strapp(&path, L";");
-            strapp(&path, env);
-        }
-        delete [] env;
-    }
+	// Append %_NT_SYMBOL_PATH%.
+	DWORD   envlen = GetEnvironmentVariable(L"_NT_SYMBOL_PATH", NULL, 0);
+	if (envlen != 0) {
+		LPWSTR env = new WCHAR [envlen];
+		if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
+			strapp(&path, L";");
+			strapp(&path, env);
+		}
+		delete [] env;
+	}
 
-    // Append %_NT_ALT_SYMBOL_PATH%.
-    envlen = GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", NULL, 0);
-    if (envlen != 0) {
-        LPWSTR env = new WCHAR [envlen];
-        if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
-            strapp(&path, L";");
-            strapp(&path, env);
-        }
-        delete [] env;
-    }
+	// Append %_NT_ALT_SYMBOL_PATH%.
+	envlen = GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", NULL, 0);
+	if (envlen != 0) {
+		LPWSTR env = new WCHAR [envlen];
+		if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
+			strapp(&path, L";");
+			strapp(&path, env);
+		}
+		delete [] env;
+	}
 
-    // Append Visual Studio 2010/2008 symbols cache directory.
-    HKEY debuggerkey;
-    WCHAR symbolCacheDir [MAX_PATH];
-    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) 
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+	// Append Visual Studio 2010/2008 symbols cache directory.
+	HKEY debuggerkey;
+	WCHAR symbolCacheDir [MAX_PATH];
+	LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+	if (regstatus != ERROR_SUCCESS) 
+		regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
 
-    if (regstatus == ERROR_SUCCESS)
-    {
-        DWORD valuetype;
-        DWORD dirLength = MAX_PATH * sizeof(WCHAR);
-        regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
-        if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
-        {
-            strapp(&path, L";srv*");
-            strapp(&path, symbolCacheDir);
-            strapp(&path, L"\\MicrosoftPublicSymbols;srv*");
-            strapp(&path, symbolCacheDir);
-        }
-        RegCloseKey(debuggerkey);
-    }
+	if (regstatus == ERROR_SUCCESS)
+	{
+		DWORD valuetype;
+		DWORD dirLength = MAX_PATH * sizeof(WCHAR);
+		regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
+		if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
+		{
+			strapp(&path, L";srv*");
+			strapp(&path, symbolCacheDir);
+			strapp(&path, L"\\MicrosoftPublicSymbols;srv*");
+			strapp(&path, symbolCacheDir);
+		}
+		RegCloseKey(debuggerkey);
+	}
 
-    // Remove any quotes from the path. The symbol handler doesn't like them.
-    SIZE_T  pos = 0;
-    SIZE_T  length = wcslen(path);
-    while (pos < length) {
-        if (path[pos] == L'\"') {
-            for (SIZE_T  index = pos; index < length; index++) {
-                path[index] = path[index + 1];
-            }
-        }
-        pos++;
-    }
+	// Remove any quotes from the path. The symbol handler doesn't like them.
+	SIZE_T  pos = 0;
+	SIZE_T  length = wcslen(path);
+	while (pos < length) {
+		if (path[pos] == L'\"') {
+			for (SIZE_T  index = pos; index < length; index++) {
+				path[index] = path[index + 1];
+			}
+		}
+		pos++;
+	}
 
-    return path;
+	return path;
 }
 
 // configure - Configures VLD using values read from the vld.ini file.
@@ -1102,7 +1104,7 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
 	if (elementinfo->callstack == NULL)
 		return erased;
 
-	// Iteratate through all block maps, looking for blocks with the same size
+	// Iterate through all block maps, looking for blocks with the same size
 	// and callstack as the specified element.
 	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
 		BlockMap *blockmap = &(*heapit).second->blockmap;
@@ -1184,43 +1186,43 @@ tls_t* VisualLeakDetector::gettls ()
 //
 VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack)
 {
-    static SIZE_T serialnumber = 0;
+	static SIZE_T serialnumber = 0;
 
-    // Record the block's information.
-    blockinfo_t* blockinfo = new blockinfo_t;
-    blockinfo->callstack = NULL;
-    ppcallstack = &blockinfo->callstack;
-    blockinfo->serialnumber = serialnumber++;
-    blockinfo->size = size;
+	// Record the block's information.
+	blockinfo_t* blockinfo = new blockinfo_t;
+	blockinfo->callstack = NULL;
+	ppcallstack = &blockinfo->callstack;
+	blockinfo->serialnumber = serialnumber++;
+	blockinfo->size = size;
 
-    // Insert the block's information into the block map.
-    EnterCriticalSection(&m_maplock);
-    HeapMap::Iterator heapit = m_heapmap->find(heap);
-    if (heapit == m_heapmap->end()) {
-        // We haven't mapped this heap to a block map yet. Do it now.
-        mapheap(heap);
-        heapit = m_heapmap->find(heap);
-        assert(heapit != m_heapmap->end());
-    }
-    if (crtalloc == TRUE) {
-        // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT;
-    }
-    BlockMap* blockmap = &(*heapit).second->blockmap;
-    BlockMap::Iterator blockit = blockmap->insert(mem, blockinfo);
-    if (blockit == blockmap->end()) {
-        // A block with this address has already been allocated. The
-        // previously allocated block must have been freed (probably by some
-        // mechanism unknown to VLD), or the heap wouldn't have allocated it
-        // again. Replace the previously allocated info with the new info.
-        blockit = blockmap->find(mem);
-        delete (*blockit).second->callstack;
-        delete (*blockit).second;
-        blockmap->erase(blockit);
-        blockmap->insert(mem, blockinfo);
-        ppcallstack = NULL;
-    }
-    LeaveCriticalSection(&m_maplock);
+	// Insert the block's information into the block map.
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// We haven't mapped this heap to a block map yet. Do it now.
+		mapheap(heap);
+		heapit = m_heapmap->find(heap);
+		assert(heapit != m_heapmap->end());
+	}
+	if (crtalloc == TRUE) {
+		// The heap that this block was allocated from is a CRT heap.
+		(*heapit).second->flags |= VLD_HEAP_CRT;
+	}
+	BlockMap* blockmap = &(*heapit).second->blockmap;
+	BlockMap::Iterator blockit = blockmap->insert(mem, blockinfo);
+	if (blockit == blockmap->end()) {
+		// A block with this address has already been allocated. The
+		// previously allocated block must have been freed (probably by some
+		// mechanism unknown to VLD), or the heap wouldn't have allocated it
+		// again. Replace the previously allocated info with the new info.
+		blockit = blockmap->find(mem);
+		delete (*blockit).second->callstack;
+		delete (*blockit).second;
+		blockmap->erase(blockit);
+		blockmap->insert(mem, blockinfo);
+		ppcallstack = NULL;
+	}
+	LeaveCriticalSection(&m_maplock);
 }
 
 // mapheap - Tracks heap creation. Creates a block map for tracking individual
@@ -1281,57 +1283,57 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-    BOOL crtalloc, CallStack **&ppcallstack)
+	BOOL crtalloc, CallStack **&ppcallstack)
 {
-    if (newmem != mem) {
-        // The block was not reallocated in-place. Instead the old block was
-        // freed and a new block allocated to satisfy the new size.
-        unmapblock(heap, mem);
-        mapblock(heap, newmem, size, crtalloc, ppcallstack);
-        return;
-    }
+	if (newmem != mem) {
+		// The block was not reallocated in-place. Instead the old block was
+		// freed and a new block allocated to satisfy the new size.
+		unmapblock(heap, mem);
+		mapblock(heap, newmem, size, crtalloc, ppcallstack);
+		return;
+	}
 
-    // The block was reallocated in-place. Find the existing blockinfo_t
-    // entry in the block map and update it with the new callstack and size.
-    EnterCriticalSection(&m_maplock);
-    HeapMap::Iterator heapit = m_heapmap->find(heap);
-    if (heapit == m_heapmap->end()) {
-        // We haven't mapped this heap to a block map yet. Obviously the
-        // block has also not been mapped to a blockinfo_t entry yet either,
-        // so treat this reallocation as a brand-new allocation (this will
-        // also map the heap to a new block map).
-        mapblock(heap, newmem, size, crtalloc, ppcallstack);
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// The block was reallocated in-place. Find the existing blockinfo_t
+	// entry in the block map and update it with the new callstack and size.
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// We haven't mapped this heap to a block map yet. Obviously the
+		// block has also not been mapped to a blockinfo_t entry yet either,
+		// so treat this reallocation as a brand-new allocation (this will
+		// also map the heap to a new block map).
+		mapblock(heap, newmem, size, crtalloc, ppcallstack);
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    // Find the block's blockinfo_t structure so that we can update it.
-    BlockMap           *blockmap = &(*heapit).second->blockmap;
-    BlockMap::Iterator  blockit = blockmap->find(mem);
-    if (blockit == blockmap->end()) {
-        // The block hasn't been mapped to a blockinfo_t entry yet.
-        // Treat this reallocation as a new allocation.
-        mapblock(heap, newmem, size, crtalloc, ppcallstack);
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// Find the block's blockinfo_t structure so that we can update it.
+	BlockMap           *blockmap = &(*heapit).second->blockmap;
+	BlockMap::Iterator  blockit = blockmap->find(mem);
+	if (blockit == blockmap->end()) {
+		// The block hasn't been mapped to a blockinfo_t entry yet.
+		// Treat this reallocation as a new allocation.
+		mapblock(heap, newmem, size, crtalloc, ppcallstack);
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    // Found the blockinfo_t entry for this block. Update it with
-    // a new callstack and new size.
-    blockinfo_t* info = (*blockit).second;
-    if (info->callstack)
-    {
-        info->callstack->clear();
-    }
+	// Found the blockinfo_t entry for this block. Update it with
+	// a new callstack and new size.
+	blockinfo_t* info = (*blockit).second;
+	if (info->callstack)
+	{
+		info->callstack->clear();
+	}
 
-    if (crtalloc) {
-        // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT;
-    }
-    LeaveCriticalSection(&m_maplock);
+	if (crtalloc) {
+		// The heap that this block was allocated from is a CRT heap.
+		(*heapit).second->flags |= VLD_HEAP_CRT;
+	}
+	LeaveCriticalSection(&m_maplock);
 
-    // Update the block's size.
-    info->size = size;
+	// Update the block's size.
+	info->size = size;
 }
 
 // reportconfig - Generates a brief report summarizing Visual Leak Detector's
@@ -1343,49 +1345,108 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 //
 VOID VisualLeakDetector::reportconfig ()
 {
-    if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
-        report(L"    Aggregating duplicate leaks.\n");
-    }
-    if (wcslen(m_forcedmodulelist) != 0) {
-        report(L"    Forcing inclusion of these modules in leak detection: %s\n", m_forcedmodulelist);
-    }
-    if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
-        if (m_maxdatadump == 0) {
-            report(L"    Suppressing data dumps.\n");
-        }
-        else {
-            report(L"    Limiting data dumps to %Iu bytes.\n", m_maxdatadump);
-        }
-    }
-    if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
-        report(L"    Limiting stack traces to %u frames.\n", m_maxtraceframes);
-    }
-    if (m_options & VLD_OPT_UNICODE_REPORT) {
-        report(L"    Generating a Unicode (UTF-16) encoded report.\n");
-    }
-    if (m_options & VLD_OPT_REPORT_TO_FILE) {
-        if (m_options & VLD_OPT_REPORT_TO_DEBUGGER) {
-            report(L"    Outputting the report to the debugger and to %s\n", m_reportfilepath);
-        }
-        else {
-            report(L"    Outputting the report to %s\n", m_reportfilepath);
-        }
-    }
-    if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
-        report(L"    Outputting the report to the debugger at a slower rate.\n");
-    }
-    if (m_options & VLD_OPT_SAFE_STACK_WALK) {
-        report(L"    Using the \"safe\" (but slow) stack walking method.\n");
-    }
-    if (m_options & VLD_OPT_SELF_TEST) {
-        report(L"    Performing a memory leak self-test.\n");
-    }
-    if (m_options & VLD_OPT_START_DISABLED) {
-        report(L"    Starting with memory leak detection disabled.\n");
-    }
-    if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
-        report(L"    Including heap and VLD internal frames in stack traces.\n");
-    }
+	if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
+		report(L"    Aggregating duplicate leaks.\n");
+	}
+	if (wcslen(m_forcedmodulelist) != 0) {
+		report(L"    Forcing inclusion of these modules in leak detection: %s\n", m_forcedmodulelist);
+	}
+	if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
+		if (m_maxdatadump == 0) {
+			report(L"    Suppressing data dumps.\n");
+		}
+		else {
+			report(L"    Limiting data dumps to %Iu bytes.\n", m_maxdatadump);
+		}
+	}
+	if (m_maxtraceframes != VLD_DEFAULT_MAX_TRACE_FRAMES) {
+		report(L"    Limiting stack traces to %u frames.\n", m_maxtraceframes);
+	}
+	if (m_options & VLD_OPT_UNICODE_REPORT) {
+		report(L"    Generating a Unicode (UTF-16) encoded report.\n");
+	}
+	if (m_options & VLD_OPT_REPORT_TO_FILE) {
+		if (m_options & VLD_OPT_REPORT_TO_DEBUGGER) {
+			report(L"    Outputting the report to the debugger and to %s\n", m_reportfilepath);
+		}
+		else {
+			report(L"    Outputting the report to %s\n", m_reportfilepath);
+		}
+	}
+	if (m_options & VLD_OPT_SLOW_DEBUGGER_DUMP) {
+		report(L"    Outputting the report to the debugger at a slower rate.\n");
+	}
+	if (m_options & VLD_OPT_SAFE_STACK_WALK) {
+		report(L"    Using the \"safe\" (but slow) stack walking method.\n");
+	}
+	if (m_options & VLD_OPT_SELF_TEST) {
+		report(L"    Performing a memory leak self-test.\n");
+	}
+	if (m_options & VLD_OPT_START_DISABLED) {
+		report(L"    Starting with memory leak detection disabled.\n");
+	}
+	if (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES) {
+		report(L"    Including heap and VLD internal frames in stack traces.\n");
+	}
+}
+
+// getleakscount - Calculate number of memory leaks.
+//
+//  - heap (IN): Handle to the heap for which to generate a memory leak
+//      report.
+//
+//  Return Value:
+//
+//    None.
+//
+SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
+{
+	assert(heap != NULL);
+
+	// Find the heap's information (blockmap, etc).
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// Nothing is allocated from this heap. No leaks.
+		LeaveCriticalSection(&m_maplock);
+		return 0;
+	}
+
+	heapinfo_t* heapinfo = (*heapit).second;
+	BlockMap* blockmap   = &heapinfo->blockmap;
+	SIZE_T memoryleaks = 0;
+
+	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
+	{
+		// Found a block which is still in the BlockMap. We've identified a
+		// potential memory leak.
+		LPCVOID block = (*blockit).first;
+		blockinfo_t* info = (*blockit).second;
+		LPCVOID address = block;
+		SIZE_T size = info->size;
+
+		if (heapinfo->flags & VLD_HEAP_CRT) {
+			// This block is allocated to a CRT heap, so the block has a CRT
+			// memory block header pretended to it.
+			crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+			if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL && !includingInternal) {
+				// This block is marked as being used internally by the CRT.
+				// The CRT will free the block after VLD is destroyed.
+				continue;
+			}
+			// The CRT header is more or less transparent to the user, so
+			// the information about the contained block will probably be
+			// more useful to the user. Accordingly, that's the information
+			// we'll include in the report.
+			address = CRTDBGBLOCKDATA(block);
+			size = crtheader->size;
+		}
+
+		memoryleaks++;
+	}
+
+	LeaveCriticalSection(&m_maplock);
+	return memoryleaks;
 }
 
 // reportleaks - Generates a memory leak report for the specified heap.
@@ -1496,32 +1557,32 @@ VOID VisualLeakDetector::reportleaks (HANDLE heap)
 //
 VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 {
-    // Find this heap's block map.
-    EnterCriticalSection(&m_maplock);
-    HeapMap::Iterator heapit = m_heapmap->find(heap);
-    if (heapit == m_heapmap->end()) {
-        // We don't have a block map for this heap. We must not have monitored
-        // this allocation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// Find this heap's block map.
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// We don't have a block map for this heap. We must not have monitored
+		// this allocation (probably happened before VLD was initialized).
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    // Find this block in the block map.
-    BlockMap           *blockmap = &(*heapit).second->blockmap;
-    BlockMap::Iterator  blockit = blockmap->find(mem);
-    if (blockit == blockmap->end()) {
-        // This block is not in the block map. We must not have monitored this
-        // allocation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// Find this block in the block map.
+	BlockMap           *blockmap = &(*heapit).second->blockmap;
+	BlockMap::Iterator  blockit = blockmap->find(mem);
+	if (blockit == blockmap->end()) {
+		// This block is not in the block map. We must not have monitored this
+		// allocation (probably happened before VLD was initialized).
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    // Free the blockinfo_t structure and erase it from the block map.
-    blockinfo_t *info = (*blockit).second;
-    delete info->callstack;
-    delete info;
-    blockmap->erase(blockit);
-    LeaveCriticalSection(&m_maplock);
+	// Free the blockinfo_t structure and erase it from the block map.
+	blockinfo_t *info = (*blockit).second;
+	delete info->callstack;
+	delete info;
+	blockmap->erase(blockit);
+	LeaveCriticalSection(&m_maplock);
 }
 
 // unmapheap - Tracks heap destruction. Unmaps the specified heap from its block
@@ -1536,28 +1597,28 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 //
 VOID VisualLeakDetector::unmapheap (HANDLE heap)
 {
-    // Find this heap's block map.
-    EnterCriticalSection(&m_maplock);
-    HeapMap::Iterator heapit = m_heapmap->find(heap);
-    if (heapit == m_heapmap->end()) {
-        // This heap hasn't been mapped. We must not have monitored this heap's
-        // creation (probably happened before VLD was initialized).
-        LeaveCriticalSection(&m_maplock);
-        return;
-    }
+	// Find this heap's block map.
+	EnterCriticalSection(&m_maplock);
+	HeapMap::Iterator heapit = m_heapmap->find(heap);
+	if (heapit == m_heapmap->end()) {
+		// This heap hasn't been mapped. We must not have monitored this heap's
+		// creation (probably happened before VLD was initialized).
+		LeaveCriticalSection(&m_maplock);
+		return;
+	}
 
-    // Free all of the blockinfo_t structures stored in the block map.
-    heapinfo_t *heapinfo = (*heapit).second;
-    BlockMap   *blockmap = &heapinfo->blockmap;
-    for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-        delete (*blockit).second->callstack;
-        delete (*blockit).second;
-    }
-    delete heapinfo;
+	// Free all of the blockinfo_t structures stored in the block map.
+	heapinfo_t *heapinfo = (*heapit).second;
+	BlockMap   *blockmap = &heapinfo->blockmap;
+	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+		delete (*blockit).second->callstack;
+		delete (*blockit).second;
+	}
+	delete heapinfo;
 
-    // Remove this heap's block map from the heap map.
-    m_heapmap->erase(heapit);
-    LeaveCriticalSection(&m_maplock);
+	// Remove this heap's block map from the heap map.
+	m_heapmap->erase(heapit);
+	LeaveCriticalSection(&m_maplock);
 }
 
 
@@ -1593,64 +1654,64 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 //
 BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    // Convert the module path to ASCII.
-    size_t length = wcslen(modulepath) + 1;
-    LPSTR modulepatha = new CHAR [length];
+	// Convert the module path to ASCII.
+	size_t length = wcslen(modulepath) + 1;
+	LPSTR modulepatha = new CHAR [length];
 
-    // wcstombs_s requires locale to be already set up correctly, but it might not be correct on vld init step. So use WideCharToMultiByte instead
-    CHAR defaultChar     = '?';
-    BOOL defaultCharUsed = FALSE;
+	// wcstombs_s requires locale to be already set up correctly, but it might not be correct on vld init step. So use WideCharToMultiByte instead
+	CHAR defaultChar     = '?';
+	BOOL defaultCharUsed = FALSE;
 
-    int count = ::WideCharToMultiByte(CP_ACP, 0/*flags*/, modulepath, (int)length, modulepatha, (int)length, &defaultChar, &defaultCharUsed);
-    assert(count != 0);
-    if ( defaultCharUsed )
-    {
-        ::OutputDebugStringW(__FILEW__ L": " __FUNCTIONW__ L" - defaultChar was used while convertion from \"");
-        ::OutputDebugStringW(modulepath);
-        ::OutputDebugStringW(L"\" to ANSI \"");
-        ::OutputDebugStringA(modulepatha);
-        ::OutputDebugStringW(L"\". Result can be wrong.\n");
-    }
+	int count = ::WideCharToMultiByte(CP_ACP, 0/*flags*/, modulepath, (int)length, modulepatha, (int)length, &defaultChar, &defaultCharUsed);
+	assert(count != 0);
+	if ( defaultCharUsed )
+	{
+		::OutputDebugStringW(__FILEW__ L": " __FUNCTIONW__ L" - defaultChar was used while convertion from \"");
+		::OutputDebugStringW(modulepath);
+		::OutputDebugStringW(L"\" to ANSI \"");
+		::OutputDebugStringA(modulepatha);
+		::OutputDebugStringW(L"\". Result can be wrong.\n");
+	}
 
-    // Extract just the filename and extension from the module path.
-    CHAR filename [_MAX_FNAME];
-    CHAR extension [_MAX_EXT];
-    _splitpath_s(modulepatha, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
+	// Extract just the filename and extension from the module path.
+	CHAR filename [_MAX_FNAME];
+	CHAR extension [_MAX_EXT];
+	_splitpath_s(modulepatha, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
 
-    length = strlen(filename) + strlen(extension) + 1;
-    LPSTR modulenamea = new CHAR [length];
-    strncpy_s(modulenamea, length, filename, _TRUNCATE);
-    strncat_s(modulenamea, length, extension, _TRUNCATE);
-    _strlwr_s(modulenamea, length);
+	length = strlen(filename) + strlen(extension) + 1;
+	LPSTR modulenamea = new CHAR [length];
+	strncpy_s(modulenamea, length, filename, _TRUNCATE);
+	strncat_s(modulenamea, length, extension, _TRUNCATE);
+	_strlwr_s(modulenamea, length);
 
-    if (_stricmp(modulenamea, VLDDLL) == 0) {
-        // Record Visual Leak Detector's own base address.
-        vld.m_vldbase = (HMODULE)modulebase;
-    }
-    else {
-        // See if this is a module listed in the patch table. If it is, update
-        // the corresponding patch table entries' module base address.
-        UINT          tablesize = _countof(m_patchtable);
-        for (UINT index = 0; index < tablesize; index++) {
-            moduleentry_t *entry = &m_patchtable[index];
-            if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
-                entry->modulebase = (UINT_PTR)modulebase;
-            }
-        }
-    }
+	if (_stricmp(modulenamea, VLDDLL) == 0) {
+		// Record Visual Leak Detector's own base address.
+		vld.m_vldbase = (HMODULE)modulebase;
+	}
+	else {
+		// See if this is a module listed in the patch table. If it is, update
+		// the corresponding patch table entries' module base address.
+		UINT          tablesize = _countof(m_patchtable);
+		for (UINT index = 0; index < tablesize; index++) {
+			moduleentry_t *entry = &m_patchtable[index];
+			if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
+				entry->modulebase = (UINT_PTR)modulebase;
+			}
+		}
+	}
 
-    // Record the module's information and store it in the set.
-    moduleinfo_t  moduleinfo;
-    moduleinfo.addrlow  = (UINT_PTR)modulebase;
-    moduleinfo.addrhigh = (UINT_PTR)(modulebase + modulesize) - 1;
-    moduleinfo.flags    = 0x0;
-    moduleinfo.name     = modulenamea;
-    moduleinfo.path     = modulepatha;
+	// Record the module's information and store it in the set.
+	moduleinfo_t  moduleinfo;
+	moduleinfo.addrlow  = (UINT_PTR)modulebase;
+	moduleinfo.addrhigh = (UINT_PTR)(modulebase + modulesize) - 1;
+	moduleinfo.flags    = 0x0;
+	moduleinfo.name     = modulenamea;
+	moduleinfo.path     = modulepatha;
 
-    ModuleSet*    newmodules = (ModuleSet*)context;
-    newmodules->insert(moduleinfo);
+	ModuleSet*    newmodules = (ModuleSet*)context;
+	newmodules->insert(moduleinfo);
 
-    return TRUE;
+	return TRUE;
 }
 
 // detachfrommodule - Callback function for EnumerateLoadedModules64 that
@@ -1672,13 +1733,13 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
 //    Always returns TRUE.
 //
 BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 modulebase, ULONG /*modulesize*/,
-    PVOID /*context*/)
+	PVOID /*context*/)
 {
-    UINT tablesize = _countof(m_patchtable);
+	UINT tablesize = _countof(m_patchtable);
 
-    restoremodule((HMODULE)modulebase, m_patchtable, tablesize);
+	restoremodule((HMODULE)modulebase, m_patchtable, tablesize);
 
-    return TRUE;
+	return TRUE;
 }
 
 
@@ -1709,39 +1770,42 @@ BOOL VisualLeakDetector::detachfrommodule (PCWSTR /*modulepath*/, DWORD64 module
 //    Returns the value returned from the specified calloc.
 //
 void* VisualLeakDetector::_calloc (calloc_t pcalloc,
-    context_t& context,
-    size_t   num,
-    size_t   size)
+	context_t& context,
+	size_t   num,
+	size_t   size)
 {
-    tls_t *tls = vld.gettls();
+	tls_t *tls = vld.gettls();
 
-    // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// malloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pcalloc(num, size);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = pcalloc(num, size);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // _malloc - This function is just a wrapper around the real malloc that sets
@@ -1760,36 +1824,39 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 //
 void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t size)
 {
-    void    *block;
-    tls_t   *tls = vld.gettls();
+	void    *block;
+	tls_t   *tls = vld.gettls();
 
-    // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// malloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pmalloc(size);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = pmalloc(size);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // _new - This function is just a wrapper around the real CRT and MFC new
@@ -1812,6 +1879,7 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
 
 	// The new operator is a CRT function and allocates from the CRT heap.
 	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
 	BOOL firstcall = (tls->context.fp == 0x0);
 	if (firstcall) {
@@ -1822,6 +1890,8 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
 	void* block = pnew(size);
+
+	assert(tls->blockprocessed);
 
 	if (firstcall)
 	{
@@ -1856,40 +1926,43 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
 //    Returns the value returned from the specified realloc.
 //
 void* VisualLeakDetector::_realloc (realloc_t  prealloc,
-    context_t& context,
-    void      *mem,
-    size_t     size)
+	context_t& context,
+	void      *mem,
+	size_t     size)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// realloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    block = prealloc(mem, size);
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	block = prealloc(mem, size);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1925,43 +1998,46 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 //    Returns the value returned by the specified _calloc_dbg.
 //
 void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
-    context_t&     context,
-    size_t         num,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+	context_t&     context,
+	size_t         num,
+	size_t         size,
+	int            type,
+	char const    *file,
+	int            line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// _malloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = p_calloc_dbg(num, size, type, file, line);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = p_calloc_dbg(num, size, type, file, line);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // __malloc_dbg - This function is just a wrapper around the real _malloc_dbg
@@ -1987,42 +2063,45 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 //    Returns the value returned by the specified _malloc_dbg.
 //
 void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+	context_t&     context,
+	size_t         size,
+	int            type,
+	char const    *file,
+	int            line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// _malloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = p_malloc_dbg(size, type, file, line);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = p_malloc_dbg(size, type, file, line);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // new_dbg_crt - This function is just a wrapper around the real CRT debug new
@@ -2048,42 +2127,45 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+	context_t&     context,
+	size_t         size,
+	int            type,
+	char const    *file,
+	int            line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    // The debug new operator is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// The debug new operator is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pnew_dbg_crt(size, type, file, line);
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = pnew_dbg_crt(size, type, file, line);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // new_dbg_mfc - This function is just a wrapper around the real MFC debug new
@@ -2109,39 +2191,43 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+	context_t&     context,
+	size_t         size,
+	int            type,
+	char const    *file,
+	int            line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pnew_dbg(size, type, file, line);
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = pnew_dbg(size, type, file, line);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	assert(tls->blockprocessed);
 
-    return block;
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
+
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // new_dbg_mfc - This function is just a wrapper around the real MFC debug new
@@ -2165,38 +2251,42 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 //    Returns the value returned by the specified MFC debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
-    context_t&     context,
-    size_t         size,
-    char const    *file,
-    int            line)
+	context_t&     context,
+	size_t         size,
+	char const    *file,
+	int            line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pnew_dbg_mfc(size, file, line);
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = pnew_dbg_mfc(size, file, line);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	assert(tls->blockprocessed);
 
-    return block;
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
+
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // __realloc_debug - This function is just a wrapper around the real
@@ -2224,43 +2314,46 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 //    Returns the value returned by the specified _realloc_dbg.
 //
 void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
-    context_t&      context,
-    void           *mem,
-    size_t          size,
-    int             type,
-    char const     *file,
-    int             line)
+	context_t&      context,
+	void           *mem,
+	size_t          size,
+	int             type,
+	char const     *file,
+	int             line)
 {
-    void  *block;
-    tls_t *tls = vld.gettls();
+	void  *block;
+	tls_t *tls = vld.gettls();
 
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+	// _realloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+	tls->blockprocessed = FALSE;
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    block = p_realloc_dbg(mem, size, type, file, line);
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	block = p_realloc_dbg(mem, size, type, file, line);
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2288,56 +2381,56 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 //
 FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
-    // See if there is an entry in the patch table that matches the requested
-    // function.
-    UINT tablesize = _countof(vld.m_patchtable);
-    for (UINT index = 0; index < tablesize; index++) {
-        moduleentry_t *entry = &vld.m_patchtable[index];
-        if ((entry->modulebase == 0x0) || ((HMODULE)entry->modulebase != module)) {
-            // This patch table entry is for a different module.
-            continue;
-        }
+	// See if there is an entry in the patch table that matches the requested
+	// function.
+	UINT tablesize = _countof(vld.m_patchtable);
+	for (UINT index = 0; index < tablesize; index++) {
+		moduleentry_t *entry = &vld.m_patchtable[index];
+		if ((entry->modulebase == 0x0) || ((HMODULE)entry->modulebase != module)) {
+			// This patch table entry is for a different module.
+			continue;
+		}
 
-        patchentry_t *patchentry = entry->patchtable;
-        while(patchentry->importname)
-        {
-            // This patch table entry is for the specified module. If the requested
-            // import's name matches the entry's import name (or ordinal), then
-            // return the address of the replacement instead of the address of the
-            // actual import.
-            if ((SIZE_T)patchentry->importname < (SIZE_T)vld.m_vldbase) {
-                // This entry's import name is not a valid pointer to data in
-                // vld.dll. It must be an ordinal value.
-                if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
-                    return (FARPROC)patchentry->replacement;
-                }
-            }
-            else {
-                __try
-                {
-                    if (strcmp(patchentry->importname, procname) == 0) {
-                        return (FARPROC)patchentry->replacement;
-                    }
-                }
-                __except(EXCEPTION_EXECUTE_HANDLER)
-                {
-                    if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
-                        return (FARPROC)patchentry->replacement;
-                    }                	
-                }
-            }
-            patchentry++;
-        }
-    }
+		patchentry_t *patchentry = entry->patchtable;
+		while(patchentry->importname)
+		{
+			// This patch table entry is for the specified module. If the requested
+			// import's name matches the entry's import name (or ordinal), then
+			// return the address of the replacement instead of the address of the
+			// actual import.
+			if ((SIZE_T)patchentry->importname < (SIZE_T)vld.m_vldbase) {
+				// This entry's import name is not a valid pointer to data in
+				// vld.dll. It must be an ordinal value.
+				if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
+					return (FARPROC)patchentry->replacement;
+				}
+			}
+			else {
+				__try
+				{
+					if (strcmp(patchentry->importname, procname) == 0) {
+						return (FARPROC)patchentry->replacement;
+					}
+				}
+				__except(EXCEPTION_EXECUTE_HANDLER)
+				{
+					if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
+						return (FARPROC)patchentry->replacement;
+					}                	
+				}
+			}
+			patchentry++;
+		}
+	}
 
-    // The requested function is not a patched function. Just return the real
-    // address of the requested function.
-    return vld._RGetProcAddress(module, procname);
+	// The requested function is not a patched function. Just return the real
+	// address of the requested function.
+	return vld._RGetProcAddress(module, procname);
 }
 
 FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
 {
-    return m_original_GetProcAddress(module, procname);
+	return m_original_GetProcAddress(module, procname);
 }
 
 // _HeapCreate - Calls to HeapCreate are patched through to this function. This
@@ -2356,36 +2449,36 @@ FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
 //
 HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
 {
-    // Get the return address within the calling function.
-    UINT_PTR ra = (UINT_PTR)_ReturnAddress();
+	// Get the return address within the calling function.
+	UINT_PTR ra = (UINT_PTR)_ReturnAddress();
 
-    // Create the heap.
-    HANDLE heap = HeapCreate(options, initsize, maxsize);
+	// Create the heap.
+	HANDLE heap = HeapCreate(options, initsize, maxsize);
 
-    // Map the created heap handle to a new block map.
-    vld.mapheap(heap);
+	// Map the created heap handle to a new block map.
+	vld.mapheap(heap);
 
-    // Try to get the name of the function containing the return address.
-    BYTE symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
-    SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
-    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-    functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
-    EnterCriticalSection(&symbollock);
-    DWORD64 displacement;
-    BOOL symfound = SymFromAddrW(currentprocess, ra, &displacement, functioninfo);
-    LeaveCriticalSection(&symbollock);
-    if (symfound == TRUE) {
-        if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
-            // HeapCreate was called by _heap_init. This is a static CRT heap.
-            EnterCriticalSection(&vld.m_maplock);
-            HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
-            assert(heapit != vld.m_heapmap->end());
-            (*heapit).second->flags |= VLD_HEAP_CRT;
-            LeaveCriticalSection(&vld.m_maplock);
-        }
-    }
+	// Try to get the name of the function containing the return address.
+	BYTE symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+	SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
+	functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+	functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+	EnterCriticalSection(&symbollock);
+	DWORD64 displacement;
+	BOOL symfound = SymFromAddrW(currentprocess, ra, &displacement, functioninfo);
+	LeaveCriticalSection(&symbollock);
+	if (symfound == TRUE) {
+		if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
+			// HeapCreate was called by _heap_init. This is a static CRT heap.
+			EnterCriticalSection(&vld.m_maplock);
+			HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
+			assert(heapit != vld.m_heapmap->end());
+			(*heapit).second->flags |= VLD_HEAP_CRT;
+			LeaveCriticalSection(&vld.m_maplock);
+		}
+	}
 
-    return heap;
+	return heap;
 }
 
 // _HeapDestroy - Calls to HeapDestroy are patched through to this function.
@@ -2400,16 +2493,16 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 //
 BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 {
-    // After this heap is destroyed, the heap's address space will be unmapped
-    // from the process's address space. So, we'd better generate a leak report
-    // for this heap now, while we can still read from the memory blocks
-    // allocated to it.
-    if (!(vld.m_options & VLD_OPT_SKIP_HEAPFREE_LEAKS))
-        vld.reportleaks(heap);
+	// After this heap is destroyed, the heap's address space will be unmapped
+	// from the process's address space. So, we'd better generate a leak report
+	// for this heap now, while we can still read from the memory blocks
+	// allocated to it.
+	if (!(vld.m_options & VLD_OPT_SKIP_HEAPFREE_LEAKS))
+		vld.reportleaks(heap);
 
-    vld.unmapheap(heap);
+	vld.unmapheap(heap);
 
-    return HeapDestroy(heap);
+	return HeapDestroy(heap);
 }
 
 // _LdrLoadDll - Calls to LdrLoadDll are patched through to this function. This
@@ -2475,56 +2568,56 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
 
 VOID VisualLeakDetector::RefreshModules()
 {
-    if (vld.m_options & VLD_OPT_VLDOFF)
-    {
-        return;
-    }
+	if (vld.m_options & VLD_OPT_VLDOFF)
+	{
+		return;
+	}
 
-    EnterCriticalSection(&vld.m_loaderlock);
-    // Duplicate code here in this method. Consider refactoring out to another method.
-    // Create a new set of all loaded modules, including any newly loaded
-    // modules.
-    ModuleSet* newmodules = new ModuleSet();
-    newmodules->reserve(MODULESETRESERVE);
-    EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
+	EnterCriticalSection(&vld.m_loaderlock);
+	// Duplicate code here in this method. Consider refactoring out to another method.
+	// Create a new set of all loaded modules, including any newly loaded
+	// modules.
+	ModuleSet* newmodules = new ModuleSet();
+	newmodules->reserve(MODULESETRESERVE);
+	EnumerateLoadedModulesW64(currentprocess, addloadedmodule, newmodules);
 
-    // Attach to all modules included in the set.
-    vld.attachtoloadedmodules(newmodules);
+	// Attach to all modules included in the set.
+	vld.attachtoloadedmodules(newmodules);
 
-    // Start using the new set of loaded modules.
-    EnterCriticalSection(&vld.m_moduleslock);
-    ModuleSet* oldmodules = vld.m_loadedmodules;
-    vld.m_loadedmodules = newmodules;
-    LeaveCriticalSection(&vld.m_moduleslock);
+	// Start using the new set of loaded modules.
+	EnterCriticalSection(&vld.m_moduleslock);
+	ModuleSet* oldmodules = vld.m_loadedmodules;
+	vld.m_loadedmodules = newmodules;
+	LeaveCriticalSection(&vld.m_moduleslock);
 
-    // Free resources used by the old module list.
-    for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
-        delete [] (*moduleit).name;
-        delete [] (*moduleit).path;
-    }
-    delete oldmodules;
+	// Free resources used by the old module list.
+	for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
+		delete [] (*moduleit).name;
+		delete [] (*moduleit).path;
+	}
+	delete oldmodules;
 
-    LeaveCriticalSection(&vld.m_loaderlock);
+	LeaveCriticalSection(&vld.m_loaderlock);
 }
 
 void VisualLeakDetector::getcallstack( CallStack **&ppcallstack, context_t &context_ )
 {
-    CallStack* callstack = NULL;
-    if (vld.m_options & VLD_OPT_SAFE_STACK_WALK) {
-        callstack = new SafeCallStack;
-    }
-    else {
-        callstack = new FastCallStack;
-    }
+	CallStack* callstack = NULL;
+	if (vld.m_options & VLD_OPT_SAFE_STACK_WALK) {
+		callstack = new SafeCallStack;
+	}
+	else {
+		callstack = new FastCallStack;
+	}
 
-    // Reset thread local flags and variables, in case any libraries called
-    // into while mapping the block allocate some memory.
-    context_t context = context_;
-    *ppcallstack = callstack;
-    context_.fp = 0x0;
-    ppcallstack = NULL;
+	// Reset thread local flags and variables, in case any libraries called
+	// into while mapping the block allocate some memory.
+	context_t context = context_;
+	*ppcallstack = callstack;
+	context_.fp = 0x0;
+	ppcallstack = NULL;
 
-    callstack->getstacktrace(vld.m_maxtraceframes, context);
+	callstack->getstacktrace(vld.m_maxtraceframes, context);
 }
 
 // _RtlAllocateHeap - Calls to RtlAllocateHeap are patched through to this
@@ -2548,7 +2641,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 	// Allocate the block.
 	LPVOID block = RtlAllocateHeap(heap, flags, size);
 
-    if ((block == NULL) || !vld.enabled())
+	if ((block == NULL) || !vld.enabled())
 		return block;
 
 	tls_t* tls = vld.gettls();
@@ -2579,6 +2672,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 	// The module that initiated this allocation is included in leak
 	// detection. Map this block to the specified heap.
 	vld.mapblock(heap, block, size, crtalloc, tls->ppcallstack);
+	tls->blockprocessed = TRUE;
 
 	if (firstcall)
 	{
@@ -2616,7 +2710,7 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 	BOOL status;
 
 	// Unmap the block from the specified heap.
-		vld.unmapblock(heap, mem);
+	vld.unmapblock(heap, mem);
 
 	status = RtlFreeHeap(heap, flags, mem);
 
@@ -2664,71 +2758,72 @@ BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 //
 LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
 {
-    LPVOID               newmem;
+	LPVOID               newmem;
 
-    // Reallocate the block.
-    newmem = RtlReAllocateHeap(heap, flags, mem, size);
-    if (newmem == NULL)
-        return newmem;
+	// Reallocate the block.
+	newmem = RtlReAllocateHeap(heap, flags, mem, size);
+	if (newmem == NULL)
+		return newmem;
 
-    tls_t *tls = vld.gettls();
-    BOOL firstcall = (tls->context.fp == 0x0);
-    context_t context;
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
-    }
-    else
-        context = tls->context;
+	tls_t *tls = vld.gettls();
+	BOOL firstcall = (tls->context.fp == 0x0);
+	context_t context;
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+	}
+	else
+		context = tls->context;
 
-    if (IsModuleExcluded(GET_RETURN_ADDRESS(context)))
-        return newmem;
+	if (IsModuleExcluded(GET_RETURN_ADDRESS(context)))
+		return newmem;
 
-    if (!firstcall && (vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        firstcall = true;
-        CAPTURE_CONTEXT(context);
-    }
+	if (!firstcall && (vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
+		// Begin the stack trace with the current frame. Obtain the current
+		// frame pointer.
+		firstcall = true;
+		CAPTURE_CONTEXT(context);
+	}
 
-    BOOL                 crtalloc;
-    crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
+	BOOL                 crtalloc;
+	crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
 
-    // Reset thread local flags and variables, in case any libraries called
-    // into while remapping the block allocate some memory.
-    tls->context.fp = 0x0;
-    if (crtalloc)
-        tls->flags |= VLD_TLS_CRTALLOC;
-    else
-        tls->flags &=~VLD_TLS_CRTALLOC;
+	// Reset thread local flags and variables, in case any libraries called
+	// into while remapping the block allocate some memory.
+	tls->context.fp = 0x0;
+	if (crtalloc)
+		tls->flags |= VLD_TLS_CRTALLOC;
+	else
+		tls->flags &=~VLD_TLS_CRTALLOC;
 
-    // The module that initiated this allocation is included in leak
-    // detection. Remap the block.
-    vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack);
+	// The module that initiated this allocation is included in leak
+	// detection. Remap the block.
+	vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack);
+	tls->blockprocessed = TRUE;
 
 #ifdef _DEBUG
-    if(tls->context.fp != 0)
-        __debugbreak();
+	if(tls->context.fp != 0)
+		__debugbreak();
 #endif
-    tls->context = context;
-    tls->flags |= crtalloc;
+	tls->context = context;
+	tls->flags |= crtalloc;
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->ppcallstack = NULL;
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+		// Reset thread local flags and variables for the next allocation.
+		tls->ppcallstack = NULL;
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
 
-    return newmem;
+	return newmem;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2755,36 +2850,36 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 //
 HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 {
-    static CoGetMalloc_t pCoGetMalloc = NULL;
+	static CoGetMalloc_t pCoGetMalloc = NULL;
 
-    HRESULT hr = S_OK;
+	HRESULT hr = S_OK;
 
-    HMODULE ole32;
+	HMODULE ole32;
 
-    *imalloc = (LPMALLOC)&vld;
+	*imalloc = (LPMALLOC)&vld;
 
-    if (pCoGetMalloc == NULL) {
-        // This is the first call to this function. Link to the real
-        // CoGetMalloc and get a pointer to the system implementation of the
-        // IMalloc interface.
-        ole32 = GetModuleHandleW(L"ole32.dll");
-        pCoGetMalloc = (CoGetMalloc_t)vld._RGetProcAddress(ole32, "CoGetMalloc");
-        hr = pCoGetMalloc(context, &vld.m_imalloc);
-    }
-    else
-    {
-        // wait for different thread initialization
-        int c = 0;
-        while(vld.m_imalloc == NULL && c < 10)
-        {
-            Sleep(1);
-            c++;
-        }
-        if (vld.m_imalloc == NULL)
-            hr = E_INVALIDARG;
-    }
+	if (pCoGetMalloc == NULL) {
+		// This is the first call to this function. Link to the real
+		// CoGetMalloc and get a pointer to the system implementation of the
+		// IMalloc interface.
+		ole32 = GetModuleHandleW(L"ole32.dll");
+		pCoGetMalloc = (CoGetMalloc_t)vld._RGetProcAddress(ole32, "CoGetMalloc");
+		hr = pCoGetMalloc(context, &vld.m_imalloc);
+	}
+	else
+	{
+		// wait for different thread initialization
+		int c = 0;
+		while(vld.m_imalloc == NULL && c < 10)
+		{
+			Sleep(1);
+			c++;
+		}
+		if (vld.m_imalloc == NULL)
+			hr = E_INVALIDARG;
+	}
 
-    return hr;
+	return hr;
 }
 
 // _CoTaskMemAlloc - Calls to CoTaskMemAlloc are patched through to this
@@ -2800,45 +2895,49 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 //
 LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 {
-    static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
+	static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
 
-    LPVOID   block;
-    context_t context;
-    HMODULE  ole32;
-    tls_t   *tls = vld.gettls();
+	LPVOID   block;
+	context_t context;
+	HMODULE  ole32;
+	tls_t   *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    if (pCoTaskMemAlloc == NULL) {
-        // This is the first call to this function. Link to the real
-        // CoTaskMemAlloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
-        pCoTaskMemAlloc = (CoTaskMemAlloc_t)vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pCoTaskMemAlloc(size);
+	if (pCoTaskMemAlloc == NULL) {
+		// This is the first call to this function. Link to the real
+		// CoTaskMemAlloc.
+		ole32 = GetModuleHandleW(L"ole32.dll");
+		pCoTaskMemAlloc = (CoTaskMemAlloc_t)vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	block = pCoTaskMemAlloc(size);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	assert(tls->blockprocessed);
 
-    return block;
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
+
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // _CoTaskMemRealloc - Calls to CoTaskMemRealloc are patched through to this
@@ -2856,45 +2955,49 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 //
 LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 {
-    static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
+	static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
 
-    LPVOID   block;
-    context_t context;
-    HMODULE  ole32;
-    tls_t   *tls = vld.gettls();
+	LPVOID   block;
+	context_t context;
+	HMODULE  ole32;
+	tls_t   *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    if (pCoTaskMemRealloc == NULL) {
-        // This is the first call to this function. Link to the real
-        // CoTaskMemRealloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
-        pCoTaskMemRealloc = (CoTaskMemRealloc_t)vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
-    }
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+		tls->context = context;
+	}
 
-    // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    block = pCoTaskMemRealloc(mem, size);
+	if (pCoTaskMemRealloc == NULL) {
+		// This is the first call to this function. Link to the real
+		// CoTaskMemRealloc.
+		ole32 = GetModuleHandleW(L"ole32.dll");
+		pCoTaskMemRealloc = (CoTaskMemRealloc_t)vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	block = pCoTaskMemRealloc(mem, size);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	assert(tls->blockprocessed);
 
-    return block;
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
+
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2913,8 +3016,8 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 //
 ULONG VisualLeakDetector::AddRef ()
 {
-    assert(m_imalloc != NULL);
-    return (m_imalloc) ? m_imalloc->AddRef() : 0;
+	assert(m_imalloc != NULL);
+	return (m_imalloc) ? m_imalloc->AddRef() : 0;
 }
 
 // Alloc - Calls to IMalloc::Alloc end up here. This function is just a wrapper
@@ -2929,36 +3032,40 @@ ULONG VisualLeakDetector::AddRef ()
 //
 LPVOID VisualLeakDetector::Alloc (SIZE_T size)
 {
-    LPVOID  block;
-    context_t context;
-    tls_t  *tls = vld.gettls();
+	LPVOID  block;
+	context_t context;
+	tls_t  *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    assert(m_imalloc != NULL);
-    block = (m_imalloc) ? m_imalloc->Alloc(size) : NULL;
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+		tls->context = context;
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	assert(m_imalloc != NULL);
+	block = (m_imalloc) ? m_imalloc->Alloc(size) : NULL;
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	assert(tls->blockprocessed);
 
-    return block;
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
+
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // DidAlloc - Calls to IMalloc::DidAlloc will end up here. This function is just
@@ -2973,8 +3080,8 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
 //
 INT VisualLeakDetector::DidAlloc (LPVOID mem)
 {
-    assert(m_imalloc != NULL);
-    return (m_imalloc) ? m_imalloc->DidAlloc(mem) : 0;
+	assert(m_imalloc != NULL);
+	return (m_imalloc) ? m_imalloc->DidAlloc(mem) : 0;
 }
 
 // Free - Calls to IMalloc::Free will end up here. This function is just a
@@ -2988,8 +3095,8 @@ INT VisualLeakDetector::DidAlloc (LPVOID mem)
 //
 VOID VisualLeakDetector::Free (LPVOID mem)
 {
-    assert(m_imalloc != NULL);
-    if (m_imalloc) m_imalloc->Free(mem);
+	assert(m_imalloc != NULL);
+	if (m_imalloc) m_imalloc->Free(mem);
 }
 
 // GetSize - Calls to IMalloc::GetSize will end up here. This function is just a
@@ -3004,8 +3111,8 @@ VOID VisualLeakDetector::Free (LPVOID mem)
 //
 SIZE_T VisualLeakDetector::GetSize (LPVOID mem)
 {
-    assert(m_imalloc != NULL);
-    return (m_imalloc) ? m_imalloc->GetSize(mem) : 0;
+	assert(m_imalloc != NULL);
+	return (m_imalloc) ? m_imalloc->GetSize(mem) : 0;
 }
 
 // HeapMinimize - Calls to IMalloc::HeapMinimize will end up here. This function
@@ -3017,8 +3124,8 @@ SIZE_T VisualLeakDetector::GetSize (LPVOID mem)
 //
 VOID VisualLeakDetector::HeapMinimize ()
 {
-    assert(m_imalloc != NULL);
-    if (m_imalloc) m_imalloc->HeapMinimize();
+	assert(m_imalloc != NULL);
+	if (m_imalloc) m_imalloc->HeapMinimize();
 }
 
 // QueryInterface - Calls to IMalloc::QueryInterface will end up here. This
@@ -3037,8 +3144,8 @@ VOID VisualLeakDetector::HeapMinimize ()
 //
 HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 {
-    assert(m_imalloc != NULL);
-    return (m_imalloc) ? m_imalloc->QueryInterface(iid, object) : E_UNEXPECTED;
+	assert(m_imalloc != NULL);
+	return (m_imalloc) ? m_imalloc->QueryInterface(iid, object) : E_UNEXPECTED;
 }
 
 // Realloc - Calls to IMalloc::Realloc will end up here. This function is just a
@@ -3057,36 +3164,40 @@ HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 //
 LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
 {
-    LPVOID  block;
-    context_t context;
-    tls_t  *tls = vld.gettls();
+	LPVOID  block;
+	context_t context;
+	tls_t  *tls = vld.gettls();
 
-    BOOL firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
-        tls->context = context;
-    }
+	tls->blockprocessed = FALSE;
 
-    // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    assert(m_imalloc != NULL);
-    block = (m_imalloc) ? m_imalloc->Realloc(mem, size) : NULL;
+	BOOL firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+		tls->context = context;
+	}
 
-    if (firstcall)
-    {
-        if (tls->ppcallstack)
-        {
-            tls->flags &= ~VLD_TLS_CRTALLOC;
-            getcallstack(tls->ppcallstack, tls->context);
-        }
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	assert(m_imalloc != NULL);
+	block = (m_imalloc) ? m_imalloc->Realloc(mem, size) : NULL;
+	
+	assert(tls->blockprocessed);
 
-        // Reset thread local flags and variables for the next allocation.
-        tls->context.fp = 0x0;
-        tls->flags &= ~VLD_TLS_CRTALLOC;
-    }
+	if (firstcall)
+	{
+		if (tls->ppcallstack)
+		{
+			tls->flags &= ~VLD_TLS_CRTALLOC;
+			getcallstack(tls->ppcallstack, tls->context);
+		}
 
-    return block;
+		// Reset thread local flags and variables for the next allocation.
+		tls->context.fp = 0x0;
+		tls->flags &= ~VLD_TLS_CRTALLOC;
+	}
+
+	return block;
 }
 
 // Release - Calls to IMalloc::Release will end up here. This function is just
@@ -3099,301 +3210,316 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
 //
 ULONG VisualLeakDetector::Release ()
 {
-    assert(m_imalloc != NULL);
-    return (m_imalloc) ? m_imalloc->Release() : 0;
+	assert(m_imalloc != NULL);
+	return (m_imalloc) ? m_imalloc->Release() : 0;
 }
 
+SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
+{
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return 0;
+	}
+
+	SIZE_T leaksCount = 0;
+	// Generate a memory leak report for each heap in the process.
+	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+		HANDLE heap = (*heapit).first;
+		leaksCount += getleakscount(heap, includingInternal);
+	}
+	return leaksCount;
+}
 
 VOID VisualLeakDetector::ReportLeaks( ) 
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    // Generate a memory leak report for each heap in the process.
-    for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
-        HANDLE heap = (*heapit).first;
-        reportleaks(heap);
-    }
+	// Generate a memory leak report for each heap in the process.
+	for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+		HANDLE heap = (*heapit).first;
+		reportleaks(heap);
+	}
 }
 
 void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 {
-    ModuleSet::Iterator  moduleit;
+	ModuleSet::Iterator  moduleit;
 
-    EnterCriticalSection(&vld.m_moduleslock);
-    moduleit = vld.m_loadedmodules->begin();
-    while( moduleit != vld.m_loadedmodules->end() )
-    {			
-        if ( (*moduleit).addrlow == (UINT_PTR)module) 
-        {
-            moduleinfo_t *mod = (moduleinfo_t *)&(*moduleit);
-            if ( on )
-                mod->flags &= ~VLD_MODULE_EXCLUDED;
-            else
-                mod->flags |= VLD_MODULE_EXCLUDED;
+	EnterCriticalSection(&vld.m_moduleslock);
+	moduleit = vld.m_loadedmodules->begin();
+	while( moduleit != vld.m_loadedmodules->end() )
+	{			
+		if ( (*moduleit).addrlow == (UINT_PTR)module) 
+		{
+			moduleinfo_t *mod = (moduleinfo_t *)&(*moduleit);
+			if ( on )
+				mod->flags &= ~VLD_MODULE_EXCLUDED;
+			else
+				mod->flags |= VLD_MODULE_EXCLUDED;
 
-            break;
-        }
-        moduleit++;
-    }
-    LeaveCriticalSection(&vld.m_moduleslock);
+			break;
+		}
+		moduleit++;
+	}
+	LeaveCriticalSection(&vld.m_moduleslock);
 
 }
 
 void VisualLeakDetector::EnableModule(HMODULE module)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    ChangeModuleState(module,true);
+	ChangeModuleState(module,true);
 }
 
 void VisualLeakDetector::DisableModule(HMODULE module)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    ChangeModuleState(module,false);
+	ChangeModuleState(module,false);
 }
 
 void VisualLeakDetector::DisableLeakDetection ()
 {
-    tls_t *tls;
+	tls_t *tls;
 
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    // Disable memory leak detection for the current thread. There are two flags
-    // because if neither flag is set, it means that we are in the default or
-    // "starting" state, which could be either enabled or disabled depending on
-    // the configuration.
-    tls = gettls();
-    tls->oldflags = tls->flags;
-    tls->flags &= ~VLD_TLS_ENABLED;
-    tls->flags |= VLD_TLS_DISABLED;
+	// Disable memory leak detection for the current thread. There are two flags
+	// because if neither flag is set, it means that we are in the default or
+	// "starting" state, which could be either enabled or disabled depending on
+	// the configuration.
+	tls = gettls();
+	tls->oldflags = tls->flags;
+	tls->flags &= ~VLD_TLS_ENABLED;
+	tls->flags |= VLD_TLS_DISABLED;
 }
 
 void VisualLeakDetector::EnableLeakDetection ()
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    tls_t *tls;
+	tls_t *tls;
 
-    // Enable memory leak detection for the current thread.
-    tls = gettls();
-    tls->oldflags = tls->flags;
-    tls->flags &= ~VLD_TLS_DISABLED;
-    tls->flags |= VLD_TLS_ENABLED;
-    m_status &= ~VLD_STATUS_NEVER_ENABLED;
+	// Enable memory leak detection for the current thread.
+	tls = gettls();
+	tls->oldflags = tls->flags;
+	tls->flags &= ~VLD_TLS_DISABLED;
+	tls->flags |= VLD_TLS_ENABLED;
+	m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
 void VisualLeakDetector::RestoreLeakDetectionState ()
 {
-    tls_t *tls;
+	tls_t *tls;
 
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    // Restore state memory leak detection for the current thread.
-    tls = gettls();
-    tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
-    tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+	// Restore state memory leak detection for the current thread.
+	tls = gettls();
+	tls->flags &= ~(VLD_TLS_DISABLED | VLD_TLS_ENABLED);
+	tls->flags |= tls->oldflags & (VLD_TLS_DISABLED | VLD_TLS_ENABLED);
 }
 
 void VisualLeakDetector::GlobalDisableLeakDetection ()
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    // Disable memory leak detection for all threads.
-    EnterCriticalSection(&m_tlslock);
-    TlsMap::Iterator     tlsit;
-    for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
-        (*tlsit).second->oldflags = (*tlsit).second->flags;
-        (*tlsit).second->flags &= ~VLD_TLS_ENABLED;
-        (*tlsit).second->flags |= VLD_TLS_DISABLED;
-    }
-    LeaveCriticalSection(&m_tlslock);
+	// Disable memory leak detection for all threads.
+	EnterCriticalSection(&m_tlslock);
+	TlsMap::Iterator     tlsit;
+	for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+		(*tlsit).second->oldflags = (*tlsit).second->flags;
+		(*tlsit).second->flags &= ~VLD_TLS_ENABLED;
+		(*tlsit).second->flags |= VLD_TLS_DISABLED;
+	}
+	LeaveCriticalSection(&m_tlslock);
 }
 
 void VisualLeakDetector::GlobalEnableLeakDetection ()
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    // Enable memory leak detection for all threads.
-    EnterCriticalSection(&m_tlslock);
-    TlsMap::Iterator     tlsit;
-    for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
-        (*tlsit).second->oldflags = (*tlsit).second->flags;
-        (*tlsit).second->flags &= ~VLD_TLS_DISABLED;
-        (*tlsit).second->flags |= VLD_TLS_ENABLED;
-    }
-    LeaveCriticalSection(&m_tlslock);
-    m_status &= ~VLD_STATUS_NEVER_ENABLED;
+	// Enable memory leak detection for all threads.
+	EnterCriticalSection(&m_tlslock);
+	TlsMap::Iterator     tlsit;
+	for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
+		(*tlsit).second->oldflags = (*tlsit).second->flags;
+		(*tlsit).second->flags &= ~VLD_TLS_DISABLED;
+		(*tlsit).second->flags |= VLD_TLS_ENABLED;
+	}
+	LeaveCriticalSection(&m_tlslock);
+	m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
-    VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
-    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
+	VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
+	VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
 
 UINT32 VisualLeakDetector::GetOptions()
 {
-    return m_options & OptionsMask;
+	return m_options & OptionsMask;
 }
 
 void VisualLeakDetector::SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    m_options &= ~OptionsMask; // clear used bits
-    m_options |= option_mask & OptionsMask;
+	m_options &= ~OptionsMask; // clear used bits
+	m_options |= option_mask & OptionsMask;
 
-    m_maxdatadump = maxDataDump;
-    m_maxtraceframes = maxTraceFrames;
-    if (m_maxtraceframes < 1) {
-        m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
-    }
+	m_maxdatadump = maxDataDump;
+	m_maxtraceframes = maxTraceFrames;
+	if (m_maxtraceframes < 1) {
+		m_maxtraceframes = VLD_DEFAULT_MAX_TRACE_FRAMES;
+	}
 
-    m_options |= option_mask & VLD_OPT_START_DISABLED;
-    if (m_options & VLD_OPT_START_DISABLED)
-        GlobalDisableLeakDetection();
+	m_options |= option_mask & VLD_OPT_START_DISABLED;
+	if (m_options & VLD_OPT_START_DISABLED)
+		GlobalDisableLeakDetection();
 }
 
 void VisualLeakDetector::SetModulesList(CONST WCHAR *modules, BOOL includeModules)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
-    _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
-    if (includeModules)
-        m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
-    else
-        m_options &= ~VLD_OPT_MODULE_LIST_INCLUDE;
+	wcsncpy_s(m_forcedmodulelist, MAXMODULELISTLENGTH, modules, _TRUNCATE);
+	_wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
+	if (includeModules)
+		m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
+	else
+		m_options &= ~VLD_OPT_MODULE_LIST_INCLUDE;
 }
 
 bool VisualLeakDetector::GetModulesList(WCHAR *modules, UINT size)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        modules[0] = '\0';
-        return true;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		modules[0] = '\0';
+		return true;
+	}
 
-    wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
-    return (m_options & VLD_OPT_MODULE_LIST_INCLUDE) > 0;
+	wcsncpy_s(modules, size, m_forcedmodulelist, _TRUNCATE);
+	return (m_options & VLD_OPT_MODULE_LIST_INCLUDE) > 0;
 }
 
 void VisualLeakDetector::GetReportFilename(WCHAR *filename)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        m_reportfilepath[0] = '\0';
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		m_reportfilepath[0] = '\0';
+		return;
+	}
 
-    wcsncpy_s(filename, MAX_PATH, m_reportfilepath, _TRUNCATE);
+	wcsncpy_s(filename, MAX_PATH, m_reportfilepath, _TRUNCATE);
 }
 
 void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
-    if (m_options & VLD_OPT_VLDOFF) {
-        // VLD has been turned off.
-        return;
-    }
+	if (m_options & VLD_OPT_VLDOFF) {
+		// VLD has been turned off.
+		return;
+	}
 
-    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
-        VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
+	m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
+		VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
 
-    m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
-    if ( (option_mask & VLD_OPT_REPORT_TO_FILE) && ( filename != NULL ))
-    {
-        wcsncpy_s(m_reportfilepath, MAX_PATH, filename, _TRUNCATE);
-        m_options |= option_mask & VLD_OPT_REPORT_TO_FILE;
-    }
-    m_options |= option_mask & VLD_OPT_REPORT_TO_STDOUT;
-    m_options |= option_mask & VLD_OPT_UNICODE_REPORT;
+	m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
+	if ( (option_mask & VLD_OPT_REPORT_TO_FILE) && ( filename != NULL ))
+	{
+		wcsncpy_s(m_reportfilepath, MAX_PATH, filename, _TRUNCATE);
+		m_options |= option_mask & VLD_OPT_REPORT_TO_FILE;
+	}
+	m_options |= option_mask & VLD_OPT_REPORT_TO_STDOUT;
+	m_options |= option_mask & VLD_OPT_UNICODE_REPORT;
 
-    if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
-        // If Unicode report encoding is enabled, then the report needs to be
-        // sent to a file because the debugger will not display Unicode
-        // characters, it will display question marks in their place instead.
-        m_options |= VLD_OPT_REPORT_TO_FILE;
-        m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
-    }
+	if ((m_options & VLD_OPT_UNICODE_REPORT) && !(m_options & VLD_OPT_REPORT_TO_FILE)) {
+		// If Unicode report encoding is enabled, then the report needs to be
+		// sent to a file because the debugger will not display Unicode
+		// characters, it will display question marks in their place instead.
+		m_options |= VLD_OPT_REPORT_TO_FILE;
+		m_status |= VLD_STATUS_FORCE_REPORT_TO_FILE;
+	}
 
-    if (m_options & VLD_OPT_REPORT_TO_FILE) {
-        SetupReporting();
-    }
-    else if ( m_reportfile ) { //Close the previous report file if needed.
-        fclose(m_reportfile);
-        m_reportfile = NULL;
-    }
+	if (m_options & VLD_OPT_REPORT_TO_FILE) {
+		SetupReporting();
+	}
+	else if ( m_reportfile ) { //Close the previous report file if needed.
+		fclose(m_reportfile);
+		m_reportfile = NULL;
+	}
 }
 
 void VisualLeakDetector::SetupReporting()
 {
-    WCHAR      bom = BOM; // Unicode byte-order mark.
+	WCHAR      bom = BOM; // Unicode byte-order mark.
 
-    //Close the previous report file if needed.
-    if ( m_reportfile )
-        fclose(m_reportfile);
+	//Close the previous report file if needed.
+	if ( m_reportfile )
+		fclose(m_reportfile);
 
-    // Reporting to file enabled.
-    if (m_options & VLD_OPT_UNICODE_REPORT) {
-        // Unicode data encoding has been enabled. Write the byte-order
-        // mark before anything else gets written to the file. Open the
-        // file for binary writing.
-        if (_wfopen_s(&m_reportfile, m_reportfilepath, L"wb") == EINVAL) {
-            // Couldn't open the file.
-            m_reportfile = NULL;
-        }
-        else {
-            fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
-            setreportencoding(unicode);
-        }
-    }
-    else {
-        // Open the file in text mode for ASCII output.
-        if (_wfopen_s(&m_reportfile, m_reportfilepath, L"w") == EINVAL) {
-            // Couldn't open the file.
-            m_reportfile = NULL;
-        }
-        else {
-            setreportencoding(ascii);
-        }
-    }
-    if (m_reportfile == NULL) {
-        report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
-            L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
-    }
-    else {
-        // Set the "report" function to write to the file.
-        setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER, m_options & VLD_OPT_REPORT_TO_STDOUT);
-    }
+	// Reporting to file enabled.
+	if (m_options & VLD_OPT_UNICODE_REPORT) {
+		// Unicode data encoding has been enabled. Write the byte-order
+		// mark before anything else gets written to the file. Open the
+		// file for binary writing.
+		if (_wfopen_s(&m_reportfile, m_reportfilepath, L"wb") == EINVAL) {
+			// Couldn't open the file.
+			m_reportfile = NULL;
+		}
+		else {
+			fwrite(&bom, sizeof(WCHAR), 1, m_reportfile);
+			setreportencoding(unicode);
+		}
+	}
+	else {
+		// Open the file in text mode for ASCII output.
+		if (_wfopen_s(&m_reportfile, m_reportfilepath, L"w") == EINVAL) {
+			// Couldn't open the file.
+			m_reportfile = NULL;
+		}
+		else {
+			setreportencoding(ascii);
+		}
+	}
+	if (m_reportfile == NULL) {
+		report(L"WARNING: Visual Leak Detector: Couldn't open report file for writing: %s\n"
+			L"  The report will be sent to the debugger instead.\n", m_reportfilepath);
+	}
+	else {
+		// Set the "report" function to write to the file.
+		setreportfile(m_reportfile, m_options & VLD_OPT_REPORT_TO_DEBUGGER, m_options & VLD_OPT_REPORT_TO_STDOUT);
+	}
 }
 
 void VisualLeakDetector::resolveStacks(HANDLE heap)
@@ -3477,18 +3603,18 @@ void VisualLeakDetector::ResolveCallstacks()
 
 HMODULE VisualLeakDetector::GetSxSModuleHandle(LPCSTR modulenamea)
 {
-    HMODULE hDll = NULL;
-    UINT          tablesize = _countof(m_patchtable);
-    for (UINT index = 0; index < tablesize; index++) {
-        moduleentry_t *entry = &m_patchtable[index];
-        if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
-            hDll = (HMODULE)entry->modulebase;
-            break;
-        }
-    }
-    
-    if (hDll == NULL)
-        hDll = GetModuleHandleA(modulenamea);
+	HMODULE hDll = NULL;
+	UINT          tablesize = _countof(m_patchtable);
+	for (UINT index = 0; index < tablesize; index++) {
+		moduleentry_t *entry = &m_patchtable[index];
+		if (_stricmp(entry->exportmodulename, modulenamea) == 0) {
+			hDll = (HMODULE)entry->modulebase;
+			break;
+		}
+	}
+	
+	if (hDll == NULL)
+		hDll = GetModuleHandleA(modulenamea);
 
-    return hDll;
+	return hDll;
 }

@@ -28,6 +28,12 @@ void LeakDuplicateLeaks()
 	// Should report 6 memory leaks
 }
 
+// VLD internal API
+extern "C" {
+	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
+}
+
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	wprintf(_T("======================================\n"));
@@ -43,10 +49,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	} 
 
 	RunLoaderTests(resolve);    // leaks 18
+	SIZE_T leaks = VLDGetLeaksCount();
 	RunMFCLoaderTests(resolve); // leaks 7
+	leaks = VLDGetLeaksCount();
 	LeakDuplicateLeaks();       // leaks 6
+	leaks = VLDGetLeaksCount();
 	// ..................Total:    31 leaks total
 
-	return 0;
+	return 31 - leaks;
 }
 
