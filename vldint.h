@@ -258,6 +258,7 @@ private:
 	// Utils
 	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
 	static void getcallstack( CallStack **&ppcallstack, context_t &context );
+	static inline void firstalloccall(tls_t * tls);
 	void SetupReporting();
 
 	////////////////////////////////////////////////////////////////////////////////

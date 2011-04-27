@@ -479,7 +479,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
             IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
             while (iate->u1.Function != 0x0)
             {
-                if (iate->u1.Function != (DWORD_PTR)import)
+                if (iate->u1.Function != (DWORD_PTR)import) 
                 {
                     iate++;
                     continue;
@@ -659,10 +659,12 @@ VOID report (LPCWSTR format, ...)
 //  Return Value:
 //
 //    None.
-//   
+//
 VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 {
 	HMODULE exportmodule = (HMODULE)module->modulebase;
+	LPCSTR exportmodulename = module->exportmodulename;
+	UNREFERENCED_PARAMETER(exportmodulename);
 	if (exportmodule == NULL)
 		return;
 
@@ -690,11 +692,13 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 		return;
 	}
 
-	int i = 0;
-	while (idte->OriginalFirstThunk != 0x0) {
+	int result = 0;
+	while (idte->OriginalFirstThunk != 0x0)
+	{
 		PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
 		UNREFERENCED_PARAMETER(name);
 
+		int i = 0;
 		patchentry_t *entry = module->patchtable;
 		while(entry->importname)
 		{
@@ -716,13 +720,17 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 					continue;
 				}
 
-				// Found the IAT entry. Overwrite the address stored in the IAT
-				// entry with the import's real address. Note that the IAT entry may
-				// be write-protected, so we must first ensure that it is writable.
-				DWORD protect;
-				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-				iate->u1.Function = (DWORD_PTR)import;
-				VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				if (iate->u1.Function != (DWORD_PTR)import)
+				{
+					// Found the IAT entry. Overwrite the address stored in the IAT
+					// entry with the import's real address. Note that the IAT entry may
+					// be write-protected, so we must first ensure that it is writable.
+					DWORD protect;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
+					iate->u1.Function = (DWORD_PTR)import;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				}
+				result++;
 				iate++;
 			}
 			entry++; i++;
