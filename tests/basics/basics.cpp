@@ -91,7 +91,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		wprintf(_T("Error!: Invalid arguments\n"));
 		PrintUsage();
 		wprintf(_T("End of test app...\n\n"));
-		return 0;
+		return -1;
 	}
 }
 

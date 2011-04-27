@@ -91,6 +91,15 @@ __declspec(thread) malloc_t       pmalloc = NULL;
 __declspec(thread) HANDLE         threadheap;
 __declspec(thread) ULONG          total_allocs = 0;
 
+// VLD internal API
+#ifdef _DEBUG
+extern "C" {
+	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
+}
+#else
+#define VLDGetLeaksCount() 0
+#endif
+
 ULONG random (ULONG max)
 {
 	FLOAT d;
@@ -424,5 +433,9 @@ int main (int argc, char *argv [])
 	_snprintf_s(message, MESSAGESIZE, _TRUNCATE, "Elapsed Time = %ums\n", end - start);
 	OutputDebugString(message);
 
-	return 0;
+	int totalleaks = (int)VLDGetLeaksCount();
+	int diff = 16 - totalleaks;
+	assert(diff == 0);
+
+	return diff;
 }
