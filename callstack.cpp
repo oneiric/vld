@@ -318,6 +318,13 @@ void CallStack::dump(BOOL showinternalframes) const
 //
 void CallStack::Resolve(BOOL showinternalframes)
 {
+	if (m_Resolved)
+	{
+		// already resolved, no need to do it again
+		// resolving twice may report an incorrect module for the stack frames
+		// if the memory was leaked in a dynamic library that was already unloaded.
+		return;
+	}
 	if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
 		// This call stack appears to be incomplete. Using StackWalk64 may be
 		// more reliable.
@@ -337,11 +344,6 @@ void CallStack::Resolve(BOOL showinternalframes)
 
 	const size_t max_line_length = MAXREPORTLENGTH + 1;
 	m_ResolvedCapacity = m_size * max_line_length;
-	if (m_Resolved)
-	{
-		// Prevent memory from getting leaked
-		delete [] m_Resolved;
-	}
 	m_Resolved = new WCHAR[m_ResolvedCapacity];
 	const size_t allocedBytes = m_ResolvedCapacity * sizeof(WCHAR);
 	ZeroMemory(m_Resolved, allocedBytes);
