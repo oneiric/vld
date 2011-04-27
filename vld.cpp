@@ -72,11 +72,11 @@ patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
 };
 
 patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
-	"HeapAlloc",          _RtlAllocateHeap,
+	"HeapAlloc",          _HeapAlloc,
 	"HeapCreate",         _HeapCreate,
 	"HeapDestroy",        _HeapDestroy,
-	"HeapFree",           _RtlFreeHeap,
-	"HeapReAlloc",        _RtlReAllocateHeap,
+	"HeapFree",           _HeapFree,
+	"HeapReAlloc",        _HeapReAlloc,
 	NULL,                 NULL
 };
 
@@ -2579,6 +2579,51 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 	return block;
 }
 
+// for kernel32.dll
+LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
+{
+	// Allocate the block.
+	LPVOID block = RtlAllocateHeap(heap, flags, size);
+
+	if ((block == NULL) || !vld.enabled())
+		return block;
+
+	tls_t* tls = vld.gettls();
+	tls->blockprocessed = TRUE;
+	bool firstcall = (tls->context.fp == 0x0);
+	context_t context;
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+	}
+	else
+		context = tls->context;
+
+	if (IsModuleExcluded(GET_RETURN_ADDRESS(context)))
+		return block;
+
+	if (!firstcall && (vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
+		// Begin the stack trace with the current frame. Obtain the current
+		// frame pointer.
+		firstcall = true;
+		CAPTURE_CONTEXT(context);
+	}
+
+	tls->context = context;
+
+	BOOL crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
+
+	// The module that initiated this allocation is included in leak
+	// detection. Map this block to the specified heap.
+	vld.mapblock(heap, block, size, crtalloc, tls->ppcallstack);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
 //   This function calls VLD's free tracking function and then invokes the real
 //   RtlFreeHeap. Pretty much all memory frees will eventually result in a call
@@ -2595,6 +2640,19 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 //    Returns the value returned by RtlFreeHeap.
 //
 BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
+{
+	BOOL status;
+
+	// Unmap the block from the specified heap.
+	vld.unmapblock(heap, mem);
+
+	status = RtlFreeHeap(heap, flags, mem);
+
+	return status;
+}
+
+// for kernel32.dll
+BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 {
 	BOOL status;
 
@@ -2706,6 +2764,70 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 
 	return newmem;
 }
+
+// for kernel32.dll
+LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
+{
+	LPVOID               newmem;
+
+	// Reallocate the block.
+	newmem = RtlReAllocateHeap(heap, flags, mem, size);
+	if (newmem == NULL)
+		return newmem;
+
+	tls_t *tls = vld.gettls();
+	tls->blockprocessed = TRUE;
+	bool firstcall = (tls->context.fp == 0x0);
+	context_t context;
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		CAPTURE_CONTEXT(context);
+	}
+	else
+		context = tls->context;
+
+	if (IsModuleExcluded(GET_RETURN_ADDRESS(context)))
+		return newmem;
+
+	if (!firstcall && (vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
+		// Begin the stack trace with the current frame. Obtain the current
+		// frame pointer.
+		firstcall = true;
+		CAPTURE_CONTEXT(context);
+	}
+
+	BOOL                 crtalloc;
+	crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
+
+	// Reset thread local flags and variables, in case any libraries called
+	// into while remapping the block allocate some memory.
+	tls->context.fp = 0x0;
+	if (crtalloc)
+		tls->flags |= VLD_TLS_CRTALLOC;
+	else
+		tls->flags &=~VLD_TLS_CRTALLOC;
+
+	// The module that initiated this allocation is included in leak
+	// detection. Remap the block.
+	vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack);
+
+#ifdef _DEBUG
+	if(tls->context.fp != 0)
+		__debugbreak();
+#endif
+	tls->context = context;
+	tls->flags |= crtalloc;
+
+	if (firstcall)
+	{
+		firstalloccall(tls);
+		tls->ppcallstack = NULL;
+	}
+
+	return newmem;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //

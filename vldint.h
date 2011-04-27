@@ -270,12 +270,16 @@ private:
 	////////////////////////////////////////////////////////////////////////////////
 	// Win32 IAT replacement functions
 	static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
-	static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
-	static BOOL     __stdcall _HeapDestroy (HANDLE heap);
 	static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
 		PHANDLE modulehandle);
-	static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
 
+	static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
+	static BOOL     __stdcall _HeapDestroy (HANDLE heap);
+	static LPVOID   __stdcall _HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size);
+	static BOOL     __stdcall _HeapFree (HANDLE heap, DWORD flags, LPVOID mem);
+	static LPVOID   __stdcall _HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
+
+	static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
 	static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
 	static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
