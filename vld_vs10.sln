@@ -24,7 +24,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dynamic_app", "tests\dynami
 		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mfc", "tests\mfc\mfc.vcxproj", "{2178E5B2-1032-441F-A664-F3D8D1FD1913}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mfc", "tests\mfc_dll\mfc.vcxproj", "{2178E5B2-1032-441F-A664-F3D8D1FD1913}"
 EndProject
 Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
