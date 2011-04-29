@@ -392,7 +392,7 @@ int main (int argc, char *argv [])
 	
 	// Wait for all threads to terminate.
 	BOOL wait_for_all = TRUE;
-	DWORD result = WaitForMultipleObjects(NUMTHREADS, threads, wait_for_all, 45*1000);
+	DWORD result = WaitForMultipleObjects(NUMTHREADS, threads, wait_for_all, INFINITE);
 	switch (result)
 	{
 	case WAIT_OBJECT_0:
