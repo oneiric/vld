@@ -65,7 +65,9 @@ BOOL CmfcApp::InitInstance()
 int CmfcApp::ExitInstance()
 {
 	// Without this, Dynamically unloading the MFC dll will crash
+#ifdef _DEBUG   // entire file
 	AfxEnableMemoryLeakDump(FALSE);
+#endif
 	return 0;
 }
 

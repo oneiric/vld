@@ -473,7 +473,8 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
             if ( import2 )
                 import = import2;
 
-            assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+            if (import == NULL) // Perhaps the named export module does not actually export the named import?
+                continue;
 
             // Locate the import's IAT entry.
             IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
@@ -662,81 +663,82 @@ VOID report (LPCWSTR format, ...)
 //
 VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 {
-	HMODULE exportmodule = (HMODULE)module->modulebase;
-	LPCSTR exportmodulename = module->exportmodulename;
-	UNREFERENCED_PARAMETER(exportmodulename);
-	if (exportmodule == NULL)
-		return;
+    HMODULE exportmodule = (HMODULE)module->modulebase;
+    LPCSTR exportmodulename = module->exportmodulename;
+    UNREFERENCED_PARAMETER(exportmodulename);
+    if (exportmodule == NULL)
+        return;
 
-	IMAGE_IMPORT_DESCRIPTOR *idte;
-	IMAGE_SECTION_HEADER    *section;
-	ULONG                    size;
+    IMAGE_IMPORT_DESCRIPTOR *idte;
+    IMAGE_SECTION_HEADER    *section;
+    ULONG                    size;
 
-	// Locate the importing module's Import Directory Table (IDT) entry for the
-	// exporting module. The importing module actually can have several IATs --
-	// one for each export module that it imports something from. The IDT entry
-	// gives us the offset of the IAT for the module we are interested in.
-	EnterCriticalSection(&imagelock);
-	__try
-	{
-		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-			IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-	}
-	__except(1)
-	{
-		idte = NULL;
-	}
-	LeaveCriticalSection(&imagelock);
-	if (idte == NULL) {
-		// This module has no IDT (i.e. it imports nothing).
-		return;
-	}
+    // Locate the importing module's Import Directory Table (IDT) entry for the
+    // exporting module. The importing module actually can have several IATs --
+    // one for each export module that it imports something from. The IDT entry
+    // gives us the offset of the IAT for the module we are interested in.
+    EnterCriticalSection(&imagelock);
+    __try
+    {
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+    }
+    __except(1)
+    {
+        idte = NULL;
+    }
+    LeaveCriticalSection(&imagelock);
+    if (idte == NULL) {
+        // This module has no IDT (i.e. it imports nothing).
+        return;
+    }
 
-	int result = 0;
-	while (idte->OriginalFirstThunk != 0x0)
-	{
-		PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-		UNREFERENCED_PARAMETER(name);
+    int result = 0;
+    while (idte->OriginalFirstThunk != 0x0)
+    {
+        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+        UNREFERENCED_PARAMETER(name);
 
-		int i = 0;
-		patchentry_t *entry = module->patchtable;
-		while(entry->importname)
-		{
-			LPCSTR importname   = entry->importname;
-			LPCVOID replacement = entry->replacement;
+        int i = 0;
+        patchentry_t *entry = module->patchtable;
+        while(entry->importname)
+        {
+            LPCSTR importname   = entry->importname;
+            LPCVOID replacement = entry->replacement;
 
-			// Get the *real* address of the import.
-			FARPROC import = GetProcAddress(exportmodule, importname);
-			assert(import != NULL); // Perhaps the named export module does not actually export the named import?
+            // Get the *real* address of the import.
+            FARPROC import = GetProcAddress(exportmodule, importname);
+            if (import == NULL) // Perhaps the named export module does not actually export the named import?
+                continue;
 
-			// Locate the import's original IAT entry (it currently has the replacement
-			// address in it).
-			IMAGE_THUNK_DATA* iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-			while (iate->u1.Function != 0x0)
-			{
-				if (iate->u1.Function != (DWORD_PTR)replacement)
-				{
-					iate++;
-					continue;
-				}
+            // Locate the import's original IAT entry (it currently has the replacement
+            // address in it).
+            IMAGE_THUNK_DATA* iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+            while (iate->u1.Function != 0x0)
+            {
+                if (iate->u1.Function != (DWORD_PTR)replacement)
+                {
+                    iate++;
+                    continue;
+                }
 
-				if (iate->u1.Function != (DWORD_PTR)import)
-				{
-					// Found the IAT entry. Overwrite the address stored in the IAT
-					// entry with the import's real address. Note that the IAT entry may
-					// be write-protected, so we must first ensure that it is writable.
-					DWORD protect;
-					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-					iate->u1.Function = (DWORD_PTR)import;
-					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-				}
-				result++;
-				iate++;
-			}
-			entry++; i++;
-		}
-		idte++;
-	}
+                if (iate->u1.Function != (DWORD_PTR)import)
+                {
+                    // Found the IAT entry. Overwrite the address stored in the IAT
+                    // entry with the import's real address. Note that the IAT entry may
+                    // be write-protected, so we must first ensure that it is writable.
+                    DWORD protect;
+                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
+                    iate->u1.Function = (DWORD_PTR)import;
+                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+                }
+                result++;
+                iate++;
+            }
+            entry++; i++;
+        }
+        idte++;
+    }
 }
 
 // restoremodule - Restores all imports listed in the supplied patch table, and

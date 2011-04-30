@@ -72,7 +72,7 @@ typedef struct vldblockheader_s
     const char              *file;          // Name of the file where this block was allocated.
     int                      line;          // Line number within the above file where this block was allocated.
     size_t                   size;          // The size of this memory block, not including this header.
-    SIZE_T                   serialnumber;  // Each block is assigned a unique serial number, starting from zero.
+    size_t                   serialnumber;  // Each block is assigned a unique serial number, starting from zero.
 } vldblockheader_t;
 
 // Data-to-Header and Header-to-Data conversion
