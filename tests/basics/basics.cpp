@@ -40,6 +40,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	wprintf(_T("======================================\n"));
 	if (argc == 3)
 	{
+		bool checkAll = false;
 		LeakOption leak_type = eMalloc; // default
 		int multiplayer = 2;
 		
@@ -70,6 +71,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			leak_type = eCoTaskMem;
 			multiplayer = 1;
 		}
+		else if (_tcsicmp(_T("all"), argv[1]) == 0)
+		{
+			checkAll = true;
+			multiplayer = 11;
+		}
 		else
 		{
 			wprintf(_T("Error!: Invalid arguments\n"));
@@ -80,7 +86,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		wprintf(_T("Options: %s \nNumber of Leaks: %s\n"), argv[1], argv[2]);
 		// Convert the string into it's integer equivalent
 		int repeat = _tstoi(argv[2]);
-		LeakMemory(leak_type,repeat);
+		if (!checkAll)
+			LeakMemory(leak_type,repeat);
+		else
+		{
+			for (int leak_type = eMalloc; leak_type <= eCoTaskMem; leak_type++)
+				LeakMemory((LeakOption)leak_type,repeat);
+		}
 		int leaks = (int)VLDGetLeaksCount(false);
 		wprintf(_T("End of test app...\n\n"));
 		int diff = repeat * multiplayer - leaks;

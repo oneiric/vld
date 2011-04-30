@@ -91,6 +91,8 @@ __declspec(thread) malloc_t       pmalloc = NULL;
 __declspec(thread) HANDLE         threadheap;
 __declspec(thread) ULONG          total_allocs = 0;
 
+volatile           ULONG          leaks_count = 0;
+
 // VLD internal API
 #ifdef _DEBUG
 extern "C" {
@@ -333,9 +335,11 @@ DWORD __stdcall threadproc_test (LPVOID param)
 			leaks_selected = 0;
 			do {
 				index = random(MAXBLOCKS);
-				if ((blocks[index].block != NULL) && (blocks[index].action == (action_e)action_index)) {
+				if (!blocks[index].leak && (blocks[index].block != NULL) && (blocks[index].action == (action_e)action_index)) {
 					blocks[index].leak = TRUE;
 					leaks_selected++;
+					if (blocks[index].action != a_ignored)
+						InterlockedIncrement(&leaks_count);
 				}
 			} while (leaks_selected < (1 + NUMDUPLEAKS));
 		}
@@ -434,7 +438,7 @@ int main (int argc, char *argv [])
 	OutputDebugString(message);
 
 	int totalleaks = (int)VLDGetLeaksCount();
-	int diff = 16 - totalleaks;
+	int diff = leaks_count - totalleaks;
 	assert(diff == 0);
 
 	return diff;
