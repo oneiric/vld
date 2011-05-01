@@ -474,7 +474,10 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
                 import = import2;
 
             if (import == NULL) // Perhaps the named export module does not actually export the named import?
+            {
+                entry++; i++;
                 continue;
+            }
 
             // Locate the import's IAT entry.
             IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
@@ -492,6 +495,9 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
                 // writable.
                 if ( import != replacement )
                 {
+                    if (entry->original == NULL)
+                        entry->original = (LPCVOID)iate->u1.Function;
+
                     DWORD protect;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
                     iate->u1.Function = (DWORD_PTR)replacement;
@@ -705,11 +711,16 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
         {
             LPCSTR importname   = entry->importname;
             LPCVOID replacement = entry->replacement;
+            UNREFERENCED_PARAMETER(importname);
 
             // Get the *real* address of the import.
-            FARPROC import = GetProcAddress(exportmodule, importname);
-            if (import == NULL) // Perhaps the named export module does not actually export the named import?
+            //LPCVOID original = entry->original;
+            LPCVOID original = GetProcAddress(exportmodule, importname);
+            if (original == NULL) // Perhaps the named export module does not actually export the named import?
+            {
+                entry++; i++;
                 continue;
+            }
 
             // Locate the import's original IAT entry (it currently has the replacement
             // address in it).
@@ -722,14 +733,14 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
                     continue;
                 }
 
-                if (iate->u1.Function != (DWORD_PTR)import)
+                if (iate->u1.Function != (DWORD_PTR)original)
                 {
                     // Found the IAT entry. Overwrite the address stored in the IAT
                     // entry with the import's real address. Note that the IAT entry may
                     // be write-protected, so we must first ensure that it is writable.
                     DWORD protect;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                    iate->u1.Function = (DWORD_PTR)import;
+                    iate->u1.Function = (DWORD_PTR)original;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
                 }
                 result++;

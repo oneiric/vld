@@ -67,17 +67,17 @@ __declspec(dllexport) VisualLeakDetector vld;
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
-	"GetProcAddress",     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
-	NULL,                 NULL
+	"GetProcAddress",     NULL, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+	NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
-	"HeapAlloc",          _HeapAlloc,
-	"HeapCreate",         _HeapCreate,
-	"HeapDestroy",        _HeapDestroy,
-	"HeapFree",           _HeapFree,
-	"HeapReAlloc",        _HeapReAlloc,
-	NULL,                 NULL
+	"HeapAlloc",          NULL, _HeapAlloc,
+	"HeapCreate",         NULL, _HeapCreate,
+	"HeapDestroy",        NULL, _HeapDestroy,
+	"HeapFree",           NULL, _HeapFree,
+	"HeapReAlloc",        NULL, _HeapReAlloc,
+	NULL,                 NULL, NULL
 };
 
 #define ORDINAL(x)          (LPCSTR)x
@@ -91,216 +91,216 @@ VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcA
 
 static patchentry_t mfc42dPatch [] = {
 	// XXX why are the vector new operators missing for mfc42d.dll?
-	ORDINAL(711),         VS60::mfcd_scalar_new,
-	ORDINAL(712),         VS60::mfcd__scalar_new_dbg_4p,
-	ORDINAL(714),         VS60::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(711),         NULL, VS60::mfcd_scalar_new,
+	ORDINAL(712),         NULL, VS60::mfcd__scalar_new_dbg_4p,
+	ORDINAL(714),         NULL, VS60::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc42udPatch [] = {
 	// XXX why are the vector new operators missing for mfc42ud.dll?
-	ORDINAL(711),         VS60::mfcud_scalar_new,
-	ORDINAL(712),         VS60::mfcud__scalar_new_dbg_4p,
-	ORDINAL(714),         VS60::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(711),         NULL, VS60::mfcud_scalar_new,
+	ORDINAL(712),         NULL, VS60::mfcud__scalar_new_dbg_4p,
+	ORDINAL(714),         NULL, VS60::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc70dPatch [] = {
-	ORDINAL(257),         VS70::mfcd_vector_new,
-	ORDINAL(258),         VS70::mfcd__vector_new_dbg_4p,
-	ORDINAL(259),         VS70::mfcd__vector_new_dbg_3p,
-	ORDINAL(832),         VS70::mfcd_scalar_new,
-	ORDINAL(833),         VS70::mfcd__scalar_new_dbg_4p,
-	ORDINAL(834),         VS70::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(257),         NULL, VS70::mfcd_vector_new,
+	ORDINAL(258),         NULL, VS70::mfcd__vector_new_dbg_4p,
+	ORDINAL(259),         NULL, VS70::mfcd__vector_new_dbg_3p,
+	ORDINAL(832),         NULL, VS70::mfcd_scalar_new,
+	ORDINAL(833),         NULL, VS70::mfcd__scalar_new_dbg_4p,
+	ORDINAL(834),         NULL, VS70::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc70udPatch [] = {
-	ORDINAL(258),         VS70::mfcud_vector_new,
-	ORDINAL(259),         VS70::mfcud__vector_new_dbg_4p,
-	ORDINAL(260),         VS70::mfcud__vector_new_dbg_3p,
-	ORDINAL(833),         VS70::mfcud_scalar_new,
-	ORDINAL(834),         VS70::mfcud__scalar_new_dbg_4p,
-	ORDINAL(835),         VS70::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(258),         NULL, VS70::mfcud_vector_new,
+	ORDINAL(259),         NULL, VS70::mfcud__vector_new_dbg_4p,
+	ORDINAL(260),         NULL, VS70::mfcud__vector_new_dbg_3p,
+	ORDINAL(833),         NULL, VS70::mfcud_scalar_new,
+	ORDINAL(834),         NULL, VS70::mfcud__scalar_new_dbg_4p,
+	ORDINAL(835),         NULL, VS70::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc71dPatch [] = {
-	ORDINAL(267),         VS71::mfcd_vector_new,
-	ORDINAL(268),         VS71::mfcd__vector_new_dbg_4p,
-	ORDINAL(269),         VS71::mfcd__vector_new_dbg_3p,
-	ORDINAL(893),         VS71::mfcd_scalar_new,
-	ORDINAL(894),         VS71::mfcd__scalar_new_dbg_4p,
-	ORDINAL(895),         VS71::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS71::mfcd_vector_new,
+	ORDINAL(268),         NULL, VS71::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS71::mfcd__vector_new_dbg_3p,
+	ORDINAL(893),         NULL, VS71::mfcd_scalar_new,
+	ORDINAL(894),         NULL, VS71::mfcd__scalar_new_dbg_4p,
+	ORDINAL(895),         NULL, VS71::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc71udPatch [] = {
-	ORDINAL(267),         VS71::mfcud_vector_new,
-	ORDINAL(268),         VS71::mfcud__vector_new_dbg_4p,
-	ORDINAL(269),         VS71::mfcud__vector_new_dbg_3p,
-	ORDINAL(893),         VS71::mfcud_scalar_new,
-	ORDINAL(894),         VS71::mfcud__scalar_new_dbg_4p,
-	ORDINAL(895),         VS71::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS71::mfcud_vector_new,
+	ORDINAL(268),         NULL, VS71::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS71::mfcud__vector_new_dbg_3p,
+	ORDINAL(893),         NULL, VS71::mfcud_scalar_new,
+	ORDINAL(894),         NULL, VS71::mfcud__scalar_new_dbg_4p,
+	ORDINAL(895),         NULL, VS71::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc80dPatch [] = {
-	ORDINAL(267),         VS80::mfcd_vector_new,
-	ORDINAL(268),         VS80::mfcd__vector_new_dbg_4p,
-	ORDINAL(269),         VS80::mfcd__vector_new_dbg_3p,
-	ORDINAL2(893,907),    VS80::mfcd_scalar_new,
-	ORDINAL2(894,908),    VS80::mfcd__scalar_new_dbg_4p,
-	ORDINAL2(895,909),    VS80::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS80::mfcd_vector_new,
+	ORDINAL(268),         NULL, VS80::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS80::mfcd__vector_new_dbg_3p,
+	ORDINAL2(893,907),    NULL, VS80::mfcd_scalar_new,
+	ORDINAL2(894,908),    NULL, VS80::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(895,909),    NULL, VS80::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc80udPatch [] = {
-	ORDINAL(267),         VS80::mfcud_vector_new,
-	ORDINAL(268),         VS80::mfcud__vector_new_dbg_4p,
-	ORDINAL(269),         VS80::mfcud__vector_new_dbg_3p,
-	ORDINAL2(893,907),    VS80::mfcud_scalar_new,
-	ORDINAL2(894,908),    VS80::mfcud__scalar_new_dbg_4p,
-	ORDINAL2(895,909),    VS80::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS80::mfcud_vector_new,
+	ORDINAL(268),         NULL, VS80::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS80::mfcud__vector_new_dbg_3p,
+	ORDINAL2(893,907),    NULL, VS80::mfcud_scalar_new,
+	ORDINAL2(894,908),    NULL, VS80::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(895,909),    NULL, VS80::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc90dPatch [] = {
-	ORDINAL(267),         VS90::mfcd_vector_new,
-	ORDINAL(268),         VS90::mfcd__vector_new_dbg_4p,
-	ORDINAL(269),         VS90::mfcd__vector_new_dbg_3p,
-	ORDINAL2(931, 909),   VS90::mfcd_scalar_new,
-	ORDINAL2(932, 910),   VS90::mfcd__scalar_new_dbg_4p,
-	ORDINAL2(933, 911),   VS90::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS90::mfcd_vector_new,
+	ORDINAL(268),         NULL, VS90::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS90::mfcd__vector_new_dbg_3p,
+	ORDINAL2(931, 909),   NULL, VS90::mfcd_scalar_new,
+	ORDINAL2(932, 910),   NULL, VS90::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(933, 911),   NULL, VS90::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc90udPatch [] = {
-	ORDINAL(267),         VS90::mfcud_vector_new,
-	ORDINAL(268),         VS90::mfcud__vector_new_dbg_4p,
-	ORDINAL(269),         VS90::mfcud__vector_new_dbg_3p,
-	ORDINAL2(935, 913),   VS90::mfcud_scalar_new,
-	ORDINAL2(936, 914),   VS90::mfcud__scalar_new_dbg_4p,
-	ORDINAL2(937, 915),   VS90::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS90::mfcud_vector_new,
+	ORDINAL(268),         NULL, VS90::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS90::mfcud__vector_new_dbg_3p,
+	ORDINAL2(935, 913),   NULL, VS90::mfcud_scalar_new,
+	ORDINAL2(936, 914),   NULL, VS90::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(937, 915),   NULL, VS90::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc100dPatch [] = {
-	ORDINAL(267),         VS100::mfcd_vector_new,
-	ORDINAL(268),         VS100::mfcd__vector_new_dbg_4p,
-	ORDINAL(269),         VS100::mfcd__vector_new_dbg_3p,
-	ORDINAL2(1427, 1405), VS100::mfcd_scalar_new,
-	ORDINAL2(1428, 1406), VS100::mfcd__scalar_new_dbg_4p,
-	ORDINAL2(1429, 1407), VS100::mfcd__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS100::mfcd_vector_new,
+	ORDINAL(268),         NULL, VS100::mfcd__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS100::mfcd__vector_new_dbg_3p,
+	ORDINAL2(1427, 1405), NULL, VS100::mfcd_scalar_new,
+	ORDINAL2(1428, 1406), NULL, VS100::mfcd__scalar_new_dbg_4p,
+	ORDINAL2(1429, 1407), NULL, VS100::mfcd__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t mfc100udPatch [] = {
-	ORDINAL(267),         VS100::mfcud_vector_new,
-	ORDINAL(268),         VS100::mfcud__vector_new_dbg_4p,
-	ORDINAL(269),         VS100::mfcud__vector_new_dbg_3p,
-	ORDINAL2(1434, 1412), VS100::mfcud_scalar_new,
-	ORDINAL2(1435, 1413), VS100::mfcud__scalar_new_dbg_4p,
-	ORDINAL2(1436, 1414), VS100::mfcud__scalar_new_dbg_3p,
-	NULL,                 NULL
+	ORDINAL(267),         NULL, VS100::mfcud_vector_new,
+	ORDINAL(268),         NULL, VS100::mfcud__vector_new_dbg_4p,
+	ORDINAL(269),         NULL, VS100::mfcud__vector_new_dbg_3p,
+	ORDINAL2(1434, 1412), NULL, VS100::mfcud_scalar_new,
+	ORDINAL2(1435, 1413), NULL, VS100::mfcud__scalar_new_dbg_4p,
+	ORDINAL2(1436, 1414), NULL, VS100::mfcud__scalar_new_dbg_3p,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcrtdPatch [] = {
-	"_calloc_dbg",        VS60::crtd__calloc_dbg,
-	"_malloc_dbg",        VS60::crtd__malloc_dbg,
-	"_realloc_dbg",       VS60::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS60::crtd__scalar_new_dbg,
-	//vector_new_dbg_name,  VS60::crtd__vector_new_dbg,
-	"calloc",             VS60::crtd_calloc,
-	"malloc",             VS60::crtd_malloc,
-	"realloc",            VS60::crtd_realloc,
-	scalar_new_name,      VS60::crtd_scalar_new,
-	//vector_new_name,      VS60::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS60::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS60::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS60::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS60::crtd__scalar_new_dbg,
+	//vector_new_dbg_name,  NULL, VS60::crtd__vector_new_dbg,
+	"calloc",             NULL, VS60::crtd_calloc,
+	"malloc",             NULL, VS60::crtd_malloc,
+	"realloc",            NULL, VS60::crtd_realloc,
+	scalar_new_name,      NULL, VS60::crtd_scalar_new,
+	//vector_new_name,      NULL, VS60::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcr70dPatch [] = {
-	"_calloc_dbg",        VS70::crtd__calloc_dbg,
-	"_malloc_dbg",        VS70::crtd__malloc_dbg,
-	"_realloc_dbg",       VS70::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS70::crtd__scalar_new_dbg,
-	vector_new_dbg_name,  VS70::crtd__vector_new_dbg,
-	"calloc",             VS70::crtd_calloc,
-	"malloc",             VS70::crtd_malloc,
-	"realloc",            VS70::crtd_realloc,
-	scalar_new_name,      VS70::crtd_scalar_new,
-	vector_new_name,      VS70::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS70::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS70::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS70::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS70::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  NULL, VS70::crtd__vector_new_dbg,
+	"calloc",             NULL, VS70::crtd_calloc,
+	"malloc",             NULL, VS70::crtd_malloc,
+	"realloc",            NULL, VS70::crtd_realloc,
+	scalar_new_name,      NULL, VS70::crtd_scalar_new,
+	vector_new_name,      NULL, VS70::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcr71dPatch [] = {
-	"_calloc_dbg",        VS71::crtd__calloc_dbg,
-	"_malloc_dbg",        VS71::crtd__malloc_dbg,
-	"_realloc_dbg",       VS71::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS71::crtd__scalar_new_dbg,
-	vector_new_dbg_name,  VS71::crtd__vector_new_dbg,
-	"calloc",             VS71::crtd_calloc,
-	"malloc",             VS71::crtd_malloc,
-	"realloc",            VS71::crtd_realloc,
-	scalar_new_name,      VS71::crtd_scalar_new,
-	vector_new_name,      VS71::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS71::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS71::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS71::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS71::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  NULL, VS71::crtd__vector_new_dbg,
+	"calloc",             NULL, VS71::crtd_calloc,
+	"malloc",             NULL, VS71::crtd_malloc,
+	"realloc",            NULL, VS71::crtd_realloc,
+	scalar_new_name,      NULL, VS71::crtd_scalar_new,
+	vector_new_name,      NULL, VS71::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcr80dPatch [] = {
-	"_calloc_dbg",        VS80::crtd__calloc_dbg,
-	"_malloc_dbg",        VS80::crtd__malloc_dbg,
-	"_realloc_dbg",       VS80::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS80::crtd__scalar_new_dbg,
-	vector_new_dbg_name,  VS80::crtd__vector_new_dbg,
-	"calloc",             VS80::crtd_calloc,
-	"malloc",             VS80::crtd_malloc,
-	"realloc",            VS80::crtd_realloc,
-	scalar_new_name,      VS80::crtd_scalar_new,
-	vector_new_name,      VS80::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS80::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS80::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS80::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS80::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  NULL, VS80::crtd__vector_new_dbg,
+	"calloc",             NULL, VS80::crtd_calloc,
+	"malloc",             NULL, VS80::crtd_malloc,
+	"realloc",            NULL, VS80::crtd_realloc,
+	scalar_new_name,      NULL, VS80::crtd_scalar_new,
+	vector_new_name,      NULL, VS80::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcr90dPatch [] = {
-	"_calloc_dbg",        VS90::crtd__calloc_dbg,
-	"_malloc_dbg",        VS90::crtd__malloc_dbg,
-	"_realloc_dbg",       VS90::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS90::crtd__scalar_new_dbg,
-	vector_new_dbg_name,  VS90::crtd__vector_new_dbg,
-	"calloc",             VS90::crtd_calloc,
-	"malloc",             VS90::crtd_malloc,
-	"realloc",            VS90::crtd_realloc,
-	scalar_new_name,      VS90::crtd_scalar_new,
-	vector_new_name,      VS90::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS90::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS90::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS90::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS90::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  NULL, VS90::crtd__vector_new_dbg,
+	"calloc",             NULL, VS90::crtd_calloc,
+	"malloc",             NULL, VS90::crtd_malloc,
+	"realloc",            NULL, VS90::crtd_realloc,
+	scalar_new_name,      NULL, VS90::crtd_scalar_new,
+	vector_new_name,      NULL, VS90::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 static patchentry_t msvcr100dPatch [] = {
-	"_calloc_dbg",        VS100::crtd__calloc_dbg,
-	"_malloc_dbg",        VS100::crtd__malloc_dbg,
-	"_realloc_dbg",       VS100::crtd__realloc_dbg,
-	scalar_new_dbg_name,  VS100::crtd__scalar_new_dbg,
-	vector_new_dbg_name,  VS100::crtd__vector_new_dbg,
-	"calloc",             VS100::crtd_calloc,
-	"malloc",             VS100::crtd_malloc,
-	"realloc",            VS100::crtd_realloc,
-	scalar_new_name,      VS100::crtd_scalar_new,
-	vector_new_name,      VS100::crtd_vector_new,
-	NULL,                 NULL
+	"_calloc_dbg",        NULL, VS100::crtd__calloc_dbg,
+	"_malloc_dbg",        NULL, VS100::crtd__malloc_dbg,
+	"_realloc_dbg",       NULL, VS100::crtd__realloc_dbg,
+	scalar_new_dbg_name,  NULL, VS100::crtd__scalar_new_dbg,
+	vector_new_dbg_name,  NULL, VS100::crtd__vector_new_dbg,
+	"calloc",             NULL, VS100::crtd_calloc,
+	"malloc",             NULL, VS100::crtd_malloc,
+	"realloc",            NULL, VS100::crtd_realloc,
+	scalar_new_name,      NULL, VS100::crtd_scalar_new,
+	vector_new_name,      NULL, VS100::crtd_vector_new,
+	NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
-	"RtlAllocateHeap",    VisualLeakDetector::_RtlAllocateHeap,
-	"RtlFreeHeap",        VisualLeakDetector::_RtlFreeHeap,
-	"RtlReAllocateHeap",  VisualLeakDetector::_RtlReAllocateHeap,
-	NULL,                 NULL
+	"RtlAllocateHeap",    NULL, VisualLeakDetector::_RtlAllocateHeap,
+	"RtlFreeHeap",        NULL, VisualLeakDetector::_RtlFreeHeap,
+	"RtlReAllocateHeap",  NULL, VisualLeakDetector::_RtlReAllocateHeap,
+	NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_ole32Patch [] = {
-	"CoGetMalloc",        VisualLeakDetector::_CoGetMalloc,
-	"CoTaskMemAlloc",     VisualLeakDetector::_CoTaskMemAlloc,
-	"CoTaskMemRealloc",   VisualLeakDetector::_CoTaskMemRealloc,
-	NULL,                 NULL
+	"CoGetMalloc",        NULL, VisualLeakDetector::_CoGetMalloc,
+	"CoTaskMemAlloc",     NULL, VisualLeakDetector::_CoTaskMemAlloc,
+	"CoTaskMemRealloc",   NULL, VisualLeakDetector::_CoTaskMemRealloc,
+	NULL,                 NULL, NULL
 };
 
 moduleentry_t VisualLeakDetector::m_patchtable [] = {
@@ -474,8 +474,8 @@ VisualLeakDetector::VisualLeakDetector ()
 	delete [] symbolpath;
 
 	patchentry_t ntdllPatch [] = {
-		"LdrLoadDll",    _LdrLoadDll,
-		NULL,                 NULL
+		"LdrLoadDll",   NULL, _LdrLoadDll,
+		NULL,           NULL, NULL
 	};
 	moduleentry_t ldrLoadDllPatch [] = {
 		"ntdll.dll", (UINT_PTR)ntdll, ntdllPatch,

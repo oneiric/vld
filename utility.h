@@ -102,6 +102,7 @@ enum encoding_e {
 typedef struct patchentry_s
 {
     LPCSTR  importname;       // The name (or ordinal) of the imported API being patched.
+    LPCVOID original;         // Pointer to the original function.
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 } patchentry_t;
 
