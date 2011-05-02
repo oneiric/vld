@@ -28,6 +28,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mfc", "tests\mfc_dll\mfc.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vldmfc", "tests\mfc\vldmfc.vcxproj", "{A231973E-072A-428E-982E-5363ADD1CDE2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "corruption", "tests\corruption\corruption.vcxproj", "{87911ED6-84BC-4526-9654-A4FF4E0EDF52}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
 		SccNumberOfProjects = 5
@@ -139,6 +144,16 @@ Global
 		{A231973E-072A-428E-982E-5363ADD1CDE2}.Release|Win32.Build.0 = Release|Win32
 		{A231973E-072A-428E-982E-5363ADD1CDE2}.Release|x64.ActiveCfg = Release|x64
 		{A231973E-072A-428E-982E-5363ADD1CDE2}.Release|x64.Build.0 = Release|x64
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug(Release)|Win32.ActiveCfg = Release|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug(Release)|Win32.Build.0 = Release|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug(Release)|x64.ActiveCfg = Release|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug|Win32.ActiveCfg = Debug|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug|Win32.Build.0 = Debug|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug|x64.ActiveCfg = Debug|x64
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Debug|x64.Build.0 = Debug|x64
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Release|Win32.ActiveCfg = Release|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Release|Win32.Build.0 = Release|Win32
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -150,5 +165,6 @@ Global
 		{5C25E1C8-00CB-4E0A-9BEC-952F0A6E5DCA} = {9F9CFA3A-F154-4069-89E3-19BDC6BD3A7D}
 		{2178E5B2-1032-441F-A664-F3D8D1FD1913} = {9F9CFA3A-F154-4069-89E3-19BDC6BD3A7D}
 		{A231973E-072A-428E-982E-5363ADD1CDE2} = {9F9CFA3A-F154-4069-89E3-19BDC6BD3A7D}
+		{87911ED6-84BC-4526-9654-A4FF4E0EDF52} = {9F9CFA3A-F154-4069-89E3-19BDC6BD3A7D}
 	EndGlobalSection
 EndGlobal

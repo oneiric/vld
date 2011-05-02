@@ -35,6 +35,7 @@ extern HANDLE             currentprocess;
 extern HANDLE             currentthread;
 extern CRITICAL_SECTION   stackwalklock;
 extern CRITICAL_SECTION   symbollock;
+extern VisualLeakDetector vld;
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
 //   Chunk of capacity.
@@ -75,6 +76,18 @@ CallStack::~CallStack ()
 	m_ResolvedLength = 0;
 }
 
+CallStack* CallStack::Create()
+{
+	CallStack* result = NULL;
+	if (vld.GetOptions() & VLD_OPT_SAFE_STACK_WALK) {
+		result = new SafeCallStack();
+	}
+	else {
+		result = new FastCallStack();
+	}
+	return result;
+	
+}
 // operator == - Equality operator. Compares the CallStack to another CallStack
 //   for equality. Two CallStacks are equal if they are the same size and if
 //   every frame in each is identical to the corresponding frame in the other.
@@ -182,7 +195,7 @@ VOID CallStack::clear ()
 //
 //    None.
 //
-void CallStack::dump(BOOL showinternalframes) const
+void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 {
 	// The stack was dumped already
 	if (m_Resolved)
@@ -211,7 +224,7 @@ void CallStack::dump(BOOL showinternalframes) const
 	const size_t max_size = MAXREPORTLENGTH + 1;
 
 	// Iterate through each frame in the call stack.
-	for (UINT32 frame = 0; frame < m_size; frame++)
+	for (UINT32 frame = start_frame; frame < m_size; frame++)
 	{
 		// Try to get the source file and line number associated with
 		// this program counter address.

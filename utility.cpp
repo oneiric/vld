@@ -827,28 +827,34 @@ VOID setreportfile (FILE *file, BOOL copydebugger, BOOL tostdout)
     reporttostdout = tostdout;
 }
 
-// strapp - Appends the specified source string to the specified destination
+// AppendString - Appends the specified source string to the specified destination
 //   string. Allocates additional space so that the destination string "grows"
-//   as new strings are appended to it. This function is fairly infrequently
+//   as new strings are appended to it. This is accomplished by deleting the
+//   destination string after the new longer string is gets the copied contents
+//   of the destination and additional text. This function is fairly infrequently
 //   used so efficiency is not a major concern.
 //
-//  - dest (IN/OUT): Address of the destination string. Receives the resulting
+//  - dest (IN): Address of the destination string. Receives the resulting
 //      combined string after the append operation.
 //
 //  - source (IN): Source string to be appended to the destination string.
 //
 //  Return Value:
 //
-//    None.
+//    The new concatenated string. 
 //
-VOID strapp (LPWSTR *dest, LPCWSTR source)
+LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
 {
-    LPWSTR temp = *dest;
-    SIZE_T length = wcslen(*dest) + wcslen(source);
-    *dest = new WCHAR [length + 1];
-    wcsncpy_s(*dest, length + 1, temp, _TRUNCATE);
-    wcsncat_s(*dest, length + 1, source, _TRUNCATE);
-    delete [] temp;
+	if ((source == NULL) || (wcslen(source) == 0))
+	{
+		return dest;
+	}
+	SIZE_T length = wcslen(dest) + wcslen(source);
+	LPWSTR new_str = new WCHAR [length + 1];
+	wcsncpy_s(new_str, length + 1, dest, _TRUNCATE);
+	wcsncat_s(new_str, length + 1, source, _TRUNCATE);
+	delete [] dest;
+	return new_str;
 }
 
 // strtobool - Converts string values (e.g. "yes", "no", "on", "off") to boolean

@@ -175,10 +175,13 @@ __declspec(dllimport) void VLDGetReportFilename(WCHAR *filename);
 //
 // option_mask: Only the following flags are checked
 // VLD_OPT_AGGREGATE_DUPLICATES
+// VLD_OPT_MODULE_LIST_INCLUDE
 // VLD_OPT_SAFE_STACK_WALK
 // VLD_OPT_SLOW_DEBUGGER_DUMP
 // VLD_OPT_TRACE_INTERNAL_FRAMES
 // VLD_OPT_START_DISABLED
+// VLD_OPT_SKIP_HEAPFREE_LEAKS
+// VLD_OPT_VALIDATE_HEAPFREE
 //
 // maxDataDump: maximum number of user-data bytes to dump for each leaked block.
 //

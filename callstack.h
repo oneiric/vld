@@ -78,12 +78,12 @@ class CallStack
 public:
 	CallStack ();
 	~CallStack ();
-
+	static CallStack* Create();
 	// Public APIs - see each function definition for details.
 	VOID clear ();
 	// Prints the Callstack to one of either / or the debug output window and or 
 	// a log file.
-	VOID dump (BOOL showinternalframes) const;
+	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	VOID Resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;

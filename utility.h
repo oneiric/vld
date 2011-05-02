@@ -128,7 +128,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module);
 VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 VOID setreportencoding (encoding_e encoding);
 VOID setreportfile (FILE *file, BOOL copydebugger, BOOL copytostdout);
-VOID strapp (LPWSTR *dest, LPCWSTR source);
+LPWSTR AppendString (LPWSTR dest, LPCWSTR source);
 BOOL strtobool (LPCWSTR s);
 #if _WIN32_WINNT < 0x0600 // Windows XP or earlier, no GetProcessIdOfThread()
 DWORD _GetProcessIdOfThread (HANDLE thread);

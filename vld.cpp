@@ -821,15 +821,16 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 	// Oddly, the symbol handler ignores the link to the PDB embedded in the
 	// executable image. So, we'll manually add the location of the executable
 	// to the search path since that is often where the PDB will be located.
-	WCHAR   directory [_MAX_DIR];
-	WCHAR   drive [_MAX_DRIVE];
+	WCHAR   directory [_MAX_DIR] = {0};
+	WCHAR   drive [_MAX_DRIVE] = {0};
 	LPWSTR  path = new WCHAR [MAX_PATH];
 	path[0] = L'\0';
+
 	HMODULE module = GetModuleHandleW(NULL);
 	GetModuleFileName(module, path, MAX_PATH);
 	_wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
 	wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
-	strapp(&path, directory);
+	path = AppendString(path, directory);
 
 	// When the symbol handler is given a custom symbol search path, it will no
 	// longer search the default directories (working directory, system root,
@@ -837,20 +838,20 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 	// them to our custom search path.
 	//
 	// Append the working directory.
-	strapp(&path, L";.\\");
+	path = AppendString(path, L";.\\");
 
 	// Append the Windows directory.
-	WCHAR   windows [MAX_PATH];
+	WCHAR   windows [MAX_PATH] = {0};
 	if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
-		strapp(&path, L";");
-		strapp(&path, windows);
+		path = AppendString(path, L";");
+		path = AppendString(path, windows);
 	}
 
 	// Append the system directory.
-	WCHAR   system [MAX_PATH];
+	WCHAR   system [MAX_PATH] = {0};
 	if (GetSystemDirectory(system, MAX_PATH) != 0) {
-		strapp(&path, L";");
-		strapp(&path, system);
+		path = AppendString(path, L";");
+		path = AppendString(path, system);
 	}
 
 	// Append %_NT_SYMBOL_PATH%.
@@ -858,8 +859,8 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 	if (envlen != 0) {
 		LPWSTR env = new WCHAR [envlen];
 		if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
-			strapp(&path, L";");
-			strapp(&path, env);
+			path = AppendString(path, L";");
+			path = AppendString(path, env);
 		}
 		delete [] env;
 	}
@@ -869,15 +870,15 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 	if (envlen != 0) {
 		LPWSTR env = new WCHAR [envlen];
 		if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
-			strapp(&path, L";");
-			strapp(&path, env);
+			path = AppendString(path, L";");
+			path = AppendString(path, env);
 		}
 		delete [] env;
 	}
 
 	// Append Visual Studio 2010/2008 symbols cache directory.
 	HKEY debuggerkey;
-	WCHAR symbolCacheDir [MAX_PATH];
+	WCHAR symbolCacheDir [MAX_PATH] = {0};
 	LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
 	if (regstatus != ERROR_SUCCESS) 
 		regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
@@ -889,10 +890,10 @@ LPWSTR VisualLeakDetector::buildsymbolsearchpath ()
 		regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
 		if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
 		{
-			strapp(&path, L";srv*");
-			strapp(&path, symbolCacheDir);
-			strapp(&path, L"\\MicrosoftPublicSymbols;srv*");
-			strapp(&path, symbolCacheDir);
+			path = AppendString(path, L";srv*");
+			path = AppendString(path, symbolCacheDir);
+			path = AppendString(path, L"\\MicrosoftPublicSymbols;srv*");
+			path = AppendString(path, symbolCacheDir);
 		}
 		RegCloseKey(debuggerkey);
 	}
@@ -1052,6 +1053,11 @@ VOID VisualLeakDetector::configure ()
 	GetPrivateProfileString(L"Options", L"StackWalkMethod", L"", buffer, BSIZE, inipath);
 	if (_wcsicmp(buffer, L"safe") == 0) {
 		m_options |= VLD_OPT_SAFE_STACK_WALK;
+	}
+
+	GetPrivateProfileString(L"Options", L"ValidateHeapAllocs", L"", buffer, BSIZE, inipath);
+	if (strtobool(buffer) == TRUE) {
+		m_options |= VLD_OPT_VALIDATE_HEAPFREE;
 	}
 }
 
@@ -1553,6 +1559,54 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 	return leaksfound;
 }
 
+// FindAllocedBlock - Find if a particular memory allocation is tracked inside of VLD.
+//     This is a really good example of how to iterate through the data structures
+//     that represent heaps and their associated memory blocks.
+// Pre Condition: Be VERY sure that this is only called within a block that already has
+// acquired a critical section for m_maplock. 
+//
+// mem - The particular memory address to search for.
+// 
+//  Return Value:
+//   If mem is found, it will return the blockinfo_t pointer, otherwise NULL
+// 
+blockinfo_t* VisualLeakDetector::FindAllocedBlock(LPCVOID mem, __out HANDLE& heap)
+{
+	blockinfo_t* result = NULL;
+	// Iterate through all heaps
+	for (HeapMap::Iterator it = m_heapmap->begin();
+		it != m_heapmap->end();
+		it++)
+	{
+		HANDLE heap_handle  = (*it).first;
+		(heap_handle); // unused
+		heapinfo_t* heapPtr = (*it).second;
+
+		// Iterate through all memory blocks in each heap
+		BlockMap& p_block_map = heapPtr->blockmap;
+		for (BlockMap::Iterator iter = p_block_map.begin();
+			iter != p_block_map.end();
+			iter++)
+		{
+			if ((*iter).first == mem)
+			{
+				// Found the block.
+				blockinfo_t* alloc_block = (*iter).second;
+				heap = heap_handle;
+				result = alloc_block;
+				break;
+			}
+		}
+
+		if (result)
+		{
+			break;
+		}
+	}
+
+	return result;
+}
+
 // unmapblock - Tracks memory blocks that are freed. Unmaps the specified block
 //   from the block's information, relinquishing internally allocated resources.
 //
@@ -1566,6 +1620,9 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 //
 VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 {
+	if (NULL == mem)
+		return;
+	
 	// Find this heap's block map.
 	EnterCriticalSection(&m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
@@ -1580,8 +1637,43 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 	BlockMap           *blockmap = &(*heapit).second->blockmap;
 	BlockMap::Iterator  blockit = blockmap->find(mem);
 	if (blockit == blockmap->end()) {
-		// This block is not in the block map. We must not have monitored this
+		// This memory block is not in the block map. We must not have monitored this
 		// allocation (probably happened before VLD was initialized).
+
+		// This can also result from allocating on one heap, and freeing on another heap.
+		// This is an especially bad way to corrupt the application.
+		// Now we have to search through every heap and every single block in each to make 
+		// sure that this is indeed the case.
+		if (m_options & VLD_OPT_VALIDATE_HEAPFREE)
+		{
+			HANDLE other_heap = NULL;
+			blockinfo_t* alloc_block = FindAllocedBlock(mem, __out other_heap);
+			bool diff = other_heap != heap; // Check indeed if the other heap is different
+			if (alloc_block && alloc_block->callstack && diff)
+			{
+				report(L"CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.\nThis will result in a corrupted heap.\nAllocation Call stack.\n");
+				report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialnumber, mem, alloc_block->size);
+				report(L"  Call Stack:\n");
+				alloc_block->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+
+				// Now we need a way to print the current callstack at this point:
+				context_t context;
+				CAPTURE_CONTEXT(context);
+				// now what?
+				CallStack* stack_here = CallStack::Create();
+				stack_here->getstacktrace(vld.m_maxtraceframes, context);
+				report(L"Deallocation Call stack.\n");
+				report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialnumber, mem, alloc_block->size);
+				report(L"  Call Stack:\n");
+				UINT dont_show_vld_frames = 1;
+				stack_here->dump(FALSE,dont_show_vld_frames);
+				// Now it should be safe to delete our temporary callstack
+				delete stack_here;
+				stack_here = NULL;
+				DebugBreak();
+			}
+		}
+
 		LeaveCriticalSection(&m_maplock);
 		return;
 	}
@@ -1675,7 +1767,7 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
 	assert(count != 0);
 	if ( defaultCharUsed )
 	{
-		::OutputDebugStringW(__FILEW__ L": " __FUNCTIONW__ L" - defaultChar was used while convertion from \"");
+		::OutputDebugStringW(__FILEW__ L": " __FUNCTIONW__ L" - defaultChar was used while conversion from \"");
 		::OutputDebugStringW(modulepath);
 		::OutputDebugStringW(L"\" to ANSI \"");
 		::OutputDebugStringA(modulepatha);
@@ -1833,7 +1925,6 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 //
 void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t size)
 {
-	void    *block;
 	tls_t   *tls = vld.gettls();
 
 	// malloc is a CRT function and allocates from the CRT heap.
@@ -1848,7 +1939,7 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t 
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = pmalloc(size);
+	void* block = pmalloc(size);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -1915,7 +2006,6 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 	void      *mem,
 	size_t     size)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	// realloc is a CRT function and allocates from the CRT heap.
@@ -1930,7 +2020,7 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-	block = prealloc(mem, size);
+	void* block = prealloc(mem, size);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -1978,7 +2068,6 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 	char const    *file,
 	int            line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	// _malloc_dbg is a CRT function and allocates from the CRT heap.
@@ -1993,7 +2082,7 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = p_calloc_dbg(num, size, type, file, line);
+	void* block = p_calloc_dbg(num, size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2030,7 +2119,6 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 	char const    *file,
 	int            line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	// _malloc_dbg is a CRT function and allocates from the CRT heap.
@@ -2045,7 +2133,7 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = p_malloc_dbg(size, type, file, line);
+	void* block = p_malloc_dbg(size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2082,7 +2170,6 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 	char const    *file,
 	int            line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	// The debug new operator is a CRT function and allocates from the CRT heap.
@@ -2097,7 +2184,7 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = pnew_dbg_crt(size, type, file, line);
+	void* block = pnew_dbg_crt(size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2134,7 +2221,6 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 	char const    *file,
 	int            line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	bool firstcall = (tls->context.fp == 0x0);
@@ -2146,7 +2232,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = pnew_dbg(size, type, file, line);
+	void* block = pnew_dbg(size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2180,7 +2266,6 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 	char const    *file,
 	int            line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	bool firstcall = (tls->context.fp == 0x0);
@@ -2192,7 +2277,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	block = pnew_dbg_mfc(size, file, line);
+	void* block = pnew_dbg_mfc(size, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2232,7 +2317,6 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 	char const     *file,
 	int             line)
 {
-	void  *block;
 	tls_t *tls = vld.gettls();
 
 	// _realloc_dbg is a CRT function and allocates from the CRT heap.
@@ -2247,7 +2331,7 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 	}
 
 	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-	block = p_realloc_dbg(mem, size, type, file, line);
+	void* block = p_realloc_dbg(mem, size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);
@@ -2501,13 +2585,7 @@ VOID VisualLeakDetector::RefreshModules()
 
 void VisualLeakDetector::getcallstack( CallStack **&ppcallstack, context_t &context_ )
 {
-	CallStack* callstack = NULL;
-	if (vld.m_options & VLD_OPT_SAFE_STACK_WALK) {
-		callstack = new SafeCallStack;
-	}
-	else {
-		callstack = new FastCallStack;
-	}
+	CallStack* callstack = CallStack::Create();
 
 	// Reset thread local flags and variables, in case any libraries called
 	// into while mapping the block allocate some memory.
@@ -2682,6 +2760,8 @@ BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 	LeaveCriticalSection(&vld.m_moduleslock);
 	return excluded;
 }
+
+
 
 // _RtlReAllocateHeap - Calls to RtlReAllocateHeap are patched through to this
 //   function. This function invokes the real RtlReAllocateHeap and then calls
@@ -3332,7 +3412,7 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
 	VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
-	VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS;
+	VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE;
 
 UINT32 VisualLeakDetector::GetOptions()
 {

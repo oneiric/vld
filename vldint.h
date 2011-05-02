@@ -77,7 +77,7 @@ struct blockinfo_t {
 	CallStack *callstack;
 	SIZE_T     serialnumber;
 	SIZE_T     size;
-	SIZE_T     blocks;
+	SIZE_T     blocks; // The number of duplicates for this particular block.
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -257,6 +257,7 @@ private:
 
 	// Utils
 	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
+	blockinfo_t* FindAllocedBlock(LPCVOID, __out HANDLE& heap);
 	static void getcallstack( CallStack **&ppcallstack, context_t &context );
 	static inline void firstalloccall(tls_t * tls);
 	void SetupReporting();
