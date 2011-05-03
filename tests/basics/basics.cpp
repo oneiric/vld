@@ -71,10 +71,15 @@ int _tmain(int argc, _TCHAR* argv[])
 			leak_type = eCoTaskMem;
 			multiplayer = 1;
 		}
+		else if (_tcsicmp(_T("AlignedMalloc"), argv[1]) == 0)
+		{
+			leak_type = eAlignedMalloc;
+			multiplayer = 3;
+		}
 		else if (_tcsicmp(_T("all"), argv[1]) == 0)
 		{
 			checkAll = true;
-			multiplayer = 11;
+			multiplayer = 14;
 		}
 		else
 		{
@@ -90,7 +95,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			LeakMemory(leak_type,repeat);
 		else
 		{
-			for (int leak_type = eMalloc; leak_type <= eCoTaskMem; leak_type++)
+			for (int leak_type = 0; leak_type < eCount; leak_type++)
 				LeakMemory((LeakOption)leak_type,repeat);
 		}
 		int leaks = (int)VLDGetLeaksCount(false);

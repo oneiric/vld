@@ -59,6 +59,7 @@ extern "C" __declspec(dllexport) void VLDRestore ();
 typedef void* (__cdecl *_calloc_dbg_t) (size_t, size_t, int, const char*, int);
 typedef void* (__cdecl *_malloc_dbg_t) (size_t, int, const char *, int);
 typedef void* (__cdecl *_realloc_dbg_t) (void *, size_t, int, const char *, int);
+typedef void* (__cdecl *_recalloc_dbg_t) (void *, size_t, size_t, int, const char *, int);
 typedef void* (__cdecl *calloc_t) (size_t, size_t);
 typedef HRESULT (__stdcall *CoGetMalloc_t) (DWORD, LPMALLOC *);
 typedef LPVOID (__stdcall *CoTaskMemAlloc_t) (SIZE_T);
@@ -68,6 +69,15 @@ typedef void* (__cdecl *new_t) (size_t);
 typedef void* (__cdecl *new_dbg_crt_t) (size_t, int, const char *, int);
 typedef void* (__cdecl *new_dbg_mfc_t) (size_t, const char *, int);
 typedef void* (__cdecl *realloc_t) (void *, size_t);
+typedef void* (__cdecl *_recalloc_t) (void *, size_t, size_t);
+typedef void* (__cdecl *_aligned_malloc_t) (size_t, size_t);
+typedef void* (__cdecl *_aligned_offset_malloc_t) (size_t, size_t, size_t);
+typedef void* (__cdecl *_aligned_realloc_t) (void *, size_t, size_t);
+typedef void* (__cdecl *_aligned_offset_realloc_t) (void *, size_t, size_t, size_t);
+typedef void* (__cdecl *_aligned_malloc_dbg_t) (size_t, size_t, int, const char *, int);
+typedef void* (__cdecl *_aligned_offset_malloc_dbg_t) (size_t, size_t, size_t, int, const char *, int);
+typedef void* (__cdecl *_aligned_realloc_dbg_t) (void *, size_t, size_t, int, const char *, int);
+typedef void* (__cdecl *_aligned_offset_realloc_dbg_t) (void *, size_t, size_t, size_t, int, const char *, int);
 
 // Data is collected for every block allocated from any heap in the process.
 // The data is stored in this structure and these structures are stored in
@@ -188,6 +198,7 @@ public:
 	void* _malloc (malloc_t pmalloc, context_t& context, size_t size);
 	void* _new (new_t pnew, context_t& context, size_t size); 
 	void* _realloc (realloc_t prealloc, context_t& context, void *mem, size_t size);
+	void* __recalloc (_recalloc_t precalloc, context_t& context, void *mem, size_t num, size_t size);
 
 	// Debug CRT and MFC common handlers
 	void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, size_t num, size_t size, int type, char const *file, int line);
@@ -196,6 +207,16 @@ public:
 	void* __new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
 	void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
 	void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, void *mem, size_t size, int type, char const *file, int line);
+	void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, int type, char const *file, int line);
+
+	void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, size_t size, size_t alignment);
+	void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, size_t size, size_t alignment, size_t offset);
+	void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, void *mem, size_t size, size_t alignment);
+	void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, void *mem, size_t size, size_t alignment, size_t offset);
+	void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+	void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Public IMalloc methods - for support of COM-based memory leak detection.

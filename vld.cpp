@@ -265,13 +265,23 @@ static patchentry_t msvcr90dPatch [] = {
 	"_calloc_dbg",        NULL, VS90::crtd__calloc_dbg,
 	"_malloc_dbg",        NULL, VS90::crtd__malloc_dbg,
 	"_realloc_dbg",       NULL, VS90::crtd__realloc_dbg,
+	"_recalloc_dbg",      NULL, VS90::crtd__recalloc_dbg,
 	scalar_new_dbg_name,  NULL, VS90::crtd__scalar_new_dbg,
 	vector_new_dbg_name,  NULL, VS90::crtd__vector_new_dbg,
 	"calloc",             NULL, VS90::crtd_calloc,
 	"malloc",             NULL, VS90::crtd_malloc,
 	"realloc",            NULL, VS90::crtd_realloc,
+	"_recalloc",          NULL, VS90::crtd__recalloc,
 	scalar_new_name,      NULL, VS90::crtd_scalar_new,
 	vector_new_name,      NULL, VS90::crtd_vector_new,
+	"_aligned_malloc_dbg",          NULL, VS90::crtd__aligned_malloc_dbg,
+	"_aligned_offset_malloc_dbg",   NULL, VS90::crtd__aligned_offset_malloc_dbg,
+	"_aligned_realloc_dbg",		    NULL, VS90::crtd__aligned_realloc_dbg,
+	"_aligned_offset_realloc_dbg",  NULL, VS90::crtd__aligned_offset_realloc_dbg,
+	"_aligned_malloc",			    NULL, VS90::crtd__aligned_malloc,
+	"_aligned_offset_malloc",       NULL, VS90::crtd__aligned_offset_malloc,
+	"_aligned_realloc",             NULL, VS90::crtd__aligned_realloc,
+	"_aligned_offset_realloc",      NULL, VS90::crtd__aligned_offset_realloc,
 	NULL,                 NULL, NULL
 };
 
@@ -279,13 +289,23 @@ static patchentry_t msvcr100dPatch [] = {
 	"_calloc_dbg",        NULL, VS100::crtd__calloc_dbg,
 	"_malloc_dbg",        NULL, VS100::crtd__malloc_dbg,
 	"_realloc_dbg",       NULL, VS100::crtd__realloc_dbg,
+	"_recalloc_dbg",      NULL, VS100::crtd__recalloc_dbg,
 	scalar_new_dbg_name,  NULL, VS100::crtd__scalar_new_dbg,
 	vector_new_dbg_name,  NULL, VS100::crtd__vector_new_dbg,
 	"calloc",             NULL, VS100::crtd_calloc,
 	"malloc",             NULL, VS100::crtd_malloc,
 	"realloc",            NULL, VS100::crtd_realloc,
+	"_recalloc",          NULL, VS100::crtd__recalloc,
 	scalar_new_name,      NULL, VS100::crtd_scalar_new,
 	vector_new_name,      NULL, VS100::crtd_vector_new,
+	"_aligned_malloc_dbg",          NULL, VS100::crtd__aligned_malloc_dbg,
+	"_aligned_offset_malloc_dbg",   NULL, VS100::crtd__aligned_offset_malloc_dbg,
+	"_aligned_realloc_dbg",		    NULL, VS100::crtd__aligned_realloc_dbg,
+	"_aligned_offset_realloc_dbg",  NULL, VS100::crtd__aligned_offset_realloc_dbg,
+	"_aligned_malloc",			    NULL, VS100::crtd__aligned_malloc,
+	"_aligned_offset_malloc",       NULL, VS100::crtd__aligned_offset_malloc,
+	"_aligned_realloc",             NULL, VS100::crtd__aligned_realloc,
+	"_aligned_offset_realloc",      NULL, VS100::crtd__aligned_offset_realloc,
 	NULL,                 NULL, NULL
 };
 
@@ -2028,6 +2048,431 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 	return block;
 }
 
+// _recalloc - This function is just a wrapper around the real _recalloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - prealloc (IN): Pointer to the particular realloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified realloc.
+//
+void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
+	context_t& context,
+	void      *mem,
+	size_t     num,
+	size_t     size)
+{
+	tls_t *tls = vld.gettls();
+
+	// realloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = precalloc(mem, num, size);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_malloc - This function is just a wrapper around the real malloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - pmalloc (IN): Pointer to the particular malloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified malloc.
+//
+void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t& context, size_t size, size_t alignment)
+{
+	tls_t   *tls = vld.gettls();
+
+	// malloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = pmalloc(size, alignment);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_offset_malloc - This function is just a wrapper around the real malloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - pmalloc (IN): Pointer to the particular malloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified _aligned_offset_malloc.
+//
+void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmalloc, context_t& context, size_t size, size_t alignment, size_t offset)
+{
+	tls_t   *tls = vld.gettls();
+
+	// malloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = pmalloc(size, alignment, offset);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_realloc - This function is just a wrapper around the real realloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - prealloc (IN): Pointer to the particular realloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified _aligned_realloc.
+//
+void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
+	context_t& context,
+	void      *mem,
+	size_t     size,
+	size_t     alignment)
+{
+	tls_t *tls = vld.gettls();
+
+	// realloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = prealloc(mem, size, alignment);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_offset_realloc - This function is just a wrapper around the real realloc that sets
+//   appropriate flags to be consulted when the memory is actually allocated by
+//   RtlAllocateHeap.
+//
+//  - prealloc (IN): Pointer to the particular realloc implementation to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from the specified _aligned_offset_realloc.
+//
+void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  prealloc,
+	context_t& context,
+	void      *mem,
+	size_t     size,
+	size_t     alignment,
+	size_t     offset)
+{
+	tls_t *tls = vld.gettls();
+
+	// realloc is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = prealloc(mem, size, alignment, offset);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_malloc_dbg - This function is just a wrapper around the real _aligned_malloc_dbg
+//   that sets appropriate flags to be consulted when the memory is actually
+//   allocated by RtlAllocateHeap.
+//
+//  - p_malloc_dbg (IN): Pointer to the particular _malloc_dbg implementation to
+//      call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _aligned_malloc_dbg.
+//
+void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_dbg,
+	context_t&     context,
+	size_t         size,
+	size_t         alignment,
+	int            type,
+	char const    *file,
+	int            line)
+{
+	tls_t *tls = vld.gettls();
+
+	// _malloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = p_malloc_dbg(size, alignment, type, file, line);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __aligned_offset_malloc_dbg - This function is just a wrapper around the real 
+//   _aligned_offset_malloc_dbg that sets appropriate flags to be consulted when 
+//   the memory is actually allocated by RtlAllocateHeap.
+//
+//  - p_malloc_dbg (IN): Pointer to the particular _malloc_dbg implementation to
+//      call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - size (IN): The size, in bytes, of the memory block to be allocated.
+//
+//  - type (IN): The CRT "use type" of the block to be allocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _aligned_malloc_dbg.
+//
+void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t  p_malloc_dbg,
+	context_t&     context,
+	size_t         size,
+	size_t         alignment,
+	size_t         offset,
+	int            type,
+	char const    *file,
+	int            line)
+{
+	tls_t *tls = vld.gettls();
+
+	// _malloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	void* block = p_malloc_dbg(size, alignment, offset, type, file, line);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// _aligned_realloc_debug - This function is just a wrapper around the real
+//   _aligned_realloc_dbg that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - p_realloc_dbg (IN): Pointer to the particular __realloc_dbg implementation
+//      to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _realloc_dbg.
+//
+void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_realloc_dbg,
+	context_t&      context,
+	void           *mem,
+	size_t          size,
+	size_t          alignment,
+	int             type,
+	char const     *file,
+	int             line)
+{
+	tls_t *tls = vld.gettls();
+
+	// _realloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = p_realloc_dbg(mem, size, alignment, type, file, line);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// _aligned_offset_realloc_debug - This function is just a wrapper around the real
+//   _aligned_offset_realloc_dbg that sets appropriate flags to be consulted when 
+//   the memory is actually allocated by RtlAllocateHeap.
+//
+//  - p_realloc_dbg (IN): Pointer to the particular __realloc_dbg implementation
+//      to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _realloc_dbg.
+//
+void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t  p_realloc_dbg,
+	context_t&      context,
+	void           *mem,
+	size_t          size,
+	size_t          alignment,
+	size_t          offset,
+	int             type,
+	char const     *file,
+	int             line)
+{
+	tls_t *tls = vld.gettls();
+
+	// _realloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = p_realloc_dbg(mem, size, alignment, offset, type, file, line);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Debug CRT and MFC IAT Replacement Functions
@@ -2332,6 +2777,61 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 
 	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
 	void* block = p_realloc_dbg(mem, size, type, file, line);
+
+	if (firstcall)
+		firstalloccall(tls);
+
+	return block;
+}
+
+// __recalloc_debug - This function is just a wrapper around the real
+//   _recalloc_dbg that sets appropriate flags to be consulted when the memory is
+//   actually allocated by RtlAllocateHeap.
+//
+//  - p_recalloc_dbg (IN): Pointer to the particular __realloc_dbg implementation
+//      to call.
+//
+//  - fp (IN): Frame pointer from the call that initiated this allocation.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by the specified _realloc_dbg.
+//
+void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
+	context_t&      context,
+	void           *mem,
+	size_t          num,
+	size_t          size,
+	int             type,
+	char const     *file,
+	int             line)
+{
+	tls_t *tls = vld.gettls();
+
+	// _realloc_dbg is a CRT function and allocates from the CRT heap.
+	tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockprocessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	void* block = p_recalloc_dbg(mem, num, size, type, file, line);
 
 	if (firstcall)
 		firstalloccall(tls);

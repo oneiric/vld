@@ -38,6 +38,7 @@ void AllocF(LeakOption type)
 	{
 		int* temp = (int*)malloc(17);
 		leaked_memory = (int*)realloc(temp, 23);
+		leaked_memory = (int*)_recalloc(leaked_memory, 1, 31);
 		int* temp_dbg = (int*)malloc(9);
 		leaked_memory_dbg = (int*)_realloc_dbg(temp_dbg, 21, _NORMAL_BLOCK, __FILE__, __LINE__);
 	}
@@ -46,6 +47,15 @@ void AllocF(LeakOption type)
 		void* leaked = CoTaskMemAlloc(7);
 		void* realloced = CoTaskMemRealloc(leaked, 29);
 	}
+	else if (type == eAlignedMalloc)
+	{
+		void* leaked = _aligned_offset_malloc(64, 16, 1);
+		leaked_memory = (int*)_aligned_malloc(64, 16);
+		leaked_memory_dbg = (int*)_aligned_malloc_dbg(32, 16, __FILE__, __LINE__);
+		leaked = (int*)_aligned_offset_realloc(leaked, 48, 16, 2);
+		leaked_memory = (int*)_aligned_realloc(leaked_memory, 128, 16);
+		leaked_memory_dbg = (int*)_aligned_realloc_dbg(leaked_memory_dbg, 48, 16, __FILE__, __LINE__);
+	} 
 }
 
 void AllocE(LeakOption type)
