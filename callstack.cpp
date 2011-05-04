@@ -472,8 +472,8 @@ void CallStack::DumpResolved() const
 		while(index < m_ResolvedLength)
 		{
 			print(resolved_stack);
-			resolved_stack += MAXREPORTLENGTH + 1;
-			index += MAXREPORTLENGTH + 1;
+			resolved_stack += MAXREPORTLENGTH;
+			index += MAXREPORTLENGTH;
 		}
 	}
 }
