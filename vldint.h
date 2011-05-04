@@ -310,6 +310,9 @@ private:
 	static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
 	static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
 
+	static void AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size);
+	static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
+
 	////////////////////////////////////////////////////////////////////////////////
 	// Private data
 	////////////////////////////////////////////////////////////////////////////////

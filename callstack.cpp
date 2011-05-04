@@ -101,30 +101,30 @@ CallStack* CallStack::Create()
 //
 BOOL CallStack::operator == (const CallStack &other) const
 {
-    if (m_size != other.m_size) {
-        // They can't be equal if the sizes are different.
-        return FALSE;
-    }
+	if (m_size != other.m_size) {
+		// They can't be equal if the sizes are different.
+		return FALSE;
+	}
 
-    // Walk the chunk list and within each chunk walk the frames array until we
-    // either find a mismatch, or until we reach the end of the call stacks.
-    const CallStack::chunk_t *prevchunk = NULL;
-    const CallStack::chunk_t *chunk = &m_store;
-    const CallStack::chunk_t *otherchunk = &other.m_store;
-    while (prevchunk != m_topchunk) {
-        for (UINT32 index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
-            if (chunk->frames[index] != otherchunk->frames[index]) {
-                // Found a mismatch. They are not equal.
-                return FALSE;
-            }
-        }
-        prevchunk = chunk;
-        chunk = chunk->next;
-        otherchunk = otherchunk->next;
-    }
+	// Walk the chunk list and within each chunk walk the frames array until we
+	// either find a mismatch, or until we reach the end of the call stacks.
+	const CallStack::chunk_t *prevchunk = NULL;
+	const CallStack::chunk_t *chunk = &m_store;
+	const CallStack::chunk_t *otherchunk = &other.m_store;
+	while (prevchunk != m_topchunk) {
+		for (UINT32 index = 0; index < ((chunk == m_topchunk) ? m_topindex : CALLSTACKCHUNKSIZE); index++) {
+			if (chunk->frames[index] != otherchunk->frames[index]) {
+				// Found a mismatch. They are not equal.
+				return FALSE;
+			}
+		}
+		prevchunk = chunk;
+		chunk = chunk->next;
+		otherchunk = otherchunk->next;
+	}
 
-    // Reached the end of the call stacks. They are equal.
-    return TRUE;
+	// Reached the end of the call stacks. They are equal.
+	return TRUE;
 }
 
 // operator [] - Random access operator. Retrieves the frame at the specified
@@ -146,14 +146,14 @@ BOOL CallStack::operator == (const CallStack &other) const
 //
 UINT_PTR CallStack::operator [] (UINT32 index) const
 {
-    UINT32                    chunknumber = index / CALLSTACKCHUNKSIZE;
-    const CallStack::chunk_t *chunk = &m_store;
+	UINT32                    chunknumber = index / CALLSTACKCHUNKSIZE;
+	const CallStack::chunk_t *chunk = &m_store;
 
-    for (UINT32 count = 0; count < chunknumber; count++) {
-        chunk = chunk->next;
-    }
+	for (UINT32 count = 0; count < chunknumber; count++) {
+		chunk = chunk->next;
+	}
 
-    return chunk->frames[index % CALLSTACKCHUNKSIZE];
+	return chunk->frames[index % CALLSTACKCHUNKSIZE];
 }
 
 // clear - Resets the CallStack, returning it to a state where no frames have
@@ -241,7 +241,10 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 					wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
 					wcsstr(sourceinfo.FileName, L"malloc.c") ||
 					wcsstr(sourceinfo.FileName, L"new.cpp") ||
-					wcsstr(sourceinfo.FileName, L"newaop.cpp")) {
+					wcsstr(sourceinfo.FileName, L"newaop.cpp") ||
+					wcsstr(sourceinfo.FileName, L"dbgcalloc.c") ||
+					wcsstr(sourceinfo.FileName, L"realloc.c") ||
+					wcsstr(sourceinfo.FileName, L"dbgrealloc.c")) {
 						// Don't show frames in files internal to the heap.
 						LeaveCriticalSection(&symbollock);
 						continue;
@@ -488,14 +491,14 @@ void CallStack::DumpResolved() const
 //
 DWORD CallStack::getHashValue () const
 {
-    DWORD       hashcode = 0xD202EF8D;
+	DWORD       hashcode = 0xD202EF8D;
 
-    // Iterate through each frame in the call stack.
-    for (UINT32 frame = 0; frame < m_size; frame++) {
-        UINT_PTR programcounter = (*this)[frame];
-        hashcode = CalculateCRC32(programcounter, hashcode);
-    }
-    return hashcode;
+	// Iterate through each frame in the call stack.
+	for (UINT32 frame = 0; frame < m_size; frame++) {
+		UINT_PTR programcounter = (*this)[frame];
+		hashcode = CalculateCRC32(programcounter, hashcode);
+	}
+	return hashcode;
 }
 
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
@@ -513,26 +516,26 @@ DWORD CallStack::getHashValue () const
 //
 VOID CallStack::push_back (const UINT_PTR programcounter)
 {
-    if (m_size == m_capacity) {
-        // At current capacity. Allocate additional storage.
-        CallStack::chunk_t *chunk = new CallStack::chunk_t;
-        chunk->next = NULL;
-        m_topchunk->next = chunk;
-        m_topchunk = chunk;
-        m_topindex = 0;
-        m_capacity += CALLSTACKCHUNKSIZE;
-    }
-    else if (m_topindex == CALLSTACKCHUNKSIZE) {
-        // There is more capacity, but not in this chunk. Go to the next chunk.
-        // Note that this only happens if this CallStack has previously been
-        // cleared (clearing resets the data, but doesn't give up any allocated
-        // space).
-        m_topchunk = m_topchunk->next;
-        m_topindex = 0;
-    }
+	if (m_size == m_capacity) {
+		// At current capacity. Allocate additional storage.
+		CallStack::chunk_t *chunk = new CallStack::chunk_t;
+		chunk->next = NULL;
+		m_topchunk->next = chunk;
+		m_topchunk = chunk;
+		m_topindex = 0;
+		m_capacity += CALLSTACKCHUNKSIZE;
+	}
+	else if (m_topindex == CALLSTACKCHUNKSIZE) {
+		// There is more capacity, but not in this chunk. Go to the next chunk.
+		// Note that this only happens if this CallStack has previously been
+		// cleared (clearing resets the data, but doesn't give up any allocated
+		// space).
+		m_topchunk = m_topchunk->next;
+		m_topindex = 0;
+	}
 
-    m_topchunk->frames[m_topindex++] = programcounter;
-    m_size++;
+	m_topchunk->frames[m_topindex++] = programcounter;
+	m_size++;
 }
 
 // getstacktrace - Traces the stack as far back as possible, or until 'maxdepth'
@@ -556,71 +559,71 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 //
 VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 {
-    UINT32  count = 0;
-    UINT_PTR* framepointer = context.fp;
+	UINT32  count = 0;
+	UINT_PTR* framepointer = context.fp;
 
 #if defined(_M_IX86)
-    while (count < maxdepth) {
-        if (*framepointer < (UINT_PTR)framepointer) {
-            if (*framepointer == NULL) {
-                // Looks like we reached the end of the stack.
-                break;
-            }
-            else {
-                // Invalid frame pointer. Frame pointer addresses should always
-                // increase as we move up the stack.
-                m_status |= CALLSTACK_STATUS_INCOMPLETE;
-                break;
-            }
-        }
-        if (*framepointer & (sizeof(UINT_PTR*) - 1)) {
-            // Invalid frame pointer. Frame pointer addresses should always
-            // be aligned to the size of a pointer. This probably means that
-            // we've encountered a frame that was created by a module built with
-            // frame pointer omission (FPO) optimization turned on.
-            m_status |= CALLSTACK_STATUS_INCOMPLETE;
-            break;
-        }
-        if (IsBadReadPtr((UINT*)*framepointer, sizeof(UINT_PTR*))) {
-            // Bogus frame pointer. Again, this probably means that we've
-            // encountered a frame built with FPO optimization.
-            m_status |= CALLSTACK_STATUS_INCOMPLETE;
-            break;
-        }
-        count++;
-        push_back(*(framepointer + 1));
-        framepointer = (UINT_PTR*)*framepointer;
-    }
+	while (count < maxdepth) {
+		if (*framepointer < (UINT_PTR)framepointer) {
+			if (*framepointer == NULL) {
+				// Looks like we reached the end of the stack.
+				break;
+			}
+			else {
+				// Invalid frame pointer. Frame pointer addresses should always
+				// increase as we move up the stack.
+				m_status |= CALLSTACK_STATUS_INCOMPLETE;
+				break;
+			}
+		}
+		if (*framepointer & (sizeof(UINT_PTR*) - 1)) {
+			// Invalid frame pointer. Frame pointer addresses should always
+			// be aligned to the size of a pointer. This probably means that
+			// we've encountered a frame that was created by a module built with
+			// frame pointer omission (FPO) optimization turned on.
+			m_status |= CALLSTACK_STATUS_INCOMPLETE;
+			break;
+		}
+		if (IsBadReadPtr((UINT*)*framepointer, sizeof(UINT_PTR*))) {
+			// Bogus frame pointer. Again, this probably means that we've
+			// encountered a frame built with FPO optimization.
+			m_status |= CALLSTACK_STATUS_INCOMPLETE;
+			break;
+		}
+		count++;
+		push_back(*(framepointer + 1));
+		framepointer = (UINT_PTR*)*framepointer;
+	}
 #elif defined(_M_X64)
-    UINT32 maxframes = min(62, maxdepth + 10);
-    static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;  
-    if (s_pfnCaptureStackBackTrace == 0)  
-    {  
-        const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");  
-        reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
-            = ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
-        if (s_pfnCaptureStackBackTrace == 0)  
-            return;
-    }
-    UINT_PTR* myFrames = new UINT_PTR[maxframes];
-    ZeroMemory(myFrames, sizeof(UINT_PTR) * maxframes);
-    s_pfnCaptureStackBackTrace(0, maxframes, (PVOID*)myFrames, NULL);
-    UINT32  startIndex = 0;
-    while (count < maxframes) {
-        if (myFrames[count] == 0)
-            break;
-        if (myFrames[count] == *(framepointer + 1))
-            startIndex = count;
-        count++;
-    }
-    count = startIndex;
-    while (count < maxframes) {
-        if (myFrames[count] == 0)
-            break;
-        push_back(myFrames[count]);
-        count++;
-    }
-    delete [] myFrames;
+	UINT32 maxframes = min(62, maxdepth + 10);
+	static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;  
+	if (s_pfnCaptureStackBackTrace == 0)  
+	{  
+		const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");  
+		reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
+			= ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
+		if (s_pfnCaptureStackBackTrace == 0)  
+			return;
+	}
+	UINT_PTR* myFrames = new UINT_PTR[maxframes];
+	ZeroMemory(myFrames, sizeof(UINT_PTR) * maxframes);
+	s_pfnCaptureStackBackTrace(0, maxframes, (PVOID*)myFrames, NULL);
+	UINT32  startIndex = 0;
+	while (count < maxframes) {
+		if (myFrames[count] == 0)
+			break;
+		if (myFrames[count] == *(framepointer + 1))
+			startIndex = count;
+		count++;
+	}
+	count = startIndex;
+	while (count < maxframes) {
+		if (myFrames[count] == 0)
+			break;
+		push_back(myFrames[count]);
+		count++;
+	}
+	delete [] myFrames;
 #endif
 }
 
@@ -645,58 +648,58 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 //
 VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 {
-    UINT_PTR* framepointer = context.fp;
-    DWORD   architecture   = X86X64ARCHITECTURE;
-    CONTEXT currentcontext;
-    memset(&currentcontext, 0, sizeof(currentcontext));
+	UINT_PTR* framepointer = context.fp;
+	DWORD   architecture   = X86X64ARCHITECTURE;
+	CONTEXT currentcontext;
+	memset(&currentcontext, 0, sizeof(currentcontext));
 
-    // Get the required values for initialization of the STACKFRAME64 structure
-    // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
+	// Get the required values for initialization of the STACKFRAME64 structure
+	// to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
 #if defined(_M_IX86)
-    UINT_PTR programcounter = *(framepointer + 1);
-    UINT_PTR stackpointer   = (*framepointer) - maxdepth * 10 * sizeof(void*);  // An approximation.
-    currentcontext.SPREG  = stackpointer;
-    currentcontext.BPREG  = (DWORD64)framepointer;
-    currentcontext.IPREG  = programcounter;
+	UINT_PTR programcounter = *(framepointer + 1);
+	UINT_PTR stackpointer   = (*framepointer) - maxdepth * 10 * sizeof(void*);  // An approximation.
+	currentcontext.SPREG  = stackpointer;
+	currentcontext.BPREG  = (DWORD64)framepointer;
+	currentcontext.IPREG  = programcounter;
 #elif defined(_M_X64)
-    currentcontext.SPREG  = context.Rsp;
-    currentcontext.BPREG  = (DWORD64)framepointer;
-    currentcontext.IPREG  = context.Rip;
+	currentcontext.SPREG  = context.Rsp;
+	currentcontext.BPREG  = (DWORD64)framepointer;
+	currentcontext.IPREG  = context.Rip;
 #else
-    // If you want to retarget Visual Leak Detector to another processor
-    // architecture then you'll need to provide architecture-specific code to
-    // obtain the program counter and stack pointer from the given frame pointer.
+	// If you want to retarget Visual Leak Detector to another processor
+	// architecture then you'll need to provide architecture-specific code to
+	// obtain the program counter and stack pointer from the given frame pointer.
 #error "Visual Leak Detector is not supported on this architecture."
 #endif // _M_IX86 || _M_X64
 
-    // Initialize the STACKFRAME64 structure.
-    STACKFRAME64 frame;
-    memset(&frame, 0x0, sizeof(frame));
-    frame.AddrPC.Offset       = currentcontext.IPREG;
-    frame.AddrPC.Mode         = AddrModeFlat;
-    frame.AddrStack.Offset    = currentcontext.SPREG;
-    frame.AddrStack.Mode      = AddrModeFlat;
-    frame.AddrFrame.Offset    = currentcontext.BPREG;
-    frame.AddrFrame.Mode      = AddrModeFlat;
-    frame.Virtual             = TRUE;
+	// Initialize the STACKFRAME64 structure.
+	STACKFRAME64 frame;
+	memset(&frame, 0x0, sizeof(frame));
+	frame.AddrPC.Offset       = currentcontext.IPREG;
+	frame.AddrPC.Mode         = AddrModeFlat;
+	frame.AddrStack.Offset    = currentcontext.SPREG;
+	frame.AddrStack.Mode      = AddrModeFlat;
+	frame.AddrFrame.Offset    = currentcontext.BPREG;
+	frame.AddrFrame.Mode      = AddrModeFlat;
+	frame.Virtual             = TRUE;
 
-    // Walk the stack.
-    EnterCriticalSection(&stackwalklock);
-    UINT32 count = 0;
-    while (count < maxdepth) {
-        count++;
-        if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &currentcontext, NULL,
-            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
-                // Couldn't trace back through any more frames.
-                break;
-        }
-        if (frame.AddrFrame.Offset == 0) {
-            // End of stack.
-            break;
-        }
+	// Walk the stack.
+	EnterCriticalSection(&stackwalklock);
+	UINT32 count = 0;
+	while (count < maxdepth) {
+		count++;
+		if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &currentcontext, NULL,
+			SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+				// Couldn't trace back through any more frames.
+				break;
+		}
+		if (frame.AddrFrame.Offset == 0) {
+			// End of stack.
+			break;
+		}
 
-        // Push this frame's program counter onto the CallStack.
-        push_back((UINT_PTR)frame.AddrPC.Offset);
-    }
-    LeaveCriticalSection(&stackwalklock);
+		// Push this frame's program counter onto the CallStack.
+		push_back((UINT_PTR)frame.AddrPC.Offset);
+	}
+	LeaveCriticalSection(&stackwalklock);
 }
