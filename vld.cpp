@@ -1685,7 +1685,7 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 				report(L"Deallocation Call stack.\n");
 				report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialnumber, mem, alloc_block->size);
 				report(L"  Call Stack:\n");
-				UINT dont_show_vld_frames = 1;
+				UINT dont_show_vld_frames = 2;
 				stack_here->dump(FALSE,dont_show_vld_frames);
 				// Now it should be safe to delete our temporary callstack
 				delete stack_here;
