@@ -5,7 +5,7 @@
 #include <crtdbg.h>
 #include <ObjBase.h>
 
-void AllocF(LeakOption type)
+void AllocF(LeakOption type, bool bFree)
 {
 	int* leaked_memory = NULL;
 	int* leaked_memory_dbg = NULL;
@@ -13,11 +13,21 @@ void AllocF(LeakOption type)
 	{
 		leaked_memory     = (int*)malloc(78);
 		leaked_memory_dbg = (int*)_malloc_dbg(80, _NORMAL_BLOCK,__FILE__,__LINE__);
+		if (bFree)
+		{
+			free(leaked_memory);
+			_free_dbg(leaked_memory_dbg,_NORMAL_BLOCK);
+		}
 	} 
 	else if (type == eNew)
 	{
 		leaked_memory = new int(4);
 		leaked_memory_dbg = new (_NORMAL_BLOCK, __FILE__, __LINE__) int(7);
+		if (bFree)
+		{
+			delete leaked_memory;
+			delete leaked_memory_dbg;
+		}
 	}
 	else if (type == eNewArray)
 	{
@@ -28,11 +38,21 @@ void AllocF(LeakOption type)
 		int temp[3];
 		void* place = temp;
 		float* placed_mem = new (place) float[3]; // doesn't work. Nothing gets patched by vld
+		if (bFree)
+		{
+			delete [] leaked_memory;
+			delete [] leaked_memory_dbg;
+		}
 	}
 	else if (type == eCalloc)
 	{
 		leaked_memory     = (int*)calloc(47,sizeof(int));
 		leaked_memory_dbg = (int*)_calloc_dbg(39, sizeof(int), _NORMAL_BLOCK, __FILE__, __LINE__);
+		if (bFree)
+		{
+			free(leaked_memory);
+			_free_dbg(leaked_memory_dbg,_NORMAL_BLOCK);
+		}
 	}
 	else if (type == eRealloc)
 	{
@@ -41,11 +61,20 @@ void AllocF(LeakOption type)
 		leaked_memory = (int*)_recalloc(leaked_memory, 1, 31);
 		int* temp_dbg = (int*)malloc(9);
 		leaked_memory_dbg = (int*)_realloc_dbg(temp_dbg, 21, _NORMAL_BLOCK, __FILE__, __LINE__);
+		if (bFree)
+		{
+			free(leaked_memory);
+			_free_dbg(leaked_memory_dbg,_NORMAL_BLOCK);
+		}
 	}
 	else if (type == eCoTaskMem)
 	{
 		void* leaked = CoTaskMemAlloc(7);
 		void* realloced = CoTaskMemRealloc(leaked, 29);
+		if (bFree)
+		{
+			CoTaskMemFree(realloced);
+		}
 	}
 	else if (type == eAlignedMalloc)
 	{
@@ -55,35 +84,41 @@ void AllocF(LeakOption type)
 		leaked = (int*)_aligned_offset_realloc(leaked, 48, 16, 2);
 		leaked_memory = (int*)_aligned_realloc(leaked_memory, 128, 16);
 		leaked_memory_dbg = (int*)_aligned_realloc_dbg(leaked_memory_dbg, 48, 16, __FILE__, __LINE__);
+		if (bFree)
+		{
+			_aligned_free(leaked);
+			_aligned_free(leaked_memory);
+			_aligned_free_dbg(leaked_memory_dbg);
+		}
 	} 
 }
 
-void AllocE(LeakOption type)
+void AllocE(LeakOption type, bool bFree)
 {
-	AllocF(type);
+	AllocF(type, bFree);
 }
 
-void AllocD(LeakOption type)
+void AllocD(LeakOption type, bool bFree)
 {
-	AllocE(type);
+	AllocE(type, bFree);
 }
 
-void AllocC(LeakOption type)
+void AllocC(LeakOption type, bool bFree)
 {
-	AllocD(type);
+	AllocD(type, bFree);
 }
 
-void AllocB(LeakOption type)
+void AllocB(LeakOption type, bool bFree)
 {
-	AllocC(type);
+	AllocC(type, bFree);
 }
 
-void AllocA(LeakOption type)
+void AllocA(LeakOption type, bool bFree)
 {
-	AllocB(type);
+	AllocB(type, bFree);
 }
 
-void Alloc(LeakOption type)
+void Alloc(LeakOption type, bool bFree)
 {
-	AllocA(type);
+	AllocA(type, bFree);
 }

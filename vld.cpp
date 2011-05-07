@@ -1312,12 +1312,12 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-	BOOL crtalloc, CallStack **&ppcallstack)
+	BOOL crtalloc, CallStack **&ppcallstack, const context_t &context)
 {
 	if (newmem != mem) {
 		// The block was not reallocated in-place. Instead the old block was
 		// freed and a new block allocated to satisfy the new size.
-		unmapblock(heap, mem);
+		unmapblock(heap, mem, context);
 		mapblock(heap, newmem, size, crtalloc, ppcallstack);
 		return;
 	}
@@ -1638,7 +1638,7 @@ blockinfo_t* VisualLeakDetector::FindAllocedBlock(LPCVOID mem, __out HANDLE& hea
 //
 //    None.
 //
-VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
+VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &context)
 {
 	if (NULL == mem)
 		return;
@@ -1677,20 +1677,18 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem)
 				alloc_block->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
 				// Now we need a way to print the current callstack at this point:
-				context_t context;
-				CAPTURE_CONTEXT(context);
 				// now what?
 				CallStack* stack_here = CallStack::Create();
 				stack_here->getstacktrace(vld.m_maxtraceframes, context);
 				report(L"Deallocation Call stack.\n");
 				report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialnumber, mem, alloc_block->size);
 				report(L"  Call Stack:\n");
-				UINT dont_show_vld_frames = 2;
-				stack_here->dump(FALSE,dont_show_vld_frames);
+				stack_here->dump(FALSE, 0);
 				// Now it should be safe to delete our temporary callstack
 				delete stack_here;
 				stack_here = NULL;
-				DebugBreak();
+				if (IsDebuggerPresent())
+					DebugBreak();
 			}
 		}
 
@@ -3222,8 +3220,12 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 {
 	BOOL status;
 
+	context_t context;
+	// Record the current frame pointer.
+	CAPTURE_CONTEXT(context);
+
 	// Unmap the block from the specified heap.
-	vld.unmapblock(heap, mem);
+	vld.unmapblock(heap, mem, context);
 
 	status = RtlFreeHeap(heap, flags, mem);
 
@@ -3233,7 +3235,16 @@ BOOL VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 // for kernel32.dll
 BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 {
-	BOOL status = _RtlFreeHeap(heap, flags, mem);
+	BOOL status;
+
+	context_t context;
+	// Record the current frame pointer.
+	CAPTURE_CONTEXT(context);
+
+	// Unmap the block from the specified heap.
+	vld.unmapblock(heap, mem, context);
+
+	status = RtlFreeHeap(heap, flags, mem);
 
 	return status;
 }
@@ -3310,9 +3321,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 		CAPTURE_CONTEXT(context);
 	}
 
-	ReAllocateHeap(tls, heap, mem, newmem, size);
-
-	tls->context = context;
+	ReAllocateHeap(tls, heap, mem, newmem, size, context);
 
 	if (firstcall)
 	{
@@ -3355,9 +3364,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 		CAPTURE_CONTEXT(context);
 	}
 
-	ReAllocateHeap(tls, heap, mem, newmem, size);
-
-	tls->context = context;
+	ReAllocateHeap(tls, heap, mem, newmem, size, context);
 
 	if (firstcall)
 	{
@@ -3368,7 +3375,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 	return newmem;
 }
 
-void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size)
+void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context)
 {
 	BOOL crtalloc;
 	crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
@@ -3383,13 +3390,15 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LP
 
 	// The module that initiated this allocation is included in leak
 	// detection. Remap the block.
-	vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack);
+	vld.remapblock(heap, mem, newmem, size, crtalloc, tls->ppcallstack, context);
 
 #ifdef _DEBUG
 	if(tls->context.fp != 0)
 		__debugbreak();
 #endif
 	tls->flags |= crtalloc;
+
+	tls->context = context;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

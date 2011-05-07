@@ -237,14 +237,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		{
 			if (!showinternalframes) {
 				_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
-				if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
-					wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
-					wcsstr(sourceinfo.FileName, L"malloc.c") ||
-					wcsstr(sourceinfo.FileName, L"new.cpp") ||
-					wcsstr(sourceinfo.FileName, L"newaop.cpp") ||
-					wcsstr(sourceinfo.FileName, L"dbgcalloc.c") ||
-					wcsstr(sourceinfo.FileName, L"realloc.c") ||
-					wcsstr(sourceinfo.FileName, L"dbgrealloc.c")) {
+				if (IsInternalModule(sourceinfo.FileName)) {
 						// Don't show frames in files internal to the heap.
 						LeaveCriticalSection(&symbollock);
 						continue;
@@ -385,11 +378,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		{
 			if (!showinternalframes) {
 				_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
-				if (wcsstr(sourceinfo.FileName, L"afxmem.cpp") ||
-					wcsstr(sourceinfo.FileName, L"dbgheap.c") ||
-					wcsstr(sourceinfo.FileName, L"malloc.c") ||
-					wcsstr(sourceinfo.FileName, L"new.cpp") ||
-					wcsstr(sourceinfo.FileName, L"newaop.cpp")) {
+				if (IsInternalModule(sourceinfo.FileName)) {
 						// Don't show frames in files internal to the heap.
 						LeaveCriticalSection(&symbollock);
 						continue;
@@ -538,6 +527,19 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 	m_size++;
 }
 
+bool CallStack::IsInternalModule( const PWSTR filename ) const
+{
+	return wcsstr(filename, L"afxmem.cpp") ||
+		wcsstr(filename, L"dbgheap.c") ||
+		wcsstr(filename, L"malloc.c") ||
+		wcsstr(filename, L"new.cpp") ||
+		wcsstr(filename, L"newaop.cpp") ||
+		wcsstr(filename, L"dbgcalloc.c") ||
+		wcsstr(filename, L"realloc.c") ||
+		wcsstr(filename, L"dbgrealloc.c") ||
+		wcsstr(filename, L"free.c");
+}
+
 // getstacktrace - Traces the stack as far back as possible, or until 'maxdepth'
 //   frames have been traced. Populates the CallStack with one entry for each
 //   stack frame traced.
@@ -557,7 +559,7 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 //
 //    None.
 //
-VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
+VOID FastCallStack::getstacktrace (UINT32 maxdepth, const context_t& context)
 {
 	UINT32  count = 0;
 	UINT_PTR* framepointer = context.fp;
@@ -646,7 +648,7 @@ VOID FastCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
 //
 //    None.
 //
-VOID SafeCallStack::getstacktrace (UINT32 maxdepth, context_t& context)
+VOID SafeCallStack::getstacktrace (UINT32 maxdepth, const context_t& context)
 {
 	UINT_PTR* framepointer = context.fp;
 	DWORD   architecture   = X86X64ARCHITECTURE;

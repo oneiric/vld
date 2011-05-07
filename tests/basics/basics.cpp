@@ -14,11 +14,11 @@ void PrintUsage()
 	wprintf(_T("\t<repeat> - The number of times to repeat each unique memory leak.\n\n"));
 }
 
-void LeakMemory(LeakOption type, int repeat)
+void LeakMemory(LeakOption type, int repeat, bool bFree)
 {
 	for (int i = 0; i < repeat; i++)
 	{
-		Alloc(type);
+		Alloc(type, bFree);
 	}
 }
 
@@ -38,7 +38,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	wprintf(_T("==    VLD Tests: basics\n"));
 	wprintf(_T("==\n"));
 	wprintf(_T("======================================\n"));
-	if (argc == 3)
+	bool bFree = false;
+	if (argc >= 3)
 	{
 		bool checkAll = false;
 		LeakOption leak_type = eMalloc; // default
@@ -88,20 +89,23 @@ int _tmain(int argc, _TCHAR* argv[])
 			return -1;
 		}
 
+		if (argc >= 4 && _tcsicmp(_T("free"), argv[3]) == 0)
+			bFree = true;
+
 		wprintf(_T("Options: %s \nNumber of Leaks: %s\n"), argv[1], argv[2]);
 		// Convert the string into it's integer equivalent
 		int repeat = _tstoi(argv[2]);
 		if (!checkAll)
-			LeakMemory(leak_type,repeat);
+			LeakMemory(leak_type,repeat,bFree);
 		else
 		{
 			for (int leak_type = 0; leak_type < eCount; leak_type++)
-				LeakMemory((LeakOption)leak_type,repeat);
+				LeakMemory((LeakOption)leak_type,repeat,bFree);
 		}
 		int leaks = (int)VLDGetLeaksCount(false);
 		wprintf(_T("End of test app...\n\n"));
 		int diff = repeat * multiplayer - leaks;
-		return diff;
+		return bFree ? leaks : diff;
 	} 
 	else
 	{

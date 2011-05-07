@@ -264,11 +264,12 @@ private:
 	tls_t* gettls ();
 	VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack);
 	VOID   mapheap (HANDLE heap);
-	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack);
+	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
+		BOOL crtalloc, CallStack **&ppcallstack, const context_t &context);
 	VOID   reportconfig ();
 	SIZE_T getleakscount (HANDLE heap, BOOL includingInternal);
 	SIZE_T reportleaks (HANDLE heap);
-	VOID   unmapblock (HANDLE heap, LPCVOID mem);
+	VOID   unmapblock (HANDLE heap, LPCVOID mem, const context_t &context);
 	VOID   unmapheap (HANDLE heap);
 	void   resolveStacks(HANDLE heap);
 
@@ -311,7 +312,7 @@ private:
 	static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
 
 	static void AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size);
-	static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
+	static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context);
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Private data

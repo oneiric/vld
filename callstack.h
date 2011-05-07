@@ -87,7 +87,7 @@ public:
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	VOID Resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
-	virtual VOID getstacktrace (UINT32 maxdepth, context_t& context) = 0;
+	virtual VOID getstacktrace (UINT32 maxdepth, const context_t& context) = 0;
 	
 	BOOL operator == (const CallStack &other) const;
 	UINT_PTR operator [] (UINT32 index) const;
@@ -125,6 +125,7 @@ private:
 	// Prints out the strings in m_Resolved when the time comes to report the callstack in
 	// human readable form. Currently this is only called by the dump method.
 	void DumpResolved() const;
+	bool IsInternalModule( const PWSTR filename ) const;
 };
 
 
@@ -138,7 +139,7 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-	VOID getstacktrace (UINT32 maxdepth, context_t& context);
+	VOID getstacktrace (UINT32 maxdepth, const context_t& context);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -151,5 +152,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-	VOID getstacktrace (UINT32 maxdepth, context_t& context);
+	VOID getstacktrace (UINT32 maxdepth, const context_t& context);
 };
