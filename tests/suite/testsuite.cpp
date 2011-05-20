@@ -65,22 +65,21 @@ static const int NUMDUPLEAKS = 3;            // Number of times to duplicate eac
 static const int NUMTHREADS = 63;            // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
-typedef struct blockholder_s {
+struct blockholder_t {
 	action_e action;
 	PVOID    block;
 	BOOL     leak;
-} blockholder_t;
+};
 
 typedef void* (__cdecl *free_t) (void* mem);
 typedef void* (__cdecl *malloc_t) (size_t size);
 
-typedef struct threadcontext_s {
+struct threadcontext_t {
 	UINT  index;
 	BOOL  leaky;
 	DWORD seed;
-	BOOL  terminated;
 	DWORD threadid;
-} threadcontext_t;
+};
 
 __declspec(thread) blockholder_t  blocks [MAXBLOCKS];
 __declspec(thread) ULONG          freeBlock = (ULONG)0;
@@ -274,26 +273,21 @@ VOID recursivelyallocate (UINT depth, action_e action, SIZE_T size)
 
 DWORD __stdcall threadproc_test (LPVOID param)
 {
-	action_e         action;
-	USHORT           action_index;
-	BOOL             allocate_more = TRUE;
-	threadcontext_t *context = (threadcontext_t*)param;
-	UINT             depth;
-	ULONG            index;
-	UINT             leaks_selected;
-	SIZE_T           size;
+	threadcontext_t* context = (threadcontext_t*)param;
+	assert(context);
 
 	srand(context->seed);
 
-	for (index = 0; index < MAXBLOCKS; index++) {
+	for (ULONG index = 0; index < MAXBLOCKS; index++) {
 		blocks[index].block = NULL;
 		blocks[index].leak = FALSE;
 	}
 
+	BOOL   allocate_more = TRUE;
 	while (allocate_more == TRUE) {
 		// Select a random allocation action and a random size.
-		action = (action_e)random(numactions - 1);
-		size = random(MAXSIZE);
+		action_e action = (action_e)random(numactions - 1);
+		SIZE_T size = random(MAXSIZE);
 		if (size < MINSIZE) {
 			size = MINSIZE;
 		}
@@ -304,7 +298,7 @@ DWORD __stdcall threadproc_test (LPVOID param)
 
 		// Allocate a block, using recursion to build up a stack of random
 		// depth.
-		depth = random(MAXDEPTH);
+		UINT depth = random(MAXDEPTH);
 		if (depth < MINDEPTH) {
 			depth = MINDEPTH;
 		}
@@ -312,14 +306,14 @@ DWORD __stdcall threadproc_test (LPVOID param)
 
 		// Every once in a while, free a random block.
 		if (random(ONCEINAWHILE) == ONCEINAWHILE) {
-			index = random(total_allocs);
+			ULONG index = random(total_allocs);
 			if (blocks[index].block != NULL) {
 				freeblock(index);
 			}
 		}
 
 		// See if we have allocated enough blocks using each type of action.
-		for (action_index = 0; action_index < numactions; action_index++) {
+		for (USHORT action_index = 0; action_index < numactions; action_index++) {
 			if (counts[action_index] < MAXALLOC) {
 				allocate_more = TRUE;
 				break;
@@ -331,10 +325,10 @@ DWORD __stdcall threadproc_test (LPVOID param)
 	if (context->leaky == TRUE) {
 		// This is the leaky thread. Randomly select one block to be leaked from
 		// each type of allocation action.
-		for (action_index = 0; action_index < numactions; action_index++) {
-			leaks_selected = 0;
+		for (USHORT action_index = 0; action_index < numactions; action_index++) {
+			UINT leaks_selected = 0;
 			do {
-				index = random(MAXBLOCKS);
+				ULONG index = random(MAXBLOCKS);
 				if (!blocks[index].leak && (blocks[index].block != NULL) && (blocks[index].action == (action_e)action_index)) {
 					blocks[index].leak = TRUE;
 					leaks_selected++;
@@ -346,7 +340,7 @@ DWORD __stdcall threadproc_test (LPVOID param)
 	}
 
 	// Free all blocks except for those marked as leaks.
-	for (index = 0; index < MAXBLOCKS; index++) {
+	for (ULONG index = 0; index < MAXBLOCKS; index++) {
 		if ((blocks[index].block != NULL) && (blocks[index].leak == FALSE)) {
 			freeblock(index);
 		}
@@ -360,7 +354,6 @@ DWORD __stdcall threadproc_test (LPVOID param)
 		assert(total_allocs == 0);
 	}
 
-	context->terminated = TRUE;
 	return 0;
 }
 
@@ -389,7 +382,6 @@ int main (int argc, char *argv [])
 		else
 			contexts[index].leaky = FALSE;
 		contexts[index].seed = random(RAND_MAX);
-		contexts[index].terminated = FALSE;
 		HANDLE hthread = CreateThread(NULL, 0, threadproc_test, &contexts[index], 0, &contexts[index].threadid);
 		threads[index] = hthread;
 	}

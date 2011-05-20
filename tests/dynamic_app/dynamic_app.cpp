@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include <assert.h>
 #include "LoadTests.h"
+#include "ThreadTests.h"
 
 void PrintUsage() 
 {
@@ -39,6 +40,7 @@ extern "C" {
 #endif
 
 
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	wprintf(_T("======================================\n"));
@@ -48,10 +50,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	wprintf(_T("======================================\n"));
 
 	bool resolve = true;
+	bool doThreadTests = false;
 	if (argc == 2)
 	{
 		resolve = _tcsicmp(_T("true"), argv[1]) == 0;
-	} 
+	}
+	else if (argc == 3)
+	{
+		resolve = _tcsicmp(_T("true"), argv[1]) == 0;
+		doThreadTests = _tcsicmp(_T("thread"), argv[2]) == 0;
+	}
 
 	RunLoaderTests(resolve);    // leaks 18
 	int totalleaks = (int)VLDGetLeaksCount();
@@ -67,6 +75,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	int leaks3 = (int)VLDGetLeaksCount();
 	leaks3 -= totalleaks;
 	assert(leaks3 == 6);
+
+	if (doThreadTests)
+	{
+		// This test will crash, indicating a bug that needs to be fixed.
+		RunLoaderLockTests(resolve);
+		int leaks4 = (int)VLDGetLeaksCount();
+		leaks4 -= totalleaks;
+		assert(leaks4 == 1158);
+	}
 
 	// ..................Total:    31 leaks total
 	totalleaks = (int)VLDGetLeaksCount();

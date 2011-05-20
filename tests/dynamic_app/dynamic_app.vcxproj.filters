@@ -24,6 +24,9 @@
     <ClInclude Include="LoadTests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ThreadTests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="LoadTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThreadTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
