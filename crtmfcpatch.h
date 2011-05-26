@@ -71,10 +71,14 @@ public:
     static void* __cdecl crtd__aligned_offset_malloc_dbg (size_t size, size_t alignment, size_t offset, int type, const char *file, int line);
     static void* __cdecl crtd__aligned_realloc_dbg (void *mem, size_t size, size_t alignment, int type, char const *file, int line);
     static void* __cdecl crtd__aligned_offset_realloc_dbg (void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+    static void* __cdecl crtd__aligned_recalloc_dbg (void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
+    static void* __cdecl crtd__aligned_offset_recalloc_dbg (void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
     static void* __cdecl crtd__aligned_malloc (size_t size, size_t alignment);
     static void* __cdecl crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset);
     static void* __cdecl crtd__aligned_realloc (void *memblock, size_t size, size_t alignment);
     static void* __cdecl crtd__aligned_offset_realloc (void *memblock, size_t size, size_t alignment, size_t offset);
+    static void* __cdecl crtd__aligned_recalloc (void *memblock, size_t num, size_t size, size_t alignment);
+    static void* __cdecl crtd__aligned_offset_recalloc (void *memblock, size_t num, size_t size, size_t alignment, size_t offset);
 
     template<char const *procname>
     static void* __cdecl crtd_new_dbg (context_t& context, size_t size, int type, char const *file, int line);
@@ -625,6 +629,99 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc_dbg (void       *
     return vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, alignment, offset, type, file, line);
 }
 
+// crtd__aligned_recalloc_dbg - Calls to _aligned_recalloc_dbg from msvcrXXd.dll are patched
+//   through to this function.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - num (IN): The count of the memory block to reallocate.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _aligned_realloc_dbg.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc_dbg (void       *mem,
+	size_t     num,
+	size_t     size,
+	size_t     alignment,
+	int        type,
+	char const *file,
+	int        line)
+{
+	static _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = NULL;
+
+	context_t context;
+
+	CAPTURE_CONTEXT(context);
+
+	if (pcrtxxd__recalloc_dbg == NULL) {
+		// This is the first call to this function. Link to the real
+		// _realloc_dbg.
+		HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+		assert(msvcrxxd != NULL);
+		pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_recalloc_dbg");
+	}
+
+	return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, type, file, line);
+}
+
+// crtd__aligned_offset_recalloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
+//   through to this function.
+//
+//  - mem (IN): Pointer to the memory block to be reallocated.
+//
+//  - num (IN): The count of the memory block to reallocate.
+//
+//  - size (IN): The size of the memory block to reallocate.
+//
+//  - type (IN): The CRT "use type" of the block to be reallocated.
+//
+//  - file (IN): The name of the file from which this function is being called.
+//
+//  - line (IN): The line number, in the above file, at which this function is
+//      being called.
+//
+//  Return Value:
+//
+//    Returns the value returned by _aligned_offset_realloc_dbg.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc_dbg (void       *mem,
+	size_t     num,
+	size_t     size,
+	size_t     alignment,
+	size_t     offset,
+	int        type,
+	char const *file,
+	int        line)
+{
+	static _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = NULL;
+
+	context_t context;
+
+	CAPTURE_CONTEXT(context);
+
+	if (pcrtxxd__recalloc_dbg == NULL) {
+		// This is the first call to this function. Link to the real
+		// _realloc_dbg.
+		HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+		assert(msvcrxxd != NULL);
+		pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_recalloc_dbg");
+	}
+
+	return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, offset, type, file, line);
+}
+
 // crtd__aligned_malloc - Calls to malloc from msvcrXXd.dll are patched through to
 //   this function.
 //
@@ -747,6 +844,74 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc (void *mem, size_
     }
 
     return vld.__aligned_offset_realloc(pcrtxxd_realloc, context, mem, size, alignment, offset);
+}
+
+// crtd__aligned_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
+//   this function.
+//
+//  - dll (IN): The name of the dll
+//
+//  - num (IN): Count of the memory block to reallocate.
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from realloc.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
+{
+    static _aligned_recalloc_t pcrtxxd_recalloc = NULL;
+
+    context_t context;
+
+    CAPTURE_CONTEXT(context);
+
+    if (pcrtxxd_recalloc == NULL) {
+        // This is the first call to this function. Link to the real realloc.
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        assert(msvcrxxd != NULL);
+        pcrtxxd_recalloc = (_aligned_recalloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_recalloc");
+    }
+
+    return vld.__aligned_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment);
+}
+
+// crtd__aligned_offset_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
+//   this function.
+//
+//  - dll (IN): The name of the dll
+//
+//  - mem (IN): Pointer to the memory block to reallocate.
+//
+//  - num (IN): Count of the memory block to reallocate.
+//
+//  - size (IN): Size of the memory block to reallocate.
+//
+//  Return Value:
+//
+//    Returns the value returned from realloc.
+//
+TEMPLATE_HEADER
+void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
+{
+    static _aligned_offset_recalloc_t pcrtxxd_recalloc = NULL;
+
+    context_t context;
+
+    CAPTURE_CONTEXT(context);
+
+    if (pcrtxxd_recalloc == NULL) {
+        // This is the first call to this function. Link to the real realloc.
+        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
+        assert(msvcrxxd != NULL);
+        pcrtxxd_recalloc = (_aligned_offset_recalloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_recalloc");
+    }
+
+    return vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment, offset);
 }
 
 // crtd_scalar_new - Calls to the CRT's scalar new operator from msvcrXXd.dll

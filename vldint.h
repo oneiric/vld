@@ -74,10 +74,14 @@ typedef void* (__cdecl *_aligned_malloc_t) (size_t, size_t);
 typedef void* (__cdecl *_aligned_offset_malloc_t) (size_t, size_t, size_t);
 typedef void* (__cdecl *_aligned_realloc_t) (void *, size_t, size_t);
 typedef void* (__cdecl *_aligned_offset_realloc_t) (void *, size_t, size_t, size_t);
+typedef void* (__cdecl *_aligned_recalloc_t) (void *, size_t, size_t, size_t);
+typedef void* (__cdecl *_aligned_offset_recalloc_t) (void *, size_t, size_t, size_t, size_t);
 typedef void* (__cdecl *_aligned_malloc_dbg_t) (size_t, size_t, int, const char *, int);
 typedef void* (__cdecl *_aligned_offset_malloc_dbg_t) (size_t, size_t, size_t, int, const char *, int);
 typedef void* (__cdecl *_aligned_realloc_dbg_t) (void *, size_t, size_t, int, const char *, int);
 typedef void* (__cdecl *_aligned_offset_realloc_dbg_t) (void *, size_t, size_t, size_t, int, const char *, int);
+typedef void* (__cdecl *_aligned_recalloc_dbg_t) (void *, size_t, size_t, size_t, int, const char *, int);
+typedef void* (__cdecl *_aligned_offset_recalloc_dbg_t) (void *, size_t, size_t, size_t, size_t, int, const char *, int);
 
 // Data is collected for every block allocated from any heap in the process.
 // The data is stored in this structure and these structures are stored in
@@ -213,10 +217,14 @@ public:
 	void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, size_t size, size_t alignment, size_t offset);
 	void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, void *mem, size_t size, size_t alignment);
 	void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, void *mem, size_t size, size_t alignment, size_t offset);
+	void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, void *mem, size_t num, size_t size, size_t alignment);
+	void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
 	void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, size_t size, size_t alignment, int type, char const *file, int line);
 	void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 	void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
 	void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+	void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Public IMalloc methods - for support of COM-based memory leak detection.
