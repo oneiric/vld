@@ -33,8 +33,8 @@
 // Imported global variables.
 extern HANDLE             currentprocess;
 extern HANDLE             currentthread;
-extern CRITICAL_SECTION   stackwalklock;
-extern CRITICAL_SECTION   symbollock;
+extern CriticalSection    stackwalklock;
+extern CriticalSection    symbollock;
 extern VisualLeakDetector vld;
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
@@ -229,19 +229,16 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
-		EnterCriticalSection(&symbollock);
+		symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
 		foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
-		if (foundline)
-		{
-			if (!showinternalframes) {
-				_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
-				if (IsInternalModule(sourceinfo.FileName)) {
-						// Don't show frames in files internal to the heap.
-						LeaveCriticalSection(&symbollock);
-						continue;
-				}
+		if (foundline && !showinternalframes) {
+			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
+			if (IsInternalModule(sourceinfo.FileName)) {
+				// Don't show frames in files internal to the heap.
+				symbollock.Leave();
+				continue;
 			}
 		}
 
@@ -266,7 +263,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
-		LeaveCriticalSection(&symbollock);
+		symbollock.Leave();
 
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
@@ -364,7 +361,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
-		EnterCriticalSection(&symbollock);
+		symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
 
@@ -374,15 +371,12 @@ void CallStack::Resolve(BOOL showinternalframes)
 		foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
 		assert(m_Resolved != NULL);
 
-		if (foundline)
-		{
-			if (!showinternalframes) {
-				_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
-				if (IsInternalModule(sourceinfo.FileName)) {
-						// Don't show frames in files internal to the heap.
-						LeaveCriticalSection(&symbollock);
-						continue;
-				}
+		if (foundline && !showinternalframes) {
+			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
+			if (IsInternalModule(sourceinfo.FileName)) {
+				// Don't show frames in files internal to the heap.
+				symbollock.Leave();
+				continue;
 			}
 		}
 
@@ -400,14 +394,14 @@ void CallStack::Resolve(BOOL showinternalframes)
 			if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
 				functionname = undecoratedname;
 			else
-			functionname = functioninfo->Name;
+				functionname = functioninfo->Name;
 		}
 		else {
 			// GetFormattedMessage( GetLastError() );
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
-		LeaveCriticalSection(&symbollock);
+		symbollock.Leave();
 		
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
@@ -686,7 +680,7 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, const context_t& context)
 	frame.Virtual             = TRUE;
 
 	// Walk the stack.
-	EnterCriticalSection(&stackwalklock);
+	CriticalSectionLocker cs(stackwalklock);
 	UINT32 count = 0;
 	while (count < maxdepth) {
 		count++;
@@ -703,5 +697,4 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, const context_t& context)
 		// Push this frame's program counter onto the CallStack.
 		push_back((UINT_PTR)frame.AddrPC.Offset);
 	}
-	LeaveCriticalSection(&stackwalklock);
 }

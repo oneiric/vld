@@ -45,15 +45,15 @@
 // Imported global variables.
 extern vldblockheader_t *vldblocklist;
 extern HANDLE            vldheap;
-extern CRITICAL_SECTION  vldheaplock;
+extern CriticalSection   vldheaplock;
 
 // Global variables.
 HANDLE           currentprocess; // Pseudo-handle for the current process.
 HANDLE           currentthread;  // Pseudo-handle for the current thread.
-CRITICAL_SECTION imagelock;      // Serializes calls to the Debug Help Library PE image access APIs.
+CriticalSection  imagelock;      // Serializes calls to the Debug Help Library PE image access APIs.
 HANDLE           processheap;    // Handle to the process's heap (COM allocations come from here).
-CRITICAL_SECTION stackwalklock;  // Serializes calls to StackWalk64 from the Debug Help Library.
-CRITICAL_SECTION symbollock;     // Serializes calls to the Debug Help Library symbols handling APIs.
+CriticalSection  stackwalklock;  // Serializes calls to StackWalk64 from the Debug Help Library.
+CriticalSection  symbollock;     // Serializes calls to the Debug Help Library symbols handling APIs.
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector vld;
@@ -426,16 +426,16 @@ VisualLeakDetector::VisualLeakDetector ()
 	// Initialize global variables.
 	currentprocess    = GetCurrentProcess();
 	currentthread     = GetCurrentThread();
-	InitializeCriticalSection(&imagelock);
+	imagelock.Initialize();
 	LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
 	processheap       = GetProcessHeap();
 	RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
 	RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
 	RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
-	InitializeCriticalSection(&stackwalklock);
-	InitializeCriticalSection(&symbollock);
+	stackwalklock.Initialize();
+	symbollock.Initialize();
 	vldheap           = HeapCreate(0x0, 0, 0);
-	InitializeCriticalSection(&vldheaplock);
+	vldheaplock.Initialize();
 
 	// Initialize remaining private data.
 	m_heapmap         = new HeapMap;
@@ -443,13 +443,13 @@ VisualLeakDetector::VisualLeakDetector ()
 	m_imalloc         = NULL;
 	m_leaksfound      = 0;
 	m_loadedmodules   = NULL;
-	InitializeCriticalSection(&m_loaderlock);
-	InitializeCriticalSection(&m_maplock);
-	InitializeCriticalSection(&m_moduleslock);
+	m_loaderlock.Initialize();
+	m_maplock.Initialize();
+	m_moduleslock.Initialize();
 	m_selftestfile    = __FILE__;
 	m_selftestline    = 0;
 	m_tlsindex        = TlsAlloc();
-	InitializeCriticalSection(&m_tlslock);
+	m_tlslock.Initialize();
 	m_tlsmap          = new TlsMap;
 
 	if (m_options & VLD_OPT_SELF_TEST) {
@@ -562,7 +562,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 		DWORD dwCurProcessID = GetCurrentProcessId();
 
 		// See if any threads that have ever entered VLD's code are still active.
-		EnterCriticalSection(&m_tlslock);
+		m_tlslock.Enter();
 		for (TlsMap::Iterator tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
 			if ((*tlsit).second->threadid == GetCurrentThreadId()) {
 				// Don't wait for the current thread to exit.
@@ -593,7 +593,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 			}
 			CloseHandle(thread);
 		}
-		LeaveCriticalSection(&m_tlslock);
+		m_tlslock.Leave();
 
 		if (m_status & VLD_STATUS_NEVER_ENABLED) {
 			// Visual Leak Detector started with leak detection disabled and
@@ -695,13 +695,13 @@ VisualLeakDetector::~VisualLeakDetector ()
 	}
 	HeapDestroy(vldheap);
 
-	DeleteCriticalSection(&imagelock);
-	DeleteCriticalSection(&m_loaderlock);
-	DeleteCriticalSection(&m_maplock);
-	DeleteCriticalSection(&m_moduleslock);
-	DeleteCriticalSection(&stackwalklock);
-	DeleteCriticalSection(&symbollock);
-	DeleteCriticalSection(&vldheaplock);
+	imagelock.Delete();
+	m_loaderlock.Delete();
+	m_maplock.Delete();
+	m_moduleslock.Delete();
+	stackwalklock.Delete();
+	symbollock.Delete();
+	vldheaplock.Delete();
 
 	if (m_tlsindex != TLS_OUT_OF_INDEXES) {
 		TlsFree(m_tlsindex);
@@ -748,43 +748,43 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 		LPCSTR modulepath  = (*newit).path;
 		DWORD modulesize  = (DWORD)((*newit).addrhigh - (*newit).addrlow) + 1;
 
-		BOOL refresh = FALSE;
-		EnterCriticalSection(&m_moduleslock);
+		bool refresh = false;
+		bool moduleLoaded = false;
+		m_moduleslock.Enter();
 		ModuleSet* oldmodules = m_loadedmodules;
 		if (oldmodules != NULL) {
 			// This is not the first time we have been called to attach to the
 			// currently loaded modules.
 			ModuleSet::Iterator oldit = oldmodules->find(*newit);
 			if (oldit != oldmodules->end()) {
-				// We've seen this "new" module loaded in the process before.
+				moduleLoaded = true;
 				moduleflags = (*oldit).flags;
-				LeaveCriticalSection(&m_moduleslock);
-				if (moduleispatched((HMODULE)modulebase, m_patchtable, _countof(m_patchtable))) {
-					// This module is already attached. Just update the module's
-					// flags, nothing more.
-					updateit = newit;
-					(*updateit).flags = moduleflags;
-					continue;
-				}
-				else {
-					// This module may have been attached before and has been
-					// detached. We'll need to try reattaching to it in case it
-					// was unloaded and then subsequently reloaded.
-					refresh = TRUE;
-				}
+			}
+		}
+		m_moduleslock.Leave();
+
+		if (moduleLoaded) // We've seen this "new" module loaded in the process before.
+		{
+			if (moduleispatched((HMODULE)modulebase, m_patchtable, _countof(m_patchtable))) 
+			{
+				// This module is already attached. Just update the module's
+				// flags, nothing more.
+				updateit = newit;
+				(*updateit).flags = moduleflags;
+				continue;
 			}
 			else {
-				LeaveCriticalSection(&m_moduleslock);
+				// This module may have been attached before and has been
+				// detached. We'll need to try reattaching to it in case it
+				// was unloaded and then subsequently reloaded.
+				refresh = true;
 			}
 		}
-		else {
-			LeaveCriticalSection(&m_moduleslock);
-		}
 
-		EnterCriticalSection(&symbollock);
-		if ((refresh == TRUE) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
+		symbollock.Enter();
+		if ((refresh == true) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
 			// Discard the previously loaded symbols, so we can refresh them.
-			if (SymUnloadModule64(currentprocess, modulebase) == FALSE) {
+			if (SymUnloadModule64(currentprocess, modulebase) == false) {
 				report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
 					L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
 			}
@@ -805,7 +805,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 		}
 		if (SymbolsLoaded)
 			moduleflags |= VLD_MODULE_SYMBOLSLOADED;
-		LeaveCriticalSection(&symbollock);
+		symbollock.Leave();
 
 		if (_stricmp(VLDDLL, modulename) == 0) {
 			// What happens when a module goes through it's own portal? Bad things.
@@ -1200,9 +1200,8 @@ tls_t* VisualLeakDetector::gettls ()
 		tls->ppcallstack = NULL;
 
 		// Add this thread's TLS to the TlsSet.
-		EnterCriticalSection(&m_tlslock);
+		CriticalSectionLocker cs(m_tlslock);
 		m_tlsmap->insert(tls->threadid,tls);
-		LeaveCriticalSection(&m_tlslock);
 	}
 
 	return tls;
@@ -1241,7 +1240,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL c
 	blockinfo->blocks = 1;
 
 	// Insert the block's information into the block map.
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// We haven't mapped this heap to a block map yet. Do it now.
@@ -1267,7 +1266,6 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL c
 		blockmap->insert(mem, blockinfo);
 		ppcallstack = NULL;
 	}
-	LeaveCriticalSection(&m_maplock);
 }
 
 // mapheap - Tracks heap creation. Creates a block map for tracking individual
@@ -1286,7 +1284,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 	heapinfo_t* heapinfo = new heapinfo_t;
 	heapinfo->blockmap.reserve(BLOCKMAPRESERVE);
 	heapinfo->flags = 0x0;
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->insert(heap, heapinfo);
 	if (heapit == m_heapmap->end()) {
 		// Somehow this heap has been created twice without being destroyed,
@@ -1297,7 +1295,6 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 		unmapheap((*heapit).first);
 		m_heapmap->insert(heap, heapinfo);
 	}
-	LeaveCriticalSection(&m_maplock);
 }
 
 // remapblock - Tracks reallocations. Unmaps a block from its previously
@@ -1340,7 +1337,7 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
 	// The block was reallocated in-place. Find the existing blockinfo_t
 	// entry in the block map and update it with the new callstack and size.
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// We haven't mapped this heap to a block map yet. Obviously the
@@ -1348,7 +1345,6 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 		// so treat this reallocation as a brand-new allocation (this will
 		// also map the heap to a new block map).
 		mapblock(heap, newmem, size, crtalloc, ppcallstack);
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -1359,7 +1355,6 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 		// The block hasn't been mapped to a blockinfo_t entry yet.
 		// Treat this reallocation as a new allocation.
 		mapblock(heap, newmem, size, crtalloc, ppcallstack);
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -1376,7 +1371,6 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 		// The heap that this block was allocated from is a CRT heap.
 		(*heapit).second->flags |= VLD_HEAP_CRT;
 	}
-	LeaveCriticalSection(&m_maplock);
 
 	// Update the block's size.
 	info->size = size;
@@ -1451,11 +1445,10 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
 	assert(heap != NULL);
 
 	// Find the heap's information (blockmap, etc).
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// Nothing is allocated from this heap. No leaks.
-		LeaveCriticalSection(&m_maplock);
 		return 0;
 	}
 
@@ -1492,7 +1485,6 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
 		memoryleaks += info->blocks;
 	}
 
-	LeaveCriticalSection(&m_maplock);
 	return memoryleaks;
 }
 
@@ -1510,11 +1502,10 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 	assert(heap != NULL);
 
 	// Find the heap's information (blockmap, etc).
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// Nothing is allocated from this heap. No leaks.
-		LeaveCriticalSection(&m_maplock);
 		return 0;
 	}
 
@@ -1590,8 +1581,6 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 	}
 	m_leaksfound += leaksfound;
 
-	LeaveCriticalSection(&m_maplock);
-
 	return leaksfound;
 }
 
@@ -1660,12 +1649,11 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 		return;
 	
 	// Find this heap's block map.
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// We don't have a block map for this heap. We must not have monitored
 		// this allocation (probably happened before VLD was initialized).
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -1707,8 +1695,6 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 					DebugBreak();
 			}
 		}
-
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -1717,7 +1703,6 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 	delete info->callstack;
 	delete info;
 	blockmap->erase(blockit);
-	LeaveCriticalSection(&m_maplock);
 }
 
 // unmapheap - Tracks heap destruction. Unmaps the specified heap from its block
@@ -1733,12 +1718,11 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 VOID VisualLeakDetector::unmapheap (HANDLE heap)
 {
 	// Find this heap's block map.
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapit = m_heapmap->find(heap);
 	if (heapit == m_heapmap->end()) {
 		// This heap hasn't been mapped. We must not have monitored this heap's
 		// creation (probably happened before VLD was initialized).
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -1753,7 +1737,6 @@ VOID VisualLeakDetector::unmapheap (HANDLE heap)
 
 	// Remove this heap's block map from the heap map.
 	m_heapmap->erase(heapit);
-	LeaveCriticalSection(&m_maplock);
 }
 
 
@@ -3172,18 +3155,17 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 	SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
 	functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
 	functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
-	EnterCriticalSection(&symbollock);
+	symbollock.Enter();
 	DWORD64 displacement;
 	BOOL symfound = SymFromAddrW(currentprocess, ra, &displacement, functioninfo);
-	LeaveCriticalSection(&symbollock);
+	symbollock.Leave();
 	if (symfound == TRUE) {
 		if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
 			// HeapCreate was called by _heap_init. This is a static CRT heap.
-			EnterCriticalSection(&vld.m_maplock);
+			CriticalSectionLocker cs(vld.m_maplock);
 			HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
 			assert(heapit != vld.m_heapmap->end());
 			(*heapit).second->flags |= VLD_HEAP_CRT;
-			LeaveCriticalSection(&vld.m_maplock);
 		}
 	}
 
@@ -3239,7 +3221,7 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
 	PHANDLE modulehandle)
 {
-	EnterCriticalSection(&vld.m_loaderlock);
+	CriticalSectionLocker cs(vld.m_loaderlock);
 
 	// Load the DLL.
 	NTSTATUS status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
@@ -3256,10 +3238,10 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
 		vld.attachtoloadedmodules(newmodules);
 
 		// Start using the new set of loaded modules.
-		EnterCriticalSection(&vld.m_moduleslock);
+		vld.m_moduleslock.Enter();
 		ModuleSet *oldmodules = vld.m_loadedmodules;
 		vld.m_loadedmodules = newmodules;
-		LeaveCriticalSection(&vld.m_moduleslock);
+		vld.m_moduleslock.Leave();
 
 		// Free resources used by the old module list.
 		for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
@@ -3269,19 +3251,15 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
 		delete oldmodules;
 	}
 
-	LeaveCriticalSection(&vld.m_loaderlock);
-
 	return status;
 }
 
 VOID VisualLeakDetector::RefreshModules()
 {
 	if (vld.m_options & VLD_OPT_VLDOFF)
-	{
 		return;
-	}
 
-	EnterCriticalSection(&vld.m_loaderlock);
+	CriticalSectionLocker cs(vld.m_loaderlock);
 	// Duplicate code here in this method. Consider refactoring out to another method.
 	// Create a new set of all loaded modules, including any newly loaded
 	// modules.
@@ -3293,10 +3271,10 @@ VOID VisualLeakDetector::RefreshModules()
 	vld.attachtoloadedmodules(newmodules);
 
 	// Start using the new set of loaded modules.
-	EnterCriticalSection(&vld.m_moduleslock);
+	vld.m_moduleslock.Enter();
 	ModuleSet* oldmodules = vld.m_loadedmodules;
 	vld.m_loadedmodules = newmodules;
-	LeaveCriticalSection(&vld.m_moduleslock);
+	vld.m_moduleslock.Leave();
 
 	// Free resources used by the old module list.
 	for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
@@ -3304,8 +3282,6 @@ VOID VisualLeakDetector::RefreshModules()
 		delete [] (*moduleit).path;
 	}
 	delete oldmodules;
-
-	LeaveCriticalSection(&vld.m_loaderlock);
 }
 
 void VisualLeakDetector::getcallstack( CallStack **&ppcallstack, context_t &context_ )
@@ -3486,12 +3462,11 @@ BOOL VisualLeakDetector::IsModuleExcluded(UINT_PTR address)
 	moduleinfo.addrhigh = address + 1024;
 	moduleinfo.flags = 0;
 
-	EnterCriticalSection(&vld.m_moduleslock);
+	CriticalSectionLocker cs(vld.m_moduleslock);
 	moduleit = vld.m_loadedmodules->find(moduleinfo);
 	if (moduleit != vld.m_loadedmodules->end()) {
 		excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? TRUE : FALSE;
 	}
-	LeaveCriticalSection(&vld.m_moduleslock);
 	return excluded;
 }
 
@@ -4001,7 +3976,7 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 {
 	ModuleSet::Iterator  moduleit;
 
-	EnterCriticalSection(&vld.m_moduleslock);
+	CriticalSectionLocker cs(vld.m_moduleslock);
 	moduleit = vld.m_loadedmodules->begin();
 	while( moduleit != vld.m_loadedmodules->end() )
 	{			
@@ -4017,8 +3992,6 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 		}
 		moduleit++;
 	}
-	LeaveCriticalSection(&vld.m_moduleslock);
-
 }
 
 void VisualLeakDetector::EnableModule(HMODULE module)
@@ -4100,14 +4073,13 @@ void VisualLeakDetector::GlobalDisableLeakDetection ()
 	}
 
 	// Disable memory leak detection for all threads.
-	EnterCriticalSection(&m_tlslock);
+	CriticalSectionLocker cs(m_tlslock);
 	TlsMap::Iterator     tlsit;
 	for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
 		(*tlsit).second->oldflags = (*tlsit).second->flags;
 		(*tlsit).second->flags &= ~VLD_TLS_ENABLED;
 		(*tlsit).second->flags |= VLD_TLS_DISABLED;
 	}
-	LeaveCriticalSection(&m_tlslock);
 }
 
 void VisualLeakDetector::GlobalEnableLeakDetection ()
@@ -4118,14 +4090,13 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 	}
 
 	// Enable memory leak detection for all threads.
-	EnterCriticalSection(&m_tlslock);
+	CriticalSectionLocker cs(m_tlslock);
 	TlsMap::Iterator     tlsit;
 	for (tlsit = m_tlsmap->begin(); tlsit != m_tlsmap->end(); ++tlsit) {
 		(*tlsit).second->oldflags = (*tlsit).second->flags;
 		(*tlsit).second->flags &= ~VLD_TLS_DISABLED;
 		(*tlsit).second->flags |= VLD_TLS_ENABLED;
 	}
-	LeaveCriticalSection(&m_tlslock);
 	m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
@@ -4278,11 +4249,10 @@ void VisualLeakDetector::SetupReporting()
 void VisualLeakDetector::resolveStacks(HANDLE heap)
 {
 	// Find the heap's information (blockmap, etc).
-	EnterCriticalSection(&m_maplock);
+	CriticalSectionLocker cs(m_maplock);
 	HeapMap::Iterator heapiter = m_heapmap->find(heap);
 	if (heapiter == m_heapmap->end()) {
 		// Nothing is allocated from this heap. No leaks.
-		LeaveCriticalSection(&m_maplock);
 		return;
 	}
 
@@ -4333,8 +4303,6 @@ void VisualLeakDetector::resolveStacks(HANDLE heap)
 			info->callstack->Resolve(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 		}
 	}
-
-	LeaveCriticalSection(&m_maplock);
 }
 
 void VisualLeakDetector::ResolveCallstacks()

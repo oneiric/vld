@@ -26,12 +26,13 @@
 #define VLDBUILD     // Declares that we are building Visual Leak Detector.
 #include "ntapi.h"   // Provides access to NT APIs.
 #include "vldheap.h" // Provides access to VLD's internal heap data structures.
+#include "criticalsection.h"
 #undef new           // Do not map "new" to VLD's new operator in this file
 
 // Global variables.
 vldblockheader_t *vldblocklist = NULL; // List of internally allocated blocks on VLD's private heap.
 HANDLE            vldheap;             // VLD's private heap.
-CRITICAL_SECTION  vldheaplock;         // Serializes access to VLD's private heap.
+CriticalSection   vldheaplock;         // Serializes access to VLD's private heap.
 
 // Local helper functions.
 static inline void vlddelete (void *block);
@@ -149,7 +150,7 @@ void vlddelete (void *block)
     vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
-    EnterCriticalSection(&vldheaplock);
+    vldheaplock.Enter();
     if (header->prev) {
         header->prev->next = header->next;
     }
@@ -160,7 +161,7 @@ void vlddelete (void *block)
     if (header->next) {
         header->next->prev = header->prev;
     }
-    LeaveCriticalSection(&vldheaplock);
+    vldheaplock.Leave();
 
     // Free the block.
     freed = RtlFreeHeap(vldheap, 0x0, header);
@@ -202,14 +203,14 @@ void* vldnew (size_t size, const char *file, int line)
     header->size         = size;
 
     // Link the block into the block list.
-    EnterCriticalSection(&vldheaplock);
+    vldheaplock.Enter();
     header->next         = vldblocklist;
     if (header->next != NULL) {
         header->next->prev = header;
     }
     header->prev         = NULL;
     vldblocklist         = header;
-    LeaveCriticalSection(&vldheaplock);
+    vldheaplock.Leave();
 
     // Return a pointer to the beginning of the data section of the block.
     return (void*)VLDBLOCKDATA(header);

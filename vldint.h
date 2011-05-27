@@ -329,11 +329,11 @@ private:
 	IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
 	SIZE_T               m_leaksfound;        // Total number of leaks found.
 	ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
-	CRITICAL_SECTION     m_loaderlock;        // Serializes the attachment of newly loaded modules.
-	CRITICAL_SECTION     m_maplock;           // Serializes access to the heap and block maps.
+	CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
+	CriticalSection      m_maplock;           // Serializes access to the heap and block maps.
 	SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
 	UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
-	CRITICAL_SECTION     m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
+	CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
 	UINT32               m_options;           // Configuration options:
 
 	static patchentry_t  m_kernelbasePatch [];
@@ -351,7 +351,7 @@ private:
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
 	DWORD                m_tlsindex;          // Thread-local storage index.
-	CRITICAL_SECTION     m_tlslock;           // Protects accesses to the Set of TLS structures.
+	CriticalSection      m_tlslock;           // Protects accesses to the Set of TLS structures.
 	TlsMap              *m_tlsmap;            // Set of all all thread-local storage structres for the process.
 	HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
 

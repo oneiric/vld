@@ -1147,9 +1147,6 @@ void* CrtMfcPatch<specialization>::mfcud_vector_new (size_t size)
     return vld._new(pmfcxxd_new, context, size);
 }
 
-#undef template<int specialization>
-#undef specialization
-
 #ifndef WIN64
 //void * __cdecl operator new(unsigned int,int,char const *,int)
 const extern char    scalar_new_dbg_name[] = "??2@YAPAXIHPBDH@Z";
