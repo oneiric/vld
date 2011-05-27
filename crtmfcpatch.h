@@ -32,25 +32,7 @@ Applications should never include this header."
 #include "vldint.h"
 extern __declspec(dllexport) VisualLeakDetector vld;
 
-#define TEMPLATE_HEADER \
-template<char const *crtddll, char const *mfcddll, char const *mfcuddll,\
-    char const *crtd_vector_new_name, char const *crtd_vector_new_dbg_name,\
-    char const *crtd_scalar_new_name, char const *crtd_scalar_new_dbg_name,\
-    int mfcd_vector_new_ordinal, int mfcd_vector_new_dbg_4p_ordinal, int mfcd_vector_new_dbg_3p_ordinal,\
-    int mfcd_scalar_new_ordinal, int mfcd_scalar_new_dbg_4p_ordinal, int mfcd_scalar_new_dbg_3p_ordinal,\
-    int mfcud_vector_new_ordinal, int mfcud_vector_new_dbg_4p_ordinal, int mfcud_vector_new_dbg_3p_ordinal,\
-    int mfcud_scalar_new_ordinal, int mfcud_scalar_new_dbg_4p_ordinal, int mfcud_scalar_new_dbg_3p_ordinal>
-
-#define TEMPLATE_ARGS \
-    crtddll, mfcddll, mfcuddll,\
-    crtd_vector_new_name, crtd_vector_new_dbg_name,\
-    crtd_scalar_new_name, crtd_scalar_new_dbg_name,\
-    mfcd_vector_new_ordinal, mfcd_vector_new_dbg_4p_ordinal, mfcd_vector_new_dbg_3p_ordinal,\
-    mfcd_scalar_new_ordinal, mfcd_scalar_new_dbg_4p_ordinal, mfcd_scalar_new_dbg_3p_ordinal,\
-    mfcud_vector_new_ordinal, mfcud_vector_new_dbg_4p_ordinal, mfcud_vector_new_dbg_3p_ordinal,\
-    mfcud_scalar_new_ordinal, mfcud_scalar_new_dbg_4p_ordinal, mfcud_scalar_new_dbg_3p_ordinal
-
-TEMPLATE_HEADER
+template<int specialization>
 class CrtMfcPatch
 {
 public:
@@ -79,12 +61,7 @@ public:
     static void* __cdecl crtd__aligned_offset_realloc (void *memblock, size_t size, size_t alignment, size_t offset);
     static void* __cdecl crtd__aligned_recalloc (void *memblock, size_t num, size_t size, size_t alignment);
     static void* __cdecl crtd__aligned_offset_recalloc (void *memblock, size_t num, size_t size, size_t alignment, size_t offset);
-
-    template<char const *procname>
-    static void* __cdecl crtd_new_dbg (context_t& context, size_t size, int type, char const *file, int line);
-    template<char const *procname>
-    static void* __cdecl crtd_new (context_t& context, size_t size);
-
+    
     static void* __cdecl mfcd_vector_new (size_t size);
     static void* __cdecl mfcd__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
     static void* __cdecl mfcd__vector_new_dbg_3p (size_t size, char const *file, int line);
@@ -98,12 +75,44 @@ public:
     static void* __cdecl mfcud__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
     static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
-    template<char const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, int type, char const *file, int line);
-    template<char const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new_dbg (context_t& context, size_t size, char const *file, int line);
-    template<char const *mfcdll, int ordinal>
-    static void* __cdecl mfcd_new (context_t& context, size_t size);
+    static void* pcrtd__calloc_dbg;
+    static void* pcrtd__malloc_dbg;
+    static void* pcrtd__realloc_dbg;
+    static void* pcrtd__recalloc_dbg;
+    static void* pcrtd_calloc;
+    static void* pcrtd_malloc;
+    static void* pcrtd_realloc;
+    static void* pcrtd_recalloc;
+    static void* pcrtd__aligned_malloc_dbg;
+    static void* pcrtd__aligned_offset_malloc_dbg;
+    static void* pcrtd__aligned_realloc_dbg;
+    static void* pcrtd__aligned_offset_realloc_dbg;
+    static void* pcrtd__aligned_recalloc_dbg;
+    static void* pcrtd__aligned_offset_recalloc_dbg;
+    static void* pcrtd_aligned_malloc;
+    static void* pcrtd_aligned_offset_malloc;
+    static void* pcrtd_aligned_realloc;
+    static void* pcrtd_aligned_offset_realloc;
+    static void* pcrtd_aligned_recalloc;
+    static void* pcrtd_aligned_offset_recalloc;
+    static void* pcrtd__scalar_new_dbg;
+    static void* pcrtd__vector_new_dbg;
+    static void* pcrtd_scalar_new;
+    static void* pcrtd_vector_new;
+
+    static void* pmfcd_scalar_new;
+    static void* pmfcd_vector_new;
+    static void* pmfcd__scalar_new_dbg_4p;
+    static void* pmfcd__vector_new_dbg_4p;
+    static void* pmfcd__scalar_new_dbg_3p;
+    static void* pmfcd__vector_new_dbg_3p;
+
+    static void* pmfcud_scalar_new;
+    static void* pmfcud_vector_new;
+    static void* pmfcud__scalar_new_dbg_4p;
+    static void* pmfcud__vector_new_dbg_4p;
+    static void* pmfcud__scalar_new_dbg_3p;
+    static void* pmfcud__vector_new_dbg_3p;
 };
 
 
@@ -131,26 +140,18 @@ public:
 //
 //    Returns the value returned by _calloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__calloc_dbg (size_t      num,
                                                     size_t      size,
                                                     int         type,
                                                     char const *file,
                                                     int         line)
 {
-    static _calloc_dbg_t pcrtxxd__calloc_dbg = NULL;
+    _calloc_dbg_t pcrtxxd__calloc_dbg = (_calloc_dbg_t)pcrtd__calloc_dbg;
+    assert(pcrtxxd__calloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__calloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _calloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__calloc_dbg = (_calloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_calloc_dbg");
-    }
 
     return vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, num, size, type, file, line);
 }
@@ -171,25 +172,17 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__calloc_dbg (size_t      num,
 //
 //    Returns the value returned by _malloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__malloc_dbg (size_t      size,
                                                     int         type,
                                                     char const *file,
                                                     int         line)
 {
-    static _malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
+    _malloc_dbg_t pcrtxxd__malloc_dbg = (_malloc_dbg_t)pcrtd__malloc_dbg;
+    assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__malloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _malloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__malloc_dbg = (_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_malloc_dbg");
-    }
 
     return vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, size, type, file, line);
 }
@@ -212,26 +205,18 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__malloc_dbg (size_t      size,
 //
 //    Returns the value returned by _realloc_dbg.
 //
-TEMPLATE_HEADER
-    void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__realloc_dbg (void       *mem,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__realloc_dbg (void       *mem,
     size_t     size,
     int        type,
     char const *file,
     int        line)
 {
-    static _realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
+    _realloc_dbg_t pcrtxxd__realloc_dbg = (_realloc_dbg_t)pcrtd__realloc_dbg;
+    assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__realloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _realloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__realloc_dbg = (_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_realloc_dbg");
-    }
 
     return vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, type, file, line);
 }
@@ -254,27 +239,19 @@ TEMPLATE_HEADER
 //
 //    Returns the value returned by _realloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__recalloc_dbg (void       *mem,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__recalloc_dbg (void       *mem,
                                                       size_t     num,
                                                       size_t     size,
                                                       int        type,
                                                       char const *file,
                                                       int        line)
 {
-    static _recalloc_dbg_t pcrtxxd__recalloc_dbg = NULL;
+    _recalloc_dbg_t pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)pcrtd__recalloc_dbg;
+    assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__recalloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _realloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_recalloc_dbg");
-    }
 
     return vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, type, file, line);
 }
@@ -295,16 +272,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__recalloc_dbg (void       *mem,
 //
 //    Returns the value returned by the CRT debug scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__scalar_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
 {
+    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)pcrtd__scalar_new_dbg;
+    assert(pcrtxxd_new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return crtd_new_dbg<crtd_scalar_new_dbg_name>(context, size, type, file, line);
+    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
 }
 
 // crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
@@ -323,16 +303,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__scalar_new_dbg (size_t      size,
 //
 //    Returns the value returned by the CRT debug vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__vector_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
 {
+    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)pcrtd__vector_new_dbg;
+    assert(pcrtxxd_new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return crtd_new_dbg<crtd_vector_new_dbg_name>(context, size, type, file, line);
+    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
 }
 
 // crtd_calloc - Calls to calloc from msvcrXXd.dll are patched through to
@@ -348,21 +331,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__vector_new_dbg (size_t      size,
 //
 //    Returns the valued returned from calloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd_calloc (size_t num, size_t size)
 {
-    static calloc_t pcrtxxd_calloc = NULL;
+    calloc_t pcrtxxd_calloc = (calloc_t)pcrtd_calloc;
+    assert(pcrtxxd_calloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_calloc == NULL) {
-        // This is the first call to this function. Link to the real malloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_calloc = (calloc_t)vld._RGetProcAddress(msvcrxxd, "calloc");
-    }
 
     return vld._calloc(pcrtxxd_calloc, context, num, size);
 }
@@ -378,21 +354,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_calloc (size_t num, size_t size)
 //
 //    Returns the valued returned from malloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd_malloc (size_t size)
 {
-    static malloc_t pcrtxxd_malloc = NULL;
+    malloc_t pcrtxxd_malloc = (malloc_t)pcrtd_malloc;
+    assert(pcrtxxd_malloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_malloc == NULL) {
-        // This is the first call to this function. Link to the real malloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_malloc = (malloc_t)vld._RGetProcAddress(msvcrxxd, "malloc");
-    }
 
     return vld._malloc(pcrtxxd_malloc, context, size);
 }
@@ -410,21 +379,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_malloc (size_t size)
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd_realloc (void *mem, size_t size)
 {
-    static realloc_t pcrtxxd_realloc = NULL;
+    realloc_t pcrtxxd_realloc = (realloc_t)pcrtd_realloc;
+    assert(pcrtxxd_realloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_realloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_realloc = (realloc_t)vld._RGetProcAddress(msvcrxxd, "realloc");
-    }
 
     return vld._realloc(pcrtxxd_realloc, context, mem, size);
 }
@@ -442,21 +404,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_realloc (void *mem, size_t size)
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__recalloc (void *mem, size_t num, size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__recalloc (void *mem, size_t num, size_t size)
 {
-    static _recalloc_t pcrtxxd_recalloc = NULL;
+    _recalloc_t pcrtxxd_recalloc = (_recalloc_t)pcrtd_recalloc;
+    assert(pcrtxxd_recalloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_recalloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_recalloc = (_recalloc_t)vld._RGetProcAddress(msvcrxxd, "_recalloc");
-    }
 
     return vld.__recalloc(pcrtxxd_recalloc, context, mem, num, size);
 }
@@ -477,28 +432,20 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__recalloc (void *mem, size_t num, size_t 
 //
 //    Returns the value returned by _aligned_malloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_malloc_dbg (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_malloc_dbg (size_t      size,
     size_t      alignment,
     int         type,
     char const *file,
     int         line)
 {
-    static _aligned_malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
+    _aligned_malloc_dbg_t pcrtxxd__aligned_malloc_dbg = (_aligned_malloc_dbg_t)pcrtd__aligned_malloc_dbg;
+    assert(pcrtxxd__aligned_malloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
 
-    if (pcrtxxd__malloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _malloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__malloc_dbg = (_aligned_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_malloc_dbg");
-    }
-
-    return vld.__aligned_malloc_dbg(pcrtxxd__malloc_dbg, context, size, alignment, type, file, line);
+    return vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_malloc_dbg - Calls to _aligned_offset_malloc_dbg from msvcrXXd.dll are patched
@@ -517,27 +464,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_malloc_dbg (size_t      size,
 //
 //    Returns the value returned by _aligned_offset_malloc_dbg.
 //
-TEMPLATE_HEADER
-    void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_malloc_dbg (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc_dbg (size_t      size,
     size_t      alignment,
     size_t      offset,
     int         type,
     char const *file,
     int         line)
 {
-    static _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = NULL;
+    _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)pcrtd__aligned_offset_malloc_dbg;
+    assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__malloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _malloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_malloc_dbg");
-    }
 
     return vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, size, alignment, offset, type, file, line);
 }
@@ -560,27 +499,19 @@ TEMPLATE_HEADER
 //
 //    Returns the value returned by _aligned_realloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_realloc_dbg (void       *mem,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     int        type,
     char const *file,
     int        line)
 {
-    static _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
+    _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)pcrtd__aligned_realloc_dbg;
+    assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__realloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _realloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_realloc_dbg");
-    }
 
     return vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, alignment, type, file, line);
 }
@@ -603,8 +534,8 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_realloc_dbg (void       *mem,
 //
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc_dbg (void       *mem,
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     size_t     offset,
@@ -612,19 +543,11 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc_dbg (void       *
     char const *file,
     int        line)
 {
-    static _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = NULL;
+    _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)pcrtd__aligned_offset_realloc_dbg;
+    assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd__realloc_dbg == NULL) {
-        // This is the first call to this function. Link to the real
-        // _realloc_dbg.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_realloc_dbg");
-    }
 
     return vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, alignment, offset, type, file, line);
 }
@@ -649,30 +572,22 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc_dbg (void       *
 //
 //    Returns the value returned by _aligned_realloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc_dbg (void       *mem,
-	size_t     num,
-	size_t     size,
-	size_t     alignment,
-	int        type,
-	char const *file,
-	int        line)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_recalloc_dbg (void       *mem,
+    size_t     num,
+    size_t     size,
+    size_t     alignment,
+    int        type,
+    char const *file,
+    int        line)
 {
-	static _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = NULL;
+    _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)pcrtd__aligned_recalloc_dbg;
+    assert(pcrtxxd__recalloc_dbg);
 
-	context_t context;
+    context_t context;
+    CAPTURE_CONTEXT(context);
 
-	CAPTURE_CONTEXT(context);
-
-	if (pcrtxxd__recalloc_dbg == NULL) {
-		// This is the first call to this function. Link to the real
-		// _realloc_dbg.
-		HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-		assert(msvcrxxd != NULL);
-		pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_recalloc_dbg");
-	}
-
-	return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, type, file, line);
+    return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_recalloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -695,31 +610,23 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc_dbg (void       *mem,
 //
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc_dbg (void       *mem,
-	size_t     num,
-	size_t     size,
-	size_t     alignment,
-	size_t     offset,
-	int        type,
-	char const *file,
-	int        line)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc_dbg (void       *mem,
+    size_t     num,
+    size_t     size,
+    size_t     alignment,
+    size_t     offset,
+    int        type,
+    char const *file,
+    int        line)
 {
-	static _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = NULL;
+    _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)pcrtd__aligned_offset_recalloc_dbg;
+    assert(pcrtxxd__recalloc_dbg);
 
-	context_t context;
+    context_t context;
+    CAPTURE_CONTEXT(context);
 
-	CAPTURE_CONTEXT(context);
-
-	if (pcrtxxd__recalloc_dbg == NULL) {
-		// This is the first call to this function. Link to the real
-		// _realloc_dbg.
-		HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-		assert(msvcrxxd != NULL);
-		pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_recalloc_dbg");
-	}
-
-	return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, offset, type, file, line);
+    return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -733,21 +640,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc_dbg (void       
 //
 //    Returns the valued returned from malloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_malloc (size_t size, size_t alignment)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_malloc (size_t size, size_t alignment)
 {
-    static _aligned_malloc_t pcrtxxd_malloc = NULL;
+    _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)pcrtd_aligned_malloc;
+    assert(pcrtxxd_malloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_malloc == NULL) {
-        // This is the first call to this function. Link to the real malloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_malloc = (_aligned_malloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_malloc");
-    }
 
     return vld.__aligned_malloc(pcrtxxd_malloc, context, size, alignment);
 }
@@ -763,21 +663,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_malloc (size_t size, size_t alig
 //
 //    Returns the valued returned from malloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
 {
-    static _aligned_offset_malloc_t pcrtxxd_malloc = NULL;
+    _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)pcrtd_aligned_offset_malloc;
+    assert(pcrtxxd_malloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_malloc == NULL) {
-        // This is the first call to this function. Link to the real malloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_malloc = (_aligned_offset_malloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_malloc");
-    }
 
     return vld.__aligned_offset_malloc(pcrtxxd_malloc, context, size, alignment, offset);
 }
@@ -795,21 +688,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_malloc (size_t size, size
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
 {
-    static _aligned_realloc_t pcrtxxd_realloc = NULL;
+    _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)pcrtd_aligned_realloc;
+    assert(pcrtxxd_realloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_realloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_realloc = (_aligned_realloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_realloc");
-    }
 
     return vld.__aligned_realloc(pcrtxxd_realloc, context, mem, size, alignment);
 }
@@ -827,21 +713,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_realloc (void *mem, size_t size,
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
 {
-    static _aligned_offset_realloc_t pcrtxxd_realloc = NULL;
+    _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)pcrtd_aligned_offset_realloc;
+    assert(pcrtxxd_realloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_realloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_realloc = (_aligned_offset_realloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_realloc");
-    }
 
     return vld.__aligned_offset_realloc(pcrtxxd_realloc, context, mem, size, alignment, offset);
 }
@@ -861,21 +740,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_realloc (void *mem, size_
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
 {
-    static _aligned_recalloc_t pcrtxxd_recalloc = NULL;
+    _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)pcrtd_aligned_recalloc;
+    assert(pcrtxxd_recalloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_recalloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_recalloc = (_aligned_recalloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_recalloc");
-    }
 
     return vld.__aligned_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment);
 }
@@ -895,21 +767,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_recalloc (void *mem, size_t num,
 //
 //    Returns the value returned from realloc.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
 {
-    static _aligned_offset_recalloc_t pcrtxxd_recalloc = NULL;
+    _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)pcrtd_aligned_offset_recalloc;
+    assert(pcrtxxd_recalloc);
 
     context_t context;
-
     CAPTURE_CONTEXT(context);
-
-    if (pcrtxxd_recalloc == NULL) {
-        // This is the first call to this function. Link to the real realloc.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_recalloc = (_aligned_offset_recalloc_t)vld._RGetProcAddress(msvcrxxd, "_aligned_offset_recalloc");
-    }
 
     return vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment, offset);
 }
@@ -923,13 +788,16 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd__aligned_offset_recalloc (void *mem, size
 //
 //    Returns the value returned by the CRT scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd_scalar_new (size_t size)
 {
+    new_t pcrtxxd_scalar_new = (new_t)pcrtd_scalar_new;
+    assert(pcrtxxd_scalar_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return crtd_new<crtd_scalar_new_name>(context, size);
+    return vld._new(pcrtxxd_scalar_new, context, size);
 }
 
 // crtd_vector_new - Calls to the CRT's vector new operator from msvcrXXd.dll
@@ -941,82 +809,14 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_scalar_new (size_t size)
 //
 //    Returns the value returned by the CRT vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_vector_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::crtd_vector_new (size_t size)
 {
+    new_t pcrtxxd_scalar_new = (new_t)pcrtd_vector_new;
+    assert(pcrtxxd_scalar_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
-
-    return crtd_new<crtd_vector_new_name>(context, size);
-}
-
-// crtd_new_dbg - A template function for implementation of patch functions to
-//   the CRT's debug new operator from msvcrXXd.dll
-//
-//  - procname (IN): The debug new operator's name
-//
-//  - fp (IN): Frame pointer from the call that initiated this allocation.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - type (IN): The CRT "use type" of the block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT debug new operator.
-//
-TEMPLATE_HEADER
-template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new_dbg (context_t&  context,
-                                                size_t      size,
-                                                int         type,
-                                                char const *file,
-                                                int         line)
-{
-    static new_dbg_crt_t pcrtxxd_new_dbg = NULL;
-    
-    if (pcrtxxd_new_dbg == NULL) {
-        // This is the first call to this function. Link to the real CRT debug
-        // new operator.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(msvcrxxd, procname);
-    }
-
-    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
-}
-
-// crt_new - A template function for implementing patch functions to the
-//   CRT's new operator from msvcrXXd.dll
-//
-//  - dll (IN): The name of the dll
-//
-//  - procname (IN): The debug new operator's name
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  Return Value:
-//
-//    Returns the value returned by the CRT new operator.
-//
-TEMPLATE_HEADER
-template<char const *procname>
-void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
-{
-    static new_t pcrtxxd_scalar_new = NULL;
-    
-    if (pcrtxxd_scalar_new == NULL) {
-        // This is the first call to this function. Link to the real CRT new
-        // operator.
-        HMODULE msvcrxxd = VisualLeakDetector::GetSxSModuleHandle(crtddll);
-        assert(msvcrxxd != NULL);
-        pcrtxxd_scalar_new = (new_t)vld._RGetProcAddress(msvcrxxd, procname);
-    }
 
     return vld._new(pcrtxxd_scalar_new, context, size);
 }
@@ -1043,17 +843,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::crtd_new (context_t& context, size_t size)
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (size_t       size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
 {
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcd__scalar_new_dbg_4p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_4p_ordinal>
-                       (context, size, type, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcd__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -1070,16 +872,18 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_4p (size_t       size,
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (size_t       size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    context_t context;	
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcd__scalar_new_dbg_3p;
+    assert(pmfcxxd__new_dbg);
+
+    context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcddll, mfcd_scalar_new_dbg_3p_ordinal>
-                       (context, size, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcd__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -1098,17 +902,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__scalar_new_dbg_3p (size_t       size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (size_t       size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
 {
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcd__scalar_new_dbg_4p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_4p_ordinal>
-                       (context, size, type, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcd__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -1125,16 +931,18 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_4p (size_t       size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcd__vector_new_dbg_3p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcddll, mfcd_vector_new_dbg_3p_ordinal>
-                       (context, size, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcd_scalar_new - Calls to the MFC scalar new operator from mfcXXd.dll are
@@ -1146,13 +954,16 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd__vector_new_dbg_3p (size_t       size,
 //
 //    Returns the value returned by the MFC scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd_scalar_new (size_t size)
 {
+    new_t pmfcxxd_new = (new_t)pmfcd_scalar_new;
+    assert(pmfcxxd_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new<mfcddll, mfcd_scalar_new_ordinal>(context, size);
+    return vld._new(pmfcxxd_new, context, size);
 }
 
 // mfcd_vector_new - Calls to the MFC vector new operator from mfcXXd.dll are
@@ -1164,13 +975,16 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_scalar_new (size_t size)
 //
 //    Returns the value returned by the MFC vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcd_vector_new (size_t size)
 {
+    new_t pmfcxxd_new = (new_t)pmfcd_vector_new;
+    assert(pmfcxxd_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new<mfcddll, mfcd_vector_new_ordinal>(context, size);
+    return vld._new(pmfcxxd_new, context, size);
 }
 
 // mfcud__scalar_new_dbg_4p - Calls to the MFC debug scalar new operator from
@@ -1189,17 +1003,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_vector_new (size_t size)
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
 {
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcud__scalar_new_dbg_4p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_4p_ordinal>
-                       (context, size, type, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcud__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -1216,16 +1032,18 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_4p (size_t      size,
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcud__scalar_new_dbg_3p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_scalar_new_dbg_3p_ordinal>
-                       (context, size, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcud__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -1244,17 +1062,19 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__scalar_new_dbg_3p (size_t      size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
 {
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcud__scalar_new_dbg_4p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_4p_ordinal>
-                       (context, size, type, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcud__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -1271,16 +1091,18 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_4p (size_t      size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (size_t      size,
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcud__vector_new_dbg_3p;
+    assert(pmfcxxd__new_dbg);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new_dbg<mfcuddll, mfcud_vector_new_dbg_3p_ordinal>
-                       (context, size, file, line);
+    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcud_scalar_new - Calls to the MFC scalar new operator from mfcXXud.dll are
@@ -1292,13 +1114,16 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud__vector_new_dbg_3p (size_t      size,
 //
 //    Returns the value returned by the MFC scalar new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud_scalar_new (size_t size)
 {
+    new_t pmfcxxd_new = (new_t)pmfcud_scalar_new;
+    assert(pmfcxxd_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return mfcd_new<mfcuddll, mfcud_scalar_new_ordinal>(context, size);
+    return vld._new(pmfcxxd_new, context, size);
 }
 
 // mfcud_vector_new - Calls to the MFC vector new operator from mfcXXud.dll are
@@ -1310,130 +1135,20 @@ void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_scalar_new (size_t size)
 //
 //    Returns the value returned by the MFC vector new operator.
 //
-TEMPLATE_HEADER
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcud_vector_new (size_t size)
+template<int specialization>
+void* CrtMfcPatch<specialization>::mfcud_vector_new (size_t size)
 {
+    new_t pmfcxxd_new = (new_t)pmfcud_vector_new;
+    assert(pmfcxxd_new);
+
     context_t context;
     CAPTURE_CONTEXT(context);
-
-    return mfcd_new<mfcuddll, mfcud_vector_new_ordinal>(context, size);
-}
-
-// mfcd_new_dbg - A generic function for implementing patch functions to the MFC
-//   debug new operators:
-//   void* __cdecl operator new[](size_t size, int type, char const *file, int line)
-//   void* __cdecl operator new(size_t size, int type, char const *file, int line)
-//
-//  - mfcdll (IN): The name of the MFC DLL
-//
-//  - ordinal (IN): The debug new operator's ordinal value
-//
-//  - type (IN): The "use type" of the block to be allocated.
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the MFC debug new operator.
-//
-TEMPLATE_HEADER
-template<char const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
-                                                size_t      size,
-                                                int         type,
-                                                char const *file,
-                                                int         line)
-{
-    static new_dbg_crt_t pmfcxxd__new_dbg = NULL;
-    
-    if (pmfcxxd__new_dbg == NULL) {
-        // This is the first call to this function. Link to the real MFC debug
-        // new operator.
-        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
-        assert(mfcxxd != NULL);
-        pmfcxxd__new_dbg = (new_dbg_crt_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
-    }
-
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
-}
-
-// mfcd_new_dbg - A generic function for implementing patch functions to the MFC
-//   debug new operators:
-//   void* __cdecl operator new[](size_t size, char const *file, int line)
-//   void* __cdecl operator new(size_t size, char const *file, int line)
-//
-//  - mfcdll (IN): The name of the MFC DLL
-//
-//  - ordinal (IN): The debug new operator's ordinal value
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  - file (IN): The name of the file from which this function is being called.
-//
-//  - line (IN): The line number, in the above file, at which this function is
-//      being called.
-//
-//  Return Value:
-//
-//    Returns the value returned by the MFC debug new operator.
-//
-TEMPLATE_HEADER
-template<char const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new_dbg (context_t& context,
-                                                size_t      size,
-                                                char const *file,
-                                                int         line)
-{
-    static new_dbg_mfc_t pmfcxxd__new_dbg = NULL;
-    
-    if (pmfcxxd__new_dbg == NULL) {
-        // This is the first call to this function. Link to the real MFC debug
-        // new operator.
-        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
-        assert(mfcxxd != NULL);
-        pmfcxxd__new_dbg = (new_dbg_mfc_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
-    }
-
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
-}
-
-// mfcd_new - A generic function for implementing patch functions to the MFC new
-//   operators.
-//
-//  - mfcdll (IN): The name of the MFC DLL
-//
-//  - ordinal (IN): The new operator's ordinal value
-//
-//  - size (IN): The size, in bytes, of the memory block to be allocated.
-//
-//  Return Value:
-//
-//    Returns the value returned by the MFC new operator.
-//
-TEMPLATE_HEADER
-template<char const *mfcdll, int ordinal>
-void* CrtMfcPatch<TEMPLATE_ARGS>::mfcd_new (context_t& context, size_t size)
-{
-    static new_t pmfcxxd_new = NULL;
-    
-    if (pmfcxxd_new == NULL) {
-        // This is the first call to this function. Link to the real CRT new
-        // operator.
-        HMODULE mfcxxd = VisualLeakDetector::GetSxSModuleHandle(mfcdll);
-        assert(mfcxxd != NULL);
-        pmfcxxd_new = (new_t)vld._RGetProcAddress(mfcxxd, (LPCSTR)ordinal);
-    }
 
     return vld._new(pmfcxxd_new, context, size);
 }
 
-#undef TEMPLATE_HEADER
-#undef TEMPLATE_ARGS
+#undef template<int specialization>
+#undef specialization
 
 #ifndef WIN64
 //void * __cdecl operator new(unsigned int,int,char const *,int)
@@ -1455,79 +1170,243 @@ const extern char    scalar_new_name[] = "??2@YAPEAX_K@Z";
 const extern char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 #endif
 
-const extern char msvcrtd_dll[]   = "msvcrtd.dll";
-const extern char mfc42d_dll[]    = "mfc42d.dll";
-const extern char mfc42ud_dll[]   = "mfc42ud.dll";
-const extern char msvcr70d_dll[]  = "msvcr70d.dll";
-const extern char mfc70d_dll[]    = "mfc70d.dll";
-const extern char mfc70ud_dll[]   = "mfc70ud.dll";
-const extern char msvcr71d_dll[]  = "msvcr71d.dll";
-const extern char mfc71d_dll[]    = "mfc71d.dll";
-const extern char mfc71ud_dll[]   = "mfc71ud.dll";
-const extern char msvcr80d_dll[]  = "msvcr80d.dll";
-const extern char mfc80d_dll[]    = "mfc80d.dll";
-const extern char mfc80ud_dll[]   = "mfc80ud.dll";
-const extern char msvcr90d_dll[]  = "msvcr90d.dll";
-const extern char mfc90d_dll[]    = "mfc90d.dll";
-const extern char mfc90ud_dll[]   = "mfc90ud.dll";
-const extern char msvcr100d_dll[] = "msvcr100d.dll";
-const extern char mfc100d_dll[]   = "mfc100d.dll";
-const extern char mfc100ud_dll[]  = "mfc100ud.dll";
-
 // Visual Studio 6.0
-typedef CrtMfcPatch<msvcrtd_dll, mfc42d_dll, mfc42ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-                    0, 0, 0, 711, 712, 714,
-                    0, 0, 0, 711, 712, 714>
+typedef CrtMfcPatch<60>
         VS60;
 // Visual Studio .NET 2002
-typedef CrtMfcPatch<msvcr70d_dll, mfc70d_dll, mfc70ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-                    257, 258, 259, 832, 833, 834,
-                    258, 259, 260, 833, 834, 835>
+typedef CrtMfcPatch<70>
         VS70;
 // Visual Studio .NET 2003
-typedef CrtMfcPatch<msvcr71d_dll, mfc71d_dll, mfc71ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-                    267, 268, 269, 893, 894, 895,
-                    267, 268, 269, 893, 894, 895>
+typedef CrtMfcPatch<71>
         VS71;
 // Visual Studio 2005
-typedef CrtMfcPatch<msvcr80d_dll, mfc80d_dll, mfc80ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-#if !defined(_M_X64)
-                    267, 268, 269, 893, 894, 895,
-                    267, 268, 269, 893, 894, 895>
-#else
-                    267, 268, 269, 907, 908, 909,
-                    267, 268, 269, 907, 908, 909>
-#endif
+typedef CrtMfcPatch<80>
         VS80;
 // Visual Studio 2008
-typedef CrtMfcPatch<msvcr90d_dll, mfc90d_dll, mfc90ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-#if !defined(_M_X64)
-                    267, 268, 269, 931, 932, 933,
-                    267, 268, 269, 935, 936, 937>
-#else
-                    267, 268, 269, 909, 910, 911,
-                    267, 268, 269, 913, 914, 915>
-#endif
+typedef CrtMfcPatch<90>
         VS90;
 // Visual Studio 2010
-typedef CrtMfcPatch<msvcr100d_dll, mfc100d_dll, mfc100ud_dll,
-                    vector_new_name, vector_new_dbg_name,
-                    scalar_new_name, scalar_new_dbg_name,
-#if !defined(_M_X64)
-                    267, 268, 269, 1427, 1428, 1429,
-                    267, 268, 269, 1434, 1435, 1436>
-#else
-                    267, 268, 269, 1405, 1406, 1407,
-                    267, 268, 269, 1412, 1413, 1414>
-#endif
+typedef CrtMfcPatch<100>
         VS100;
+
+void* VS60::pcrtd__calloc_dbg = NULL;
+void* VS60::pcrtd__malloc_dbg = NULL;
+void* VS60::pcrtd__realloc_dbg = NULL;
+void* VS60::pcrtd__recalloc_dbg = NULL;
+void* VS60::pcrtd_calloc = NULL;
+void* VS60::pcrtd_malloc = NULL;
+void* VS60::pcrtd_realloc = NULL;
+void* VS60::pcrtd_recalloc = NULL;
+void* VS60::pcrtd__aligned_malloc_dbg = NULL;
+void* VS60::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS60::pcrtd__aligned_realloc_dbg = NULL;
+void* VS60::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS60::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS60::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS60::pcrtd_aligned_malloc = NULL;
+void* VS60::pcrtd_aligned_offset_malloc = NULL;
+void* VS60::pcrtd_aligned_realloc = NULL;
+void* VS60::pcrtd_aligned_offset_realloc = NULL;
+void* VS60::pcrtd_aligned_recalloc = NULL;
+void* VS60::pcrtd_aligned_offset_recalloc = NULL;
+void* VS60::pcrtd__scalar_new_dbg = NULL;
+void* VS60::pcrtd__vector_new_dbg = NULL;
+void* VS60::pcrtd_scalar_new = NULL;
+void* VS60::pcrtd_vector_new = NULL;
+void* VS60::pmfcd_scalar_new = NULL;
+void* VS60::pmfcd_vector_new = NULL;
+void* VS60::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS60::pmfcd__vector_new_dbg_4p = NULL;
+void* VS60::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS60::pmfcd__vector_new_dbg_3p = NULL;
+void* VS60::pmfcud_scalar_new = NULL;
+void* VS60::pmfcud_vector_new = NULL;
+void* VS60::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS60::pmfcud__vector_new_dbg_4p = NULL;
+void* VS60::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS60::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS70::pcrtd__calloc_dbg = NULL;
+void* VS70::pcrtd__malloc_dbg = NULL;
+void* VS70::pcrtd__realloc_dbg = NULL;
+void* VS70::pcrtd__recalloc_dbg = NULL;
+void* VS70::pcrtd_calloc = NULL;
+void* VS70::pcrtd_malloc = NULL;
+void* VS70::pcrtd_realloc = NULL;
+void* VS70::pcrtd_recalloc = NULL;
+void* VS70::pcrtd__aligned_malloc_dbg = NULL;
+void* VS70::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS70::pcrtd__aligned_realloc_dbg = NULL;
+void* VS70::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS70::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS70::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS70::pcrtd_aligned_malloc = NULL;
+void* VS70::pcrtd_aligned_offset_malloc = NULL;
+void* VS70::pcrtd_aligned_realloc = NULL;
+void* VS70::pcrtd_aligned_offset_realloc = NULL;
+void* VS70::pcrtd_aligned_recalloc = NULL;
+void* VS70::pcrtd_aligned_offset_recalloc = NULL;
+void* VS70::pcrtd__scalar_new_dbg = NULL;
+void* VS70::pcrtd__vector_new_dbg = NULL;
+void* VS70::pcrtd_scalar_new = NULL;
+void* VS70::pcrtd_vector_new = NULL;
+void* VS70::pmfcd_scalar_new = NULL;
+void* VS70::pmfcd_vector_new = NULL;
+void* VS70::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS70::pmfcd__vector_new_dbg_4p = NULL;
+void* VS70::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS70::pmfcd__vector_new_dbg_3p = NULL;
+void* VS70::pmfcud_scalar_new = NULL;
+void* VS70::pmfcud_vector_new = NULL;
+void* VS70::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS70::pmfcud__vector_new_dbg_4p = NULL;
+void* VS70::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS70::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS71::pcrtd__calloc_dbg = NULL;
+void* VS71::pcrtd__malloc_dbg = NULL;
+void* VS71::pcrtd__realloc_dbg = NULL;
+void* VS71::pcrtd__recalloc_dbg = NULL;
+void* VS71::pcrtd_calloc = NULL;
+void* VS71::pcrtd_malloc = NULL;
+void* VS71::pcrtd_realloc = NULL;
+void* VS71::pcrtd_recalloc = NULL;
+void* VS71::pcrtd__aligned_malloc_dbg = NULL;
+void* VS71::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS71::pcrtd__aligned_realloc_dbg = NULL;
+void* VS71::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS71::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS71::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS71::pcrtd_aligned_malloc = NULL;
+void* VS71::pcrtd_aligned_offset_malloc = NULL;
+void* VS71::pcrtd_aligned_realloc = NULL;
+void* VS71::pcrtd_aligned_offset_realloc = NULL;
+void* VS71::pcrtd_aligned_recalloc = NULL;
+void* VS71::pcrtd_aligned_offset_recalloc = NULL;
+void* VS71::pcrtd__scalar_new_dbg = NULL;
+void* VS71::pcrtd__vector_new_dbg = NULL;
+void* VS71::pcrtd_scalar_new = NULL;
+void* VS71::pcrtd_vector_new = NULL;
+void* VS71::pmfcd_scalar_new = NULL;
+void* VS71::pmfcd_vector_new = NULL;
+void* VS71::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS71::pmfcd__vector_new_dbg_4p = NULL;
+void* VS71::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS71::pmfcd__vector_new_dbg_3p = NULL;
+void* VS71::pmfcud_scalar_new = NULL;
+void* VS71::pmfcud_vector_new = NULL;
+void* VS71::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS71::pmfcud__vector_new_dbg_4p = NULL;
+void* VS71::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS71::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS80::pcrtd__calloc_dbg = NULL;
+void* VS80::pcrtd__malloc_dbg = NULL;
+void* VS80::pcrtd__realloc_dbg = NULL;
+void* VS80::pcrtd__recalloc_dbg = NULL;
+void* VS80::pcrtd_calloc = NULL;
+void* VS80::pcrtd_malloc = NULL;
+void* VS80::pcrtd_realloc = NULL;
+void* VS80::pcrtd_recalloc = NULL;
+void* VS80::pcrtd__aligned_malloc_dbg = NULL;
+void* VS80::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS80::pcrtd__aligned_realloc_dbg = NULL;
+void* VS80::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS80::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS80::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS80::pcrtd_aligned_malloc = NULL;
+void* VS80::pcrtd_aligned_offset_malloc = NULL;
+void* VS80::pcrtd_aligned_realloc = NULL;
+void* VS80::pcrtd_aligned_offset_realloc = NULL;
+void* VS80::pcrtd_aligned_recalloc = NULL;
+void* VS80::pcrtd_aligned_offset_recalloc = NULL;
+void* VS80::pcrtd__scalar_new_dbg = NULL;
+void* VS80::pcrtd__vector_new_dbg = NULL;
+void* VS80::pcrtd_scalar_new = NULL;
+void* VS80::pcrtd_vector_new = NULL;
+void* VS80::pmfcd_scalar_new = NULL;
+void* VS80::pmfcd_vector_new = NULL;
+void* VS80::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS80::pmfcd__vector_new_dbg_4p = NULL;
+void* VS80::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS80::pmfcd__vector_new_dbg_3p = NULL;
+void* VS80::pmfcud_scalar_new = NULL;
+void* VS80::pmfcud_vector_new = NULL;
+void* VS80::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS80::pmfcud__vector_new_dbg_4p = NULL;
+void* VS80::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS80::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS90::pcrtd__calloc_dbg = NULL;
+void* VS90::pcrtd__malloc_dbg = NULL;
+void* VS90::pcrtd__realloc_dbg = NULL;
+void* VS90::pcrtd__recalloc_dbg = NULL;
+void* VS90::pcrtd_calloc = NULL;
+void* VS90::pcrtd_malloc = NULL;
+void* VS90::pcrtd_realloc = NULL;
+void* VS90::pcrtd_recalloc = NULL;
+void* VS90::pcrtd__aligned_malloc_dbg = NULL;
+void* VS90::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS90::pcrtd__aligned_realloc_dbg = NULL;
+void* VS90::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS90::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS90::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS90::pcrtd_aligned_malloc = NULL;
+void* VS90::pcrtd_aligned_offset_malloc = NULL;
+void* VS90::pcrtd_aligned_realloc = NULL;
+void* VS90::pcrtd_aligned_offset_realloc = NULL;
+void* VS90::pcrtd_aligned_recalloc = NULL;
+void* VS90::pcrtd_aligned_offset_recalloc = NULL;
+void* VS90::pcrtd__scalar_new_dbg = NULL;
+void* VS90::pcrtd__vector_new_dbg = NULL;
+void* VS90::pcrtd_scalar_new = NULL;
+void* VS90::pcrtd_vector_new = NULL;
+void* VS90::pmfcd_scalar_new = NULL;
+void* VS90::pmfcd_vector_new = NULL;
+void* VS90::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS90::pmfcd__vector_new_dbg_4p = NULL;
+void* VS90::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS90::pmfcd__vector_new_dbg_3p = NULL;
+void* VS90::pmfcud_scalar_new = NULL;
+void* VS90::pmfcud_vector_new = NULL;
+void* VS90::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS90::pmfcud__vector_new_dbg_4p = NULL;
+void* VS90::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS90::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS100::pcrtd__calloc_dbg = NULL;
+void* VS100::pcrtd__malloc_dbg = NULL;
+void* VS100::pcrtd__realloc_dbg = NULL;
+void* VS100::pcrtd__recalloc_dbg = NULL;
+void* VS100::pcrtd_calloc = NULL;
+void* VS100::pcrtd_malloc = NULL;
+void* VS100::pcrtd_realloc = NULL;
+void* VS100::pcrtd_recalloc = NULL;
+void* VS100::pcrtd__aligned_malloc_dbg = NULL;
+void* VS100::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS100::pcrtd__aligned_realloc_dbg = NULL;
+void* VS100::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS100::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS100::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS100::pcrtd_aligned_malloc = NULL;
+void* VS100::pcrtd_aligned_offset_malloc = NULL;
+void* VS100::pcrtd_aligned_realloc = NULL;
+void* VS100::pcrtd_aligned_offset_realloc = NULL;
+void* VS100::pcrtd_aligned_recalloc = NULL;
+void* VS100::pcrtd_aligned_offset_recalloc = NULL;
+void* VS100::pcrtd__scalar_new_dbg = NULL;
+void* VS100::pcrtd__vector_new_dbg = NULL;
+void* VS100::pcrtd_scalar_new = NULL;
+void* VS100::pcrtd_vector_new = NULL;
+void* VS100::pmfcd_scalar_new = NULL;
+void* VS100::pmfcd_vector_new = NULL;
+void* VS100::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS100::pmfcd__vector_new_dbg_4p = NULL;
+void* VS100::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS100::pmfcd__vector_new_dbg_3p = NULL;
+void* VS100::pmfcud_scalar_new = NULL;
+void* VS100::pmfcud_vector_new = NULL;
+void* VS100::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS100::pmfcud__vector_new_dbg_4p = NULL;
+void* VS100::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS100::pmfcud__vector_new_dbg_3p = NULL;

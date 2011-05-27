@@ -258,7 +258,6 @@ public:
 	bool GetModulesList(WCHAR *modules, UINT size);
 	VOID ResolveCallstacks();
 
-	static HMODULE GetSxSModuleHandle(LPCSTR modulenamea);
 	static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
 private:
 	////////////////////////////////////////////////////////////////////////////////

@@ -495,8 +495,8 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
                 // writable.
                 if ( import != replacement )
                 {
-                    if (entry->original == NULL)
-                        entry->original = (LPCVOID)iate->u1.Function;
+                    if (entry->original != NULL)
+                        *entry->original = (LPVOID)iate->u1.Function;
 
                     DWORD protect;
                     VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
@@ -845,16 +845,16 @@ VOID setreportfile (FILE *file, BOOL copydebugger, BOOL tostdout)
 //
 LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
 {
-	if ((source == NULL) || (wcslen(source) == 0))
-	{
-		return dest;
-	}
-	SIZE_T length = wcslen(dest) + wcslen(source);
-	LPWSTR new_str = new WCHAR [length + 1];
-	wcsncpy_s(new_str, length + 1, dest, _TRUNCATE);
-	wcsncat_s(new_str, length + 1, source, _TRUNCATE);
-	delete [] dest;
-	return new_str;
+    if ((source == NULL) || (wcslen(source) == 0))
+    {
+        return dest;
+    }
+    SIZE_T length = wcslen(dest) + wcslen(source);
+    LPWSTR new_str = new WCHAR [length + 1];
+    wcsncpy_s(new_str, length + 1, dest, _TRUNCATE);
+    wcsncat_s(new_str, length + 1, source, _TRUNCATE);
+    delete [] dest;
+    return new_str;
 }
 
 // strtobool - Converts string values (e.g. "yes", "no", "on", "off") to boolean
