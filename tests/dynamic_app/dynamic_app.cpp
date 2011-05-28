@@ -64,25 +64,33 @@ int _tmain(int argc, _TCHAR* argv[])
 	RunLoaderTests(resolve);    // leaks 18
 	int totalleaks = (int)VLDGetLeaksCount();
 	int leaks1 = totalleaks;
+	int prevleaks = totalleaks;
 	assert(leaks1 == 18);
 
 	RunMFCLoaderTests(resolve); // leaks 7
 	totalleaks = (int)VLDGetLeaksCount();
-	int leaks2 = totalleaks - leaks1;
+	int leaks2 = totalleaks - prevleaks;
+	prevleaks = totalleaks;
 	assert(leaks2 == 7);
 
 	LeakDuplicateLeaks();       // leaks 6
-	int leaks3 = (int)VLDGetLeaksCount();
-	leaks3 -= totalleaks;
+	totalleaks = (int)VLDGetLeaksCount();
+	int leaks3 = totalleaks - prevleaks;
+	prevleaks = totalleaks;
 	assert(leaks3 == 6);
 
 	if (doThreadTests)
 	{
 		// This test will crash, indicating a bug that needs to be fixed.
 		RunLoaderLockTests(resolve);
-		int leaks4 = (int)VLDGetLeaksCount();
-		leaks4 -= totalleaks;
+		totalleaks = (int)VLDGetLeaksCount();
+		int leaks4 = totalleaks - prevleaks;
 		assert(leaks4 == 1158);
+
+		// ..................Total:    1189 leaks total
+		totalleaks = (int)VLDGetLeaksCount();
+		int diff = 1189 - totalleaks;
+		return diff;
 	}
 
 	// ..................Total:    31 leaks total

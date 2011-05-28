@@ -203,8 +203,8 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
-	// gives us the offset of the IAT for the module we are interested in.
-	imagelock.Enter();
+    // gives us the offset of the IAT for the module we are interested in.
+    imagelock.Enter();
     __try
     {
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -213,8 +213,8 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     __except(1)
     {
         idte = NULL;
-	}
-	imagelock.Leave();
+    }
+    imagelock.Leave();
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return NULL;
@@ -682,8 +682,8 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
-	// gives us the offset of the IAT for the module we are interested in.
-	imagelock.Enter();
+    // gives us the offset of the IAT for the module we are interested in.
+    imagelock.Enter();
     __try
     {
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -692,8 +692,8 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
     __except(1)
     {
         idte = NULL;
-	}
-	imagelock.Leave();
+    }
+    imagelock.Leave();
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;

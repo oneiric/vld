@@ -781,15 +781,18 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 			}
 		}
 
-		symbollock.Enter();
 		if ((refresh == true) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
 			// Discard the previously loaded symbols, so we can refresh them.
+			CriticalSectionLocker cs(m_maplock);
+			symbollock.Enter();
 			if (SymUnloadModule64(currentprocess, modulebase) == false) {
 				report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
 					L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
 			}
+			symbollock.Leave();
 		}
 
+		symbollock.Enter();
 		// Try to load the module's symbols. This ensures that we have loaded
 		// the symbols for every module that has ever been loaded into the
 		// process, guaranteeing the symbols' availability when generating the
