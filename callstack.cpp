@@ -268,7 +268,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
 		if (hCallingModule && 
-			GetModuleFileName(hCallingModule, callingmodulename, sizeof(callingmodulename)) > 0)
+			GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
 		{
 			modulename = wcsrchr(callingmodulename, L'\\');
 			if (modulename == NULL)
@@ -406,7 +406,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
 		if (hCallingModule && 
-			GetModuleFileName(hCallingModule, callingmodulename, sizeof(callingmodulename)) > 0)
+			GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
 		{
 			modulename = wcsrchr(callingmodulename, L'\\');
 			if (modulename == NULL)
@@ -508,7 +508,7 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 		m_topindex = 0;
 		m_capacity += CALLSTACKCHUNKSIZE;
 	}
-	else if (m_topindex == CALLSTACKCHUNKSIZE) {
+	else if (m_topindex >= CALLSTACKCHUNKSIZE) {
 		// There is more capacity, but not in this chunk. Go to the next chunk.
 		// Note that this only happens if this CallStack has previously been
 		// cleared (clearing resets the data, but doesn't give up any allocated

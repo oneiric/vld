@@ -139,3 +139,5 @@ DWORD CalculateCRC32(UINT_PTR p, UINT startValue = 0xD202EF8D);
 // list of arguments.
 void GetFormattedMessage(DWORD last_error);
 HMODULE GetCallingModule(UINT_PTR pCaller);
+DWORD FilterFunction(long);
+

@@ -5,7 +5,7 @@
 void Call_LoaderLocks(bool resolve)
 {
 	//RunLoaderTests(resolve); // will not crash
-	RunMFCLoaderTests(resolve); // will crash
+	RunMFCLoaderTests(resolve); // Leaks 7 allocs
 
 	//HMODULE this_app = NULL;
 	//WCHAR path_name[MAX_PATH] = {0};

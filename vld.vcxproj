@@ -99,6 +99,7 @@
       <WarningLevel>Level4</WarningLevel>
       <StringPooling>false</StringPooling>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <EnablePREfast>true</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

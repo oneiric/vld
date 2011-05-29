@@ -105,16 +105,16 @@ private:
 	CallStack& operator = (const CallStack &other);
 
 	// The chunk list is made of a linked list of Chunks.
-	typedef struct chunk_s {
-		struct chunk_s *next;                        // Pointer to the next chunk in the chunk list.
-		UINT_PTR        frames [CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
-	} chunk_t;
+	struct chunk_t {
+		chunk_t* next;                               // Pointer to the next chunk in the chunk list.
+		UINT_PTR        frames[CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
+	};
 
 	// Private data.
 	UINT32              m_capacity; // Current capacity limit (in frames)
 	UINT32              m_size;     // Current size (in frames)
 	CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
-	CallStack::chunk_t *m_topchunk; // Pointer to the chunk at the top of the stack
+	CallStack::chunk_t* m_topchunk; // Pointer to the chunk at the top of the stack
 	UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
 
 	// The string that contains the stack converted into a human readable format.

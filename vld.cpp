@@ -415,23 +415,34 @@ VisualLeakDetector::VisualLeakDetector ()
 	HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
 
 	if (!IsWin7OrBetter()) // kernel32.dll
-		m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+	{
+		if (kernel32)
+		{
+			m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+		}
+	}
 	else
 	{
 		assert(m_patchtable[0].patchtable == m_kernelbasePatch);
 		m_patchtable[0].exportmodulename = "kernelbase.dll";
-		m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
+		if (kernelBase)
+		{
+			m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
+		}
 	}
 
 	// Initialize global variables.
 	currentprocess    = GetCurrentProcess();
 	currentthread     = GetCurrentThread();
 	imagelock.Initialize();
-	LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
 	processheap       = GetProcessHeap();
-	RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
-	RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
-	RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+	if (ntdll)
+	{
+		LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+		RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
+		RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
+		RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+	}
 	stackwalklock.Initialize();
 	symbollock.Initialize();
 	vldheap           = HeapCreate(0x0, 0, 0);
@@ -1060,7 +1071,9 @@ VOID VisualLeakDetector::configure ()
 	if (wcslen(filename) == 0) {
 		wcsncpy_s(filename, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
 	}
-	_wfullpath(m_reportfilepath, filename, MAX_PATH);
+	WCHAR* path = _wfullpath(m_reportfilepath, filename, MAX_PATH);
+	assert(path);
+
 	GetPrivateProfileString(L"Options", L"ReportTo", L"", buffer, BSIZE, inipath);
 	if (_wcsicmp(buffer, L"both") == 0) {
 		m_options |= (VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE);
@@ -1674,7 +1687,7 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 		if (m_options & VLD_OPT_VALIDATE_HEAPFREE)
 		{
 			HANDLE other_heap = NULL;
-			blockinfo_t* alloc_block = FindAllocedBlock(mem, __out other_heap);
+			blockinfo_t* alloc_block = FindAllocedBlock(mem, other_heap); // other_heap is an out parameter
 			bool diff = other_heap != heap; // Check indeed if the other heap is different
 			if (alloc_block && alloc_block->callstack && diff)
 			{
@@ -1684,13 +1697,12 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 				alloc_block->callstack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
 				// Now we need a way to print the current callstack at this point:
-				// now what?
 				CallStack* stack_here = CallStack::Create();
 				stack_here->getstacktrace(vld.m_maxtraceframes, context);
 				report(L"Deallocation Call stack.\n");
 				report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialnumber, mem, alloc_block->size);
 				report(L"  Call Stack:\n");
-				stack_here->dump(FALSE, 0);
+				stack_here->dump(FALSE);
 				// Now it should be safe to delete our temporary callstack
 				delete stack_here;
 				stack_here = NULL;
@@ -3090,7 +3102,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 		while(patchentry->importname)
 		{
 			// This patch table entry is for the specified module. If the requested
-			// import's name matches the entry's import name (or ordinal), then
+			// imports name matches the entry's import name (or ordinal), then
 			// return the address of the replacement instead of the address of the
 			// actual import.
 			if ((SIZE_T)patchentry->importname < (SIZE_T)vld.m_vldbase) {
@@ -3107,7 +3119,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 						return (FARPROC)patchentry->replacement;
 					}
 				}
-				__except(EXCEPTION_EXECUTE_HANDLER)
+				__except(FilterFunction(GetExceptionCode()))
 				{
 					if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
 						return (FARPROC)patchentry->replacement;
@@ -4282,6 +4294,11 @@ void VisualLeakDetector::resolveStacks(HANDLE heap)
 			// This block is allocated to a CRT heap, so the block has a CRT
 			// memory block header prepended to it.
 			crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+			if (!crtheader)
+			{
+				continue;
+			}
+
 			if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
 				// This block is marked as being used internally by the CRT.
 				// The CRT will free the block after VLD is destroyed.

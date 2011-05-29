@@ -181,6 +181,12 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
     }
 }
 
+// FilterFunction - Used in structured exception handling
+DWORD FilterFunction(long) 
+{ 
+	return EXCEPTION_CONTINUE_SEARCH;
+} 
+
 // findoriginalimportdescriptor - Determines if the specified module imports the named import
 //   from the named exporting module.
 //
@@ -196,43 +202,43 @@ VOID dumpmemoryw (LPCVOID address, SIZE_T size)
 //
 IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPCSTR exportmodulename)
 {
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+	IMAGE_IMPORT_DESCRIPTOR* idte = NULL;
+	IMAGE_SECTION_HEADER*    section = NULL;
+	ULONG                    size = 0;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    imagelock.Enter();
-    __try
-    {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    }
-    __except(1)
-    {
-        idte = NULL;
-    }
-    imagelock.Leave();
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return NULL;
-    }
-    while (idte->OriginalFirstThunk != 0x0) {
-        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-        if (_stricmp(name, exportmodulename) == 0) {
-            // Found the IDT entry for the exporting module.
-            break;
-        }
-        idte++;
-    }
-    if (idte->OriginalFirstThunk == 0x0) {
-        // The importing module does not import anything from the exporting
-        // module.
-        return NULL;
-    }
-    return idte;
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	imagelock.Enter();
+	__try
+	{
+		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+			IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	}
+	__except(FilterFunction(GetExceptionCode()))
+	{
+		idte = NULL;
+	}
+	imagelock.Leave();
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return NULL;
+	}
+	while (idte->OriginalFirstThunk != 0x0) {
+		PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+		if (_stricmp(name, exportmodulename) == 0) {
+			// Found the IDT entry for the exporting module.
+			break;
+		}
+		idte++;
+	}
+	if (idte->OriginalFirstThunk == 0x0) {
+		// The importing module does not import anything from the exporting
+		// module.
+		return NULL;
+	}
+	return idte;
 }
 
 // findimport - Determines if the specified module imports the named import
@@ -426,96 +432,96 @@ BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
 //   
 BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 {
-    HMODULE exportmodule = (HMODULE)module->modulebase;
-    if (exportmodule == NULL)
-        return FALSE;
+	HMODULE exportmodule = (HMODULE)module->modulebase;
+	if (exportmodule == NULL)
+		return FALSE;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+	IMAGE_IMPORT_DESCRIPTOR *idte;
+	IMAGE_SECTION_HEADER    *section;
+	ULONG                    size;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    imagelock.Enter();
-    __try
-    {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    }
-    __except(1)
-    {
-        idte = NULL;
-    }
-    imagelock.Leave();
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return FALSE;
-    }
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	imagelock.Enter();
+	__try
+	{
+		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+			IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	}
+	__except(FilterFunction(GetExceptionCode()))
+	{
+		idte = NULL;
+	}
+	imagelock.Leave();
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return FALSE;
+	}
 
-    int result = 0;
-    while (idte->FirstThunk != 0x0) {
-        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-        UNREFERENCED_PARAMETER(name);
+	int result = 0;
+	while (idte->FirstThunk != 0x0) {
+		PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+		UNREFERENCED_PARAMETER(name);
 
-        patchentry_t *entry = module->patchtable;
-        int i = 0;
-        while(entry->importname)
-        {
-            LPCSTR importname   = entry->importname;
-            LPCVOID replacement = entry->replacement;
+		patchentry_t *entry = module->patchtable;
+		int i = 0;
+		while(entry->importname)
+		{
+			LPCSTR importname   = entry->importname;
+			LPCVOID replacement = entry->replacement;
 
-            // Get the *real* address of the import. If we find this address in the IAT,
-            // then we've found the entry that needs to be patched.
-            FARPROC import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
-            FARPROC import = GetProcAddress(exportmodule, importname);
-            if ( import2 )
-                import = import2;
+			// Get the *real* address of the import. If we find this address in the IAT,
+			// then we've found the entry that needs to be patched.
+			FARPROC import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
+			FARPROC import = GetProcAddress(exportmodule, importname);
+			if ( import2 )
+				import = import2;
 
-            if (import == NULL) // Perhaps the named export module does not actually export the named import?
-            {
-                entry++; i++;
-                continue;
-            }
+			if (import == NULL) // Perhaps the named export module does not actually export the named import?
+			{
+				entry++; i++;
+				continue;
+			}
 
-            // Locate the import's IAT entry.
-            IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-            while (iate->u1.Function != 0x0)
-            {
-                if (iate->u1.Function != (DWORD_PTR)import) 
-                {
-                    iate++;
-                    continue;
-                }
+			// Locate the import's IAT entry.
+			IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+			while (iate->u1.Function != 0x0)
+			{
+				if (iate->u1.Function != (DWORD_PTR)import) 
+				{
+					iate++;
+					continue;
+				}
 
-                // Found the IAT entry. Overwrite the address stored in the IAT
-                // entry with the address of the replacement. Note that the IAT
-                // entry may be write-protected, so we must first ensure that it is
-                // writable.
-                if ( import != replacement )
-                {
-                    if (entry->original != NULL)
-                        *entry->original = (LPVOID)iate->u1.Function;
+				// Found the IAT entry. Overwrite the address stored in the IAT
+				// entry with the address of the replacement. Note that the IAT
+				// entry may be write-protected, so we must first ensure that it is
+				// writable.
+				if ( import != replacement )
+				{
+					if (entry->original != NULL)
+						*entry->original = (LPVOID)iate->u1.Function;
 
-                    DWORD protect;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                    iate->u1.Function = (DWORD_PTR)replacement;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-                }
-                // The patch has been installed in the import module.
-                result++;
-                iate++;
-            }
-            entry++; i++;
-        }
+					DWORD protect;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
+					iate->u1.Function = (DWORD_PTR)replacement;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				}
+				// The patch has been installed in the import module.
+				result++;
+				iate++;
+			}
+			entry++; i++;
+		}
 
-        idte++;
-    }
+		idte++;
+	}
 
-    // The import's IAT entry was not found. The importing module does not
-    // import the specified import.
-    return result > 0;
+	// The import's IAT entry was not found. The importing module does not
+	// import the specified import.
+	return result > 0;
 }
 
 // patchmodule - Patches all imports listed in the supplied patch table, and
@@ -669,87 +675,87 @@ VOID report (LPCWSTR format, ...)
 //
 VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 {
-    HMODULE exportmodule = (HMODULE)module->modulebase;
-    LPCSTR exportmodulename = module->exportmodulename;
-    UNREFERENCED_PARAMETER(exportmodulename);
-    if (exportmodule == NULL)
-        return;
+	HMODULE exportmodule = (HMODULE)module->modulebase;
+	LPCSTR exportmodulename = module->exportmodulename;
+	UNREFERENCED_PARAMETER(exportmodulename);
+	if (exportmodule == NULL)
+		return;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+	IMAGE_IMPORT_DESCRIPTOR *idte;
+	IMAGE_SECTION_HEADER    *section;
+	ULONG                    size;
 
-    // Locate the importing module's Import Directory Table (IDT) entry for the
-    // exporting module. The importing module actually can have several IATs --
-    // one for each export module that it imports something from. The IDT entry
-    // gives us the offset of the IAT for the module we are interested in.
-    imagelock.Enter();
-    __try
-    {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
-            IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
-    }
-    __except(1)
-    {
-        idte = NULL;
-    }
-    imagelock.Leave();
-    if (idte == NULL) {
-        // This module has no IDT (i.e. it imports nothing).
-        return;
-    }
+	// Locate the importing module's Import Directory Table (IDT) entry for the
+	// exporting module. The importing module actually can have several IATs --
+	// one for each export module that it imports something from. The IDT entry
+	// gives us the offset of the IAT for the module we are interested in.
+	imagelock.Enter();
+	__try
+	{
+		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+			IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
+	}
+	__except(FilterFunction(GetExceptionCode()))
+	{
+		idte = NULL;
+	}
+	imagelock.Leave();
+	if (idte == NULL) {
+		// This module has no IDT (i.e. it imports nothing).
+		return;
+	}
 
-    int result = 0;
-    while (idte->OriginalFirstThunk != 0x0)
-    {
-        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-        UNREFERENCED_PARAMETER(name);
+	int result = 0;
+	while (idte->OriginalFirstThunk != 0x0)
+	{
+		PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
+		UNREFERENCED_PARAMETER(name);
 
-        int i = 0;
-        patchentry_t *entry = module->patchtable;
-        while(entry->importname)
-        {
-            LPCSTR importname   = entry->importname;
-            LPCVOID replacement = entry->replacement;
-            UNREFERENCED_PARAMETER(importname);
+		int i = 0;
+		patchentry_t *entry = module->patchtable;
+		while(entry->importname)
+		{
+			LPCSTR importname   = entry->importname;
+			LPCVOID replacement = entry->replacement;
+			UNREFERENCED_PARAMETER(importname);
 
-            // Get the *real* address of the import.
-            //LPCVOID original = entry->original;
-            LPCVOID original = GetProcAddress(exportmodule, importname);
-            if (original == NULL) // Perhaps the named export module does not actually export the named import?
-            {
-                entry++; i++;
-                continue;
-            }
+			// Get the *real* address of the import.
+			//LPCVOID original = entry->original;
+			LPCVOID original = GetProcAddress(exportmodule, importname);
+			if (original == NULL) // Perhaps the named export module does not actually export the named import?
+			{
+				entry++; i++;
+				continue;
+			}
 
-            // Locate the import's original IAT entry (it currently has the replacement
-            // address in it).
-            IMAGE_THUNK_DATA* iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-            while (iate->u1.Function != 0x0)
-            {
-                if (iate->u1.Function != (DWORD_PTR)replacement)
-                {
-                    iate++;
-                    continue;
-                }
+			// Locate the import's original IAT entry (it currently has the replacement
+			// address in it).
+			IMAGE_THUNK_DATA* iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+			while (iate->u1.Function != 0x0)
+			{
+				if (iate->u1.Function != (DWORD_PTR)replacement)
+				{
+					iate++;
+					continue;
+				}
 
-                if (iate->u1.Function != (DWORD_PTR)original)
-                {
-                    // Found the IAT entry. Overwrite the address stored in the IAT
-                    // entry with the import's real address. Note that the IAT entry may
-                    // be write-protected, so we must first ensure that it is writable.
-                    DWORD protect;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                    iate->u1.Function = (DWORD_PTR)original;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
-                }
-                result++;
-                iate++;
-            }
-            entry++; i++;
-        }
-        idte++;
-    }
+				if (iate->u1.Function != (DWORD_PTR)original)
+				{
+					// Found the IAT entry. Overwrite the address stored in the IAT
+					// entry with the import's real address. Note that the IAT entry may
+					// be write-protected, so we must first ensure that it is writable.
+					DWORD protect;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
+					iate->u1.Function = (DWORD_PTR)original;
+					VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+				}
+				result++;
+				iate++;
+			}
+			entry++; i++;
+		}
+		idte++;
+	}
 }
 
 // restoremodule - Restores all imports listed in the supplied patch table, and
@@ -891,49 +897,52 @@ BOOL strtobool (LPCWSTR s) {
 //
 DWORD _GetProcessIdOfThread (HANDLE thread)
 {
-    typedef struct _CLIENT_ID {
-        HANDLE UniqueProcess;
-        HANDLE UniqueThread;
-    } CLIENT_ID, *PCLIENT_ID;
+	typedef struct _CLIENT_ID {
+		HANDLE UniqueProcess;
+		HANDLE UniqueThread;
+	} CLIENT_ID, *PCLIENT_ID;
 
-    typedef LONG NTSTATUS;
-    typedef LONG KPRIORITY;
+	typedef LONG NTSTATUS;
+	typedef LONG KPRIORITY;
 
-    typedef struct _THREAD_BASIC_INFORMATION {
-        NTSTATUS  ExitStatus;
-        PVOID     TebBaseAddress;
-        CLIENT_ID ClientId;
-        KAFFINITY AffinityMask;
-        KPRIORITY Priority;
-        KPRIORITY BasePriority;
-    } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+	typedef struct _THREAD_BASIC_INFORMATION {
+		NTSTATUS  ExitStatus;
+		PVOID     TebBaseAddress;
+		CLIENT_ID ClientId;
+		KAFFINITY AffinityMask;
+		KPRIORITY Priority;
+		KPRIORITY BasePriority;
+	} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
-    const static THREADINFOCLASS ThreadBasicInformation = (THREADINFOCLASS)0;
+	const static THREADINFOCLASS ThreadBasicInformation = (THREADINFOCLASS)0;
 
-    typedef NTSTATUS (WINAPI *PNtQueryInformationThread) (HANDLE thread,
-                THREADINFOCLASS infoclass, PVOID buffer, ULONG buffersize,
-                PULONG used);
+	typedef NTSTATUS (WINAPI *PNtQueryInformationThread) (HANDLE thread,
+		THREADINFOCLASS infoclass, PVOID buffer, ULONG buffersize,
+		PULONG used);
 
-    static PNtQueryInformationThread NtQueryInformationThread = NULL;
+	static PNtQueryInformationThread NtQueryInformationThread = NULL;
 
-    THREAD_BASIC_INFORMATION tbi;
-    NTSTATUS status;
-    HMODULE  ntdll;
-    if (NtQueryInformationThread == NULL) {
-        ntdll = GetModuleHandleW(L"ntdll.dll");
-        NtQueryInformationThread = (PNtQueryInformationThread)GetProcAddress(ntdll, "NtQueryInformationThread");
-        if (NtQueryInformationThread == NULL) {
-            return 0;
-        }
-    }
+	THREAD_BASIC_INFORMATION tbi;
+	NTSTATUS status;
+	if (NtQueryInformationThread == NULL) {
+		HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+		if (ntdll)
+		{
+			NtQueryInformationThread = (PNtQueryInformationThread)GetProcAddress(ntdll, "NtQueryInformationThread");
+		}
 
-    status = NtQueryInformationThread(thread, ThreadBasicInformation, &tbi, sizeof(tbi), NULL);
-    if(status < 0) {
-        // Shall we go through all the trouble of setting last error?
-        return 0;
-    }
+		if (NtQueryInformationThread == NULL) {
+			return 0;
+		}
+	}
 
-    return (DWORD)tbi.ClientId.UniqueProcess;
+	status = NtQueryInformationThread(thread, ThreadBasicInformation, &tbi, sizeof(tbi), NULL);
+	if(status < 0) {
+		// Shall we go through all the trouble of setting last error?
+		return 0;
+	}
+
+	return (DWORD)tbi.ClientId.UniqueProcess;
 }
 
 static const DWORD crctab[256] = {

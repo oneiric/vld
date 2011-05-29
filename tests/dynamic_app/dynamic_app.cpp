@@ -81,15 +81,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (doThreadTests)
 	{
-		// This test will crash, indicating a bug that needs to be fixed.
+		// Creates 64 threads that each leaks 7 allocations. This equals 448
 		RunLoaderLockTests(resolve);
 		totalleaks = (int)VLDGetLeaksCount();
 		int leaks4 = totalleaks - prevleaks;
-		assert(leaks4 == 1158);
+		assert(leaks4 == 448);
 
 		// ..................Total:    1189 leaks total
 		totalleaks = (int)VLDGetLeaksCount();
-		int diff = 1189 - totalleaks;
+		int diff = 479 - totalleaks;
 		return diff;
 	}
 
