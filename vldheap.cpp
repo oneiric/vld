@@ -30,9 +30,9 @@
 #undef new           // Do not map "new" to VLD's new operator in this file
 
 // Global variables.
-vldblockheader_t *vldblocklist = NULL; // List of internally allocated blocks on VLD's private heap.
-HANDLE            vldheap;             // VLD's private heap.
-CriticalSection   vldheaplock;         // Serializes access to VLD's private heap.
+vldblockheader_t *g_vldblocklist = NULL; // List of internally allocated blocks on VLD's private heap.
+HANDLE            g_vldheap;             // VLD's private heap.
+CriticalSection   g_vldheaplock;         // Serializes access to VLD's private heap.
 
 // Local helper functions.
 static inline void vlddelete (void *block);
@@ -150,21 +150,21 @@ void vlddelete (void *block)
     vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
-    vldheaplock.Enter();
+    g_vldheaplock.Enter();
     if (header->prev) {
         header->prev->next = header->next;
     }
     else {
-        vldblocklist = header->next;
+        g_vldblocklist = header->next;
     }
 
     if (header->next) {
         header->next->prev = header->prev;
     }
-    vldheaplock.Leave();
+    g_vldheaplock.Leave();
 
     // Free the block.
-    freed = RtlFreeHeap(vldheap, 0x0, header);
+    freed = RtlFreeHeap(g_vldheap, 0x0, header);
     assert(freed != FALSE);
 }
 
@@ -188,7 +188,7 @@ void vlddelete (void *block)
 //
 void* vldnew (size_t size, const char *file, int line)
 {
-    vldblockheader_t *header = (vldblockheader_t*)RtlAllocateHeap(vldheap, 0x0, size + sizeof(vldblockheader_t));
+    vldblockheader_t *header = (vldblockheader_t*)RtlAllocateHeap(g_vldheap, 0x0, size + sizeof(vldblockheader_t));
     static SIZE_T     serialnumber = 0;
 
     if (header == NULL) {
@@ -203,14 +203,14 @@ void* vldnew (size_t size, const char *file, int line)
     header->size         = size;
 
     // Link the block into the block list.
-    vldheaplock.Enter();
-    header->next         = vldblocklist;
+    g_vldheaplock.Enter();
+    header->next         = g_vldblocklist;
     if (header->next != NULL) {
         header->next->prev = header;
     }
     header->prev         = NULL;
-    vldblocklist         = header;
-    vldheaplock.Leave();
+    g_vldblocklist       = header;
+    g_vldheaplock.Leave();
 
     // Return a pointer to the beginning of the data section of the block.
     return (void*)VLDBLOCKDATA(header);

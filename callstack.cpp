@@ -31,10 +31,10 @@
 #define MAXSYMBOLNAMELENGTH 256
 
 // Imported global variables.
-extern HANDLE             currentprocess;
-extern HANDLE             currentthread;
-extern CriticalSection    stackwalklock;
-extern CriticalSection    symbollock;
+extern HANDLE             g_currentprocess;
+extern HANDLE             g_currentthread;
+extern CriticalSection    g_stackwalklock;
+extern CriticalSection    g_symbollock;
 extern VisualLeakDetector vld;
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
@@ -229,15 +229,15 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
-		symbollock.Enter();
+		g_symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
-		foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
+		foundline = SymGetLineFromAddrW64(g_currentprocess, programcounter, &displacement, &sourceinfo);
 		if (foundline && !showinternalframes) {
 			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
 			if (IsInternalModule(sourceinfo.FileName)) {
 				// Don't show frames in files internal to the heap.
-				symbollock.Leave();
+				g_symbollock.Leave();
 				continue;
 			}
 		}
@@ -251,7 +251,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		// counter address.
 		DWORD64          displacement64 = 0;
 		LPWSTR           functionname;
-		if (SymFromAddrW(currentprocess, programcounter, &displacement64, functioninfo)) {
+		if (SymFromAddrW(g_currentprocess, programcounter, &displacement64, functioninfo)) {
 			// Undecorate function name.
 			if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
 				functionname = undecoratedname;
@@ -263,7 +263,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
-		symbollock.Leave();
+		g_symbollock.Leave();
 
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
@@ -361,21 +361,21 @@ void CallStack::Resolve(BOOL showinternalframes)
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
-		symbollock.Enter();
+		g_symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
 
 		// It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
 		// in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns. 
 		// When that happens there is nothing we can do except crash.
-		foundline = SymGetLineFromAddrW64(currentprocess, programcounter, &displacement, &sourceinfo);
+		foundline = SymGetLineFromAddrW64(g_currentprocess, programcounter, &displacement, &sourceinfo);
 		assert(m_Resolved != NULL);
 
 		if (foundline && !showinternalframes) {
 			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
 			if (IsInternalModule(sourceinfo.FileName)) {
 				// Don't show frames in files internal to the heap.
-				symbollock.Leave();
+				g_symbollock.Leave();
 				continue;
 			}
 		}
@@ -389,7 +389,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		// counter address.
 		DWORD64          displacement64 = 0;
 		LPWSTR           functionname;
-		if (SymFromAddrW(currentprocess, programcounter, &displacement64, functioninfo)) {
+		if (SymFromAddrW(g_currentprocess, programcounter, &displacement64, functioninfo)) {
 			// Undecorate function name.
 			if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
 				functionname = undecoratedname;
@@ -401,7 +401,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
-		symbollock.Leave();
+		g_symbollock.Leave();
 		
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
@@ -680,11 +680,11 @@ VOID SafeCallStack::getstacktrace (UINT32 maxdepth, const context_t& context)
 	frame.Virtual             = TRUE;
 
 	// Walk the stack.
-	CriticalSectionLocker cs(stackwalklock);
+	CriticalSectionLocker cs(g_stackwalklock);
 	UINT32 count = 0;
 	while (count < maxdepth) {
 		count++;
-		if (!StackWalk64(architecture, currentprocess, currentthread, &frame, &currentcontext, NULL,
+		if (!StackWalk64(architecture, g_currentprocess, g_currentthread, &frame, &currentcontext, NULL,
 			SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
 				// Couldn't trace back through any more frames.
 				break;

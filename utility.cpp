@@ -28,7 +28,7 @@
 #include "vldint.h"
 
 // Imported Global Variables
-extern CriticalSection imagelock;
+extern CriticalSection g_imagelock;
 
 // Global variables.
 static BOOL        reportdelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
@@ -210,7 +210,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
 	// exporting module. The importing module actually can have several IATs --
 	// one for each export module that it imports something from. The IDT entry
 	// gives us the offset of the IAT for the module we are interested in.
-	imagelock.Enter();
+	g_imagelock.Enter();
 	__try
 	{
 		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -220,7 +220,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
 	{
 		idte = NULL;
 	}
-	imagelock.Leave();
+	g_imagelock.Leave();
 	if (idte == NULL) {
 		// This module has no IDT (i.e. it imports nothing).
 		return NULL;
@@ -444,7 +444,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 	// exporting module. The importing module actually can have several IATs --
 	// one for each export module that it imports something from. The IDT entry
 	// gives us the offset of the IAT for the module we are interested in.
-	imagelock.Enter();
+	g_imagelock.Enter();
 	__try
 	{
 		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -454,7 +454,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 	{
 		idte = NULL;
 	}
-	imagelock.Leave();
+	g_imagelock.Leave();
 	if (idte == NULL) {
 		// This module has no IDT (i.e. it imports nothing).
 		return FALSE;
@@ -689,7 +689,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 	// exporting module. The importing module actually can have several IATs --
 	// one for each export module that it imports something from. The IDT entry
 	// gives us the offset of the IAT for the module we are interested in.
-	imagelock.Enter();
+	g_imagelock.Enter();
 	__try
 	{
 		idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -699,7 +699,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 	{
 		idte = NULL;
 	}
-	imagelock.Leave();
+	g_imagelock.Leave();
 	if (idte == NULL) {
 		// This module has no IDT (i.e. it imports nothing).
 		return;

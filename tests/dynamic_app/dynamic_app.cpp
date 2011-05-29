@@ -87,7 +87,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		int leaks4 = totalleaks - prevleaks;
 		assert(leaks4 == 448);
 
-		// ..................Total:    1189 leaks total
+		// ..................Total:    479 leaks total
 		totalleaks = (int)VLDGetLeaksCount();
 		int diff = 479 - totalleaks;
 		return diff;
