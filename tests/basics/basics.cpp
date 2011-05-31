@@ -23,7 +23,7 @@ void LeakMemory(LeakOption type, int repeat, bool bFree)
 }
 
 // VLD internal API
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(VLD_FORCE_ENABLE)
 extern "C" {
 	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
 }

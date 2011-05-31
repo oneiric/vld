@@ -104,18 +104,13 @@
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VLD_FORCE_ENABLE;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>.\Release/vldmfc.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
-      <ObjectFileName>.\Release/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -125,22 +120,22 @@
       <OutputFile>$(OutDir)\vldmfc.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\$(PlatformName)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ProgramDatabaseFile>.\Release/vldmfc.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.dll $(Outdir)\vld_x64.dll /y
-copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.pdb $(Outdir)\vld_x64.pdb /y
-copy $(ProjectDir)..\..\setup\dbghelp\x64\dbghelp.dll $(OutDir)\dbghelp.dll /y
-copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest</Command>
+      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.dll $(Outdir)\vld_x86.dll /y
+copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.pdb $(Outdir)\vld_x86.pdb /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\dbghelp.dll $(OutDir)\dbghelp.dll /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -156,18 +151,13 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VLD_FORCE_ENABLE;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>.\Release/vldmfc.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
-      <ObjectFileName>.\Release/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -177,11 +167,11 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <OutputFile>$(OutDir)\vldmfc.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\$(PlatformName)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ProgramDatabaseFile>.\Release/vldmfc.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -191,7 +181,7 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.dll $(Outdir)\vld_x64.dll /y
 copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.pdb $(Outdir)\vld_x64.pdb /y
 copy $(ProjectDir)..\..\setup\dbghelp\x64\dbghelp.dll $(OutDir)\dbghelp.dll /y
-copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest</Command>
+copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -214,9 +204,6 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>.\Debug/vldmfc.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
-      <ObjectFileName>.\Debug/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -230,7 +217,6 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\$(PlatformName)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\Debug/vldmfc.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -266,9 +252,6 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>.\Debug/vldmfc.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
-      <ObjectFileName>.\Debug/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -282,7 +265,6 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\$(PlatformName)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\Debug/vldmfc.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -352,8 +334,6 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
   <ItemGroup>
     <None Include="res\vldmfc.ico" />
     <None Include="res\vldmfc.rc2" />
-    <None Include="COPYING.txt" />
-    <None Include="README.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

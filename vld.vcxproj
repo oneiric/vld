@@ -247,6 +247,7 @@
     <ClInclude Include="crtmfcpatch.h" />
     <ClInclude Include="map.h" />
     <ClInclude Include="ntapi.h" />
+    <ClInclude Include="readwritelock.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="set.h" />
     <ClInclude Include="stdafx.h" />

@@ -51,7 +51,5 @@
     <None Include="res\vldmfc.rc2">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="COPYING.txt" />
-    <None Include="README.txt" />
   </ItemGroup>
 </Project>

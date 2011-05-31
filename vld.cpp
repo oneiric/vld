@@ -89,179 +89,277 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 
 VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcAddress = NULL;
 
+static patchentry_t mfc42Patch [] = {
+    // XXX why are the vector new operators missing for mfc42.dll?
+    //ORDINAL(711),         &VS60::pmfcd_scalar_new,              VS60::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};
+
 static patchentry_t mfc42dPatch [] = {
     // XXX why are the vector new operators missing for mfc42d.dll?
-    ORDINAL(711),         &VS60::pmfcd_scalar_new,          VS60::mfcd_scalar_new,
-    ORDINAL(712),         &VS60::pmfcd__scalar_new_dbg_4p,  VS60::mfcd__scalar_new_dbg_4p,
-    ORDINAL(714),         &VS60::pmfcd__scalar_new_dbg_3p,  VS60::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
+    ORDINAL(711),         &VS60d::pmfcd_scalar_new,             VS60d::mfcd_scalar_new,
+    ORDINAL(712),         &VS60d::pmfcd__scalar_new_dbg_4p,     VS60d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(714),         &VS60d::pmfcd__scalar_new_dbg_3p,     VS60d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};
+
+static patchentry_t mfc42uPatch [] = {
+    // XXX why are the vector new operators missing for mfc42u.dll?
+    //ORDINAL(711),         &VS60::pmfcud_scalar_new,		        VS60::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
 };
 
 static patchentry_t mfc42udPatch [] = {
     // XXX why are the vector new operators missing for mfc42ud.dll?
-    ORDINAL(711),         &VS60::pmfcud_scalar_new,		    VS60::mfcud_scalar_new,
-    ORDINAL(712),         &VS60::pmfcud__scalar_new_dbg_4p, VS60::mfcud__scalar_new_dbg_4p,
-    ORDINAL(714),         &VS60::pmfcud__scalar_new_dbg_3p, VS60::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
+    ORDINAL(711),         &VS60d::pmfcud_scalar_new,		    VS60d::mfcud_scalar_new,
+    ORDINAL(712),         &VS60d::pmfcud__scalar_new_dbg_4p,    VS60d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(714),         &VS60d::pmfcud__scalar_new_dbg_3p,    VS60d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
 };
 
-static patchentry_t mfc70dPatch [] = {
-    ORDINAL(257),         &VS70::pmfcd_vector_new,		    VS70::mfcd_vector_new,
-    ORDINAL(258),         &VS70::pmfcd__vector_new_dbg_4p,  VS70::mfcd__vector_new_dbg_4p,
-    ORDINAL(259),         &VS70::pmfcd__vector_new_dbg_3p,  VS70::mfcd__vector_new_dbg_3p,
-    ORDINAL(832),         &VS70::pmfcd_scalar_new,		    VS70::mfcd_scalar_new,
-    ORDINAL(833),         &VS70::pmfcd__scalar_new_dbg_4p,  VS70::mfcd__scalar_new_dbg_4p,
-    ORDINAL(834),         &VS70::pmfcd__scalar_new_dbg_3p,  VS70::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
+static patchentry_t mfc70Patch [] = {
+    //ORDINAL(257),         &VS70::pmfcd_vector_new,		        VS70::mfcd_vector_new,
+    //ORDINAL(832),         &VS70::pmfcd_scalar_new,		        VS70::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc70dPatch [] = {						    
+    ORDINAL(257),         &VS70d::pmfcd_vector_new,		        VS70d::mfcd_vector_new,
+    ORDINAL(258),         &VS70d::pmfcd__vector_new_dbg_4p,     VS70d::mfcd__vector_new_dbg_4p,
+    ORDINAL(259),         &VS70d::pmfcd__vector_new_dbg_3p,     VS70d::mfcd__vector_new_dbg_3p,
+    ORDINAL(832),         &VS70d::pmfcd_scalar_new,		        VS70d::mfcd_scalar_new,
+    ORDINAL(833),         &VS70d::pmfcd__scalar_new_dbg_4p,     VS70d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(834),         &VS70d::pmfcd__scalar_new_dbg_3p,     VS70d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc70uPatch [] = {						    
+    //ORDINAL(258),         &VS70::pmfcud_vector_new,		        VS70::mfcud_vector_new,
+    //ORDINAL(833),         &VS70::pmfcud_scalar_new,		        VS70::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
 };
 
 static patchentry_t mfc70udPatch [] = {
-    ORDINAL(258),         &VS70::pmfcud_vector_new,		    VS70::mfcud_vector_new,
-    ORDINAL(259),         &VS70::pmfcud__vector_new_dbg_4p, VS70::mfcud__vector_new_dbg_4p,
-    ORDINAL(260),         &VS70::pmfcud__vector_new_dbg_3p, VS70::mfcud__vector_new_dbg_3p,
-    ORDINAL(833),         &VS70::pmfcud_scalar_new,		    VS70::mfcud_scalar_new,
-    ORDINAL(834),         &VS70::pmfcud__scalar_new_dbg_4p, VS70::mfcud__scalar_new_dbg_4p,
-    ORDINAL(835),         &VS70::pmfcud__scalar_new_dbg_3p, VS70::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
+    ORDINAL(258),         &VS70d::pmfcud_vector_new,		    VS70d::mfcud_vector_new,
+    ORDINAL(259),         &VS70d::pmfcud__vector_new_dbg_4p,    VS70d::mfcud__vector_new_dbg_4p,
+    ORDINAL(260),         &VS70d::pmfcud__vector_new_dbg_3p,    VS70d::mfcud__vector_new_dbg_3p,
+    ORDINAL(833),         &VS70d::pmfcud_scalar_new,		    VS70d::mfcud_scalar_new,
+    ORDINAL(834),         &VS70d::pmfcud__scalar_new_dbg_4p,    VS70d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(835),         &VS70d::pmfcud__scalar_new_dbg_3p,    VS70d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
 };
 
-static patchentry_t mfc71dPatch [] = {
-    ORDINAL(267),         &VS71::pmfcd_vector_new,		    VS71::mfcd_vector_new,
-    ORDINAL(268),         &VS71::pmfcd__vector_new_dbg_4p,  VS71::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS71::pmfcd__vector_new_dbg_3p,  VS71::mfcd__vector_new_dbg_3p,
-    ORDINAL(893),         &VS71::pmfcd_scalar_new,		    VS71::mfcd_scalar_new,
-    ORDINAL(894),         &VS71::pmfcd__scalar_new_dbg_4p,  VS71::mfcd__scalar_new_dbg_4p,
-    ORDINAL(895),         &VS71::pmfcd__scalar_new_dbg_3p,  VS71::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
+static patchentry_t mfc71Patch [] = {
+    //ORDINAL(267),         &VS71::pmfcd_vector_new,		        VS71::mfcd_vector_new,
+    //ORDINAL(893),         &VS71::pmfcd_scalar_new,		        VS71::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc71dPatch [] = {						    
+    ORDINAL(267),         &VS71d::pmfcd_vector_new,		        VS71d::mfcd_vector_new,
+    ORDINAL(268),         &VS71d::pmfcd__vector_new_dbg_4p,     VS71d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &VS71d::pmfcd__vector_new_dbg_3p,     VS71d::mfcd__vector_new_dbg_3p,
+    ORDINAL(893),         &VS71d::pmfcd_scalar_new,		        VS71d::mfcd_scalar_new,
+    ORDINAL(894),         &VS71d::pmfcd__scalar_new_dbg_4p,     VS71d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(895),         &VS71d::pmfcd__scalar_new_dbg_3p,     VS71d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc71uPatch [] = {						    
+    //ORDINAL(267),         &VS71::pmfcud_vector_new,		        VS71::mfcud_vector_new,
+    //ORDINAL(893),         &VS71::pmfcud_scalar_new,		        VS71::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc71udPatch [] = {						    
+    ORDINAL(267),         &VS71d::pmfcud_vector_new,		    VS71d::mfcud_vector_new,
+    ORDINAL(268),         &VS71d::pmfcud__vector_new_dbg_4p,    VS71d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &VS71d::pmfcud__vector_new_dbg_3p,    VS71d::mfcud__vector_new_dbg_3p,
+    ORDINAL(893),         &VS71d::pmfcud_scalar_new,		    VS71d::mfcud_scalar_new,
+    ORDINAL(894),         &VS71d::pmfcud__scalar_new_dbg_4p,    VS71d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(895),         &VS71d::pmfcud__scalar_new_dbg_3p,    VS71d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc80Patch [] = {						    
+    //ORDINAL(267),         &VS80::pmfcd_vector_new,		        VS80::mfcd_vector_new,
+    //ORDINAL2(893,907),    &VS80::pmfcd_scalar_new,		        VS80::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc80dPatch [] = {						    
+    ORDINAL(267),         &VS80d::pmfcd_vector_new,		        VS80d::mfcd_vector_new,
+    ORDINAL(268),         &VS80d::pmfcd__vector_new_dbg_4p,     VS80d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &VS80d::pmfcd__vector_new_dbg_3p,     VS80d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(893,907),    &VS80d::pmfcd_scalar_new,		        VS80d::mfcd_scalar_new,
+    ORDINAL2(894,908),    &VS80d::pmfcd__scalar_new_dbg_4p,     VS80d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    &VS80d::pmfcd__scalar_new_dbg_3p,     VS80d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc80uPatch [] = {						    
+    //ORDINAL(267),         &VS80::pmfcud_vector_new,		        VS80::mfcud_vector_new,
+    //ORDINAL2(893,907),    &VS80::pmfcud_scalar_new,		        VS80::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc80udPatch [] = {						    
+    ORDINAL(267),         &VS80d::pmfcud_vector_new,		    VS80d::mfcud_vector_new,
+    ORDINAL(268),         &VS80d::pmfcud__vector_new_dbg_4p,    VS80d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &VS80d::pmfcud__vector_new_dbg_3p,    VS80d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(893,907),    &VS80d::pmfcud_scalar_new,		    VS80d::mfcud_scalar_new,
+    ORDINAL2(894,908),    &VS80d::pmfcud__scalar_new_dbg_4p,    VS80d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    &VS80d::pmfcud__scalar_new_dbg_3p,    VS80d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc90Patch [] = {						    
+    ORDINAL(265),         &VS90::pmfcd_vector_new,		        VS90::mfcd_vector_new,
+    ORDINAL2(798, 776),   &VS90::pmfcd_scalar_new,		        VS90::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc90dPatch [] = {						    
+    ORDINAL(267),         &VS90d::pmfcd_vector_new,		        VS90d::mfcd_vector_new,
+    ORDINAL(268),         &VS90d::pmfcd__vector_new_dbg_4p,     VS90d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &VS90d::pmfcd__vector_new_dbg_3p,     VS90d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(931, 909),   &VS90d::pmfcd_scalar_new,		        VS90d::mfcd_scalar_new,
+    ORDINAL2(932, 910),   &VS90d::pmfcd__scalar_new_dbg_4p,     VS90d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(933, 911),   &VS90d::pmfcd__scalar_new_dbg_3p,     VS90d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc90uPatch [] = {						    
+    ORDINAL(265),         &VS90::pmfcud_vector_new,		        VS90::mfcud_vector_new,
+    ORDINAL2(798, 776),   &VS90::pmfcud_scalar_new,		        VS90::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc90udPatch [] = {						    
+    ORDINAL(267),         &VS90d::pmfcud_vector_new,		    VS90d::mfcud_vector_new,
+    ORDINAL(268),         &VS90d::pmfcud__vector_new_dbg_4p,    VS90d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &VS90d::pmfcud__vector_new_dbg_3p,    VS90d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(935, 913),   &VS90d::pmfcud_scalar_new,		    VS90d::mfcud_scalar_new,
+    ORDINAL2(936, 914),   &VS90d::pmfcud__scalar_new_dbg_4p,    VS90d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(937, 915),   &VS90d::pmfcud__scalar_new_dbg_3p,    VS90d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc100Patch [] = {						    
+    ORDINAL(265),         &VS100::pmfcd_vector_new,		        VS100::mfcd_vector_new,
+    ORDINAL2(1294, 1272), &VS100::pmfcd_scalar_new,		        VS100::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc100dPatch [] = {						    
+    ORDINAL(267),         &VS100d::pmfcd_vector_new,		    VS100d::mfcd_vector_new,
+    ORDINAL(268),         &VS100d::pmfcd__vector_new_dbg_4p,    VS100d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &VS100d::pmfcd__vector_new_dbg_3p,    VS100d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1427, 1405), &VS100d::pmfcd_scalar_new,		    VS100d::mfcd_scalar_new,
+    ORDINAL2(1428, 1406), &VS100d::pmfcd__scalar_new_dbg_4p,    VS100d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1429, 1407), &VS100d::pmfcd__scalar_new_dbg_3p,    VS100d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc100uPatch [] = {						    
+    ORDINAL(265),         &VS100::pmfcud_vector_new,		    VS100::mfcud_vector_new,
+    ORDINAL2(1298, 1276), &VS100::pmfcud_scalar_new,		    VS100::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc100udPatch [] = {					    
+    ORDINAL(267),         &VS100d::pmfcud_vector_new,		    VS100d::mfcud_vector_new,
+    ORDINAL(268),         &VS100d::pmfcud__vector_new_dbg_4p,   VS100d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &VS100d::pmfcud__vector_new_dbg_3p,   VS100d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1434, 1412), &VS100d::pmfcud_scalar_new,		    VS100d::mfcud_scalar_new,
+    ORDINAL2(1435, 1413), &VS100d::pmfcud__scalar_new_dbg_4p,   VS100d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1436, 1414), &VS100d::pmfcud__scalar_new_dbg_3p,   VS100d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
 };
 
-static patchentry_t mfc71udPatch [] = {
-    ORDINAL(267),         &VS71::pmfcud_vector_new,		    VS71::mfcud_vector_new,
-    ORDINAL(268),         &VS71::pmfcud__vector_new_dbg_4p, VS71::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS71::pmfcud__vector_new_dbg_3p, VS71::mfcud__vector_new_dbg_3p,
-    ORDINAL(893),         &VS71::pmfcud_scalar_new,		    VS71::mfcud_scalar_new,
-    ORDINAL(894),         &VS71::pmfcud__scalar_new_dbg_4p, VS71::mfcud__scalar_new_dbg_4p,
-    ORDINAL(895),         &VS71::pmfcud__scalar_new_dbg_3p, VS71::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc80dPatch [] = {
-    ORDINAL(267),         &VS80::pmfcd_vector_new,		    VS80::mfcd_vector_new,
-    ORDINAL(268),         &VS80::pmfcd__vector_new_dbg_4p,  VS80::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS80::pmfcd__vector_new_dbg_3p,  VS80::mfcd__vector_new_dbg_3p,
-    ORDINAL2(893,907),    &VS80::pmfcd_scalar_new,		    VS80::mfcd_scalar_new,
-    ORDINAL2(894,908),    &VS80::pmfcd__scalar_new_dbg_4p,  VS80::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    &VS80::pmfcd__scalar_new_dbg_3p,  VS80::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc80udPatch [] = {
-    ORDINAL(267),         &VS80::pmfcud_vector_new,		    VS80::mfcud_vector_new,
-    ORDINAL(268),         &VS80::pmfcud__vector_new_dbg_4p, VS80::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS80::pmfcud__vector_new_dbg_3p, VS80::mfcud__vector_new_dbg_3p,
-    ORDINAL2(893,907),    &VS80::pmfcud_scalar_new,		    VS80::mfcud_scalar_new,
-    ORDINAL2(894,908),    &VS80::pmfcud__scalar_new_dbg_4p, VS80::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    &VS80::pmfcud__scalar_new_dbg_3p, VS80::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc90dPatch [] = {
-    ORDINAL(267),         &VS90::pmfcd_vector_new,		    VS90::mfcd_vector_new,
-    ORDINAL(268),         &VS90::pmfcd__vector_new_dbg_4p,  VS90::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS90::pmfcd__vector_new_dbg_3p,  VS90::mfcd__vector_new_dbg_3p,
-    ORDINAL2(931, 909),   &VS90::pmfcd_scalar_new,		    VS90::mfcd_scalar_new,
-    ORDINAL2(932, 910),   &VS90::pmfcd__scalar_new_dbg_4p,  VS90::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(933, 911),   &VS90::pmfcd__scalar_new_dbg_3p,  VS90::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc90udPatch [] = {
-    ORDINAL(267),         &VS90::pmfcud_vector_new,		    VS90::mfcud_vector_new,
-    ORDINAL(268),         &VS90::pmfcud__vector_new_dbg_4p, VS90::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS90::pmfcud__vector_new_dbg_3p, VS90::mfcud__vector_new_dbg_3p,
-    ORDINAL2(935, 913),   &VS90::pmfcud_scalar_new,		    VS90::mfcud_scalar_new,
-    ORDINAL2(936, 914),   &VS90::pmfcud__scalar_new_dbg_4p, VS90::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(937, 915),   &VS90::pmfcud__scalar_new_dbg_3p, VS90::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc100dPatch [] = {
-    ORDINAL(267),         &VS100::pmfcd_vector_new,		    VS100::mfcd_vector_new,
-    ORDINAL(268),         &VS100::pmfcd__vector_new_dbg_4p, VS100::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS100::pmfcd__vector_new_dbg_3p, VS100::mfcd__vector_new_dbg_3p,
-    ORDINAL2(1427, 1405), &VS100::pmfcd_scalar_new,		    VS100::mfcd_scalar_new,
-    ORDINAL2(1428, 1406), &VS100::pmfcd__scalar_new_dbg_4p, VS100::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(1429, 1407), &VS100::pmfcd__scalar_new_dbg_3p, VS100::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                             NULL
-};
-
-static patchentry_t mfc100udPatch [] = {
-    ORDINAL(267),         &VS100::pmfcud_vector_new,		VS100::mfcud_vector_new,
-    ORDINAL(268),         &VS100::pmfcud__vector_new_dbg_4p,VS100::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS100::pmfcud__vector_new_dbg_3p,VS100::mfcud__vector_new_dbg_3p,
-    ORDINAL2(1434, 1412), &VS100::pmfcud_scalar_new,		VS100::mfcud_scalar_new,
-    ORDINAL2(1435, 1413), &VS100::pmfcud__scalar_new_dbg_4p,VS100::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(1436, 1414), &VS100::pmfcud__scalar_new_dbg_3p,VS100::mfcud__scalar_new_dbg_3p,
+static patchentry_t msvcrtPatch [] = {
+    scalar_new_dbg_name,  &VS60::pcrtd__scalar_new_dbg,	    VS60::crtd__scalar_new_dbg,
+    //vector_new_dbg_name,  &VS60::pcrtd__vector_new_dbg,     VS60::crtd__vector_new_dbg,
+    "calloc",             &VS60::pcrtd_calloc,              VS60::crtd_calloc,
+    "malloc",             &VS60::pcrtd_malloc,              VS60::crtd_malloc,
+    "realloc",            &VS60::pcrtd_realloc,             VS60::crtd_realloc,
+    scalar_new_name,      &VS60::pcrtd_scalar_new,          VS60::crtd_scalar_new,
+    //vector_new_name,      &VS60::pcrtd_vector_new,          VS60::crtd_vector_new,
     NULL,                 NULL,                             NULL
 };
 
 static patchentry_t msvcrtdPatch [] = {
-    "_calloc_dbg",        &VS60::pcrtd__calloc_dbg,	    VS60::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS60::pcrtd__malloc_dbg,	    VS60::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS60::pcrtd__realloc_dbg,    VS60::crtd__realloc_dbg,
-    scalar_new_dbg_name,  &VS60::pcrtd__scalar_new_dbg, VS60::crtd__scalar_new_dbg,
-    //vector_new_dbg_name,  &VS60::pcrtd__vector_new_dbg, VS60::crtd__vector_new_dbg,
-    "calloc",             &VS60::pcrtd_calloc,          VS60::crtd_calloc,
-    "malloc",             &VS60::pcrtd_malloc,          VS60::crtd_malloc,
-    "realloc",            &VS60::pcrtd_realloc,         VS60::crtd_realloc,
-    scalar_new_name,      &VS60::pcrtd_scalar_new,      VS60::crtd_scalar_new,
-    //vector_new_name,      &VS60::pcrtd_vector_new,      VS60::crtd_vector_new,
-    NULL,                 NULL,                         NULL
+    "_calloc_dbg",        &VS60d::pcrtd__calloc_dbg,	    VS60d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS60d::pcrtd__malloc_dbg,	    VS60d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS60d::pcrtd__realloc_dbg,       VS60d::crtd__realloc_dbg,
+    scalar_new_dbg_name,  &VS60d::pcrtd__scalar_new_dbg,    VS60d::crtd__scalar_new_dbg,
+    //vector_new_dbg_name,  &VS60d::pcrtd__vector_new_dbg,     VS60d::crtd__vector_new_dbg,
+    "calloc",             &VS60d::pcrtd_calloc,             VS60d::crtd_calloc,
+    "malloc",             &VS60d::pcrtd_malloc,             VS60d::crtd_malloc,
+    "realloc",            &VS60d::pcrtd_realloc,            VS60d::crtd_realloc,
+    scalar_new_name,      &VS60d::pcrtd_scalar_new,         VS60d::crtd_scalar_new,
+    //vector_new_name,      &VS60d::pcrtd_vector_new,         VS60d::crtd_vector_new,
+    NULL,                 NULL,                             NULL
+};
+
+static patchentry_t msvcr70Patch [] = {
+    scalar_new_dbg_name,  &VS70::pcrtd__scalar_new_dbg,     VS70::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS70::pcrtd__vector_new_dbg,     VS70::crtd__vector_new_dbg,
+    "calloc",             &VS70::pcrtd_calloc,              VS70::crtd_calloc,
+    "malloc",             &VS70::pcrtd_malloc,              VS70::crtd_malloc,
+    "realloc",            &VS70::pcrtd_realloc,             VS70::crtd_realloc,
+    scalar_new_name,      &VS70::pcrtd_scalar_new,          VS70::crtd_scalar_new,
+    vector_new_name,      &VS70::pcrtd_vector_new,          VS70::crtd_vector_new,
+    NULL,                 NULL,                             NULL
 };
 
 static patchentry_t msvcr70dPatch [] = {
-    "_calloc_dbg",        &VS70::pcrtd__calloc_dbg,	    VS70::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS70::pcrtd__malloc_dbg,	    VS70::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS70::pcrtd__realloc_dbg,    VS70::crtd__realloc_dbg,
-    scalar_new_dbg_name,  &VS70::pcrtd__scalar_new_dbg, VS70::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  &VS70::pcrtd__vector_new_dbg, VS70::crtd__vector_new_dbg,
-    "calloc",             &VS70::pcrtd_calloc,          VS70::crtd_calloc,
-    "malloc",             &VS70::pcrtd_malloc,          VS70::crtd_malloc,
-    "realloc",            &VS70::pcrtd_realloc,         VS70::crtd_realloc,
-    scalar_new_name,      &VS70::pcrtd_scalar_new,      VS70::crtd_scalar_new,
-    vector_new_name,      &VS70::pcrtd_vector_new,      VS70::crtd_vector_new,
-    NULL,                 NULL,                         NULL
+    "_calloc_dbg",        &VS70d::pcrtd__calloc_dbg,	    VS70d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS70d::pcrtd__malloc_dbg,	    VS70d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS70d::pcrtd__realloc_dbg,       VS70d::crtd__realloc_dbg,
+    scalar_new_dbg_name,  &VS70d::pcrtd__scalar_new_dbg,    VS70d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS70d::pcrtd__vector_new_dbg,    VS70d::crtd__vector_new_dbg,
+    "calloc",             &VS70d::pcrtd_calloc,             VS70d::crtd_calloc,
+    "malloc",             &VS70d::pcrtd_malloc,             VS70d::crtd_malloc,
+    "realloc",            &VS70d::pcrtd_realloc,            VS70d::crtd_realloc,
+    scalar_new_name,      &VS70d::pcrtd_scalar_new,         VS70d::crtd_scalar_new,
+    vector_new_name,      &VS70d::pcrtd_vector_new,         VS70d::crtd_vector_new,
+    NULL,                 NULL,                             NULL
+};
+
+static patchentry_t msvcr71Patch [] = {
+    scalar_new_dbg_name,  &VS71::pcrtd__scalar_new_dbg,     VS71::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS71::pcrtd__vector_new_dbg,     VS71::crtd__vector_new_dbg,
+    "calloc",             &VS71::pcrtd_calloc,              VS71::crtd_calloc,
+    "malloc",             &VS71::pcrtd_malloc,              VS71::crtd_malloc,
+    "realloc",            &VS71::pcrtd_realloc,             VS71::crtd_realloc,
+    scalar_new_name,      &VS71::pcrtd_scalar_new,          VS71::crtd_scalar_new,
+    vector_new_name,      &VS71::pcrtd_vector_new,          VS71::crtd_vector_new,
+    NULL,                 NULL,                             NULL
 };
 
 static patchentry_t msvcr71dPatch [] = {
-    "_calloc_dbg",        &VS71::pcrtd__calloc_dbg,	    VS71::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS71::pcrtd__malloc_dbg,	    VS71::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS71::pcrtd__realloc_dbg,    VS71::crtd__realloc_dbg,
-    scalar_new_dbg_name,  &VS71::pcrtd__scalar_new_dbg, VS71::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  &VS71::pcrtd__vector_new_dbg, VS71::crtd__vector_new_dbg,
-    "calloc",             &VS71::pcrtd_calloc,          VS71::crtd_calloc,
-    "malloc",             &VS71::pcrtd_malloc,          VS71::crtd_malloc,
-    "realloc",            &VS71::pcrtd_realloc,         VS71::crtd_realloc,
-    scalar_new_name,      &VS71::pcrtd_scalar_new,      VS71::crtd_scalar_new,
-    vector_new_name,      &VS71::pcrtd_vector_new,      VS71::crtd_vector_new,
-    NULL,                 NULL,                         NULL
+    "_calloc_dbg",        &VS71d::pcrtd__calloc_dbg,	    VS71d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS71d::pcrtd__malloc_dbg,	    VS71d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS71d::pcrtd__realloc_dbg,       VS71d::crtd__realloc_dbg,
+    scalar_new_dbg_name,  &VS71d::pcrtd__scalar_new_dbg,    VS71d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS71d::pcrtd__vector_new_dbg,    VS71d::crtd__vector_new_dbg,
+    "calloc",             &VS71d::pcrtd_calloc,             VS71d::crtd_calloc,
+    "malloc",             &VS71d::pcrtd_malloc,             VS71d::crtd_malloc,
+    "realloc",            &VS71d::pcrtd_realloc,            VS71d::crtd_realloc,
+    scalar_new_name,      &VS71d::pcrtd_scalar_new,         VS71d::crtd_scalar_new,
+    vector_new_name,      &VS71d::pcrtd_vector_new,         VS71d::crtd_vector_new,
+    NULL,                 NULL,                             NULL
 };
 
-static patchentry_t msvcr80dPatch [] = {
-    "_calloc_dbg",        &VS80::pcrtd__calloc_dbg,	    VS80::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS80::pcrtd__malloc_dbg,	    VS80::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS80::pcrtd__realloc_dbg,    VS80::crtd__realloc_dbg,
-    scalar_new_dbg_name,  &VS80::pcrtd__scalar_new_dbg, VS80::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  &VS80::pcrtd__vector_new_dbg, VS80::crtd__vector_new_dbg,
-    "calloc",             &VS80::pcrtd_calloc,          VS80::crtd_calloc,
-    "malloc",             &VS80::pcrtd_malloc,          VS80::crtd_malloc,
-    "realloc",            &VS80::pcrtd_realloc,         VS80::crtd_realloc,
-    scalar_new_name,      &VS80::pcrtd_scalar_new,      VS80::crtd_scalar_new,
-    vector_new_name,      &VS80::pcrtd_vector_new,      VS80::crtd_vector_new,
-    "_aligned_malloc_dbg",          &VS80::pcrtd__aligned_malloc_dbg,           VS80::crtd__aligned_malloc_dbg,
-    "_aligned_offset_malloc_dbg",   &VS80::pcrtd__aligned_offset_malloc_dbg,    VS80::crtd__aligned_offset_malloc_dbg,
-    "_aligned_realloc_dbg",		    &VS80::pcrtd__aligned_realloc_dbg,          VS80::crtd__aligned_realloc_dbg,
-    "_aligned_offset_realloc_dbg",  &VS80::pcrtd__aligned_offset_realloc_dbg,   VS80::crtd__aligned_offset_realloc_dbg,
+static patchentry_t msvcr80Patch [] = {
+    scalar_new_dbg_name,  &VS80::pcrtd__scalar_new_dbg,     VS80::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS80::pcrtd__vector_new_dbg,     VS80::crtd__vector_new_dbg,
+    "calloc",             &VS80::pcrtd_calloc,              VS80::crtd_calloc,
+    "malloc",             &VS80::pcrtd_malloc,              VS80::crtd_malloc,
+    "realloc",            &VS80::pcrtd_realloc,             VS80::crtd_realloc,
+    scalar_new_name,      &VS80::pcrtd_scalar_new,          VS80::crtd_scalar_new,
+    vector_new_name,      &VS80::pcrtd_vector_new,          VS80::crtd_vector_new,
     "_aligned_malloc",			    &VS80::pcrtd_aligned_malloc,                VS80::crtd__aligned_malloc,
     "_aligned_offset_malloc",       &VS80::pcrtd_aligned_offset_malloc,         VS80::crtd__aligned_offset_malloc,
     "_aligned_realloc",             &VS80::pcrtd_aligned_realloc,               VS80::crtd__aligned_realloc,
@@ -269,25 +367,37 @@ static patchentry_t msvcr80dPatch [] = {
     NULL,                           NULL,                                       NULL
 };
 
-static patchentry_t msvcr90dPatch [] = {
-    "_calloc_dbg",        &VS90::pcrtd__calloc_dbg,	    VS90::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS90::pcrtd__malloc_dbg,	    VS90::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS90::pcrtd__realloc_dbg,    VS90::crtd__realloc_dbg,
-    "_recalloc_dbg",      &VS90::pcrtd__recalloc_dbg,   VS90::crtd__recalloc_dbg,
-    scalar_new_dbg_name,  &VS90::pcrtd__scalar_new_dbg, VS90::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  &VS90::pcrtd__vector_new_dbg, VS90::crtd__vector_new_dbg,
-    "calloc",             &VS90::pcrtd_calloc,          VS90::crtd_calloc,
-    "malloc",             &VS90::pcrtd_malloc,          VS90::crtd_malloc,
-    "realloc",            &VS90::pcrtd_realloc,         VS90::crtd_realloc,
-    "_recalloc",          &VS90::pcrtd_recalloc,        VS90::crtd__recalloc,
-    scalar_new_name,      &VS90::pcrtd_scalar_new,      VS90::crtd_scalar_new,
-    vector_new_name,      &VS90::pcrtd_vector_new,      VS90::crtd_vector_new,
-    "_aligned_malloc_dbg",          &VS90::pcrtd__aligned_malloc_dbg,           VS90::crtd__aligned_malloc_dbg,
-    "_aligned_offset_malloc_dbg",   &VS90::pcrtd__aligned_offset_malloc_dbg,    VS90::crtd__aligned_offset_malloc_dbg,
-    "_aligned_realloc_dbg",		    &VS90::pcrtd__aligned_realloc_dbg,          VS90::crtd__aligned_realloc_dbg,
-    "_aligned_offset_realloc_dbg",  &VS90::pcrtd__aligned_offset_realloc_dbg,   VS90::crtd__aligned_offset_realloc_dbg,
-    "_aligned_recalloc_dbg",		&VS90::pcrtd__aligned_recalloc_dbg,         VS90::crtd__aligned_recalloc_dbg,
-    "_aligned_offset_recalloc_dbg", &VS90::pcrtd__aligned_offset_recalloc_dbg,  VS90::crtd__aligned_offset_recalloc_dbg,
+static patchentry_t msvcr80dPatch [] = {
+    "_calloc_dbg",        &VS80d::pcrtd__calloc_dbg,	    VS80d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS80d::pcrtd__malloc_dbg,	    VS80d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS80d::pcrtd__realloc_dbg,	    VS80d::crtd__realloc_dbg,
+    scalar_new_dbg_name,  &VS80d::pcrtd__scalar_new_dbg,    VS80d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS80d::pcrtd__vector_new_dbg,    VS80d::crtd__vector_new_dbg,
+    "calloc",             &VS80d::pcrtd_calloc,			    VS80d::crtd_calloc,
+    "malloc",             &VS80d::pcrtd_malloc,			    VS80d::crtd_malloc,
+    "realloc",            &VS80d::pcrtd_realloc,		    VS80d::crtd_realloc,
+    scalar_new_name,      &VS80d::pcrtd_scalar_new,		    VS80d::crtd_scalar_new,
+    vector_new_name,      &VS80d::pcrtd_vector_new,		    VS80d::crtd_vector_new,
+    "_aligned_malloc_dbg",          &VS80d::pcrtd__aligned_malloc_dbg,          VS80d::crtd__aligned_malloc_dbg,
+    "_aligned_offset_malloc_dbg",   &VS80d::pcrtd__aligned_offset_malloc_dbg,   VS80d::crtd__aligned_offset_malloc_dbg,
+    "_aligned_realloc_dbg",		    &VS80d::pcrtd__aligned_realloc_dbg,         VS80d::crtd__aligned_realloc_dbg,
+    "_aligned_offset_realloc_dbg",  &VS80d::pcrtd__aligned_offset_realloc_dbg,  VS80d::crtd__aligned_offset_realloc_dbg,
+    "_aligned_malloc",			    &VS80d::pcrtd_aligned_malloc,               VS80d::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &VS80d::pcrtd_aligned_offset_malloc,        VS80d::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &VS80d::pcrtd_aligned_realloc,              VS80d::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &VS80d::pcrtd_aligned_offset_realloc,       VS80d::crtd__aligned_offset_realloc,
+    NULL,                           NULL,                                       NULL
+};
+
+static patchentry_t msvcr90Patch [] = {
+    scalar_new_dbg_name,  &VS90::pcrtd__scalar_new_dbg,     VS90::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS90::pcrtd__vector_new_dbg,     VS90::crtd__vector_new_dbg,
+    "calloc",             &VS90::pcrtd_calloc,              VS90::crtd_calloc,
+    "malloc",             &VS90::pcrtd_malloc,              VS90::crtd_malloc,
+    "realloc",            &VS90::pcrtd_realloc,             VS90::crtd_realloc,
+    "_recalloc",          &VS90::pcrtd_recalloc,            VS90::crtd__recalloc,
+    scalar_new_name,      &VS90::pcrtd_scalar_new,          VS90::crtd_scalar_new,
+    vector_new_name,      &VS90::pcrtd_vector_new,          VS90::crtd_vector_new,
     "_aligned_malloc",			    &VS90::pcrtd_aligned_malloc,                VS90::crtd__aligned_malloc,
     "_aligned_offset_malloc",       &VS90::pcrtd_aligned_offset_malloc,         VS90::crtd__aligned_offset_malloc,
     "_aligned_realloc",             &VS90::pcrtd_aligned_realloc,               VS90::crtd__aligned_realloc,
@@ -297,31 +407,77 @@ static patchentry_t msvcr90dPatch [] = {
     NULL,                           NULL,                                       NULL
 };
 
-static patchentry_t msvcr100dPatch [] = {
-    "_calloc_dbg",        &VS100::pcrtd__calloc_dbg,	 VS100::crtd__calloc_dbg,
-    "_malloc_dbg",        &VS100::pcrtd__malloc_dbg,	 VS100::crtd__malloc_dbg,
-    "_realloc_dbg",       &VS100::pcrtd__realloc_dbg,    VS100::crtd__realloc_dbg,
-    "_recalloc_dbg",      &VS100::pcrtd__recalloc_dbg,   VS100::crtd__recalloc_dbg,
-    scalar_new_dbg_name,  &VS100::pcrtd__scalar_new_dbg, VS100::crtd__scalar_new_dbg,
-    vector_new_dbg_name,  &VS100::pcrtd__vector_new_dbg, VS100::crtd__vector_new_dbg,
-    "calloc",             &VS100::pcrtd_calloc,          VS100::crtd_calloc,
-    "malloc",             &VS100::pcrtd_malloc,          VS100::crtd_malloc,
-    "realloc",            &VS100::pcrtd_realloc,         VS100::crtd_realloc,
-    "_recalloc",          &VS100::pcrtd_recalloc,        VS100::crtd__recalloc,
-    scalar_new_name,      &VS100::pcrtd_scalar_new,      VS100::crtd_scalar_new,
-    vector_new_name,      &VS100::pcrtd_vector_new,      VS100::crtd_vector_new,
-    "_aligned_malloc_dbg",          &VS100::pcrtd__aligned_malloc_dbg,          VS100::crtd__aligned_malloc_dbg,
-    "_aligned_offset_malloc_dbg",   &VS100::pcrtd__aligned_offset_malloc_dbg,   VS100::crtd__aligned_offset_malloc_dbg,
-    "_aligned_realloc_dbg",		    &VS100::pcrtd__aligned_realloc_dbg,         VS100::crtd__aligned_realloc_dbg,
-    "_aligned_offset_realloc_dbg",  &VS100::pcrtd__aligned_offset_realloc_dbg,  VS100::crtd__aligned_offset_realloc_dbg,
-    "_aligned_recalloc_dbg",		&VS100::pcrtd__aligned_recalloc_dbg,        VS100::crtd__aligned_recalloc_dbg,
-    "_aligned_offset_recalloc_dbg", &VS100::pcrtd__aligned_offset_recalloc_dbg, VS100::crtd__aligned_offset_recalloc_dbg,
+static patchentry_t msvcr90dPatch [] = {
+    "_calloc_dbg",        &VS90d::pcrtd__calloc_dbg,	    VS90d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS90d::pcrtd__malloc_dbg,	    VS90d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS90d::pcrtd__realloc_dbg,       VS90d::crtd__realloc_dbg,
+    "_recalloc_dbg",      &VS90d::pcrtd__recalloc_dbg,      VS90d::crtd__recalloc_dbg,
+    scalar_new_dbg_name,  &VS90d::pcrtd__scalar_new_dbg,    VS90d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS90d::pcrtd__vector_new_dbg,    VS90d::crtd__vector_new_dbg,
+    "calloc",             &VS90d::pcrtd_calloc,             VS90d::crtd_calloc,
+    "malloc",             &VS90d::pcrtd_malloc,             VS90d::crtd_malloc,
+    "realloc",            &VS90d::pcrtd_realloc,            VS90d::crtd_realloc,
+    "_recalloc",          &VS90d::pcrtd_recalloc,           VS90d::crtd__recalloc,
+    scalar_new_name,      &VS90d::pcrtd_scalar_new,         VS90d::crtd_scalar_new,
+    vector_new_name,      &VS90d::pcrtd_vector_new,         VS90d::crtd_vector_new,
+    "_aligned_malloc_dbg",          &VS90d::pcrtd__aligned_malloc_dbg,          VS90d::crtd__aligned_malloc_dbg,
+    "_aligned_offset_malloc_dbg",   &VS90d::pcrtd__aligned_offset_malloc_dbg,   VS90d::crtd__aligned_offset_malloc_dbg,
+    "_aligned_realloc_dbg",		    &VS90d::pcrtd__aligned_realloc_dbg,         VS90d::crtd__aligned_realloc_dbg,
+    "_aligned_offset_realloc_dbg",  &VS90d::pcrtd__aligned_offset_realloc_dbg,  VS90d::crtd__aligned_offset_realloc_dbg,
+    "_aligned_recalloc_dbg",		&VS90d::pcrtd__aligned_recalloc_dbg,        VS90d::crtd__aligned_recalloc_dbg,
+    "_aligned_offset_recalloc_dbg", &VS90d::pcrtd__aligned_offset_recalloc_dbg, VS90d::crtd__aligned_offset_recalloc_dbg,
+    "_aligned_malloc",			    &VS90d::pcrtd_aligned_malloc,               VS90d::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &VS90d::pcrtd_aligned_offset_malloc,        VS90d::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &VS90d::pcrtd_aligned_realloc,              VS90d::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &VS90d::pcrtd_aligned_offset_realloc,       VS90d::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &VS90d::pcrtd_aligned_recalloc,             VS90d::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &VS90d::pcrtd_aligned_offset_recalloc,      VS90d::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                       NULL
+};
+
+static patchentry_t msvcr100Patch [] = {
+    scalar_new_dbg_name,  &VS100::pcrtd__scalar_new_dbg,    VS100::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS100::pcrtd__vector_new_dbg,    VS100::crtd__vector_new_dbg,
+    "calloc",             &VS100::pcrtd_calloc,             VS100::crtd_calloc,
+    "malloc",             &VS100::pcrtd_malloc,             VS100::crtd_malloc,
+    "realloc",            &VS100::pcrtd_realloc,            VS100::crtd_realloc,
+    "_recalloc",          &VS100::pcrtd_recalloc,           VS100::crtd__recalloc,
+    scalar_new_name,      &VS100::pcrtd_scalar_new,         VS100::crtd_scalar_new,
+    vector_new_name,      &VS100::pcrtd_vector_new,         VS100::crtd_vector_new,
     "_aligned_malloc",			    &VS100::pcrtd_aligned_malloc,               VS100::crtd__aligned_malloc,
     "_aligned_offset_malloc",       &VS100::pcrtd_aligned_offset_malloc,        VS100::crtd__aligned_offset_malloc,
     "_aligned_realloc",             &VS100::pcrtd_aligned_realloc,              VS100::crtd__aligned_realloc,
     "_aligned_offset_realloc",      &VS100::pcrtd_aligned_offset_realloc,       VS100::crtd__aligned_offset_realloc,
     "_aligned_recalloc",            &VS100::pcrtd_aligned_recalloc,             VS100::crtd__aligned_recalloc,
     "_aligned_offset_recalloc",     &VS100::pcrtd_aligned_offset_recalloc,      VS100::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                       NULL,                                       
+};
+
+static patchentry_t msvcr100dPatch [] = {
+    "_calloc_dbg",        &VS100d::pcrtd__calloc_dbg,	    VS100d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS100d::pcrtd__malloc_dbg,	    VS100d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS100d::pcrtd__realloc_dbg,      VS100d::crtd__realloc_dbg,
+    "_recalloc_dbg",      &VS100d::pcrtd__recalloc_dbg,     VS100d::crtd__recalloc_dbg,
+    scalar_new_dbg_name,  &VS100d::pcrtd__scalar_new_dbg,   VS100d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS100d::pcrtd__vector_new_dbg,   VS100d::crtd__vector_new_dbg,
+    "calloc",             &VS100d::pcrtd_calloc,            VS100d::crtd_calloc,
+    "malloc",             &VS100d::pcrtd_malloc,            VS100d::crtd_malloc,
+    "realloc",            &VS100d::pcrtd_realloc,           VS100d::crtd_realloc,
+    "_recalloc",          &VS100d::pcrtd_recalloc,          VS100d::crtd__recalloc,
+    scalar_new_name,      &VS100d::pcrtd_scalar_new,        VS100d::crtd_scalar_new,
+    vector_new_name,      &VS100d::pcrtd_vector_new,        VS100d::crtd_vector_new,
+    "_aligned_malloc_dbg",          &VS100d::pcrtd__aligned_malloc_dbg,         VS100d::crtd__aligned_malloc_dbg,
+    "_aligned_offset_malloc_dbg",   &VS100d::pcrtd__aligned_offset_malloc_dbg,  VS100d::crtd__aligned_offset_malloc_dbg,
+    "_aligned_realloc_dbg",		    &VS100d::pcrtd__aligned_realloc_dbg,        VS100d::crtd__aligned_realloc_dbg,
+    "_aligned_offset_realloc_dbg",  &VS100d::pcrtd__aligned_offset_realloc_dbg, VS100d::crtd__aligned_offset_realloc_dbg,
+    "_aligned_recalloc_dbg",		&VS100d::pcrtd__aligned_recalloc_dbg,       VS100d::crtd__aligned_recalloc_dbg,
+    "_aligned_offset_recalloc_dbg", &VS100d::pcrtd__aligned_offset_recalloc_dbg,VS100d::crtd__aligned_offset_recalloc_dbg,
+    "_aligned_malloc",			    &VS100d::pcrtd_aligned_malloc,              VS100d::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &VS100d::pcrtd_aligned_offset_malloc,       VS100d::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &VS100d::pcrtd_aligned_realloc,             VS100d::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &VS100d::pcrtd_aligned_offset_realloc,      VS100d::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &VS100d::pcrtd_aligned_recalloc,            VS100d::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &VS100d::pcrtd_aligned_offset_recalloc,     VS100d::crtd__aligned_offset_recalloc,
     NULL,                           NULL,                                       NULL,                                       
 };
 
@@ -345,25 +501,43 @@ moduleentry_t VisualLeakDetector::m_patchtable [] = {
     "kernel32.dll", 0x0, m_kernel32Patch,
 
     // MFC new operators (exported by ordinal).
+    "mfc42.dll",    0x0, mfc42Patch,
     "mfc42d.dll",   0x0, mfc42dPatch,
+    "mfc42u.dll",   0x0, mfc42uPatch,
     "mfc42ud.dll",  0x0, mfc42udPatch,
+    "mfc70.dll",    0x0, mfc70Patch,
     "mfc70d.dll",   0x0, mfc70dPatch,
+    "mfc70u.dll",   0x0, mfc70uPatch,
     "mfc70ud.dll",  0x0, mfc70udPatch,
+    "mfc71.dll",    0x0, mfc71Patch,
     "mfc71d.dll",   0x0, mfc71dPatch,
+    "mfc71u.dll",   0x0, mfc71uPatch,
     "mfc71ud.dll",  0x0, mfc71udPatch,
+    "mfc80.dll",    0x0, mfc80Patch,
     "mfc80d.dll",   0x0, mfc80dPatch,
+    "mfc80u.dll",   0x0, mfc80uPatch,
     "mfc80ud.dll",  0x0, mfc80udPatch,
+    "mfc90.dll",    0x0, mfc90Patch,
     "mfc90d.dll",   0x0, mfc90dPatch,
+    "mfc90u.dll",   0x0, mfc90uPatch,
     "mfc90ud.dll",  0x0, mfc90udPatch,
+    "mfc100.dll",   0x0, mfc100Patch,
     "mfc100d.dll",  0x0, mfc100dPatch,
+    "mfc100u.dll",  0x0, mfc100uPatch,
     "mfc100ud.dll", 0x0, mfc100udPatch,
 
     // CRT new operators and heap APIs.
+    "msvcrt.dll",   0x0, msvcrtPatch,
     "msvcrtd.dll",  0x0, msvcrtdPatch,
+    "msvcr70.dll",  0x0, msvcr70Patch,
     "msvcr70d.dll", 0x0, msvcr70dPatch,
+    "msvcr71.dll",  0x0, msvcr71Patch,
     "msvcr71d.dll", 0x0, msvcr71dPatch,
+    "msvcr80.dll",  0x0, msvcr80Patch,
     "msvcr80d.dll", 0x0, msvcr80dPatch,
+    "msvcr90.dll",  0x0, msvcr90Patch,
     "msvcr90d.dll", 0x0, msvcr90dPatch,
+    "msvcr100.dll", 0x0, msvcr100Patch,
     "msvcr100d.dll",0x0, msvcr100dPatch,
 
     // NT APIs.
@@ -455,7 +629,7 @@ VisualLeakDetector::VisualLeakDetector ()
     m_leaksfound      = 0;
     m_loadedmodules   = NULL;
     m_loaderlock.Initialize();
-    m_maplock.Initialize();
+    m_heapmaplock.Initialize();
     m_moduleslock.Initialize();
     m_selftestfile    = __FILE__;
     m_selftestline    = 0;
@@ -708,7 +882,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 
     g_imagelock.Delete();
     m_loaderlock.Delete();
-    m_maplock.Delete();
+    m_heapmaplock.Delete();
     m_moduleslock.Delete();
     g_stackwalklock.Delete();
     g_symbollock.Delete();
@@ -792,18 +966,16 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
             }
         }
 
+        vld.m_heapmaplock.Enter();
+        g_symbollock.Enter();
         if ((refresh == true) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
-            CriticalSectionLocker cs(m_maplock);
-            g_symbollock.Enter();
             if (SymUnloadModule64(g_currentprocess, modulebase) == false) {
                 report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
                     L" numbers shown in the memory leak report for %s may be inaccurate.", modulename, modulename);
             }
-            g_symbollock.Leave();
         }
 
-        g_symbollock.Enter();
         // Try to load the module's symbols. This ensures that we have loaded
         // the symbols for every module that has ever been loaded into the
         // process, guaranteeing the symbols' availability when generating the
@@ -820,6 +992,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         if (SymbolsLoaded)
             moduleflags |= VLD_MODULE_SYMBOLSLOADED;
         g_symbollock.Leave();
+        vld.m_heapmaplock.Leave();
 
         if (_stricmp(VLDDLL, modulename) == 0) {
             // What happens when a module goes through it's own portal? Bad things.
@@ -1243,7 +1416,7 @@ tls_t* VisualLeakDetector::gettls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack)
+VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack)
 {
     static SIZE_T serialnumber = 0;
 
@@ -1256,7 +1429,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL c
     blockinfo->blocks = 1;
 
     // Insert the block's information into the block map.
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We haven't mapped this heap to a block map yet. Do it now.
@@ -1264,9 +1437,9 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL c
         heapit = m_heapmap->find(heap);
         assert(heapit != m_heapmap->end());
     }
-    if (crtalloc == TRUE) {
+    if (crtalloc) {
         // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT;
+        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
     }
     BlockMap* blockmap = &(*heapit).second->blockmap;
     BlockMap::Iterator blockit = blockmap->insert(mem, blockinfo);
@@ -1300,7 +1473,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
     heapinfo_t* heapinfo = new heapinfo_t;
     heapinfo->blockmap.reserve(BLOCKMAPRESERVE);
     heapinfo->flags = 0x0;
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->insert(heap, heapinfo);
     if (heapit == m_heapmap->end()) {
         // Somehow this heap has been created twice without being destroyed,
@@ -1341,7 +1514,7 @@ VOID VisualLeakDetector::mapheap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-    BOOL crtalloc, CallStack **&ppcallstack, const context_t &context)
+    bool crtalloc, CallStack **&ppcallstack, const context_t &context)
 {
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
@@ -1353,7 +1526,7 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     // The block was reallocated in-place. Find the existing blockinfo_t
     // entry in the block map and update it with the new callstack and size.
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We haven't mapped this heap to a block map yet. Obviously the
@@ -1385,7 +1558,7 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     if (crtalloc) {
         // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT;
+        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
     }
 
     // Update the block's size.
@@ -1461,7 +1634,7 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
     assert(heap != NULL);
 
     // Find the heap's information (blockmap, etc).
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // Nothing is allocated from this heap. No leaks.
@@ -1478,10 +1651,8 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
         // potential memory leak.
         LPCVOID block = (*blockit).first;
         blockinfo_t* info = (*blockit).second;
-        LPCVOID address = block;
-        SIZE_T size = info->size;
 
-        if (heapinfo->flags & VLD_HEAP_CRT) {
+        if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
@@ -1490,12 +1661,6 @@ SIZE_T VisualLeakDetector::getleakscount (HANDLE heap, BOOL includingInternal)
                 // The CRT will free the block after VLD is destroyed.
                 continue;
             }
-            // The CRT header is more or less transparent to the user, so
-            // the information about the contained block will probably be
-            // more useful to the user. Accordingly, that's the information
-            // we'll include in the report.
-            address = CRTDBGBLOCKDATA(block);
-            size = crtheader->size;
         }
 
         memoryleaks += info->blocks;
@@ -1518,7 +1683,7 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
     assert(heap != NULL);
 
     // Find the heap's information (blockmap, etc).
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // Nothing is allocated from this heap. No leaks.
@@ -1539,7 +1704,7 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
         LPCVOID address = block;
         SIZE_T size = info->size;
 
-        if (heapinfo->flags & VLD_HEAP_CRT) {
+        if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header prepended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
@@ -1665,7 +1830,7 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
         return;
     
     // Find this heap's block map.
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // We don't have a block map for this heap. We must not have monitored
@@ -1733,7 +1898,7 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 VOID VisualLeakDetector::unmapheap (HANDLE heap)
 {
     // Find this heap's block map.
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapit = m_heapmap->find(heap);
     if (heapit == m_heapmap->end()) {
         // This heap hasn't been mapped. We must not have monitored this heap's
@@ -1915,14 +2080,16 @@ void VisualLeakDetector::firstalloccall(tls_t * tls)
 //    Returns the value returned from the specified calloc.
 //
 void* VisualLeakDetector::_calloc (calloc_t pcalloc,
-    context_t& context,
-    size_t   num,
-    size_t   size)
+    context_t&  context,
+    bool	    debugRuntime,
+    size_t      num,
+    size_t      size)
 {
     tls_t *tls = vld.gettls();
 
     // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -1955,12 +2122,13 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 //
 //    Returns the value returned from the specified malloc.
 //
-void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t size)
+void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size)
 {
     tls_t   *tls = vld.gettls();
 
     // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -1993,12 +2161,13 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, size_t 
 //
 //    Returns the value returned by the specified CRT new operator.
 //
-void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
+void* VisualLeakDetector::_new (new_t pnew, context_t& context, bool debugRuntime, size_t size)
 {
     tls_t* tls = vld.gettls();
 
     // The new operator is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2034,14 +2203,16 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, size_t size)
 //    Returns the value returned from the specified realloc.
 //
 void* VisualLeakDetector::_realloc (realloc_t  prealloc,
-    context_t& context,
-    void      *mem,
-    size_t     size)
+    context_t&  context,
+    bool        debugRuntime,
+    void       *mem,
+    size_t      size)
 {
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2077,15 +2248,17 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 //    Returns the value returned from the specified realloc.
 //
 void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
-    context_t& context,
-    void      *mem,
-    size_t     num,
-    size_t     size)
+    context_t&  context,
+    bool        debugRuntime,
+    void       *mem,
+    size_t      num,
+    size_t      size)
 {
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2118,12 +2291,14 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
 //
 //    Returns the value returned from the specified malloc.
 //
-void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t& context, size_t size, size_t alignment)
+void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t& context, bool debugRuntime,
+    size_t size, size_t alignment)
 {
     tls_t   *tls = vld.gettls();
 
     // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2156,12 +2331,14 @@ void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t
 //
 //    Returns the value returned from the specified _aligned_offset_malloc.
 //
-void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmalloc, context_t& context, size_t size, size_t alignment, size_t offset)
+void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmalloc, context_t& context, bool debugRuntime, 
+    size_t size, size_t alignment, size_t offset)
 {
     tls_t   *tls = vld.gettls();
 
     // malloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2197,15 +2374,17 @@ void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmal
 //    Returns the value returned from the specified _aligned_realloc.
 //
 void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
-    context_t& context,
-    void      *mem,
-    size_t     size,
-    size_t     alignment)
+    context_t&  context,
+    bool        debugRuntime,
+    void       *mem,
+    size_t      size,
+    size_t      alignment)
 {
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2241,16 +2420,18 @@ void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
 //    Returns the value returned from the specified _aligned_offset_realloc.
 //
 void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  prealloc,
-    context_t& context,
-    void      *mem,
-    size_t     size,
-    size_t     alignment,
-    size_t     offset)
+    context_t&  context,
+    bool        debugRuntime,
+    void       *mem,
+    size_t      size,
+    size_t      alignment,
+    size_t      offset)
 {
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2288,16 +2469,18 @@ void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  p
 //    Returns the value returned from the specified _aligned_realloc.
 //
 void* VisualLeakDetector::__aligned_recalloc (_aligned_recalloc_t  precalloc,
-    context_t& context,
-    void      *mem,
-    size_t     num,
-    size_t     size,
-    size_t     alignment)
+    context_t&  context,
+    bool        debugRuntime,
+    void       *mem,
+    size_t      num,
+    size_t      size,
+    size_t      alignment)
 {
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2336,6 +2519,7 @@ void* VisualLeakDetector::__aligned_recalloc (_aligned_recalloc_t  precalloc,
 //
 void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t  precalloc,
     context_t& context,
+    bool       debugRuntime,
     void      *mem,
     size_t     num,
     size_t     size,
@@ -2345,7 +2529,8 @@ void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t 
     tls_t *tls = vld.gettls();
 
     // realloc is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2388,6 +2573,7 @@ void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t 
 //
 void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_dbg,
     context_t&     context,
+    bool           debugRuntime,
     size_t         size,
     size_t         alignment,
     int            type,
@@ -2397,7 +2583,8 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
     tls_t *tls = vld.gettls();
 
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2440,6 +2627,7 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
 //
 void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t  p_malloc_dbg,
     context_t&     context,
+    bool           debugRuntime,
     size_t         size,
     size_t         alignment,
     size_t         offset,
@@ -2450,7 +2638,8 @@ void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_db
     tls_t *tls = vld.gettls();
 
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2495,6 +2684,7 @@ void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_db
 //
 void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_realloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          size,
     size_t          alignment,
@@ -2505,7 +2695,8 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2550,6 +2741,7 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
 //
 void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t  p_realloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          size,
     size_t          alignment,
@@ -2561,7 +2753,8 @@ void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2608,6 +2801,7 @@ void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_
 //
 void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_recalloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          num,
     size_t          size,
@@ -2619,7 +2813,8 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2666,6 +2861,7 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
 //
 void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t  p_recalloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          num,
     size_t          size,
@@ -2678,7 +2874,8 @@ void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recallo
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2730,17 +2927,19 @@ void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recallo
 //    Returns the value returned by the specified _calloc_dbg.
 //
 void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
-    context_t&     context,
-    size_t         num,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+    context_t&      context,
+    bool            debugRuntime,
+    size_t          num,
+    size_t          size,
+    int             type,
+    char const     *file,
+    int             line)
 {
     tls_t *tls = vld.gettls();
 
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2782,16 +2981,18 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 //    Returns the value returned by the specified _malloc_dbg.
 //
 void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+    context_t&      context,
+    bool            debugRuntime,
+    size_t          size,
+    int             type,
+    char const     *file,
+    int             line)
 {
     tls_t *tls = vld.gettls();
 
     // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2833,16 +3034,18 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+    context_t&      context,
+    bool            debugRuntime,
+    size_t          size,
+    int             type,
+    char const     *file,
+    int             line)
 {
     tls_t *tls = vld.gettls();
 
     // The debug new operator is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -2884,11 +3087,11 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 //    Returns the value returned by the specified CRT debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
-    context_t&     context,
-    size_t         size,
-    int            type,
-    char const    *file,
-    int            line)
+    context_t&      context,
+    size_t          size,
+    int             type,
+    char const     *file,
+    int             line)
 {
     tls_t *tls = vld.gettls();
 
@@ -2930,10 +3133,10 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 //    Returns the value returned by the specified MFC debug new operator.
 //
 void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
-    context_t&     context,
-    size_t         size,
-    char const    *file,
-    int            line)
+    context_t&      context,
+    size_t          size,
+    char const     *file,
+    int             line)
 {
     tls_t *tls = vld.gettls();
 
@@ -2980,6 +3183,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 //
 void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          size,
     int             type,
@@ -2989,7 +3193,8 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -3034,6 +3239,7 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 //
 void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
     context_t&      context,
+    bool            debugRuntime,
     void           *mem,
     size_t          num,
     size_t          size,
@@ -3044,7 +3250,8 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
     tls_t *tls = vld.gettls();
 
     // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    tls->flags |= VLD_TLS_CRTALLOC;
+    if (debugRuntime)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
@@ -3109,6 +3316,8 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
                 // This entry's import name is not a valid pointer to data in
                 // vld.dll. It must be an ordinal value.
                 if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
+                    if (patchentry->original != NULL)
+                        *patchentry->original = vld._RGetProcAddress(module, procname);
                     return (FARPROC)patchentry->replacement;
                 }
             }
@@ -3116,12 +3325,16 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
                 __try
                 {
                     if (strcmp(patchentry->importname, procname) == 0) {
+                        if (patchentry->original != NULL)
+                            *patchentry->original = vld._RGetProcAddress(module, procname);
                         return (FARPROC)patchentry->replacement;
                     }
                 }
                 __except(FilterFunction(GetExceptionCode()))
                 {
                     if ((UINT_PTR)patchentry->importname == (UINT_PTR)procname) {
+                        if (patchentry->original != NULL)
+                            *patchentry->original = vld._RGetProcAddress(module, procname);
                         return (FARPROC)patchentry->replacement;
                     }                	
                 }
@@ -3170,6 +3383,8 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
     functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
     functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+
+    CriticalSectionLocker cs(vld.m_heapmaplock);
     g_symbollock.Enter();
     DWORD64 displacement;
     BOOL symfound = SymFromAddrW(g_currentprocess, ra, &displacement, functioninfo);
@@ -3177,10 +3392,9 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     if (symfound == TRUE) {
         if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
             // HeapCreate was called by _heap_init. This is a static CRT heap.
-            CriticalSectionLocker cs(vld.m_maplock);
             HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
             assert(heapit != vld.m_heapmap->end());
-            (*heapit).second->flags |= VLD_HEAP_CRT;
+            (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
         }
     }
 
@@ -3412,7 +3626,7 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
 
 void VisualLeakDetector::AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size)
 {
-    BOOL crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
+    bool crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? true : false;
 
     // The module that initiated this allocation is included in leak
     // detection. Map this block to the specified heap.
@@ -3594,16 +3808,12 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 
 void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context)
 {
-    BOOL crtalloc;
-    crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? TRUE : FALSE;
+    bool crtalloc = (tls->flags & VLD_TLS_CRTALLOC) ? true : false;
 
     // Reset thread local flags and variables, in case any libraries called
     // into while remapping the block allocate some memory.
     tls->context.fp = 0x0;
-    if (crtalloc)
-        tls->flags |= VLD_TLS_CRTALLOC;
-    else
-        tls->flags &=~VLD_TLS_CRTALLOC;
+    tls->flags &= ~VLD_TLS_CRTALLOC;
 
     // The module that initiated this allocation is included in leak
     // detection. Remap the block.
@@ -3613,7 +3823,8 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LP
     if(tls->context.fp != 0)
         __debugbreak();
 #endif
-    tls->flags |= crtalloc;
+    if (crtalloc)
+        tls->flags |= VLD_TLS_CRTALLOC;
 
     tls->context = context;
 }
@@ -3954,6 +4165,75 @@ ULONG VisualLeakDetector::Release ()
     return (m_imalloc) ? m_imalloc->Release() : 0;
 }
 
+// ReportAlloc - Report memory block allocated
+//
+//  - block (IN): Pointer to the memory block being allocated.
+//
+//  - size (IN): Size, in bytes, of the memory block being allocated.
+//
+//  - heap (IN): Handle to the heap from which the block has been allocated.
+//
+//  Return Value:
+//
+//    Returns pointer to the memory block reported
+//
+LPVOID VisualLeakDetector::ReportAlloc(LPVOID block, SIZE_T size, HANDLE heap)
+{
+    if ((block == NULL) || !enabled())
+        return block;
+
+    tls_t* tls = gettls();
+    tls->blockprocessed = TRUE;
+    bool firstcall = (tls->context.fp == 0x0);
+    context_t context;
+    if (firstcall) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        CAPTURE_CONTEXT(context);
+    }
+    else
+        context = tls->context;
+
+    if (IsModuleExcluded(GET_RETURN_ADDRESS(context)))
+        return block;
+
+    if (!firstcall && (m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
+        // Begin the stack trace with the current frame. Obtain the current
+        // frame pointer.
+        firstcall = true;
+        CAPTURE_CONTEXT(context);
+    }
+
+    tls->context = context;
+
+    AllocateHeap(tls, heap, block, size);
+
+    if (firstcall)
+        firstalloccall(tls);
+
+    return block;
+}
+
+// ReportFree - Report memory block freed
+//
+//  - mem (IN): Pointer to the memory block being freed.
+//
+//  - heap (IN): Handle to the heap to which this block is being freed.
+//
+//  Return Value:
+//
+//    None.
+//
+void VisualLeakDetector::ReportFree(LPVOID mem, HANDLE heap)
+{
+    // Record the current frame pointer.
+    context_t context;
+    CAPTURE_CONTEXT(context);
+
+    // Unmap the block from the specified heap.
+    vld.unmapblock(heap, mem, context);
+}
+
 SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
 {
     if (m_options & VLD_OPT_VLDOFF) {
@@ -3963,6 +4243,7 @@ SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
 
     SIZE_T leaksCount = 0;
     // Generate a memory leak report for each heap in the process.
+    CriticalSectionLocker cs(m_heapmaplock);
     for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         leaksCount += getleakscount(heap, includingInternal);
@@ -3980,6 +4261,7 @@ SIZE_T VisualLeakDetector::ReportLeaks( )
     // Generate a memory leak report for each heap in the process.
     SIZE_T leaksCount = 0;
     m_leaksfound = 0;
+    CriticalSectionLocker cs(m_heapmaplock);
     for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         leaksCount += reportleaks(heap);
@@ -4264,7 +4546,7 @@ void VisualLeakDetector::SetupReporting()
 void VisualLeakDetector::resolveStacks(HANDLE heap)
 {
     // Find the heap's information (blockmap, etc).
-    CriticalSectionLocker cs(m_maplock);
+    CriticalSectionLocker cs(m_heapmaplock);
     HeapMap::Iterator heapiter = m_heapmap->find(heap);
     if (heapiter == m_heapmap->end()) {
         // Nothing is allocated from this heap. No leaks.
@@ -4284,13 +4566,8 @@ void VisualLeakDetector::resolveStacks(HANDLE heap)
         {
             continue;
         }
-        // The actual memory address
-        const void* address = block;
-        assert(address != NULL);
 
-        SIZE_T size = info->size;
-
-        if (heapinfo->flags & VLD_HEAP_CRT) {
+        if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header prepended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
@@ -4302,12 +4579,6 @@ void VisualLeakDetector::resolveStacks(HANDLE heap)
                 // The CRT will free the block after VLD is destroyed.
                 continue;
             }
-            // The CRT header is more or less transparent to the user, so
-            // the information about the contained block will probably be
-            // more useful to the user. Accordingly, that's the information
-            // we'll include in the report.
-            address = CRTDBGBLOCKDATA(block);
-            size = crtheader->size;
         }
 
         // Dump the call stack.
@@ -4324,6 +4595,7 @@ void VisualLeakDetector::ResolveCallstacks()
         return;
 
     // Generate the Callstacks early
+    CriticalSectionLocker cs(m_heapmaplock);
     for (HeapMap::Iterator heapiter = m_heapmap->begin(); 
         heapiter != m_heapmap->end(); 
         ++heapiter)

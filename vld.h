@@ -25,7 +25,7 @@
 
 #include "vld_def.h"
 
-#ifdef _DEBUG
+#if defined _DEBUG || defined VLD_FORCE_ENABLE
 
 #include <windows.h>
 
@@ -247,6 +247,23 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *
 //    None.
 //
 __declspec(dllexport) void VLDResolveCallstacks();
+
+// VLDReportAlloc - Registers allocation for release build memory leak detection
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllexport) void VLDReportAlloc(LPVOID mem, size_t size, HANDLE heap);
+
+// VLDReportFree - Registers deallocation for release build memory leak detection
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllexport) void VLDReportFree(LPVOID mem, HANDLE heap);
+
 
 #ifdef __cplusplus
 }

@@ -42,7 +42,7 @@
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
 #define SELFTESTTEXTW       L"Memory Leak Self-Test"
 #define VLDREGKEYPRODUCT    L"Software\\Visual Leak Detector"
-#define VLDVERSION          L"2.1"
+#define VLDVERSION          L"2.2"
 #ifndef WIN64
 #define VLDDLL				"vld_x86.dll"
 #else
@@ -103,7 +103,7 @@ typedef Map<LPCVOID, blockinfo_t*> BlockMap;
 struct heapinfo_t {
 	BlockMap blockmap;   // Map of all blocks allocated from this heap.
 	UINT32   flags;      // Heap status flags:
-#define VLD_HEAP_CRT 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
+#define VLD_HEAP_CRT_DBG 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
 };
 
 // HeapMaps map heaps (via their handles) to BlockMaps.
@@ -198,33 +198,33 @@ public:
 	// IAT replacement functions.
 	////////////////////////////////////////////////////////////////////////////////
 	// Standard CRT and MFC common handlers
-	void* _calloc (calloc_t pcalloc, context_t& context, size_t num, size_t size);
-	void* _malloc (malloc_t pmalloc, context_t& context, size_t size);
-	void* _new (new_t pnew, context_t& context, size_t size); 
-	void* _realloc (realloc_t prealloc, context_t& context, void *mem, size_t size);
-	void* __recalloc (_recalloc_t precalloc, context_t& context, void *mem, size_t num, size_t size);
+	void* _calloc (calloc_t pcalloc, context_t& context, bool debugRuntime, size_t num, size_t size);
+	void* _malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size);
+	void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size); 
+	void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
+	void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
 
 	// Debug CRT and MFC common handlers
-	void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, size_t num, size_t size, int type, char const *file, int line);
-	void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, size_t size, int type, char const *file, int line);
-	void* __new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, size_t size, int type, char const *file, int line);
+	void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
+	void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
+	void* __new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
 	void* __new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
 	void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
-	void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, void *mem, size_t size, int type, char const *file, int line);
-	void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, int type, char const *file, int line);
+	void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
+	void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
 
-	void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, size_t size, size_t alignment);
-	void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, size_t size, size_t alignment, size_t offset);
-	void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, void *mem, size_t size, size_t alignment);
-	void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, void *mem, size_t size, size_t alignment, size_t offset);
-	void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, void *mem, size_t num, size_t size, size_t alignment);
-	void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
-	void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-	void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-	void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+	void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
+	void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);
+	void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment);
+	void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset);
+	void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment);
+	void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
+	void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+	void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+	void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
+	void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Public IMalloc methods - for support of COM-based memory leak detection.
@@ -238,6 +238,9 @@ public:
 	HRESULT __stdcall QueryInterface (REFIID iid, LPVOID *object);
 	LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
 	ULONG   __stdcall Release ();
+
+	LPVOID ReportAlloc(LPVOID block, SIZE_T size, HANDLE heap);
+	void ReportFree(LPVOID mem, HANDLE heap);
 
 	void DisableLeakDetection ();
 	void EnableLeakDetection ();
@@ -269,10 +272,10 @@ private:
 	BOOL   enabled ();
 	SIZE_T eraseduplicates (const BlockMap::Iterator &element);
 	tls_t* gettls ();
-	VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, BOOL crtalloc, CallStack **&ppcallstack);
+	VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack);
 	VOID   mapheap (HANDLE heap);
 	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-		BOOL crtalloc, CallStack **&ppcallstack, const context_t &context);
+		bool crtalloc, CallStack **&ppcallstack, const context_t &context);
 	VOID   reportconfig ();
 	SIZE_T getleakscount (HANDLE heap, BOOL includingInternal);
 	SIZE_T reportleaks (HANDLE heap);
@@ -330,7 +333,7 @@ private:
 	SIZE_T               m_leaksfound;        // Total number of leaks found.
 	ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
 	CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
-	CriticalSection      m_maplock;           // Serializes access to the heap and block maps.
+	CriticalSection      m_heapmaplock;       // Serializes access to the heap and block maps.
 	SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
 	UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
 	CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.

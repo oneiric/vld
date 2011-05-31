@@ -47,12 +47,22 @@ enum action_e {
 };
 
 // Name of the debug C Runtime Library DLL on this system
+#ifdef _DEBUG
 #if _MSC_VER == 1400	// VS 2005
 #define CRTDLLNAME   _T("msvcr80d.dll")      
 #elif _MSC_VER == 1500	// VS 2008
 #define CRTDLLNAME   _T("msvcr90d.dll")      
 #elif _MSC_VER == 1600	// VS 2010
 #define CRTDLLNAME   _T("msvcr100d.dll") 
+#endif
+#else
+#if _MSC_VER == 1400	// VS 2005
+#define CRTDLLNAME   _T("msvcr80.dll")      
+#elif _MSC_VER == 1500	// VS 2008
+#define CRTDLLNAME   _T("msvcr90.dll")      
+#elif _MSC_VER == 1600	// VS 2010
+#define CRTDLLNAME   _T("msvcr100.dll") 
+#endif
 #endif
 
 #define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
@@ -90,10 +100,10 @@ __declspec(thread) malloc_t       pmalloc = NULL;
 __declspec(thread) HANDLE         threadheap;
 __declspec(thread) ULONG          total_allocs = 0;
 
-volatile           ULONG          leaks_count = 0;
+volatile           LONG           leaks_count = 0;
 
 // VLD internal API
-#ifdef _DEBUG
+#if defined _DEBUG || defined VLD_FORCE_ENABLE
 extern "C" {
 	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
 }

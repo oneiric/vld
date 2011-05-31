@@ -32,7 +32,7 @@ Applications should never include this header."
 #include "vldint.h"
 extern __declspec(dllexport) VisualLeakDetector vld;
 
-template<int specialization>
+template<int CRTVersion, bool debug = false>
 class CrtMfcPatch
 {
 public:
@@ -140,8 +140,8 @@ public:
 //
 //    Returns the value returned by _calloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__calloc_dbg (size_t      num,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
                                                     size_t      size,
                                                     int         type,
                                                     char const *file,
@@ -153,7 +153,7 @@ void* CrtMfcPatch<specialization>::crtd__calloc_dbg (size_t      num,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, num, size, type, file, line);
+    return vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
 }
 
 // crtd__malloc_dbg - Calls to _malloc_dbg from msvcrXXd.dll are patched
@@ -172,8 +172,8 @@ void* CrtMfcPatch<specialization>::crtd__calloc_dbg (size_t      num,
 //
 //    Returns the value returned by _malloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__malloc_dbg (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
                                                     int         type,
                                                     char const *file,
                                                     int         line)
@@ -184,7 +184,7 @@ void* CrtMfcPatch<specialization>::crtd__malloc_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, size, type, file, line);
+    return vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
 }
 
 // crtd__realloc_dbg - Calls to _realloc_dbg from msvcrXXd.dll are patched
@@ -205,8 +205,8 @@ void* CrtMfcPatch<specialization>::crtd__malloc_dbg (size_t      size,
 //
 //    Returns the value returned by _realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__realloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     size_t     size,
     int        type,
     char const *file,
@@ -218,7 +218,7 @@ void* CrtMfcPatch<specialization>::crtd__realloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, type, file, line);
+    return vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
 }
 
 // crtd__recalloc_dbg - Calls to _recalloc_dbg from msvcrXXd.dll are patched
@@ -239,8 +239,8 @@ void* CrtMfcPatch<specialization>::crtd__realloc_dbg (void       *mem,
 //
 //    Returns the value returned by _realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__recalloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
                                                       size_t     num,
                                                       size_t     size,
                                                       int        type,
@@ -253,7 +253,7 @@ void* CrtMfcPatch<specialization>::crtd__recalloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, type, file, line);
+    return vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
 }
 
 // crtd__scalar_new_dbg - Calls to the CRT's debug scalar new operator from
@@ -272,8 +272,8 @@ void* CrtMfcPatch<specialization>::crtd__recalloc_dbg (void       *mem,
 //
 //    Returns the value returned by the CRT debug scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__scalar_new_dbg (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
@@ -284,7 +284,7 @@ void* CrtMfcPatch<specialization>::crtd__scalar_new_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
+    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
 
 // crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
@@ -303,8 +303,8 @@ void* CrtMfcPatch<specialization>::crtd__scalar_new_dbg (size_t      size,
 //
 //    Returns the value returned by the CRT debug vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__vector_new_dbg (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
@@ -315,7 +315,7 @@ void* CrtMfcPatch<specialization>::crtd__vector_new_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, size, type, file, line);
+    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
 
 // crtd_calloc - Calls to calloc from msvcrXXd.dll are patched through to
@@ -331,8 +331,8 @@ void* CrtMfcPatch<specialization>::crtd__vector_new_dbg (size_t      size,
 //
 //    Returns the valued returned from calloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd_calloc (size_t num, size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 {
     calloc_t pcrtxxd_calloc = (calloc_t)pcrtd_calloc;
     assert(pcrtxxd_calloc);
@@ -340,7 +340,7 @@ void* CrtMfcPatch<specialization>::crtd_calloc (size_t num, size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._calloc(pcrtxxd_calloc, context, num, size);
+    return vld._calloc(pcrtxxd_calloc, context, debug, num, size);
 }
 
 // crtd_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -354,8 +354,8 @@ void* CrtMfcPatch<specialization>::crtd_calloc (size_t num, size_t size)
 //
 //    Returns the valued returned from malloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd_malloc (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 {
     malloc_t pcrtxxd_malloc = (malloc_t)pcrtd_malloc;
     assert(pcrtxxd_malloc);
@@ -363,7 +363,7 @@ void* CrtMfcPatch<specialization>::crtd_malloc (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._malloc(pcrtxxd_malloc, context, size);
+    return vld._malloc(pcrtxxd_malloc, context, debug, size);
 }
 
 // crtd_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -379,8 +379,8 @@ void* CrtMfcPatch<specialization>::crtd_malloc (size_t size)
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd_realloc (void *mem, size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 {
     realloc_t pcrtxxd_realloc = (realloc_t)pcrtd_realloc;
     assert(pcrtxxd_realloc);
@@ -388,7 +388,7 @@ void* CrtMfcPatch<specialization>::crtd_realloc (void *mem, size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._realloc(pcrtxxd_realloc, context, mem, size);
+    return vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
 }
 
 // crtd__recalloc - Calls to _recalloc from msvcrXXd.dll are patched through to
@@ -404,8 +404,8 @@ void* CrtMfcPatch<specialization>::crtd_realloc (void *mem, size_t size)
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__recalloc (void *mem, size_t num, size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t size)
 {
     _recalloc_t pcrtxxd_recalloc = (_recalloc_t)pcrtd_recalloc;
     assert(pcrtxxd_recalloc);
@@ -413,7 +413,7 @@ void* CrtMfcPatch<specialization>::crtd__recalloc (void *mem, size_t num, size_t
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__recalloc(pcrtxxd_recalloc, context, mem, num, size);
+    return vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
 }
 
 // crtd__aligned_malloc_dbg - Calls to _aligned_malloc_dbg from msvcrXXd.dll are patched
@@ -432,8 +432,8 @@ void* CrtMfcPatch<specialization>::crtd__recalloc (void *mem, size_t num, size_t
 //
 //    Returns the value returned by _aligned_malloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_malloc_dbg (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size,
     size_t      alignment,
     int         type,
     char const *file,
@@ -445,7 +445,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_malloc_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, size, alignment, type, file, line);
+    return vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_malloc_dbg - Calls to _aligned_offset_malloc_dbg from msvcrXXd.dll are patched
@@ -464,8 +464,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_malloc_dbg (size_t      size,
 //
 //    Returns the value returned by _aligned_offset_malloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc_dbg (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t      size,
     size_t      alignment,
     size_t      offset,
     int         type,
@@ -478,7 +478,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc_dbg (size_t      
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, size, alignment, offset, type, file, line);
+    return vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_realloc_dbg - Calls to _aligned_realloc_dbg from msvcrXXd.dll are patched
@@ -499,8 +499,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc_dbg (size_t      
 //
 //    Returns the value returned by _aligned_realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_realloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     int        type,
@@ -513,7 +513,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_realloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, alignment, type, file, line);
+    return vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_realloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -534,8 +534,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_realloc_dbg (void       *mem,
 //
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     size_t     offset,
@@ -549,7 +549,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc_dbg (void       
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, mem, size, alignment, offset, type, file, line);
+    return vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_recalloc_dbg - Calls to _aligned_recalloc_dbg from msvcrXXd.dll are patched
@@ -572,8 +572,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc_dbg (void       
 //
 //    Returns the value returned by _aligned_realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_recalloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *mem,
     size_t     num,
     size_t     size,
     size_t     alignment,
@@ -587,7 +587,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_recalloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, type, file, line);
+    return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_recalloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -610,8 +610,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_recalloc_dbg (void       *mem,
 //
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc_dbg (void       *mem,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void       *mem,
     size_t     num,
     size_t     size,
     size_t     alignment,
@@ -626,7 +626,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc_dbg (void      
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, mem, num, size, alignment, offset, type, file, line);
+    return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -640,8 +640,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc_dbg (void      
 //
 //    Returns the valued returned from malloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_malloc (size_t size, size_t alignment)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t alignment)
 {
     _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)pcrtd_aligned_malloc;
     assert(pcrtxxd_malloc);
@@ -649,7 +649,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_malloc (size_t size, size_t ali
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_malloc(pcrtxxd_malloc, context, size, alignment);
+    return vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
 }
 
 // crtd__aligned_offset_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -663,8 +663,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_malloc (size_t size, size_t ali
 //
 //    Returns the valued returned from malloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)pcrtd_aligned_offset_malloc;
     assert(pcrtxxd_malloc);
@@ -672,7 +672,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc (size_t size, siz
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_malloc(pcrtxxd_malloc, context, size, alignment, offset);
+    return vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
 }
 
 // crtd__aligned_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -688,8 +688,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_malloc (size_t size, siz
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
 {
     _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)pcrtd_aligned_realloc;
     assert(pcrtxxd_realloc);
@@ -697,7 +697,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_realloc (void *mem, size_t size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_realloc(pcrtxxd_realloc, context, mem, size, alignment);
+    return vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
 }
 
 // crtd__aligned_offset_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -713,8 +713,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_realloc (void *mem, size_t size
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)pcrtd_aligned_offset_realloc;
     assert(pcrtxxd_realloc);
@@ -722,7 +722,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc (void *mem, size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_realloc(pcrtxxd_realloc, context, mem, size, alignment, offset);
+    return vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
 }
 
 // crtd__aligned_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -740,8 +740,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_realloc (void *mem, size
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
 {
     _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)pcrtd_aligned_recalloc;
     assert(pcrtxxd_recalloc);
@@ -749,7 +749,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_recalloc (void *mem, size_t num
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment);
+    return vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
 }
 
 // crtd__aligned_offset_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -767,8 +767,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_recalloc (void *mem, size_t num
 //
 //    Returns the value returned from realloc.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)pcrtd_aligned_offset_recalloc;
     assert(pcrtxxd_recalloc);
@@ -776,7 +776,7 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc (void *mem, siz
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, mem, num, size, alignment, offset);
+    return vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
 }
 
 // crtd_scalar_new - Calls to the CRT's scalar new operator from msvcrXXd.dll
@@ -788,8 +788,8 @@ void* CrtMfcPatch<specialization>::crtd__aligned_offset_recalloc (void *mem, siz
 //
 //    Returns the value returned by the CRT scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd_scalar_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 {
     new_t pcrtxxd_scalar_new = (new_t)pcrtd_scalar_new;
     assert(pcrtxxd_scalar_new);
@@ -797,7 +797,7 @@ void* CrtMfcPatch<specialization>::crtd_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pcrtxxd_scalar_new, context, size);
+    return vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
 
 // crtd_vector_new - Calls to the CRT's vector new operator from msvcrXXd.dll
@@ -809,8 +809,8 @@ void* CrtMfcPatch<specialization>::crtd_scalar_new (size_t size)
 //
 //    Returns the value returned by the CRT vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::crtd_vector_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 {
     new_t pcrtxxd_scalar_new = (new_t)pcrtd_vector_new;
     assert(pcrtxxd_scalar_new);
@@ -818,7 +818,7 @@ void* CrtMfcPatch<specialization>::crtd_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pcrtxxd_scalar_new, context, size);
+    return vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -843,8 +843,8 @@ void* CrtMfcPatch<specialization>::crtd_vector_new (size_t size)
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_4p (size_t       size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -872,8 +872,8 @@ void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_4p (size_t       size,
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_3p (size_t       size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -902,8 +902,8 @@ void* CrtMfcPatch<specialization>::mfcd__scalar_new_dbg_3p (size_t       size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_4p (size_t       size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -931,8 +931,8 @@ void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_4p (size_t       size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_3p (size_t       size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -954,8 +954,8 @@ void* CrtMfcPatch<specialization>::mfcd__vector_new_dbg_3p (size_t       size,
 //
 //    Returns the value returned by the MFC scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd_scalar_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)pmfcd_scalar_new;
     assert(pmfcxxd_new);
@@ -963,7 +963,7 @@ void* CrtMfcPatch<specialization>::mfcd_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, size);
+    return vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcd_vector_new - Calls to the MFC vector new operator from mfcXXd.dll are
@@ -975,8 +975,8 @@ void* CrtMfcPatch<specialization>::mfcd_scalar_new (size_t size)
 //
 //    Returns the value returned by the MFC vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcd_vector_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)pmfcd_vector_new;
     assert(pmfcxxd_new);
@@ -984,7 +984,7 @@ void* CrtMfcPatch<specialization>::mfcd_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, size);
+    return vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcud__scalar_new_dbg_4p - Calls to the MFC debug scalar new operator from
@@ -1003,8 +1003,8 @@ void* CrtMfcPatch<specialization>::mfcd_vector_new (size_t size)
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_4p (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
@@ -1032,8 +1032,8 @@ void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_4p (size_t      size,
 //
 //    Returns the value returned by the MFC debug scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_3p (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
@@ -1062,8 +1062,8 @@ void* CrtMfcPatch<specialization>::mfcud__scalar_new_dbg_3p (size_t      size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_4p (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
@@ -1091,8 +1091,8 @@ void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_4p (size_t      size,
 //
 //    Returns the value returned by the MFC debug vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_3p (size_t      size,
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
@@ -1114,8 +1114,8 @@ void* CrtMfcPatch<specialization>::mfcud__vector_new_dbg_3p (size_t      size,
 //
 //    Returns the value returned by the MFC scalar new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud_scalar_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)pmfcud_scalar_new;
     assert(pmfcxxd_new);
@@ -1123,7 +1123,7 @@ void* CrtMfcPatch<specialization>::mfcud_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, size);
+    return vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcud_vector_new - Calls to the MFC vector new operator from mfcXXud.dll are
@@ -1135,8 +1135,8 @@ void* CrtMfcPatch<specialization>::mfcud_scalar_new (size_t size)
 //
 //    Returns the value returned by the MFC vector new operator.
 //
-template<int specialization>
-void* CrtMfcPatch<specialization>::mfcud_vector_new (size_t size)
+template<int CRTVersion, bool debug>
+void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)pmfcud_vector_new;
     assert(pmfcxxd_new);
@@ -1144,7 +1144,7 @@ void* CrtMfcPatch<specialization>::mfcud_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, size);
+    return vld._new(pmfcxxd_new, context, debug, size);
 }
 
 #ifndef WIN64
@@ -1169,22 +1169,34 @@ const extern char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 
 // Visual Studio 6.0
 typedef CrtMfcPatch<60>
-        VS60;
+    VS60;
+typedef CrtMfcPatch<60, true>
+    VS60d;
 // Visual Studio .NET 2002
 typedef CrtMfcPatch<70>
-        VS70;
+    VS70;
+typedef CrtMfcPatch<70, true>
+    VS70d;
 // Visual Studio .NET 2003
 typedef CrtMfcPatch<71>
-        VS71;
+    VS71;
+typedef CrtMfcPatch<71, true>
+    VS71d;
 // Visual Studio 2005
 typedef CrtMfcPatch<80>
-        VS80;
+    VS80;
+typedef CrtMfcPatch<80, true>
+    VS80d;
 // Visual Studio 2008
 typedef CrtMfcPatch<90>
-        VS90;
+    VS90;
+typedef CrtMfcPatch<90, true>
+    VS90d;
 // Visual Studio 2010
 typedef CrtMfcPatch<100>
-        VS100;
+    VS100;
+typedef CrtMfcPatch<100, true>
+    VS100d;
 
 void* VS60::pcrtd__calloc_dbg = NULL;
 void* VS60::pcrtd__malloc_dbg = NULL;
@@ -1223,6 +1235,43 @@ void* VS60::pmfcud__vector_new_dbg_4p = NULL;
 void* VS60::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS60::pmfcud__vector_new_dbg_3p = NULL;
 
+void* VS60d::pcrtd__calloc_dbg = NULL;
+void* VS60d::pcrtd__malloc_dbg = NULL;
+void* VS60d::pcrtd__realloc_dbg = NULL;
+void* VS60d::pcrtd__recalloc_dbg = NULL;
+void* VS60d::pcrtd_calloc = NULL;
+void* VS60d::pcrtd_malloc = NULL;
+void* VS60d::pcrtd_realloc = NULL;
+void* VS60d::pcrtd_recalloc = NULL;
+void* VS60d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS60d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS60d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS60d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS60d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS60d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS60d::pcrtd_aligned_malloc = NULL;
+void* VS60d::pcrtd_aligned_offset_malloc = NULL;
+void* VS60d::pcrtd_aligned_realloc = NULL;
+void* VS60d::pcrtd_aligned_offset_realloc = NULL;
+void* VS60d::pcrtd_aligned_recalloc = NULL;
+void* VS60d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS60d::pcrtd__scalar_new_dbg = NULL;
+void* VS60d::pcrtd__vector_new_dbg = NULL;
+void* VS60d::pcrtd_scalar_new = NULL;
+void* VS60d::pcrtd_vector_new = NULL;
+void* VS60d::pmfcd_scalar_new = NULL;
+void* VS60d::pmfcd_vector_new = NULL;
+void* VS60d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS60d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS60d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS60d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS60d::pmfcud_scalar_new = NULL;
+void* VS60d::pmfcud_vector_new = NULL;
+void* VS60d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS60d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS60d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS60d::pmfcud__vector_new_dbg_3p = NULL;
+
 void* VS70::pcrtd__calloc_dbg = NULL;
 void* VS70::pcrtd__malloc_dbg = NULL;
 void* VS70::pcrtd__realloc_dbg = NULL;
@@ -1259,6 +1308,43 @@ void* VS70::pmfcud__scalar_new_dbg_4p = NULL;
 void* VS70::pmfcud__vector_new_dbg_4p = NULL;
 void* VS70::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS70::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS70d::pcrtd__calloc_dbg = NULL;
+void* VS70d::pcrtd__malloc_dbg = NULL;
+void* VS70d::pcrtd__realloc_dbg = NULL;
+void* VS70d::pcrtd__recalloc_dbg = NULL;
+void* VS70d::pcrtd_calloc = NULL;
+void* VS70d::pcrtd_malloc = NULL;
+void* VS70d::pcrtd_realloc = NULL;
+void* VS70d::pcrtd_recalloc = NULL;
+void* VS70d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS70d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS70d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS70d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS70d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS70d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS70d::pcrtd_aligned_malloc = NULL;
+void* VS70d::pcrtd_aligned_offset_malloc = NULL;
+void* VS70d::pcrtd_aligned_realloc = NULL;
+void* VS70d::pcrtd_aligned_offset_realloc = NULL;
+void* VS70d::pcrtd_aligned_recalloc = NULL;
+void* VS70d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS70d::pcrtd__scalar_new_dbg = NULL;
+void* VS70d::pcrtd__vector_new_dbg = NULL;
+void* VS70d::pcrtd_scalar_new = NULL;
+void* VS70d::pcrtd_vector_new = NULL;
+void* VS70d::pmfcd_scalar_new = NULL;
+void* VS70d::pmfcd_vector_new = NULL;
+void* VS70d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS70d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS70d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS70d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS70d::pmfcud_scalar_new = NULL;
+void* VS70d::pmfcud_vector_new = NULL;
+void* VS70d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS70d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS70d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS70d::pmfcud__vector_new_dbg_3p = NULL;
 
 void* VS71::pcrtd__calloc_dbg = NULL;
 void* VS71::pcrtd__malloc_dbg = NULL;
@@ -1297,6 +1383,43 @@ void* VS71::pmfcud__vector_new_dbg_4p = NULL;
 void* VS71::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS71::pmfcud__vector_new_dbg_3p = NULL;
 
+void* VS71d::pcrtd__calloc_dbg = NULL;
+void* VS71d::pcrtd__malloc_dbg = NULL;
+void* VS71d::pcrtd__realloc_dbg = NULL;
+void* VS71d::pcrtd__recalloc_dbg = NULL;
+void* VS71d::pcrtd_calloc = NULL;
+void* VS71d::pcrtd_malloc = NULL;
+void* VS71d::pcrtd_realloc = NULL;
+void* VS71d::pcrtd_recalloc = NULL;
+void* VS71d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS71d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS71d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS71d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS71d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS71d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS71d::pcrtd_aligned_malloc = NULL;
+void* VS71d::pcrtd_aligned_offset_malloc = NULL;
+void* VS71d::pcrtd_aligned_realloc = NULL;
+void* VS71d::pcrtd_aligned_offset_realloc = NULL;
+void* VS71d::pcrtd_aligned_recalloc = NULL;
+void* VS71d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS71d::pcrtd__scalar_new_dbg = NULL;
+void* VS71d::pcrtd__vector_new_dbg = NULL;
+void* VS71d::pcrtd_scalar_new = NULL;
+void* VS71d::pcrtd_vector_new = NULL;
+void* VS71d::pmfcd_scalar_new = NULL;
+void* VS71d::pmfcd_vector_new = NULL;
+void* VS71d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS71d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS71d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS71d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS71d::pmfcud_scalar_new = NULL;
+void* VS71d::pmfcud_vector_new = NULL;
+void* VS71d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS71d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS71d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS71d::pmfcud__vector_new_dbg_3p = NULL;
+
 void* VS80::pcrtd__calloc_dbg = NULL;
 void* VS80::pcrtd__malloc_dbg = NULL;
 void* VS80::pcrtd__realloc_dbg = NULL;
@@ -1333,6 +1456,43 @@ void* VS80::pmfcud__scalar_new_dbg_4p = NULL;
 void* VS80::pmfcud__vector_new_dbg_4p = NULL;
 void* VS80::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS80::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS80d::pcrtd__calloc_dbg = NULL;
+void* VS80d::pcrtd__malloc_dbg = NULL;
+void* VS80d::pcrtd__realloc_dbg = NULL;
+void* VS80d::pcrtd__recalloc_dbg = NULL;
+void* VS80d::pcrtd_calloc = NULL;
+void* VS80d::pcrtd_malloc = NULL;
+void* VS80d::pcrtd_realloc = NULL;
+void* VS80d::pcrtd_recalloc = NULL;
+void* VS80d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS80d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS80d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS80d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS80d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS80d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS80d::pcrtd_aligned_malloc = NULL;
+void* VS80d::pcrtd_aligned_offset_malloc = NULL;
+void* VS80d::pcrtd_aligned_realloc = NULL;
+void* VS80d::pcrtd_aligned_offset_realloc = NULL;
+void* VS80d::pcrtd_aligned_recalloc = NULL;
+void* VS80d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS80d::pcrtd__scalar_new_dbg = NULL;
+void* VS80d::pcrtd__vector_new_dbg = NULL;
+void* VS80d::pcrtd_scalar_new = NULL;
+void* VS80d::pcrtd_vector_new = NULL;
+void* VS80d::pmfcd_scalar_new = NULL;
+void* VS80d::pmfcd_vector_new = NULL;
+void* VS80d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS80d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS80d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS80d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS80d::pmfcud_scalar_new = NULL;
+void* VS80d::pmfcud_vector_new = NULL;
+void* VS80d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS80d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS80d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS80d::pmfcud__vector_new_dbg_3p = NULL;
 
 void* VS90::pcrtd__calloc_dbg = NULL;
 void* VS90::pcrtd__malloc_dbg = NULL;
@@ -1371,6 +1531,43 @@ void* VS90::pmfcud__vector_new_dbg_4p = NULL;
 void* VS90::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS90::pmfcud__vector_new_dbg_3p = NULL;
 
+void* VS90d::pcrtd__calloc_dbg = NULL;
+void* VS90d::pcrtd__malloc_dbg = NULL;
+void* VS90d::pcrtd__realloc_dbg = NULL;
+void* VS90d::pcrtd__recalloc_dbg = NULL;
+void* VS90d::pcrtd_calloc = NULL;
+void* VS90d::pcrtd_malloc = NULL;
+void* VS90d::pcrtd_realloc = NULL;
+void* VS90d::pcrtd_recalloc = NULL;
+void* VS90d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS90d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS90d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS90d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS90d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS90d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS90d::pcrtd_aligned_malloc = NULL;
+void* VS90d::pcrtd_aligned_offset_malloc = NULL;
+void* VS90d::pcrtd_aligned_realloc = NULL;
+void* VS90d::pcrtd_aligned_offset_realloc = NULL;
+void* VS90d::pcrtd_aligned_recalloc = NULL;
+void* VS90d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS90d::pcrtd__scalar_new_dbg = NULL;
+void* VS90d::pcrtd__vector_new_dbg = NULL;
+void* VS90d::pcrtd_scalar_new = NULL;
+void* VS90d::pcrtd_vector_new = NULL;
+void* VS90d::pmfcd_scalar_new = NULL;
+void* VS90d::pmfcd_vector_new = NULL;
+void* VS90d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS90d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS90d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS90d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS90d::pmfcud_scalar_new = NULL;
+void* VS90d::pmfcud_vector_new = NULL;
+void* VS90d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS90d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS90d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS90d::pmfcud__vector_new_dbg_3p = NULL;
+
 void* VS100::pcrtd__calloc_dbg = NULL;
 void* VS100::pcrtd__malloc_dbg = NULL;
 void* VS100::pcrtd__realloc_dbg = NULL;
@@ -1407,3 +1604,40 @@ void* VS100::pmfcud__scalar_new_dbg_4p = NULL;
 void* VS100::pmfcud__vector_new_dbg_4p = NULL;
 void* VS100::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS100::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS100d::pcrtd__calloc_dbg = NULL;
+void* VS100d::pcrtd__malloc_dbg = NULL;
+void* VS100d::pcrtd__realloc_dbg = NULL;
+void* VS100d::pcrtd__recalloc_dbg = NULL;
+void* VS100d::pcrtd_calloc = NULL;
+void* VS100d::pcrtd_malloc = NULL;
+void* VS100d::pcrtd_realloc = NULL;
+void* VS100d::pcrtd_recalloc = NULL;
+void* VS100d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS100d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS100d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS100d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS100d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS100d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS100d::pcrtd_aligned_malloc = NULL;
+void* VS100d::pcrtd_aligned_offset_malloc = NULL;
+void* VS100d::pcrtd_aligned_realloc = NULL;
+void* VS100d::pcrtd_aligned_offset_realloc = NULL;
+void* VS100d::pcrtd_aligned_recalloc = NULL;
+void* VS100d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS100d::pcrtd__scalar_new_dbg = NULL;
+void* VS100d::pcrtd__vector_new_dbg = NULL;
+void* VS100d::pcrtd_scalar_new = NULL;
+void* VS100d::pcrtd_vector_new = NULL;
+void* VS100d::pmfcd_scalar_new = NULL;
+void* VS100d::pmfcd_vector_new = NULL;
+void* VS100d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS100d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS100d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS100d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS100d::pmfcud_scalar_new = NULL;
+void* VS100d::pmfcud_vector_new = NULL;
+void* VS100d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS100d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS100d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS100d::pmfcud__vector_new_dbg_3p = NULL;

@@ -80,6 +80,9 @@
     <ClInclude Include="criticalsection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="readwritelock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vld.rc">
