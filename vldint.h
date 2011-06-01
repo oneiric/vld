@@ -25,8 +25,8 @@
 
 #ifndef VLDBUILD
 #error \
-	"This header should only be included by Visual Leak Detector when building it from source. \
-	Applications should never include this header."
+    "This header should only be included by Visual Leak Detector when building it from source. \
+    Applications should never include this header."
 #endif
 
 #include <cstdio>
@@ -88,10 +88,10 @@ typedef void* (__cdecl *_aligned_offset_recalloc_dbg_t) (void *, size_t, size_t,
 // a BlockMap which maps each of these structures to its corresponding memory
 // block.
 struct blockinfo_t {
-	CallStack *callstack;
-	SIZE_T     serialnumber;
-	SIZE_T     size;
-	SIZE_T     blocks; // The number of duplicates for this particular block.
+    CallStack *callstack;
+    SIZE_T     serialnumber;
+    SIZE_T     size;
+    SIZE_T     blocks; // The number of duplicates for this particular block.
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -101,8 +101,8 @@ typedef Map<LPCVOID, blockinfo_t*> BlockMap;
 // this is used for mapping heaps to all of the blocks allocated from those
 // heaps.
 struct heapinfo_t {
-	BlockMap blockmap;   // Map of all blocks allocated from this heap.
-	UINT32   flags;      // Heap status flags:
+    BlockMap blockmap;   // Map of all blocks allocated from this heap.
+    UINT32   flags;      // Heap status flags:
 #define VLD_HEAP_CRT_DBG 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
 };
 
@@ -113,23 +113,23 @@ typedef Map<HANDLE, heapinfo_t*> HeapMap;
 // a given module and can be used with the Set template because it supports the
 // '<' operator (sorts by virtual address range).
 struct moduleinfo_t {
-	BOOL operator < (const struct moduleinfo_t& other) const
-	{
-		if (addrhigh < other.addrlow) {
-			return TRUE;
-		}
-		else {
-			return FALSE;
-		}
-	}
+    BOOL operator < (const struct moduleinfo_t& other) const
+    {
+        if (addrhigh < other.addrlow) {
+            return TRUE;
+        }
+        else {
+            return FALSE;
+        }
+    }
 
-	SIZE_T addrlow;                  // Lowest address within the module's virtual address space (i.e. base address).
-	SIZE_T addrhigh;                 // Highest address within the module's virtual address space (i.e. base + size).
-	UINT32 flags;                    // Module flags:
+    SIZE_T addrlow;                  // Lowest address within the module's virtual address space (i.e. base address).
+    SIZE_T addrhigh;                 // Highest address within the module's virtual address space (i.e. base + size).
+    UINT32 flags;                    // Module flags:
 #define VLD_MODULE_EXCLUDED      0x1 //   If set, this module is excluded from leak detection.
 #define VLD_MODULE_SYMBOLSLOADED 0x2 //   If set, this module's debug symbols have been loaded.
-	LPCSTR name;                     // The module's name (e.g. "kernel32.dll").
-	LPCSTR path;                     // The fully qualified path from where the module was loaded.
+    LPCWSTR name;                    // The module's name (e.g. "kernel32.dll").
+    LPCWSTR path;                    // The fully qualified path from where the module was loaded.
 };
 
 // ModuleSets store information about modules loaded in the process.
@@ -140,15 +140,15 @@ typedef Set<moduleinfo_t> ModuleSet;
 // detection status (enabled or disabled) and the address that initiated the
 // current allocation is stored here.
 struct tls_t {
-	context_t	context;       	  // Address of return address at the first call that entered VLD's code for the current allocation.
-	UINT32	    flags;            // Thread-local status flags:
+    context_t	context;       	  // Address of return address at the first call that entered VLD's code for the current allocation.
+    UINT32	    flags;            // Thread-local status flags:
 #define VLD_TLS_CRTALLOC 0x1 	  //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 	  //   If set, memory leak detection is disabled for the current thread.
 #define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
-	UINT32	    oldflags;         // Thread-local status old flags
-	BOOL	    blockprocessed;   // Internal diagnostic feature
-	DWORD 	    threadid;         // Thread ID of the thread that owns this TLS structure.
-	CallStack** ppcallstack; 	  // Memory block callstack pointer.
+    UINT32	    oldflags;         // Thread-local status old flags
+    BOOL	    blockprocessed;   // Internal diagnostic feature
+    DWORD 	    threadid;         // Thread ID of the thread that owns this TLS structure.
+    CallStack** ppcallstack; 	  // Memory block callstack pointer.
 };
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
@@ -186,182 +186,182 @@ class CallStack;
 class VisualLeakDetector : public IMalloc
 {
 public:
-	VisualLeakDetector();
-	~VisualLeakDetector();
+    VisualLeakDetector();
+    ~VisualLeakDetector();
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Public CRT and MFC Common Handlers
-	//
-	// Many heap functions are indirectly rerouted to these handlers. One common
-	// function exists for each heap function with a given signature. These
-	// handlers are not direct IAT replacements, but are called by the individual
-	// IAT replacement functions.
-	////////////////////////////////////////////////////////////////////////////////
-	// Standard CRT and MFC common handlers
-	void* _calloc (calloc_t pcalloc, context_t& context, bool debugRuntime, size_t num, size_t size);
-	void* _malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size);
-	void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size); 
-	void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
-	void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
+    ////////////////////////////////////////////////////////////////////////////////
+    // Public CRT and MFC Common Handlers
+    //
+    // Many heap functions are indirectly rerouted to these handlers. One common
+    // function exists for each heap function with a given signature. These
+    // handlers are not direct IAT replacements, but are called by the individual
+    // IAT replacement functions.
+    ////////////////////////////////////////////////////////////////////////////////
+    // Standard CRT and MFC common handlers
+    void* _calloc (calloc_t pcalloc, context_t& context, bool debugRuntime, size_t num, size_t size);
+    void* _malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size);
+    void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size); 
+    void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
+    void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
 
-	// Debug CRT and MFC common handlers
-	void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
-	void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
-	void* __new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
-	void* __new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
-	void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
-	void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
-	void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
+    // Debug CRT and MFC common handlers
+    void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
+    void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
+    void* __new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
+    void* __new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
+    void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
+    void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
+    void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
 
-	void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
-	void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);
-	void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment);
-	void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset);
-	void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment);
-	void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
-	void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-	void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-	void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
-	void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+    void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
+    void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);
+    void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment);
+    void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset);
+    void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment);
+    void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
+    void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, int type, char const *file, int line);
+    void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+    void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
+    void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
+    void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
+    void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Public IMalloc methods - for support of COM-based memory leak detection.
-	////////////////////////////////////////////////////////////////////////////////
-	ULONG   __stdcall AddRef ();
-	LPVOID  __stdcall Alloc (SIZE_T size);
-	INT     __stdcall DidAlloc (LPVOID mem);
-	VOID    __stdcall Free (LPVOID mem);
-	SIZE_T  __stdcall GetSize (LPVOID mem);
-	VOID    __stdcall HeapMinimize ();
-	HRESULT __stdcall QueryInterface (REFIID iid, LPVOID *object);
-	LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
-	ULONG   __stdcall Release ();
+    ////////////////////////////////////////////////////////////////////////////////
+    // Public IMalloc methods - for support of COM-based memory leak detection.
+    ////////////////////////////////////////////////////////////////////////////////
+    ULONG   __stdcall AddRef ();
+    LPVOID  __stdcall Alloc (SIZE_T size);
+    INT     __stdcall DidAlloc (LPVOID mem);
+    VOID    __stdcall Free (LPVOID mem);
+    SIZE_T  __stdcall GetSize (LPVOID mem);
+    VOID    __stdcall HeapMinimize ();
+    HRESULT __stdcall QueryInterface (REFIID iid, LPVOID *object);
+    LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
+    ULONG   __stdcall Release ();
 
-	LPVOID ReportAlloc(LPVOID block, SIZE_T size, HANDLE heap);
-	void ReportFree(LPVOID mem, HANDLE heap);
+    LPVOID ReportAlloc(LPVOID block, SIZE_T size, HANDLE heap);
+    void ReportFree(LPVOID mem, HANDLE heap);
 
-	void DisableLeakDetection ();
-	void EnableLeakDetection ();
-	void RestoreLeakDetectionState ();
-	void GlobalDisableLeakDetection ();
-	void GlobalEnableLeakDetection ();
+    void DisableLeakDetection ();
+    void EnableLeakDetection ();
+    void RestoreLeakDetectionState ();
+    void GlobalDisableLeakDetection ();
+    void GlobalEnableLeakDetection ();
 
-	VOID RefreshModules();
-	SIZE_T GetLeaksCount(BOOL includingInternal);
-	SIZE_T ReportLeaks();
-	VOID EnableModule(HMODULE module);
-	VOID DisableModule(HMODULE module);
-	UINT32 GetOptions();
-	VOID GetReportFilename(WCHAR *filename);
-	VOID SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
-	VOID SetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
-	VOID SetModulesList(CONST WCHAR *modules, BOOL includeModules);
-	bool GetModulesList(WCHAR *modules, UINT size);
-	VOID ResolveCallstacks();
+    VOID RefreshModules();
+    SIZE_T GetLeaksCount(BOOL includingInternal);
+    SIZE_T ReportLeaks();
+    VOID EnableModule(HMODULE module);
+    VOID DisableModule(HMODULE module);
+    UINT32 GetOptions();
+    VOID GetReportFilename(WCHAR *filename);
+    VOID SetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
+    VOID SetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
+    VOID SetModulesList(CONST WCHAR *modules, BOOL includeModules);
+    bool GetModulesList(WCHAR *modules, UINT size);
+    VOID ResolveCallstacks();
 
-	static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
+    static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
 private:
-	////////////////////////////////////////////////////////////////////////////////
-	// Private leak detection functions - see each function definition for details.
-	////////////////////////////////////////////////////////////////////////////////
-	VOID   attachtoloadedmodules (ModuleSet *newmodules);
-	LPWSTR buildsymbolsearchpath ();
-	VOID   configure ();
-	BOOL   enabled ();
-	SIZE_T eraseduplicates (const BlockMap::Iterator &element);
-	tls_t* gettls ();
-	VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack);
-	VOID   mapheap (HANDLE heap);
-	VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-		bool crtalloc, CallStack **&ppcallstack, const context_t &context);
-	VOID   reportconfig ();
-	SIZE_T getleakscount (HANDLE heap, BOOL includingInternal);
-	SIZE_T reportleaks (HANDLE heap);
-	VOID   unmapblock (HANDLE heap, LPCVOID mem, const context_t &context);
-	VOID   unmapheap (HANDLE heap);
-	void   resolveStacks(HANDLE heap);
+    ////////////////////////////////////////////////////////////////////////////////
+    // Private leak detection functions - see each function definition for details.
+    ////////////////////////////////////////////////////////////////////////////////
+    VOID   attachtoloadedmodules (ModuleSet *newmodules);
+    LPWSTR buildsymbolsearchpath ();
+    VOID   configure ();
+    BOOL   enabled ();
+    SIZE_T eraseduplicates (const BlockMap::Iterator &element);
+    tls_t* gettls ();
+    VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack);
+    VOID   mapheap (HANDLE heap);
+    VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
+        bool crtalloc, CallStack **&ppcallstack, const context_t &context);
+    VOID   reportconfig ();
+    SIZE_T getleakscount (heapinfo_t* heapinfo, BOOL includingInternal);
+    SIZE_T reportleaks (HANDLE heap);
+    SIZE_T reportleaks( heapinfo_t* heapinfo );
+    VOID   unmapblock (HANDLE heap, LPCVOID mem, const context_t &context);
+    VOID   unmapheap (HANDLE heap);
+    void   resolveStacks(heapinfo_t* heapinfo);
 
-	// Static functions (callbacks)
-	static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
-	static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    // Static functions (callbacks)
+    static BOOL __stdcall addloadedmodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
+    static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
 
-	// Utils
-	static BOOL IsModuleExcluded (UINT_PTR returnaddress);
-	blockinfo_t* FindAllocedBlock(LPCVOID, __out HANDLE& heap);
-	static void getcallstack( CallStack **&ppcallstack, context_t &context );
-	static inline void firstalloccall(tls_t * tls);
-	void SetupReporting();
+    // Utils
+    static BOOL IsModuleExcluded (UINT_PTR returnaddress);
+    blockinfo_t* FindAllocedBlock(LPCVOID, __out HANDLE& heap);
+    static void getcallstack( CallStack **&ppcallstack, context_t &context );
+    static inline void firstalloccall(tls_t * tls);
+    void SetupReporting();
 
-	////////////////////////////////////////////////////////////////////////////////
-	// IAT replacement functions - see each function definition for details.
-	//
-	// Because there are so many virtually identical CRT and MFC replacement
-	// functions, they are excluded from the class to reduce the amount of noise
-	// within this class's code. See crtmfcpatch.cpp for those functions.
-	////////////////////////////////////////////////////////////////////////////////
-	// Win32 IAT replacement functions
-	static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
-	static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
-		PHANDLE modulehandle);
+    ////////////////////////////////////////////////////////////////////////////////
+    // IAT replacement functions - see each function definition for details.
+    //
+    // Because there are so many virtually identical CRT and MFC replacement
+    // functions, they are excluded from the class to reduce the amount of noise
+    // within this class's code. See crtmfcpatch.cpp for those functions.
+    ////////////////////////////////////////////////////////////////////////////////
+    // Win32 IAT replacement functions
+    static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
+    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
+        PHANDLE modulehandle);
 
-	static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
-	static BOOL     __stdcall _HeapDestroy (HANDLE heap);
-	static LPVOID   __stdcall _HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size);
-	static BOOL     __stdcall _HeapFree (HANDLE heap, DWORD flags, LPVOID mem);
-	static LPVOID   __stdcall _HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
+    static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
+    static BOOL     __stdcall _HeapDestroy (HANDLE heap);
+    static LPVOID   __stdcall _HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size);
+    static BOOL     __stdcall _HeapFree (HANDLE heap, DWORD flags, LPVOID mem);
+    static LPVOID   __stdcall _HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
-	static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
-	static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
-	static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
+    static LPVOID   __stdcall _RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size);
+    static BOOL     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
+    static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
-	// COM IAT replacement functions
-	static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
-	static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
-	static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
+    // COM IAT replacement functions
+    static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
+    static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
+    static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
 
-	static void AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size);
-	static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context);
+    static void AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size);
+    static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context);
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Private data
-	////////////////////////////////////////////////////////////////////////////////
-	WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
-	HeapMap             *m_heapmap;           // Map of all active heaps in the process.
-	IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
-	SIZE_T               m_leaksfound;        // Total number of leaks found.
-	ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
-	CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
-	CriticalSection      m_heapmaplock;       // Serializes access to the heap and block maps.
-	SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
-	UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
-	CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
-	UINT32               m_options;           // Configuration options:
+    ////////////////////////////////////////////////////////////////////////////////
+    // Private data
+    ////////////////////////////////////////////////////////////////////////////////
+    WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
+    HeapMap             *m_heapmap;           // Map of all active heaps in the process.
+    IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
+    SIZE_T               m_leaksfound;        // Total number of leaks found.
+    ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
+    CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
+    SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
+    UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
+    CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
+    UINT32               m_options;           // Configuration options:
 
-	static patchentry_t  m_kernelbasePatch [];
-	static patchentry_t  m_kernel32Patch [];
-	static patchentry_t  m_ntdllPatch [];
-	static patchentry_t  m_ole32Patch [];
-	static moduleentry_t m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
-	FILE                *m_reportfile;        // File where the memory leak report may be sent to.
-	WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
-	const char          *m_selftestfile;      // Filename where the memory leak self-test block is leaked.
-	int                  m_selftestline;      // Line number where the memory leak self-test block is leaked.
-	UINT32               m_status;            // Status flags:
+    static patchentry_t  m_kernelbasePatch [];
+    static patchentry_t  m_kernel32Patch [];
+    static patchentry_t  m_ntdllPatch [];
+    static patchentry_t  m_ole32Patch [];
+    static moduleentry_t m_patchtable [];     // Table of imports patched for attaching VLD to other modules.
+    FILE                *m_reportfile;        // File where the memory leak report may be sent to.
+    WCHAR                m_reportfilepath [MAX_PATH]; // Full path and name of file to send memory leak report to.
+    const char          *m_selftestfile;      // Filename where the memory leak self-test block is leaked.
+    int                  m_selftestline;      // Line number where the memory leak self-test block is leaked.
+    UINT32               m_status;            // Status flags:
 #define VLD_STATUS_DBGHELPLINKED        0x1   //   If set, the explicit dynamic link to the Debug Help Library succeeded.
 #define VLD_STATUS_INSTALLED            0x2   //   If set, VLD was successfully installed.
 #define VLD_STATUS_NEVER_ENABLED        0x4   //   If set, VLD started disabled, and has not yet been manually enabled.
 #define VLD_STATUS_FORCE_REPORT_TO_FILE 0x8   //   If set, the leak report is being forced to a file.
-	DWORD                m_tlsindex;          // Thread-local storage index.
-	CriticalSection      m_tlslock;           // Protects accesses to the Set of TLS structures.
-	TlsMap              *m_tlsmap;            // Set of all all thread-local storage structres for the process.
-	HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
+    DWORD                m_tlsindex;          // Thread-local storage index.
+    CriticalSection      m_tlslock;           // Protects accesses to the Set of TLS structures.
+    TlsMap              *m_tlsmap;            // Set of all all thread-local storage structres for the process.
+    HMODULE              m_vldbase;           // Visual Leak Detector's own module handle (base address).
 
-	typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
+    typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
 
-	VOID __stdcall ChangeModuleState(HMODULE module,bool on);
-	static _GetProcAddressType * m_original_GetProcAddress;
+    VOID __stdcall ChangeModuleState(HMODULE module,bool on);
+    static _GetProcAddressType * m_original_GetProcAddress;
 };
 
 // Configuration option default values
