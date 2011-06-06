@@ -3594,7 +3594,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
 {
     // Allocate the block.
-    LPVOID block = RtlAllocateHeap(heap, flags, size);
+    LPVOID block = HeapAlloc(heap, flags, size);
 
     if ((block == NULL) || !vld.enabled())
         return block;
@@ -3689,7 +3689,7 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
         vld.unmapblock(heap, mem, context);
     }
 
-    status = RtlFreeHeap(heap, flags, mem);
+    status = HeapFree(heap, flags, mem);
 
     return status;
 }
@@ -3780,7 +3780,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     LPVOID               newmem;
 
     // Reallocate the block.
-    newmem = RtlReAllocateHeap(heap, flags, mem, size);
+    newmem = HeapReAlloc(heap, flags, mem, size);
     if (newmem == NULL)
         return newmem;
 
