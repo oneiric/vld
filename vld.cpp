@@ -1327,12 +1327,12 @@ BOOL VisualLeakDetector::enabled ()
 //
 //    Returns the number of duplicate blocks erased from the block map.
 //
-SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
+SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeaks)
 {
     blockinfo_t *elementinfo = (*element).second;
 
     if (elementinfo->callstack == NULL)
-        return elementinfo->blocks - 1;
+        return 0;
 
     SIZE_T       erased = 0;
     // Iterate through all block maps, looking for blocks with the same size
@@ -1348,21 +1348,18 @@ SIZE_T VisualLeakDetector::eraseduplicates (const BlockMap::Iterator &element)
             blockinfo_t *info = (*blockit).second;
             if (info->callstack == NULL)
                 continue;
+            Set<blockinfo_t*>::Iterator it = aggregatedLeaks.find(info);
+            if (it != aggregatedLeaks.end())
+                continue;
             if ((info->size == elementinfo->size) && (*(info->callstack) == *(elementinfo->callstack))) {
-                // Found a duplicate. Erase it.
-                delete info->callstack;
-                delete info;
-                BlockMap::Iterator previt = blockit - 1;
-                blockmap->erase(blockit);
-                blockit = previt;
+                // Found a duplicate. Mark it.
+                aggregatedLeaks.insert(info);
                 erased++;
             }
         }
     }
 
-    elementinfo->blocks += erased;
-
-    return elementinfo->blocks - 1;
+    return erased;
 }
 
 // gettls - Obtains the thread local storage structure for the calling thread.
@@ -1426,7 +1423,7 @@ VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool c
     ppcallstack = &blockinfo->callstack;
     blockinfo->serialnumber = serialnumber++;
     blockinfo->size = size;
-    blockinfo->blocks = 1;
+    blockinfo->reported = false;
 
     // Insert the block's information into the block map.
     CriticalSectionLocker cs(m_heapmaplock);
@@ -1640,6 +1637,8 @@ SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo, BOOL includingIn
         // potential memory leak.
         LPCVOID block = (*blockit).first;
         blockinfo_t* info = (*blockit).second;
+        if (info->reported)
+            continue;
 
         if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
             // This block is allocated to a CRT heap, so the block has a CRT
@@ -1652,7 +1651,7 @@ SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo, BOOL includingIn
             }
         }
 
-        memoryleaks += info->blocks;
+        memoryleaks ++;
     }
 
     return memoryleaks;
@@ -1679,11 +1678,12 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
         return 0;
     }
 
+    Set<blockinfo_t*> aggregatedLeaks;
     heapinfo_t* heapinfo = (*heapit).second;
-    return reportleaks(heapinfo);
+    return reportleaks(heapinfo, aggregatedLeaks);
 }
 
-SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo)
+SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks)
 {
     BlockMap* blockmap   = &heapinfo->blockmap;
     SIZE_T leaksfound = 0;
@@ -1695,6 +1695,13 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo)
         // potential memory leak.
         LPCVOID block = (*blockit).first;
         blockinfo_t* info = (*blockit).second;
+        if (info->reported)
+            continue;
+
+        Set<blockinfo_t*>::Iterator it = aggregatedLeaks.find(info);
+        if (it != aggregatedLeaks.end())
+            continue;
+
         LPCVOID address = block;
         SIZE_T size = info->size;
 
@@ -1726,7 +1733,7 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo)
         if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
             // Aggregate all other leaks which are duplicates of this one
             // under this same heading, to cut down on clutter.
-            SIZE_T erased = eraseduplicates(blockit);
+            SIZE_T erased = eraseduplicates(blockit, aggregatedLeaks);
 
             // add only the number that were erased, since the 'one left over'
             // is already recorded as a leak
@@ -1757,6 +1764,17 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo)
     m_leaksfound += leaksfound;
 
     return leaksfound;
+}
+
+VOID VisualLeakDetector::markallleaksasreported (heapinfo_t* heapinfo)
+{
+    BlockMap* blockmap   = &heapinfo->blockmap;
+
+    for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
+    {
+        blockinfo_t* info = (*blockit).second;
+        info->reported = true;
+    }
 }
 
 // FindAllocedBlock - Find if a particular memory allocation is tracked inside of VLD.
@@ -4206,13 +4224,31 @@ SIZE_T VisualLeakDetector::ReportLeaks( )
     SIZE_T leaksCount = 0;
     m_leaksfound = 0;
     CriticalSectionLocker cs(m_heapmaplock);
+    Set<blockinfo_t*> aggregatedLeaks;
     for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
         heapinfo_t* heapinfo = (*heapit).second;
-        leaksCount += reportleaks(heapinfo);
+        leaksCount += reportleaks(heapinfo, aggregatedLeaks);
     }
     return leaksCount;
+}
+
+VOID VisualLeakDetector::MarkAllLeaksAsReported( ) 
+{
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
+
+    // Generate a memory leak report for each heap in the process.
+    CriticalSectionLocker cs(m_heapmaplock);
+    for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        markallleaksasreported(heapinfo);
+    }
 }
 
 void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)

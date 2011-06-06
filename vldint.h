@@ -91,7 +91,7 @@ struct blockinfo_t {
     CallStack *callstack;
     SIZE_T     serialnumber;
     SIZE_T     size;
-    SIZE_T     blocks; // The number of duplicates for this particular block.
+    bool       reported;
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -248,6 +248,7 @@ public:
     VOID RefreshModules();
     SIZE_T GetLeaksCount(BOOL includingInternal);
     SIZE_T ReportLeaks();
+    VOID MarkAllLeaksAsReported();
     VOID EnableModule(HMODULE module);
     VOID DisableModule(HMODULE module);
     UINT32 GetOptions();
@@ -267,7 +268,7 @@ private:
     LPWSTR buildsymbolsearchpath ();
     VOID   configure ();
     BOOL   enabled ();
-    SIZE_T eraseduplicates (const BlockMap::Iterator &element);
+    SIZE_T eraseduplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
     tls_t* gettls ();
     VOID   mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack);
     VOID   mapheap (HANDLE heap);
@@ -276,7 +277,8 @@ private:
     VOID   reportconfig ();
     SIZE_T getleakscount (heapinfo_t* heapinfo, BOOL includingInternal);
     SIZE_T reportleaks (HANDLE heap);
-    SIZE_T reportleaks( heapinfo_t* heapinfo );
+    SIZE_T reportleaks( heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks );
+    VOID   markallleaksasreported (heapinfo_t* heapinfo);
     VOID   unmapblock (HANDLE heap, LPCVOID mem, const context_t &context);
     VOID   unmapheap (HANDLE heap);
     void   resolveStacks(heapinfo_t* heapinfo);
@@ -358,7 +360,7 @@ private:
 
     typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
 
-    VOID __stdcall ChangeModuleState(HMODULE module,bool on);
+    VOID __stdcall ChangeModuleState(HMODULE module, bool on);
     static _GetProcAddressType * m_original_GetProcAddress;
 };
 

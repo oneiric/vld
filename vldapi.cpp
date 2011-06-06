@@ -72,6 +72,11 @@ __declspec(dllexport) SIZE_T VLDGetLeaksCount (BOOL includingInternal)
     return vld.GetLeaksCount(includingInternal);
 }
 
+__declspec(dllexport) void VLDMarkAllLeaksAsReported ()
+{
+    vld.MarkAllLeaksAsReported();
+}
+
 __declspec(dllexport) void VLDRefreshModules()
 {
     vld.RefreshModules();
