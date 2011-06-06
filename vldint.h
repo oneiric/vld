@@ -239,9 +239,6 @@ public:
     LPVOID  __stdcall Realloc (LPVOID mem, SIZE_T size);
     ULONG   __stdcall Release ();
 
-    LPVOID ReportAlloc(LPVOID block, SIZE_T size, HANDLE heap);
-    void ReportFree(LPVOID mem, HANDLE heap);
-
     void DisableLeakDetection ();
     void EnableLeakDetection ();
     void RestoreLeakDetectionState ();
@@ -289,7 +286,7 @@ private:
     static BOOL __stdcall detachfrommodule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);
 
     // Utils
-    static BOOL IsModuleExcluded (UINT_PTR returnaddress);
+    static bool IsModuleExcluded (UINT_PTR returnaddress);
     blockinfo_t* FindAllocedBlock(LPCVOID, __out HANDLE& heap);
     static void getcallstack( CallStack **&ppcallstack, context_t &context );
     static inline void firstalloccall(tls_t * tls);
@@ -334,6 +331,7 @@ private:
     SIZE_T               m_leaksfound;        // Total number of leaks found.
     ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
     CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
+    CriticalSection      m_heapmaplock;       // Serializes access to the heap and block maps.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.

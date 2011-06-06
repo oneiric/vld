@@ -212,8 +212,6 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 			L"      complete stack trace.\n");
 	}
 
-	CriticalSectionLocker cs(g_symbollock);
-
 	IMAGEHLP_LINE64  sourceinfo = { 0 };
 	sourceinfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
@@ -231,6 +229,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
+		g_symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
 		foundline = SymGetLineFromAddrW64(g_currentprocess, programcounter, &displacement, &sourceinfo);
@@ -238,6 +237,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
 			if (IsInternalModule(sourceinfo.FileName)) {
 				// Don't show frames in files internal to the heap.
+				g_symbollock.Leave();
 				continue;
 			}
 		}
@@ -263,6 +263,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
+		g_symbollock.Leave();
 
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
@@ -338,8 +339,6 @@ void CallStack::Resolve(BOOL showinternalframes)
 			L"      complete stack trace.\n");
 	}
 
-	CriticalSectionLocker cs(g_symbollock);
-
 	IMAGEHLP_LINE64  sourceinfo = { 0 };
 	sourceinfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
@@ -361,6 +360,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		// Try to get the source file and line number associated with
 		// this program counter address.
 		SIZE_T programcounter = (*this)[frame];
+		g_symbollock.Enter();
 		BOOL             foundline = FALSE;
 		DWORD            displacement = 0;
 
@@ -374,6 +374,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 			_wcslwr_s(sourceinfo.FileName, wcslen(sourceinfo.FileName) + 1);
 			if (IsInternalModule(sourceinfo.FileName)) {
 				// Don't show frames in files internal to the heap.
+				g_symbollock.Leave();
 				continue;
 			}
 		}
@@ -399,7 +400,8 @@ void CallStack::Resolve(BOOL showinternalframes)
 			functionname = L"(Function name unavailable)";
 			displacement64 = 0;
 		}
-		
+		g_symbollock.Leave();
+
 		HMODULE hCallingModule = GetCallingModule(programcounter);
 		LPWSTR modulename = L"(Module name unavailable)";
 		if (hCallingModule && 

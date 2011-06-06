@@ -248,23 +248,6 @@ __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *
 //
 __declspec(dllexport) void VLDResolveCallstacks();
 
-// VLDReportAlloc - Registers allocation for release build memory leak detection
-//
-//  Return Value:
-//
-//    None.
-//
-__declspec(dllexport) void VLDReportAlloc(LPVOID mem, size_t size, HANDLE heap);
-
-// VLDReportFree - Registers deallocation for release build memory leak detection
-//
-//  Return Value:
-//
-//    None.
-//
-__declspec(dllexport) void VLDReportFree(LPVOID mem, HANDLE heap);
-
-
 #ifdef __cplusplus
 }
 #endif // __cplusplus

@@ -77,10 +77,15 @@ int _tmain(int argc, _TCHAR* argv[])
 			leak_type = eAlignedMalloc;
 			multiplayer = 3;
 		}
+		else if (_tcsicmp(_T("AlignedRealloc"), argv[1]) == 0)
+		{
+			leak_type = eAlignedRealloc;
+			multiplayer = 3;
+		}
 		else if (_tcsicmp(_T("all"), argv[1]) == 0)
 		{
 			checkAll = true;
-			multiplayer = 14;
+			multiplayer = 17;
 		}
 		else
 		{

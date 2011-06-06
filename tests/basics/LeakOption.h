@@ -10,6 +10,7 @@ enum LeakOption
 	eRealloc, // "realloc"
 	eCoTaskMem,  // For COM, use "CoTaskMem"
 	eAlignedMalloc,  // "_aligned_malloc"
+	eAlignedRealloc,  // "_aligned_realloc"
 	eCount,
 };
 

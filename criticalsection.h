@@ -20,6 +20,19 @@ public:
 		EnterCriticalSection(&m_critRegion);
 	}
 
+	bool IsLocked() 	  	
+	{ 
+		return (m_critRegion.OwningThread != NULL);
+	}
+
+	bool IsLockedByCurrentThread() 	  	
+	{ 
+		if (m_critRegion.OwningThread == NULL)
+			return false;
+		HANDLE ownerThreadId = (HANDLE)GetCurrentThreadId();
+		return m_critRegion.OwningThread == ownerThreadId;
+	}
+
 	// try enter the section
 	bool TryEnter()   	{ return (TryEnterCriticalSection(&m_critRegion) != 0); }
 

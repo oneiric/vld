@@ -122,14 +122,4 @@ __declspec(dllexport) void VLDResolveCallstacks()
     vld.ResolveCallstacks();
 }
 
-__declspec(dllexport) void VLDReportAlloc(LPVOID mem, size_t size, HANDLE heap)
-{
-    vld.ReportAlloc(mem, size, heap);
-}
-
-__declspec(dllexport) void VLDReportFree(LPVOID mem, HANDLE heap)
-{
-    vld.ReportFree(mem, heap);
-}
-
 }

@@ -81,9 +81,24 @@ void AllocF(LeakOption type, bool bFree)
 		void* leaked = _aligned_offset_malloc(64, 16, 1);
 		leaked_memory = (int*)_aligned_malloc(64, 16);
 		leaked_memory_dbg = (int*)_aligned_malloc_dbg(32, 16, __FILE__, __LINE__);
+		if (bFree)
+		{
+			_aligned_free(leaked);
+			_aligned_free(leaked_memory);
+			_aligned_free_dbg(leaked_memory_dbg);
+		}
+	} 
+	else if (type == eAlignedRealloc)
+	{
+		void* leaked = _aligned_offset_malloc(64, 16, 1);
+		leaked_memory = (int*)_aligned_malloc(64, 16);
+		leaked_memory_dbg = (int*)_aligned_malloc_dbg(32, 16, __FILE__, __LINE__);
 		leaked = (int*)_aligned_offset_realloc(leaked, 48, 16, 2);
 		leaked_memory = (int*)_aligned_realloc(leaked_memory, 128, 16);
 		leaked_memory_dbg = (int*)_aligned_realloc_dbg(leaked_memory_dbg, 48, 16, __FILE__, __LINE__);
+		leaked = (int*)_aligned_offset_recalloc(leaked, 1, 52, 16, 2);
+		leaked_memory = (int*)_aligned_recalloc(leaked_memory, 1, 132, 16);
+		leaked_memory_dbg = (int*)_aligned_recalloc_dbg(leaked_memory_dbg, 1, 64, 16, __FILE__, __LINE__);
 		if (bFree)
 		{
 			_aligned_free(leaked);
