@@ -259,6 +259,8 @@ public:
     bool GetModulesList(WCHAR *modules, UINT size);
     VOID ResolveCallstacks();
 
+    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
+        PHANDLE modulehandle);
     static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
 private:
     ////////////////////////////////////////////////////////////////////////////////
@@ -293,6 +295,8 @@ private:
     static void getcallstack( CallStack **&ppcallstack, context_t &context );
     static inline void firstalloccall(tls_t * tls);
     void SetupReporting();
+    void CheckInternalMemoryLeaks();
+    bool WaitForAllVLDThreads();
 
     ////////////////////////////////////////////////////////////////////////////////
     // IAT replacement functions - see each function definition for details.
@@ -303,8 +307,6 @@ private:
     ////////////////////////////////////////////////////////////////////////////////
     // Win32 IAT replacement functions
     static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
-    static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
-        PHANDLE modulehandle);
 
     static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL     __stdcall _HeapDestroy (HANDLE heap);
