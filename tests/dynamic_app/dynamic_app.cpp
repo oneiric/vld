@@ -6,94 +6,201 @@
 #include "LoadTests.h"
 #include "ThreadTests.h"
 
-void PrintUsage() 
-{
-    wprintf(_T("Usage:\n"));
-    wprintf(_T("\tdynamic [resolve:[true|false]]\n"));
-    wprintf(_T("\t<resolve> - [OPTIONAL] Resolves callstacks before unloading the dynamic DLL.\n"));
-}
+#include <tut/tut.hpp>
+#include <tut/tut_console_reporter.hpp>
+#include <tut/tut_main.hpp>
 
 // Leaks 6 memory allocations
 void LeakDuplicateLeaks() 
 {
-    // For testing aggregation
-    for (int i = 0; i < 3; ++i)
-    {
-        int* tmp = new int(0x63);
-        tmp;
-    }
-    for (int i = 0; i < 3; ++i)
-    {
-        int* tmp = new int(0x63);
-        tmp;
-    }
-    // Should report 6 memory leaks
+	// For testing aggregation
+	for (int i = 0; i < 3; ++i)
+	{
+		int* tmp = new int(0x63);
+		tmp;
+	}
+	for (int i = 0; i < 3; ++i)
+	{
+		int* tmp = new int(0x63);
+		tmp;
+	}
+	// Should report 6 memory leaks
 }
 
 // VLD internal API
 #if defined(_DEBUG) || defined(VLD_FORCE_ENABLE)
 extern "C" {
-    __declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
+	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
 }
 #else
 #define VLDGetLeaksCount() 0
 #endif
 
+namespace tut
+{
+	struct test
+	{
+		virtual ~test()
+		{
+		}
+	};
+
+	typedef test_group<test> tg;
+	typedef tg::object object;
+	tg dynamic_group("dynamic");
+
+	static const bool resolve = false;
+
+	template<>
+	template<>
+	void object::test<1>()
+	{
+		set_test_name("LoaderTests");
+		int prevleaks = (int)VLDGetLeaksCount();
+		RunLoaderTests(resolve);    // leaks 18
+		int totalleaks = (int)VLDGetLeaksCount();
+		int leaks = totalleaks - prevleaks;
+		ensure("leaks", leaks == 18); 
+	}
+
+	template<>
+	template<>
+	void object::test<2>()
+	{
+		set_test_name("MFCLoaderTests");
+		int prevleaks = (int)VLDGetLeaksCount();
+		RunMFCLoaderTests(resolve); // leaks 7
+		int totalleaks = (int)VLDGetLeaksCount();
+		int leaks = totalleaks - prevleaks;
+		ensure("leaks", leaks == 7); 
+	}
+
+	template<>
+	template<>
+	void object::test<3>()
+	{
+		set_test_name("DuplicateLeaks");
+		int prevleaks = (int)VLDGetLeaksCount();
+		LeakDuplicateLeaks();       // leaks 6
+		int totalleaks = (int)VLDGetLeaksCount();
+		int leaks = totalleaks - prevleaks;
+		ensure("leaks", leaks == 6); 
+	}
+
+	template<>
+	template<>
+	void object::test<4>()
+	{
+		// Creates 64 threads that each leaks 7 allocations. This equals 448
+		set_test_name("thread");
+		int prevleaks = (int)VLDGetLeaksCount();
+		RunLoaderLockTests(resolve);
+		int totalleaks = (int)VLDGetLeaksCount();
+		int leaks = totalleaks - prevleaks;
+		ensure("leaks", leaks == 448); 
+	}
+
+	test_runner_singleton runner; 
+}
+
+int RunAllTest()
+{    
+	using namespace std;
+	tut::console_reporter reporter(std::cout);
+	tut::runner.get().set_callback(&reporter);
+
+	try
+	{
+		tut::runner.get().run_tests();
+		if(reporter.all_ok())
+		{
+			return 0;
+		}
+		else
+		{
+			std::cerr << "\nFAILURE and EXCEPTION in these tests are FAKE ;)" << std::endl;
+		}
+	}
+	catch(const tut::no_such_group &ex)
+	{
+		std::cerr << "No such group: " << ex.what() << std::endl;
+	}
+	catch(const tut::no_such_test &ex)
+	{
+		std::cerr << "No such test: " << ex.what() << std::endl;
+	}
+	catch(const tut::tut_error &ex)
+	{
+		std::cout << "General error: " << ex.what() << std::endl;
+	}
+	return 1;
+}
+
+void PrintUsage() 
+{
+	wprintf(_T("Usage:\n"));
+	wprintf(_T("\tdynamic [resolve:[true|false]]\n"));
+	wprintf(_T("\t<resolve> - [OPTIONAL] Resolves callstacks before unloading the dynamic DLL.\n"));
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-    wprintf(_T("======================================\n"));
-    wprintf(_T("==\n"));
-    wprintf(_T("==    VLD Tests: Dynamic DLL Loading  \n"));
-    wprintf(_T("==\n"));
-    wprintf(_T("======================================\n"));
+	if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
+		return RunAllTest();
 
-    bool resolve = true;
-    bool doThreadTests = false;
-    if (argc == 2)
-    {
-        resolve = _tcsicmp(_T("true"), argv[1]) == 0;
-    }
-    else if (argc == 3)
-    {
-        resolve = _tcsicmp(_T("true"), argv[1]) == 0;
-        doThreadTests = _tcsicmp(_T("thread"), argv[2]) == 0;
-    }
+	wprintf(_T("======================================\n"));
+	wprintf(_T("==\n"));
+	wprintf(_T("==    VLD Tests: Dynamic DLL Loading  \n"));
+	wprintf(_T("==\n"));
+	wprintf(_T("======================================\n"));
 
-    RunLoaderTests(resolve);    // leaks 18
-    int totalleaks = (int)VLDGetLeaksCount();
-    int leaks1 = totalleaks;
-    int prevleaks = totalleaks;
-    assert(leaks1 == 18);
+	bool resolve = true;
+	bool doThreadTests = false;
+	if (argc == 2)
+	{
+		resolve = _tcsicmp(_T("true"), argv[1]) == 0;
+	}
+	else if (argc == 3)
+	{
+		resolve = _tcsicmp(_T("true"), argv[1]) == 0;
+		doThreadTests = _tcsicmp(_T("thread"), argv[2]) == 0;
+	}
+
+	RunLoaderTests(resolve);    // leaks 18
+	int totalleaks = (int)VLDGetLeaksCount();
+	int leaks1 = totalleaks;
+	int prevleaks = totalleaks;
+	assert(leaks1 == 18);
  
-    RunMFCLoaderTests(resolve); // leaks 7
-    totalleaks = (int)VLDGetLeaksCount();
-    int leaks2 = totalleaks - prevleaks;
-    prevleaks = totalleaks;
-    assert(leaks2 == 7);
+	RunMFCLoaderTests(resolve); // leaks 7
+	totalleaks = (int)VLDGetLeaksCount();
+	int leaks2 = totalleaks - prevleaks;
+	prevleaks = totalleaks;
+	assert(leaks2 == 7);
  
-    LeakDuplicateLeaks();       // leaks 6
-    totalleaks = (int)VLDGetLeaksCount();
-    int leaks3 = totalleaks - prevleaks;
-    prevleaks = totalleaks;
-    assert(leaks3 == 6);
+	LeakDuplicateLeaks();       // leaks 6
+	totalleaks = (int)VLDGetLeaksCount();
+	int leaks3 = totalleaks - prevleaks;
+	prevleaks = totalleaks;
+	assert(leaks3 == 6);
 
-    if (doThreadTests)
-    {
-        // Creates 64 threads that each leaks 7 allocations. This equals 448
-        RunLoaderLockTests(resolve);
-        totalleaks = (int)VLDGetLeaksCount();
-        int leaks4 = totalleaks - prevleaks;
-        assert(leaks4 == 448);
+	if (doThreadTests)
+	{
+		// Creates 64 threads that each leaks 7 allocations. This equals 448
+		RunLoaderLockTests(resolve);
+		totalleaks = (int)VLDGetLeaksCount();
+		int leaks4 = totalleaks - prevleaks;
+		assert(leaks4 == 448);
 
-        // ..................Total:    479 leaks total
-        totalleaks = (int)VLDGetLeaksCount();
-        int diff = 479 - totalleaks;
-        return diff;
-    }
+		// ..................Total:    479 leaks total
+		totalleaks = (int)VLDGetLeaksCount();
+		int diff = 479 - totalleaks;
+		return diff;
+	}
 
-    // ..................Total:    31 leaks total
-    totalleaks = (int)VLDGetLeaksCount();
-    int diff = 31 - totalleaks;
-    return diff;
+	// ..................Total:    31 leaks total
+	totalleaks = (int)VLDGetLeaksCount();
+	int diff = 31 - totalleaks;
+	return diff;
 }
 

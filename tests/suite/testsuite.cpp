@@ -34,6 +34,11 @@
 
 #include <vld.h>
 
+#include <tut/tut.hpp>
+#include <tut/tut_console_reporter.hpp>
+#include <tut/tut_main.hpp>
+
+
 enum action_e {
 	a_calloc,
 	a_comalloc,
@@ -367,19 +372,9 @@ DWORD __stdcall threadproc_test (LPVOID param)
 	return 0;
 }
 
-int main (int argc, char *argv [])
+void RunTestSuite()
 {
-	_tprintf(_T("======================================\n"));
-	_tprintf(_T("==\n"));
-	_tprintf(_T("==    VLD Tests: thread suite\n"));
-	_tprintf(_T("==\n"));
-	_tprintf(_T("======================================\n"));
-
 	threadcontext_t contexts [NUMTHREADS];
-	//VLDDisable();
-
-	DWORD start = GetTickCount();
-	srand(start);
 
 	// Select a random thread to be the leaker.
 	UINT leakythread = random(NUMTHREADS - 1);
@@ -395,7 +390,7 @@ int main (int argc, char *argv [])
 		HANDLE hthread = CreateThread(NULL, 0, threadproc_test, &contexts[index], 0, &contexts[index].threadid);
 		threads[index] = hthread;
 	}
-	
+
 	// Wait for all threads to terminate.
 	BOOL wait_for_all = TRUE;
 	DWORD result = WaitForMultipleObjects(NUMTHREADS, threads, wait_for_all, INFINITE);
@@ -423,7 +418,7 @@ int main (int argc, char *argv [])
 				lpMsgBuf,
 				MAX_PATH,
 				NULL );
-	
+
 			_tprintf(_T("%s"), lpMsgBuf);
 		}
 
@@ -432,6 +427,86 @@ int main (int argc, char *argv [])
 		_tprintf(_T("Some other return value\n"));
 		break;
 	}
+}
+
+namespace tut
+{
+	struct test
+	{
+		virtual ~test()
+		{
+		}
+	};
+
+	typedef test_group<test> tg;
+	typedef tg::object object;
+	tg dynamic_group("TestSuite");
+
+	static const bool resolve = false;
+
+	template<>
+	template<>
+	void object::test<1>()
+	{
+		set_test_name("MultiThread");
+		int prevleaks = (int)VLDGetLeaksCount();
+		RunTestSuite();
+		int leaks = (int)VLDGetLeaksCount() - prevleaks;
+		ensure("leaks", leaks == leaks_count); 
+	}
+
+	test_runner_singleton runner;
+} 
+
+int RunAllTest()
+{    
+	using namespace std;
+	tut::console_reporter reporter(std::cout);
+	tut::runner.get().set_callback(&reporter);
+
+	try
+	{
+		tut::runner.get().run_tests();
+		if(reporter.all_ok())
+		{
+			return 0;
+		}
+		else
+		{
+			std::cerr << "\nFAILURE and EXCEPTION in these tests are FAKE ;)" << std::endl;
+		}
+	}
+	catch(const tut::no_such_group &ex)
+	{
+		std::cerr << "No such group: " << ex.what() << std::endl;
+	}
+	catch(const tut::no_such_test &ex)
+	{
+		std::cerr << "No such test: " << ex.what() << std::endl;
+	}
+	catch(const tut::tut_error &ex)
+	{
+		std::cout << "General error: " << ex.what() << std::endl;
+	}
+	return 1;
+}
+
+int main (int argc, char *argv [])
+{
+	if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
+		return RunAllTest();
+
+	_tprintf(_T("======================================\n"));
+	_tprintf(_T("==\n"));
+	_tprintf(_T("==    VLD Tests: thread suite\n"));
+	_tprintf(_T("==\n"));
+	_tprintf(_T("======================================\n"));
+
+
+	DWORD start = GetTickCount();
+	srand(start);
+
+	RunTestSuite();
 
 	DWORD end = GetTickCount();
 	static const int MESSAGESIZE = 512;

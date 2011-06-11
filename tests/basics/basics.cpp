@@ -2,17 +2,12 @@
 //
 
 #include "stdafx.h"
-#include "../../vld.h"
+#include "vld.h"
 #include "Allocs.h"
 
-void PrintUsage() 
-{
-	wprintf(_T("Usage:\n"));
-	wprintf(_T("\ttest_basics <type> <repeat>\n"));
-	wprintf(_T("\t<type>   - The type of memory allocation to test with. This can be one of the following:\n"));
-	wprintf(_T("\t           [malloc,new,new_array,calloc,realloc]\n"));
-	wprintf(_T("\t<repeat> - The number of times to repeat each unique memory leak.\n\n"));
-}
+#include <tut/tut.hpp>
+#include <tut/tut_console_reporter.hpp>
+#include <tut/tut_main.hpp>
 
 void LeakMemory(LeakOption type, int repeat, bool bFree)
 {
@@ -31,8 +26,159 @@ extern "C" {
 #define VLDGetLeaksCount() 0
 #endif
 
+namespace tut
+{
+	struct test
+	{
+		virtual ~test()
+		{
+		}
+	};
+
+	typedef test_group<test> tg;
+	typedef tg::object object;
+	tg basic_group("basic");  
+
+	static const int repeat = 10;
+
+	template<>
+	template<>
+	void object::test<1>()
+	{
+		set_test_name("Malloc");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eMalloc,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
+	template<>
+	template<>
+	void object::test<2>()
+	{
+		set_test_name("New");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eNew,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
+	template<>
+	template<>
+	void object::test<3>()
+	{
+		set_test_name("NewArray");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eNewArray,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
+	template<>
+	template<>
+	void object::test<4>()
+	{
+		set_test_name("Calloc");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eCalloc,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
+	template<>
+	template<>
+	void object::test<5>()
+	{
+		set_test_name("Realloc");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eRealloc,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
+	template<>
+	template<>
+	void object::test<6>()
+	{
+		set_test_name("CoTaskMem");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eCoTaskMem,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 1)); 
+	}
+
+	template<>
+	template<>
+	void object::test<7>()
+	{
+		set_test_name("AlignedMalloc");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eAlignedMalloc,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 3)); 
+	}
+
+	template<>
+	template<>
+	void object::test<8>()
+	{
+		set_test_name("AlignedRealloc");
+		int prev = (int)VLDGetLeaksCount(false);
+		LeakMemory(eAlignedRealloc,repeat,false);
+		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		ensure("leaks", leaks == (repeat * 3)); 
+	}
+
+	test_runner_singleton runner; 
+}
+
+int RunAllTest()
+{    
+	using namespace std;
+	tut::console_reporter reporter(std::cout);
+	tut::runner.get().set_callback(&reporter);
+
+	try
+	{
+		tut::runner.get().run_tests();
+		if(reporter.all_ok())
+		{
+			return 0;
+		}
+		else
+		{
+			std::cerr << "\nFAILURE and EXCEPTION in these tests are FAKE ;)" << std::endl;
+		}
+	}
+	catch(const tut::no_such_group &ex)
+	{
+		std::cerr << "No such group: " << ex.what() << std::endl;
+	}
+	catch(const tut::no_such_test &ex)
+	{
+		std::cerr << "No such test: " << ex.what() << std::endl;
+	}
+	catch(const tut::tut_error &ex)
+	{
+		std::cout << "General error: " << ex.what() << std::endl;
+	}
+	return 1;
+}
+
+void PrintUsage() 
+{
+	wprintf(_T("Usage:\n"));
+	wprintf(_T("\ttest_basics <type> <repeat>\n"));
+	wprintf(_T("\t<type>   - The type of memory allocation to test with. This can be one of the following:\n"));
+	wprintf(_T("\t           [malloc,new,new_array,calloc,realloc]\n"));
+	wprintf(_T("\t<repeat> - The number of times to repeat each unique memory leak.\n\n"));
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
+	if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
+		return RunAllTest();
+
 	wprintf(_T("======================================\n"));
 	wprintf(_T("==\n"));
 	wprintf(_T("==    VLD Tests: basics\n"));
