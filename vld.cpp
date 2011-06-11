@@ -2008,9 +2008,9 @@ BOOL VisualLeakDetector::addloadedmodule (PCWSTR modulepath, DWORD64 modulebase,
         vld.m_vldbase = (HMODULE)modulebase;
     }
     else {
-		// Convert the module path to ASCII.
-		length = ::WideCharToMultiByte(CP_ACP, 0, modulename, -1, 0, 0, 0, 0);
-		LPSTR modulenamea = new CHAR [length];
+        // Convert the module path to ASCII.
+        length = ::WideCharToMultiByte(CP_ACP, 0, modulename, -1, 0, 0, 0, 0);
+        LPSTR modulenamea = new CHAR [length];
 
         // wcstombs_s requires locale to be already set up correctly, but it might not be correct on vld init step. So use WideCharToMultiByte instead
         CHAR defaultChar     = '?';
