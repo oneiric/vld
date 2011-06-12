@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "LoadTests.h"
 #include "ThreadTests.h"
+#include "vld.h"
 
 #include <tut/tut.hpp>
 #include <tut/tut_console_reporter.hpp>
@@ -26,15 +27,6 @@ void LeakDuplicateLeaks()
 	}
 	// Should report 6 memory leaks
 }
-
-// VLD internal API
-#if defined(_DEBUG) || defined(VLD_FORCE_ENABLE)
-extern "C" {
-	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
-}
-#else
-#define VLDGetLeaksCount() 0
-#endif
 
 namespace tut
 {
@@ -166,10 +158,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		doThreadTests = _tcsicmp(_T("thread"), argv[2]) == 0;
 	}
 
+	int tutleaks = (int)VLDGetLeaksCount();
+	int prevleaks = tutleaks;
 	RunLoaderTests(resolve);    // leaks 18
 	int totalleaks = (int)VLDGetLeaksCount();
-	int leaks1 = totalleaks;
-	int prevleaks = totalleaks;
+	int leaks1 = totalleaks - prevleaks;
+	prevleaks = totalleaks;
 	assert(leaks1 == 18);
  
 	RunMFCLoaderTests(resolve); // leaks 7
@@ -193,13 +187,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		assert(leaks4 == 448);
 
 		// ..................Total:    479 leaks total
-		totalleaks = (int)VLDGetLeaksCount();
+		totalleaks = (int)VLDGetLeaksCount() - tutleaks;
 		int diff = 479 - totalleaks;
 		return diff;
 	}
 
 	// ..................Total:    31 leaks total
-	totalleaks = (int)VLDGetLeaksCount();
+	totalleaks = (int)VLDGetLeaksCount() - tutleaks;
 	int diff = 31 - totalleaks;
 	return diff;
 }

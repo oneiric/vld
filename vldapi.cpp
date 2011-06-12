@@ -67,9 +67,9 @@ __declspec(dllexport) UINT VLDReportLeaks ()
     return (UINT)vld.ReportLeaks();
 }
 
-__declspec(dllexport) SIZE_T VLDGetLeaksCount (BOOL includingInternal)
+__declspec(dllexport) UINT VLDGetLeaksCount ()
 {
-    return vld.GetLeaksCount(includingInternal);
+    return vld.GetLeaksCount();
 }
 
 __declspec(dllexport) void VLDMarkAllLeaksAsReported ()

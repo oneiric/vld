@@ -107,15 +107,6 @@ __declspec(thread) ULONG          total_allocs = 0;
 
 volatile           LONG           leaks_count = 0;
 
-// VLD internal API
-#if defined _DEBUG || defined VLD_FORCE_ENABLE
-extern "C" {
-	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
-}
-#else
-#define VLDGetLeaksCount() 0
-#endif
-
 ULONG random (ULONG max)
 {
 	FLOAT d;

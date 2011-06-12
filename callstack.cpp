@@ -51,6 +51,7 @@ CallStack::CallStack ()
 	m_Resolved   = NULL;
 	m_ResolvedCapacity   = 0;
 	m_ResolvedLength = 0;
+	m_hashcode    = 0xD202EF8D;
 }
 
 // Destructor - Frees all memory allocated to the CallStack.
@@ -218,7 +219,6 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 	const UINT32 symbolBufSize = sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1;
 	BYTE symbolbuffer [symbolBufSize] = { 0 };
 	
-	WCHAR undecoratedname [MAXSYMBOLNAMELENGTH];
 	WCHAR callingmodulename [MAX_PATH];
 
 	const size_t max_size = MAXREPORTLENGTH + 1;
@@ -252,11 +252,7 @@ void CallStack::dump(BOOL showinternalframes, UINT start_frame) const
 		DWORD64          displacement64 = 0;
 		LPWSTR           functionname;
 		if (SymFromAddrW(g_currentprocess, programcounter, &displacement64, functioninfo)) {
-			// Undecorate function name.
-			if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
-				functionname = undecoratedname;
-			else
-				functionname = functioninfo->Name;
+			functionname = functioninfo->Name;
 		}
 		else {
 			// GetFormattedMessage( GetLastError() );
@@ -345,7 +341,6 @@ void CallStack::Resolve(BOOL showinternalframes)
 	const UINT32 symbolBufSize = sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1;
 	BYTE symbolbuffer [symbolBufSize] = { 0 };
 	
-	WCHAR undecoratedname [MAXSYMBOLNAMELENGTH] = L"";
 	WCHAR callingmodulename [MAX_PATH] = L"";
 
 	const size_t max_line_length = MAXREPORTLENGTH + 1;
@@ -389,11 +384,7 @@ void CallStack::Resolve(BOOL showinternalframes)
 		DWORD64          displacement64 = 0;
 		LPWSTR           functionname;
 		if (SymFromAddrW(g_currentprocess, programcounter, &displacement64, functioninfo)) {
-			// Undecorate function name.
-			if (UnDecorateSymbolName(functioninfo->Name, undecoratedname, MAXSYMBOLNAMELENGTH, UNDNAME_NAME_ONLY) > 0)
-				functionname = undecoratedname;
-			else
-				functionname = functioninfo->Name;
+			functionname = functioninfo->Name;
 		}
 		else {
 			// GetFormattedMessage( GetLastError() );
@@ -473,14 +464,7 @@ void CallStack::DumpResolved() const
 //
 DWORD CallStack::getHashValue () const
 {
-	DWORD       hashcode = 0xD202EF8D;
-
-	// Iterate through each frame in the call stack.
-	for (UINT32 frame = 0; frame < m_size; frame++) {
-		UINT_PTR programcounter = (*this)[frame];
-		hashcode = CalculateCRC32(programcounter, hashcode);
-	}
-	return hashcode;
+	return m_hashcode;
 }
 
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
@@ -515,6 +499,9 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 		m_topchunk = m_topchunk->next;
 		m_topindex = 0;
 	}
+
+	UINT_PTR BaseAddress = (UINT_PTR)GetCallingModule(programcounter);
+	m_hashcode = CalculateCRC32(programcounter - BaseAddress, m_hashcode);
 
 	m_topchunk->frames[m_topindex++] = programcounter;
 	m_size++;

@@ -125,6 +125,14 @@ __declspec(dllimport) void VLDGlobalEnable ();
 //
 __declspec(dllimport) UINT VLDReportLeaks ();
 
+// VLDGetLeaksCount - Return memory leaks count to the execution point.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) UINT VLDGetLeaksCount ();
+
 // VLDMarkAllLeaksAsReported - Mark all leaks as reported.
 //
 //  Return Value:
@@ -266,6 +274,7 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDDisable()
 #define VLDRestore()
 #define VLDReportLeaks() 0
+#define VLDGetLeaksCount() 0
 #define VLDMarkAllLeaksAsReported()
 #define VLDRefreshModules()
 #define VLDEnableModule(a)

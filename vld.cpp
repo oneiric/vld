@@ -632,7 +632,10 @@ VisualLeakDetector::VisualLeakDetector ()
     m_heapmap         = new HeapMap;
     m_heapmap->reserve(HEAPMAPRESERVE);
     m_imalloc         = NULL;
-    m_leaksfound      = 0;
+    m_requestcurr     = 1;
+    m_totalalloc      = 0;
+    m_curalloc        = 0;
+    m_maxalloc        = 0;
     m_loadedmodules   = NULL;
     m_loaderlock.Initialize();
     m_heapmaplock.Initialize();
@@ -690,9 +693,9 @@ VisualLeakDetector::VisualLeakDetector ()
     set the DBGHELP_DBGOUT environment variable to a non-NULL value before calling the SymInitialize function. 
     To log the information to a file, set the DBGHELP_LOG environment variable to the name of the log file to be used.
     */
-    SymSetOptions(SYMOPT_DEBUG | SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+    SymSetOptions(SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
 #else
-    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
+    SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
 #endif
     if (!SymInitializeW(g_currentprocess, symbolpath, FALSE)) {
         report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
@@ -848,13 +851,14 @@ VisualLeakDetector::~VisualLeakDetector ()
             SIZE_T leaks_count = ReportLeaks();
 
             // Show a summary.
-            if (m_leaksfound == 0) {
+            if (leaks_count == 0) {
                 report(L"No memory leaks detected.\n");
             }
             else {
-                assert(m_leaksfound == leaks_count);
-                report(L"Visual Leak Detector detected %Iu memory leak", m_leaksfound);
-                report((m_leaksfound > 1) ? L"s.\n" : L".\n");
+                report(L"Visual Leak Detector detected %Iu memory leak", leaks_count);
+                report((leaks_count > 1) ? L"s (%Iu bytes).\n" : L" (%Iu bytes).\n", m_curalloc);
+                report(L"Largest number used: %Iu bytes.\n", m_maxalloc);
+                report(L"Total allocations: %Iu bytes.\n", m_totalalloc);
             }
         }
 
@@ -952,10 +956,9 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
     // Iterate through the supplied set, until all modules have been attached.
     for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit) {
         DWORD64 modulebase  = (DWORD64)(*newit).addrlow;
-        UINT32 moduleflags = 0x0;
 
-        bool refresh = false;
         bool moduleLoaded = false;
+        UINT32 moduleflags = 0x0;
         m_moduleslock.Enter();
         ModuleSet* oldmodules = m_loadedmodules;
         if (oldmodules != NULL) {
@@ -969,6 +972,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
         }
         m_moduleslock.Leave();
 
+        bool refresh = false;
         if (moduleLoaded) // We've seen this "new" module loaded in the process before.
         {
             if (moduleispatched((HMODULE)modulebase, m_patchtable, _countof(m_patchtable))) 
@@ -1439,15 +1443,22 @@ tls_t* VisualLeakDetector::gettls ()
 //
 VOID VisualLeakDetector::mapblock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack)
 {
-    static SIZE_T serialnumber = 0;
-
     // Record the block's information.
     blockinfo_t* blockinfo = new blockinfo_t;
     blockinfo->callstack = NULL;
     ppcallstack = &blockinfo->callstack;
-    blockinfo->serialnumber = serialnumber++;
+    blockinfo->serialnumber = m_requestcurr++;
     blockinfo->size = size;
     blockinfo->reported = false;
+
+    if (SIZE_MAX - m_totalalloc > size)
+        m_totalalloc += size;
+    else
+        m_totalalloc = SIZE_MAX;
+    m_curalloc += size;
+
+    if (m_curalloc > m_maxalloc)
+        m_maxalloc = m_curalloc;
 
     // Insert the block's information into the block map.
     CriticalSectionLocker cs(m_heapmaplock);
@@ -1582,6 +1593,21 @@ VOID VisualLeakDetector::remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
     }
 
+    if (m_totalalloc < SIZE_MAX)
+    {
+        m_totalalloc -= info->size;
+        if (SIZE_MAX - m_totalalloc > size)
+            m_totalalloc += size;
+        else
+            m_totalalloc = SIZE_MAX;
+    }
+
+    m_curalloc -= info->size;
+    m_curalloc += size;
+
+    if (m_curalloc > m_maxalloc)
+        m_maxalloc = m_curalloc;
+
     // Update the block's size.
     info->size = size;
     ppcallstack = &info->callstack;
@@ -1650,7 +1676,7 @@ VOID VisualLeakDetector::reportconfig ()
 //
 //    None.
 //
-SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo, BOOL includingInternal)
+SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo)
 {
     BlockMap* blockmap   = &heapinfo->blockmap;
     SIZE_T memoryleaks = 0;
@@ -1668,7 +1694,9 @@ SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo, BOOL includingIn
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL && !includingInternal) {
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
@@ -1711,7 +1739,7 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo, Set<blockinfo_t*> 
 {
     BlockMap* blockmap   = &heapinfo->blockmap;
     SIZE_T leaksfound = 0;
-    bool firstleak = (m_leaksfound == 0);
+    bool firstleak = true;
 
     for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
     {
@@ -1733,7 +1761,10 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo, Set<blockinfo_t*> 
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header prepended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL)
+            {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
@@ -1785,7 +1816,6 @@ SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo, Set<blockinfo_t*> 
         }
         report(L"\n\n");
     }
-    m_leaksfound += leaksfound;
 
     return leaksfound;
 }
@@ -1916,6 +1946,7 @@ VOID VisualLeakDetector::unmapblock (HANDLE heap, LPCVOID mem, const context_t &
 
     // Free the blockinfo_t structure and erase it from the block map.
     blockinfo_t *info = (*blockit).second;
+    m_curalloc -= info->size;
     delete info->callstack;
     delete info;
     blockmap->erase(blockit);
@@ -4218,7 +4249,7 @@ ULONG VisualLeakDetector::Release ()
     return (m_imalloc) ? m_imalloc->Release() : 0;
 }
 
-SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
+SIZE_T VisualLeakDetector::GetLeaksCount()
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -4232,7 +4263,7 @@ SIZE_T VisualLeakDetector::GetLeaksCount( BOOL includingInternal )
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
         heapinfo_t* heapinfo = (*heapit).second;
-        leaksCount += getleakscount(heapinfo, includingInternal);
+        leaksCount += getleakscount(heapinfo);
     }
     return leaksCount;
 }
@@ -4246,7 +4277,6 @@ SIZE_T VisualLeakDetector::ReportLeaks( )
 
     // Generate a memory leak report for each heap in the process.
     SIZE_T leaksCount = 0;
-    m_leaksfound = 0;
     CriticalSectionLocker cs(m_heapmaplock);
     Set<blockinfo_t*> aggregatedLeaks;
     for (HeapMap::Iterator heapit = m_heapmap->begin(); heapit != m_heapmap->end(); ++heapit) {
@@ -4574,7 +4604,10 @@ void VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
             if (!crtheader)
                 continue;
 
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+                CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL)
+            {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;

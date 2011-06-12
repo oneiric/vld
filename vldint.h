@@ -246,7 +246,7 @@ public:
     void GlobalEnableLeakDetection ();
 
     VOID RefreshModules();
-    SIZE_T GetLeaksCount(BOOL includingInternal);
+    SIZE_T GetLeaksCount();
     SIZE_T ReportLeaks();
     VOID MarkAllLeaksAsReported();
     VOID EnableModule(HMODULE module);
@@ -277,7 +277,7 @@ private:
     VOID   remapblock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
         bool crtalloc, CallStack **&ppcallstack, const context_t &context);
     VOID   reportconfig ();
-    SIZE_T getleakscount (heapinfo_t* heapinfo, BOOL includingInternal);
+    SIZE_T getleakscount (heapinfo_t* heapinfo);
     SIZE_T reportleaks (HANDLE heap);
     SIZE_T reportleaks( heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks );
     VOID   markallleaksasreported (heapinfo_t* heapinfo);
@@ -332,14 +332,18 @@ private:
     WCHAR                m_forcedmodulelist [MAXMODULELISTLENGTH]; // List of modules to be forcefully included in leak detection.
     HeapMap             *m_heapmap;           // Map of all active heaps in the process.
     IMalloc             *m_imalloc;           // Pointer to the system implementation of IMalloc.
-    SIZE_T               m_leaksfound;        // Total number of leaks found.
+
+    LONG                 m_requestcurr;       // Current request number.
+    SIZE_T               m_totalalloc;        // Grand total - sum of all allocations.
+    SIZE_T               m_curalloc;          // Total amount currently allocated.
+    SIZE_T               m_maxalloc;          // Largest ever allocated at once.
     ModuleSet           *m_loadedmodules;     // Contains information about all modules loaded in the process.
     CriticalSection      m_loaderlock;        // Serializes the attachment of newly loaded modules.
     CriticalSection      m_heapmaplock;       // Serializes access to the heap and block maps.
     SIZE_T               m_maxdatadump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxtraceframes;    // Maximum number of frames per stack trace for each leaked block.
     CriticalSection      m_moduleslock;       // Protects accesses to the "loaded modules" ModuleSet.
-    UINT32               m_options;           // Configuration options:
+    UINT32               m_options;           // Configuration options.
 
     static patchentry_t  m_kernelbasePatch [];
     static patchentry_t  m_kernel32Patch [];

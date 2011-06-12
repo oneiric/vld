@@ -17,15 +17,6 @@ void LeakMemory(LeakOption type, int repeat, bool bFree)
 	}
 }
 
-// VLD internal API
-#if defined(_DEBUG) || defined(VLD_FORCE_ENABLE)
-extern "C" {
-	__declspec(dllimport) SIZE_T VLDGetLeaksCount (BOOL includingInternal = FALSE);
-}
-#else
-#define VLDGetLeaksCount() 0
-#endif
-
 namespace tut
 {
 	struct test
@@ -46,9 +37,9 @@ namespace tut
 	void object::test<1>()
 	{
 		set_test_name("Malloc");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eMalloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
@@ -57,9 +48,9 @@ namespace tut
 	void object::test<2>()
 	{
 		set_test_name("New");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eNew,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
@@ -68,9 +59,9 @@ namespace tut
 	void object::test<3>()
 	{
 		set_test_name("NewArray");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eNewArray,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
@@ -79,9 +70,9 @@ namespace tut
 	void object::test<4>()
 	{
 		set_test_name("Calloc");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eCalloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
@@ -90,9 +81,9 @@ namespace tut
 	void object::test<5>()
 	{
 		set_test_name("Realloc");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eRealloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
@@ -101,9 +92,9 @@ namespace tut
 	void object::test<6>()
 	{
 		set_test_name("CoTaskMem");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eCoTaskMem,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 1)); 
 	}
 
@@ -112,9 +103,9 @@ namespace tut
 	void object::test<7>()
 	{
 		set_test_name("AlignedMalloc");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eAlignedMalloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 3)); 
 	}
 
@@ -123,9 +114,9 @@ namespace tut
 	void object::test<8>()
 	{
 		set_test_name("AlignedRealloc");
-		int prev = (int)VLDGetLeaksCount(false);
+		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eAlignedRealloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount(false) - prev;
+		int leaks = (int)VLDGetLeaksCount() - prev;
 		ensure("leaks", leaks == (repeat * 3)); 
 	}
 
@@ -175,7 +166,7 @@ void PrintUsage()
 }
 
 int _tmain(int argc, _TCHAR* argv[])
-{
+{   
 	if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
 		return RunAllTest();
 
@@ -245,6 +236,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		wprintf(_T("Options: %s \nNumber of Leaks: %s\n"), argv[1], argv[2]);
 		// Convert the string into it's integer equivalent
+		int prevleaks = (int)VLDGetLeaksCount();
 		int repeat = _tstoi(argv[2]);
 		if (!checkAll)
 			LeakMemory(leak_type,repeat,bFree);
@@ -253,7 +245,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			for (int leak_type = 0; leak_type < eCount; leak_type++)
 				LeakMemory((LeakOption)leak_type,repeat,bFree);
 		}
-		int leaks = (int)VLDGetLeaksCount(false);
+		int leaks = (int)VLDGetLeaksCount() - prevleaks;
 		wprintf(_T("End of test app...\n\n"));
 		int diff = repeat * multiplayer - leaks;
 		return bFree ? leaks : diff;
