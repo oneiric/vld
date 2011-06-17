@@ -1718,7 +1718,7 @@ SIZE_T VisualLeakDetector::getleakscount (heapinfo_t* heapinfo)
 //
 //    None.
 //
-SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
+SIZE_T VisualLeakDetector::reportheapleaks (HANDLE heap)
 {
     assert(heap != NULL);
 
@@ -1732,7 +1732,15 @@ SIZE_T VisualLeakDetector::reportleaks (HANDLE heap)
 
     Set<blockinfo_t*> aggregatedLeaks;
     heapinfo_t* heapinfo = (*heapit).second;
-    return reportleaks(heapinfo, aggregatedLeaks);
+    // Generate a memory leak report for heap.
+    SIZE_T leaks_count = reportleaks(heapinfo, aggregatedLeaks);
+
+    // Show a summary.
+    if (leaks_count != 0) {
+        report(L"Visual Leak Detector detected %Iu memory leak%s in heap " ADDRESSFORMAT L"\n", 
+            leaks_count, (leaks_count > 1) ? L"s" : L"", heap);
+     }
+    return leaks_count;
 }
 
 SIZE_T VisualLeakDetector::reportleaks (heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks)
@@ -3498,7 +3506,7 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
     // for this heap now, while we can still read from the memory blocks
     // allocated to it.
     if (!(vld.m_options & VLD_OPT_SKIP_HEAPFREE_LEAKS))
-        vld.reportleaks(heap);
+        vld.reportheapleaks(heap);
 
     vld.unmapheap(heap);
 

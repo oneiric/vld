@@ -278,7 +278,7 @@ private:
         bool crtalloc, CallStack **&ppcallstack, const context_t &context);
     VOID   reportconfig ();
     SIZE_T getleakscount (heapinfo_t* heapinfo);
-    SIZE_T reportleaks (HANDLE heap);
+    SIZE_T reportheapleaks (HANDLE heap);
     SIZE_T reportleaks( heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks );
     VOID   markallleaksasreported (heapinfo_t* heapinfo);
     VOID   unmapblock (HANDLE heap, LPCVOID mem, const context_t &context);
