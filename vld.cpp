@@ -4405,6 +4405,8 @@ void VisualLeakDetector::GlobalDisableLeakDetection ()
         return;
     }
 
+    m_options |= VLD_OPT_START_DISABLED;
+
     // Disable memory leak detection for all threads.
     CriticalSectionLocker cs(m_tlslock);
     TlsMap::Iterator     tlsit;
@@ -4422,6 +4424,9 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
         return;
     }
 
+    m_options &= ~VLD_OPT_START_DISABLED;
+    m_status &= ~VLD_STATUS_NEVER_ENABLED;
+
     // Enable memory leak detection for all threads.
     CriticalSectionLocker cs(m_tlslock);
     TlsMap::Iterator     tlsit;
@@ -4430,7 +4435,6 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
         (*tlsit).second->flags &= ~VLD_TLS_DISABLED;
         (*tlsit).second->flags |= VLD_TLS_ENABLED;
     }
-    m_status &= ~VLD_STATUS_NEVER_ENABLED;
 }
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
