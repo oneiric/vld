@@ -1034,7 +1034,7 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
 
 #define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
         if ((findimport((HMODULE)modulebase, m_vldbase, VLDDLL, "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
-            (wcsstr(m_forcedmodulelist, modulename) == NULL)) {
+            (wcscmp(m_forcedmodulelist, L"*") != 0) && (wcsstr(m_forcedmodulelist, modulename) == NULL)) {
                 // This module does not import VLD. This means that none of the module's
                 // sources #included vld.h. Exclude this module from leak detection.
                 moduleflags |= VLD_MODULE_EXCLUDED;
