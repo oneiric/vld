@@ -147,7 +147,8 @@ copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test</Command>
+"$(TargetPath)" test
+exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -177,7 +178,8 @@ copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test</Command>
+"$(TargetPath)" test
+exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -256,7 +258,8 @@ copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test</Command>
+"$(TargetPath)" test
+exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>

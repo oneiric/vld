@@ -716,6 +716,10 @@ VisualLeakDetector::VisualLeakDetector ()
     m_loadedmodules = newmodules;
     m_status |= VLD_STATUS_INSTALLED;
 
+    HMODULE dbghelp = GetModuleHandleW(L"dbghelp.dll");
+    if (dbghelp)
+        ChangeModuleState(dbghelp, false);
+
     report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
     if (m_status & VLD_STATUS_FORCE_REPORT_TO_FILE) {
         // The report is being forced to a file. Let the human know why.
@@ -1032,14 +1036,27 @@ VOID VisualLeakDetector::attachtoloadedmodules (ModuleSet *newmodules)
             continue;
         }
 
-#define MAXMODULENAME (_MAX_FNAME + _MAX_EXT)
-        if ((findimport((HMODULE)modulebase, m_vldbase, VLDDLL, "?vld@@3VVisualLeakDetector@@A") == FALSE) &&
-            (wcscmp(m_forcedmodulelist, L"*") != 0) && (wcsstr(m_forcedmodulelist, modulename) == NULL)) {
-                // This module does not import VLD. This means that none of the module's
-                // sources #included vld.h. Exclude this module from leak detection.
-                moduleflags |= VLD_MODULE_EXCLUDED;
+        if (!findimport((HMODULE)modulebase, m_vldbase, VLDDLL, "?vld@@3VVisualLeakDetector@@A"))
+        {
+            // This module does not import VLD. This means that none of the module's
+            // sources #included vld.h.
+            if ((m_options & VLD_OPT_MODULE_LIST_INCLUDE) != 0)
+            {
+                if (wcsstr(m_forcedmodulelist, modulename) == NULL) {
+                    // Exclude this module from leak detection.
+                    moduleflags |= VLD_MODULE_EXCLUDED;
+                }
+            }
+            else
+            {
+                if (wcsstr(m_forcedmodulelist, modulename) != NULL) {
+                    // Exclude this module from leak detection.
+                    moduleflags |= VLD_MODULE_EXCLUDED;
+                }
+            }
         }
-        else if (!(moduleflags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
+        if ((moduleflags & VLD_MODULE_EXCLUDED) == 0 && 
+            !(moduleflags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
             // This module is going to be included in leak detection, but complete
             // symbols for this module couldn't be loaded. This means that any stack
             // traces through this module may lack information, like line numbers
@@ -1265,7 +1282,11 @@ VOID VisualLeakDetector::configure ()
     // Read the force-include module list.
     GetPrivateProfileString(L"Options", L"ForceIncludeModules", L"", m_forcedmodulelist, MAXMODULELISTLENGTH, inipath);
     _wcslwr_s(m_forcedmodulelist, MAXMODULELISTLENGTH);
-
+    if (wcscmp(m_forcedmodulelist, L"*") == 0)
+        m_forcedmodulelist[0] = '\0';
+    else
+        m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
+    
     // Read the report destination (debugger, file, or both).
     WCHAR filename [MAX_PATH] = {0};
     GetPrivateProfileString(L"Options", L"ReportFile", L"", filename, MAX_PATH, inipath);
@@ -1626,7 +1647,8 @@ VOID VisualLeakDetector::reportconfig ()
         report(L"    Aggregating duplicate leaks.\n");
     }
     if (wcslen(m_forcedmodulelist) != 0) {
-        report(L"    Forcing inclusion of these modules in leak detection: %s\n", m_forcedmodulelist);
+        report(L"    Forcing %s of these modules in leak detection: %s\n", 
+            (m_options & VLD_OPT_MODULE_LIST_INCLUDE) ? L"inclusion" : L"exclusion", m_forcedmodulelist);
     }
     if (m_maxdatadump != VLD_DEFAULT_MAX_DATA_DUMP) {
         if (m_maxdatadump == 0) {
