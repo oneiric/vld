@@ -1,12 +1,28 @@
-Visual Leak Detector (VLD) Version 2.1
+Visual Leak Detector (VLD) Version 2.2
 
   
   Change Log / Release Notes
 
-2.1.1 (5 April 2011)
+2.2 (20 June 2011)
 ----------------------------
+  Enhancements:
+  + New functions added: VLDGetLeaksCount, VLDMarkAllLeaksAsReported (see vld.h).
+  + Introduced define called VLD_FORCE_ENABLE that allows one to active VLD even if not running in DEBUG.
+  + Adding Heap Validation.
+  + _aligned... functions and _recalloc support added.
+  + Memory leaks additional statistic added.
+	
   Bugs Fixed:
   + Issue fixed with loading wrong version of dbghelp.dll on Windows XP and bellow.
+  + VLDReportLeaks with aggregate duplicate links fixed.
+  + CoTaskMemAlloc memory leak detection fixed.
+  + Rare crash at exit on some platforms fixed.
+  + Asserts in release build disabled.
+  + LoaderLock fixed.
+  + LoadLibrary crash fixed with some applications like regsrv32.
+  + Callstack hash fixed with ASLR.
+  + VLDGlobalEnable fixed with new threads.
+  + Option VLD_OPT_MODULE_LIST_INCLUDE fixed.
 
 2.1 (26 March 2011)
 ----------------------------

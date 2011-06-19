@@ -1,7 +1,7 @@
 ################################################################################
 #
 #  Visual Leak Detector - NSIS Installation Script
-#  Copyright (c) 2006-2011 Dan Moulding, Arkadiy Shapkin
+#  Copyright (c) 2005-2011 VLD Team
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -184,7 +184,6 @@ Section "Source Code"
     SetOutPath "${SRC_PATH}"
     File "..\*.cpp"
     File "..\*.h"
-    File "..\vld.vcproj"
     File "..\vld.vcxproj"
     File "..\vld.vcxproj.filters"
     File "..\*.manifest"
@@ -193,9 +192,9 @@ SectionEnd
 
 Section "Documentation"
     SetOutPath "$INSTDIR"
+    File "..\AUTHORS.txt"
     File "..\CHANGES.txt"
     File "..\COPYING.txt"
-    File "..\README.html"
 SectionEnd
 
 Section "Start Menu Shortcuts"
@@ -204,7 +203,8 @@ Section "Start Menu Shortcuts"
     SetShellVarContext all
     CreateDirectory "${LNK_PATH}"
     CreateShortcut "${LNK_PATH}\Configure.lnk"     "$INSTDIR\vld.ini"
-    CreateShortcut "${LNK_PATH}\Documentation.lnk" "$INSTDIR\README.html"
+    CreateShortcut "${LNK_PATH}\Documentation.lnk" "http://vld.codeplex.com/documentation"
+    CreateShortcut "${LNK_PATH}\Authors.lnk"       "$INSTDIR\AUTHORS.txt"
     CreateShortcut "${LNK_PATH}\License.lnk"       "$INSTDIR\COPYING.txt"
     CreateShortcut "${LNK_PATH}\Uninstall.lnk"     "$INSTDIR\uninstall.exe"
     !insertmacro MUI_STARTMENU_WRITE_END
@@ -256,7 +256,6 @@ SectionEnd
 Section "un.Source Code"
     Delete "${SRC_PATH}\*.cpp"
     Delete "${SRC_PATH}\*.h"
-    Delete "${SRC_PATH}\vld.vcproj"
     Delete "${SRC_PATH}\vld.vcxproj"
     Delete "${SRC_PATH}\vld.vcxproj.filters"
     Delete "${SRC_PATH}\*.manifest"
@@ -265,15 +264,16 @@ Section "un.Source Code"
 SectionEnd
 
 Section "un.Documentation"
+    Delete "$INSTDIR\AUTHORS.txt"
     Delete "$INSTDIR\CHANGES.txt"
     Delete "$INSTDIR\COPYING.txt"
-    Delete "$INSTDIR\README.html"
 SectionEnd
 
 Section "un.Start Menu Shortcuts"
     !insertmacro MUI_STARTMENU_GETFOLDER "Shortcuts" $SM_PATH
     SetShellVarContext all
     Delete "${LNK_PATH}\Configure.lnk"
+    Delete "${LNK_PATH}\Authors.lnk"
     Delete "${LNK_PATH}\Documentation.lnk"
     Delete "${LNK_PATH}\License.lnk"
     Delete "${LNK_PATH}\Uninstall.lnk"
