@@ -34,7 +34,7 @@
 // Force a symbolic reference to the global VisualLeakDetector class object from
 // the DLL. This ensures that the DLL is loaded and linked with the program,
 // even if no code otherwise imports any of the DLL's exports.
-#pragma comment(linker, "/include:__imp_?vld@@3VVisualLeakDetector@@A")
+#pragma comment(linker, "/include:__imp_?g_vld@@3VVisualLeakDetector@@A")
 
 ////////////////////////////////////////////////////////////////////////////////
 //
