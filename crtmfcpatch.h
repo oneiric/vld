@@ -30,7 +30,7 @@ Applications should never include this header."
 #endif
 
 #include "vldint.h"
-extern __declspec(dllexport) VisualLeakDetector vld;
+extern __declspec(dllexport) VisualLeakDetector g_vld;
 
 template<int CRTVersion, bool debug = false>
 class CrtMfcPatch
@@ -153,7 +153,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
+    return g_vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
 }
 
 // crtd__malloc_dbg - Calls to _malloc_dbg from msvcrXXd.dll are patched
@@ -184,7 +184,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
+    return g_vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
 }
 
 // crtd__realloc_dbg - Calls to _realloc_dbg from msvcrXXd.dll are patched
@@ -218,7 +218,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
+    return g_vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
 }
 
 // crtd__recalloc_dbg - Calls to _recalloc_dbg from msvcrXXd.dll are patched
@@ -253,7 +253,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
+    return g_vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
 }
 
 // crtd__scalar_new_dbg - Calls to the CRT's debug scalar new operator from
@@ -284,7 +284,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
+    return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
 
 // crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
@@ -315,7 +315,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
+    return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
 
 // crtd_calloc - Calls to calloc from msvcrXXd.dll are patched through to
@@ -340,7 +340,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._calloc(pcrtxxd_calloc, context, debug, num, size);
+    return g_vld._calloc(pcrtxxd_calloc, context, debug, num, size);
 }
 
 // crtd_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -363,7 +363,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._malloc(pcrtxxd_malloc, context, debug, size);
+    return g_vld._malloc(pcrtxxd_malloc, context, debug, size);
 }
 
 // crtd_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -388,7 +388,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
+    return g_vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
 }
 
 // crtd__recalloc - Calls to _recalloc from msvcrXXd.dll are patched through to
@@ -413,7 +413,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, siz
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
+    return g_vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
 }
 
 // crtd__aligned_malloc_dbg - Calls to _aligned_malloc_dbg from msvcrXXd.dll are patched
@@ -445,7 +445,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
+    return g_vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_malloc_dbg - Calls to _aligned_offset_malloc_dbg from msvcrXXd.dll are patched
@@ -478,7 +478,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t   
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
+    return g_vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_realloc_dbg - Calls to _aligned_realloc_dbg from msvcrXXd.dll are patched
@@ -513,7 +513,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
+    return g_vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_realloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -549,7 +549,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void    
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
+    return g_vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_recalloc_dbg - Calls to _aligned_recalloc_dbg from msvcrXXd.dll are patched
@@ -587,7 +587,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *me
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
+    return g_vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_recalloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -626,7 +626,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void   
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
+    return g_vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -649,7 +649,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t 
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
+    return g_vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
 }
 
 // crtd__aligned_offset_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -672,7 +672,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, 
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
+    return g_vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
 }
 
 // crtd__aligned_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -697,7 +697,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t s
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
+    return g_vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
 }
 
 // crtd__aligned_offset_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -722,7 +722,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, s
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
+    return g_vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
 }
 
 // crtd__aligned_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -749,7 +749,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t 
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
+    return g_vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
 }
 
 // crtd__aligned_offset_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -776,7 +776,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, 
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
+    return g_vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
 }
 
 // crtd_scalar_new - Calls to the CRT's scalar new operator from msvcrXXd.dll
@@ -797,7 +797,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pcrtxxd_scalar_new, context, debug, size);
+    return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
 
 // crtd_vector_new - Calls to the CRT's vector new operator from msvcrXXd.dll
@@ -818,7 +818,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pcrtxxd_scalar_new, context, debug, size);
+    return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -855,7 +855,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcd__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -883,7 +883,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcd__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -914,7 +914,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcd__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -942,7 +942,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcd_scalar_new - Calls to the MFC scalar new operator from mfcXXd.dll are
@@ -963,7 +963,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, debug, size);
+    return g_vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcd_vector_new - Calls to the MFC vector new operator from mfcXXd.dll are
@@ -984,7 +984,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, debug, size);
+    return g_vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcud__scalar_new_dbg_4p - Calls to the MFC debug scalar new operator from
@@ -1015,7 +1015,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcud__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -1043,7 +1043,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcud__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -1074,7 +1074,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
 
 // mfcud__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -1102,7 +1102,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
 
 // mfcud_scalar_new - Calls to the MFC scalar new operator from mfcXXud.dll are
@@ -1123,7 +1123,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, debug, size);
+    return g_vld._new(pmfcxxd_new, context, debug, size);
 }
 
 // mfcud_vector_new - Calls to the MFC vector new operator from mfcXXud.dll are
@@ -1144,7 +1144,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
     context_t context;
     CAPTURE_CONTEXT(context);
 
-    return vld._new(pmfcxxd_new, context, debug, size);
+    return g_vld._new(pmfcxxd_new, context, debug, size);
 }
 
 #ifndef WIN64

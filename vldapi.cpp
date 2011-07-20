@@ -28,7 +28,7 @@
 #include "vldheap.h" // Provides internal new and delete operators.
 
 // Imported global variables.
-extern VisualLeakDetector vld;
+extern VisualLeakDetector g_vld;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -39,92 +39,97 @@ extern "C" {
 
 __declspec(dllexport) void VLDDisable ()
 {
-    vld.DisableLeakDetection();
+    g_vld.DisableLeakDetection();
 }
 
 __declspec(dllexport) void VLDEnable ()
 {
-    vld.EnableLeakDetection();
+    g_vld.EnableLeakDetection();
 }
 
 __declspec(dllexport) void VLDRestore ()
 {
-    vld.RestoreLeakDetectionState();
+    g_vld.RestoreLeakDetectionState();
 }
 
 __declspec(dllexport) void VLDGlobalDisable ()
 {
-    vld.GlobalDisableLeakDetection();
+    g_vld.GlobalDisableLeakDetection();
 }
 
 __declspec(dllexport) void VLDGlobalEnable ()
 {
-    vld.GlobalEnableLeakDetection();
+    g_vld.GlobalEnableLeakDetection();
 }
 
 __declspec(dllexport) UINT VLDReportLeaks ()
 {
-    return (UINT)vld.ReportLeaks();
+    return (UINT)g_vld.ReportLeaks();
 }
 
 __declspec(dllexport) UINT VLDGetLeaksCount ()
 {
-    return vld.GetLeaksCount();
+    return g_vld.GetLeaksCount();
 }
 
 __declspec(dllexport) void VLDMarkAllLeaksAsReported ()
 {
-    vld.MarkAllLeaksAsReported();
+    g_vld.MarkAllLeaksAsReported();
 }
 
 __declspec(dllexport) void VLDRefreshModules()
 {
-    vld.RefreshModules();
+    g_vld.RefreshModules();
 }
 
 __declspec(dllexport) void VLDEnableModule(HMODULE module)
 {
-    vld.EnableModule(module);
+    g_vld.EnableModule(module);
 }
 
 __declspec(dllexport) void VLDDisableModule(HMODULE module)
 {
-    vld.DisableModule(module);
+    g_vld.DisableModule(module);
 }
 
 __declspec(dllexport) UINT32 VLDGetOptions()
 {
-    return vld.GetOptions();
+    return g_vld.GetOptions();
 }
 
 __declspec(dllexport) void VLDGetReportFilename(WCHAR *filename)
 {
-    vld.GetReportFilename(filename);
+    g_vld.GetReportFilename(filename);
 }
 
 __declspec(dllexport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
 {
-    vld.SetOptions(option_mask, maxDataDump, maxTraceFrames);
+    g_vld.SetOptions(option_mask, maxDataDump, maxTraceFrames);
+}
+
+__declspec(dllexport) int VLDSetReportHook(int mode,  VLD_REPORT_HOOK pfnNewHook)
+{
+    return g_vld.SetReportHook(mode, pfnNewHook);
 }
 
 __declspec(dllexport) void VLDSetModulesList(CONST WCHAR *modules, BOOL includeModules)
 {
-    vld.SetModulesList(modules, includeModules);
+    g_vld.SetModulesList(modules, includeModules);
 }
 
 __declspec(dllexport) BOOL VLDGetModulesList(WCHAR *modules, UINT size)
 {
-    return vld.GetModulesList(modules, size);
+    return g_vld.GetModulesList(modules, size);
 }
 
 __declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
 {
-    vld.SetReportOptions(option_mask,filename);
+    g_vld.SetReportOptions(option_mask,filename);
 }
 
 __declspec(dllexport) void VLDResolveCallstacks()
 {
-    vld.ResolveCallstacks();
+    g_vld.ResolveCallstacks();
 }
 
 }

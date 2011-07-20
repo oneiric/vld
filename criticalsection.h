@@ -48,9 +48,9 @@ class CriticalSectionLocker
 public:
 	CriticalSectionLocker(CriticalSection& cs)
 		: m_leave(false)
-		, m_critsect(cs)
+		, m_critSect(cs)
 	{
-		m_critsect.Enter();
+		m_critSect.Enter();
 	}
 
 	~CriticalSectionLocker()
@@ -69,12 +69,12 @@ private:
 	{
 		if (!m_leave)
 		{
-			m_critsect.Leave();
+			m_critSect.Leave();
 			m_leave = true;
 		}
 	}
 	CriticalSectionLocker(); // not allowed
 	CriticalSectionLocker & operator=( const CriticalSectionLocker & ); // not allowed
 	bool m_leave;
-	CriticalSection& m_critsect;
+	CriticalSection& m_critSect;
 };

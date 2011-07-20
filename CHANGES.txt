@@ -3,7 +3,15 @@ Visual Leak Detector (VLD) Version 2.2
   
   Change Log / Release Notes
 
-2.2 (20 June 2011)
+2.2 (21 Jule 2011)
+----------------------------
+  Enhancements:
+  + New functions added: VLDSetReportHook.
+
+  Bugs Fixed:
+  + Resolved call stack printing fixed.
+
+2.2b (8 Jule 2011)
 ----------------------------
   Enhancements:
   + New functions added: VLDGetLeaksCount, VLDMarkAllLeaksAsReported (see vld.h).

@@ -135,11 +135,18 @@ void PrintUsage()
 	wprintf(_T("\t<resolve> - [OPTIONAL] Resolves callstacks before unloading the dynamic DLL.\n"));
 }
 
+int __cdecl ReportHook(int /*reportHook*/, const wchar_t *message, int* /*returnValue*/)
+{
+	OutputDebugString(message);
+	return 1;
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
 		return RunAllTest();
 
+	VLDSetReportHook(VLD_RPTHOOK_INSTALL, ReportHook);
 	wprintf(_T("======================================\n"));
 	wprintf(_T("==\n"));
 	wprintf(_T("==    VLD Tests: Dynamic DLL Loading  \n"));
@@ -194,6 +201,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// ..................Total:    31 leaks total
 	totalleaks = (int)VLDGetLeaksCount() - tutleaks;
+	VLDReportLeaks();
+	VLDMarkAllLeaksAsReported();
+	VLDSetReportHook(VLD_RPTHOOK_REMOVE, ReportHook);
 	int diff = 31 - totalleaks;
 	return diff;
 }

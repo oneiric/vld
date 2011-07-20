@@ -81,13 +81,13 @@ public:
 	static CallStack* Create();
 	// Public APIs - see each function definition for details.
 	VOID clear ();
-	// Prints the Callstack to one of either / or the debug output window and or 
+	// Prints the call stack to one of either / or the debug output window and or 
 	// a log file.
 	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
-	VOID Resolve(BOOL showinternalframes);
+	VOID resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
-	virtual VOID getstacktrace (UINT32 maxdepth, const context_t& context) = 0;
+	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
 	
 	BOOL operator == (const CallStack &other) const;
 	UINT_PTR operator [] (UINT32 index) const;
@@ -106,27 +106,27 @@ private:
 
 	// The chunk list is made of a linked list of Chunks.
 	struct chunk_t {
-		chunk_t* next;                               // Pointer to the next chunk in the chunk list.
-		UINT_PTR        frames[CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
+		chunk_t*    next;					    // Pointer to the next chunk in the chunk list.
+		UINT_PTR    frames[CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
 	};
 
 	// Private data.
 	UINT32              m_capacity; // Current capacity limit (in frames)
 	UINT32              m_size;     // Current size (in frames)
 	CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
-	CallStack::chunk_t* m_topchunk; // Pointer to the chunk at the top of the stack
-	UINT32              m_topindex; // Index, within the top chunk, of the top of the stack
-	UINT32              m_hashcode; // Callstack hash code
+	CallStack::chunk_t* m_topChunk; // Pointer to the chunk at the top of the stack
+	UINT32              m_topIndex; // Index, within the top chunk, of the top of the stack
+	UINT32              m_hashCode; // Call stack hash code
 
 	// The string that contains the stack converted into a human readable format.
 	// This is always NULL if the callstack has not been 'converted'.
-	WCHAR*              m_Resolved;
-	int                 m_ResolvedCapacity;
-	int                 m_ResolvedLength;
+	WCHAR*              m_resolved;
+	int                 m_resolvedCapacity;
+	int                 m_resolvedLength;
 	// Prints out the strings in m_Resolved when the time comes to report the callstack in
 	// human readable form. Currently this is only called by the dump method.
-	void DumpResolved() const;
-	bool IsInternalModule( const PWSTR filename ) const;
+	void dumpResolved() const;
+	bool isInternalModule( const PWSTR filename ) const;
 };
 
 
@@ -140,7 +140,7 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-	VOID getstacktrace (UINT32 maxdepth, const context_t& context);
+	VOID getStackTrace (UINT32 maxdepth, const context_t& context);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -153,5 +153,5 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-	VOID getstacktrace (UINT32 maxdepth, const context_t& context);
+	VOID getStackTrace (UINT32 maxdepth, const context_t& context);
 };

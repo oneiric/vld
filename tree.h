@@ -62,23 +62,23 @@ public:
     };
 
     // The node is the basic data structure which the tree is built from.
-    typedef struct node_s {
+    struct node_t {
         color_e            color;  // The node's color.
         T                  key;    // The node's value, by which nodes are sorted.
         union {
-            struct node_s *left;   // For nodes in the tree, the node's left child.
-            struct node_s *next;   // For nodes in the free list, the next node on the free list.
+            struct node_t *left;   // For nodes in the tree, the node's left child.
+            struct node_t *next;   // For nodes in the free list, the next node on the free list.
         };
-        struct node_s     *parent; // The node's parent.
-        struct node_s     *right;  // The node's right child.
-    } node_t;
+        struct node_t     *parent; // The node's parent.
+        struct node_t     *right;  // The node's right child.
+    };
 
     // Reserve capacity for the tree is allocated in large chunks with room for
     // many nodes.
-    typedef struct chunk_s {
-        struct chunk_s *next;  // Pointer to the next node in the chunk list.
+    struct chunk_t {
+        struct chunk_t *next;  // Pointer to the next node in the chunk list.
         node_t         *nodes; // Pointer to an array (of variable size) where nodes are stored.
-    } chunk_t;
+    };
 
     // Constructor
     Tree ()
@@ -317,7 +317,7 @@ public:
         node_t *node;
 
         // Find the node to erase.
-        CriticalSectionLocker cs(&m_lock);
+        CriticalSectionLocker cs(m_lock);
         node = m_root;
         while (node != &m_nil) {
             if (node->key < key) {
@@ -647,7 +647,7 @@ public:
             // Allocate additional storage.
             // Link a new chunk into the chunk list.
             chunk = new Tree::chunk_t;
-            chunk->nodes = new Tree::node_s [m_reserve];
+            chunk->nodes = new Tree::node_t [m_reserve];
             chunk->next = NULL;
             if (m_store == NULL) {
                 m_store = chunk;

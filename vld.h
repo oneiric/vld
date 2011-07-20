@@ -251,6 +251,18 @@ __declspec(dllimport) BOOL VLDGetModulesList(WCHAR *modules, UINT size);
 //
 __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
 
+// VLDSetReportHook - Update the report options via function call rather than INI file.
+//
+// mode: Only the following flags are checked
+//
+// pfnNewHook: maximum number of user-data bytes to dump for each leaked block.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) int VLDSetReportHook(int mode,  VLD_REPORT_HOOK pfnNewHook);
+
 // VLDResolveCallstacks - Performs symbol resolution for all saved extent CallStack's that have
 // been tracked by Visual Leak Detector. This function is necessary for applications that 
 // dynamically load and unload modules, and through which memory leaks might be included.
@@ -282,6 +294,7 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDGetOptions() 0
 #define VLDGetReportFilename(a)
 #define VLDSetOptions(a, b, c)
+#define VLDSetReportHook(a, b)
 #define VLDSetModulesList(a)
 #define VLDGetModulesList(a, b) FALSE
 #define VLDSetReportOptions(a, b)

@@ -36,11 +36,11 @@ typedef LONG NTSTATUS;
 #define   STATUS_SUCCESS 0
 
 // Unicode string structure used by NT APIs.
-typedef struct unicodestring_s {
+struct unicodestring_t {
     USHORT length;    // Length of the string.
     USHORT maxlength; // Length of the buffer.
     PWSTR  buffer;    // The buffer containing the string.
-} unicodestring_t;
+};
 
 // Function pointer types for explicit dynamic linking with functions that can't
 // be load-time linked (no import library is available for these).

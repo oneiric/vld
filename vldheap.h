@@ -35,12 +35,12 @@ Applications should never include this header."
 
 // Memory block header structure used internally by the debug CRT. All blocks
 // allocated by the CRT are allocated from the CRT heap and, in debug mode, they
-// have this header prepended to them (there's also a trailer appended at the
+// have this header pretended to them (there's also a trailer appended at the
 // end, but we're not interested in that).
-typedef struct crtdbgblockheader_s
+struct crtdbgblockheader_t
 {
-    struct crtblockheader_s *next;          // Pointer to the next block in the list of blocks allocated from the CRT heap.
-    struct crtblockheader_s *prev;          // Pointer to the previous block in the list of blocks allocated from the CRT heap.
+    struct crtdbgblockheader_t *next;       // Pointer to the next block in the list of blocks allocated from the CRT heap.
+    struct crtdbgblockheader_t *prev;       // Pointer to the previous block in the list of blocks allocated from the CRT heap.
     char                    *file;          // Source file where this block was allocated.
     int                      line;          // Line of code, within the above file, where this block was allocated.
 #ifdef _WIN64
@@ -57,23 +57,23 @@ typedef struct crtdbgblockheader_s
 #define CRT_USE_CLIENT   4                  //   This block is a specially tagged block with special use defined by the user application.
     long                     request;       // This block's "request" number. Basically a serial number.
     unsigned char            gap [GAPSIZE]; // No-man's land buffer zone, for buffer overrun/underrun checking.
-} crtdbgblockheader_t;
+};
 
 // Macro to strip off any sub-type information stored in a block's "use type".
 #define CRT_USE_TYPE(use) (use & 0xFFFF)
 
 // Memory block header structure used internally by VLD. All internally
 // allocated blocks are allocated from VLD's private heap and have this header
-// prepended to them.
-typedef struct vldblockheader_s
+// pretended to them.
+struct vldblockheader_t
 {
-    struct vldblockheader_s *next;          // Pointer to the next block in the list of internally allocated blocks.
-    struct vldblockheader_s *prev;          // Pointer to the preceding block in the list of internally allocated blocks.
+    struct vldblockheader_t *next;          // Pointer to the next block in the list of internally allocated blocks.
+    struct vldblockheader_t *prev;          // Pointer to the preceding block in the list of internally allocated blocks.
     const char              *file;          // Name of the file where this block was allocated.
     int                      line;          // Line number within the above file where this block was allocated.
     size_t                   size;          // The size of this memory block, not including this header.
-    size_t                   serialnumber;  // Each block is assigned a unique serial number, starting from zero.
-} vldblockheader_t;
+    size_t                   serialNumber;  // Each block is assigned a unique serial number, starting from zero.
+};
 
 // Data-to-Header and Header-to-Data conversion
 #define CRTDBGBLOCKHEADER(d) (crtdbgblockheader_t*)(((PBYTE)d) - sizeof(crtdbgblockheader_t))

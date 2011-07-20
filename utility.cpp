@@ -28,16 +28,17 @@
 #include "vldint.h"
 
 // Imported Global Variables
-extern CriticalSection g_imagelock;
+extern CriticalSection  g_imageLock;
+extern ReportHookSet*   g_pReportHooks;
 
 // Global variables.
-static BOOL        reportdelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
-static FILE       *reportfile = NULL;       // Pointer to the file, if any, to send the memory leak report to.
-static BOOL        reporttodebugger = TRUE; // If TRUE, a copy of the memory leak report will be sent to the debugger for display.
-static BOOL        reporttostdout = TRUE;   // If TRUE, a copy of the memory leak report will be sent to standart output.
-static encoding_e  reportencoding = ascii;  // Output encoding of the memory leak report.
+static BOOL         s_reportDelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
+static FILE        *s_reportFile = NULL;       // Pointer to the file, if any, to send the memory leak report to.
+static BOOL         s_reportToDebugger = TRUE; // If TRUE, a copy of the memory leak report will be sent to the debugger for display.
+static BOOL         s_reportToStdOut = TRUE;   // If TRUE, a copy of the memory leak report will be sent to standard output.
+static encoding_e   s_reportEncoding = ascii;  // Output encoding of the memory leak report.
 
-// dumpmemorya - Dumps a nicely formatted rendition of a region of memory.
+// DumpMemoryA - Dumps a nicely formatted rendition of a region of memory.
 //   Includes both the hex value of each byte and its ASCII equivalent (if
 //   printable).
 //
@@ -49,66 +50,66 @@ static encoding_e  reportencoding = ascii;  // Output encoding of the memory lea
 //
 //    None.
 //
-VOID dumpmemorya (LPCVOID address, SIZE_T size)
+VOID DumpMemoryA (LPCVOID address, SIZE_T size)
 {
     // Each line of output is 16 bytes.
-    SIZE_T dumplen;
+    SIZE_T dumpLen;
     if ((size % 16) == 0) {
         // No padding needed.
-        dumplen = size;
+        dumpLen = size;
     }
     else {
         // We'll need to pad the last line out to 16 bytes.
-        dumplen = size + (16 - (size % 16));
+        dumpLen = size + (16 - (size % 16));
     }
 
     // For each byte of data, get both the ASCII equivalent (if it is a
     // printable character) and the hex representation.
-    SIZE_T bytesdone = 0;
-    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
-    WCHAR  ascdump [18] = {0};
-    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
-    for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
-        SIZE_T wordIndex = byteindex % 16;
-        SIZE_T hexindex = 3 * (wordIndex + (wordIndex / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        SIZE_T ascindex = wordIndex + wordIndex / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
-        if (byteindex < size) {
-            BYTE byte = ((PBYTE)address)[byteindex];
-            _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
-            formatbuf[3] = '\0';
-            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
+    SIZE_T bytesDone = 0;
+    WCHAR  hexDump [HEXDUMPLINELENGTH] = {0};
+    WCHAR  ascDump [18] = {0};
+    WCHAR  formatBuf [BYTEFORMATBUFFERLENGTH];
+    for (SIZE_T byteIndex = 0; byteIndex < dumpLen; byteIndex++) {
+        SIZE_T wordIndex = byteIndex % 16;
+        SIZE_T hexIndex = 3 * (wordIndex + (wordIndex / 4)); // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        SIZE_T ascIndex = wordIndex + wordIndex / 8;         // 1 character per byte, plus a 1-character space after every 8 bytes.
+        if (byteIndex < size) {
+            BYTE byte = ((PBYTE)address)[byteIndex];
+            _snwprintf_s(formatBuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
+            formatBuf[3] = '\0';
+            wcsncpy_s(hexDump + hexIndex, HEXDUMPLINELENGTH - hexIndex, formatBuf, 4);
             if (isgraph(byte)) {
-                ascdump[ascindex] = (WCHAR)byte;
+                ascDump[ascIndex] = (WCHAR)byte;
             }
             else {
-                ascdump[ascindex] = L'.';
+                ascDump[ascIndex] = L'.';
             }
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, L"   ", 4);
-            ascdump[ascindex] = L'.';
+            wcsncpy_s(hexDump + hexIndex, HEXDUMPLINELENGTH - hexIndex, L"   ", 4);
+            ascDump[ascIndex] = L'.';
         }
-        bytesdone++;
-        if ((bytesdone % 16) == 0) {
+        bytesDone++;
+        if ((bytesDone % 16) == 0) {
             // Print one line of data for every 16 bytes. Include the
             // ASCII dump and the hex dump side-by-side.
-            report(L"    %s    %s\n", hexdump, ascdump);
+            Report(L"    %s    %s\n", hexDump, ascDump);
         }
         else {
-            if ((bytesdone % 8) == 0) {
+            if ((bytesDone % 8) == 0) {
                 // Add a spacer in the ASCII dump after every 8 bytes.
-                ascdump[ascindex + 1] = L' ';
+                ascDump[ascIndex + 1] = L' ';
             }
-            if ((bytesdone % 4) == 0) {
+            if ((bytesDone % 4) == 0) {
                 // Add a spacer in the hex dump after every 4 bytes.
-                wcsncpy_s(hexdump + hexindex + 3, HEXDUMPLINELENGTH - hexindex - 3, L"   ", 4);
+                wcsncpy_s(hexDump + hexIndex + 3, HEXDUMPLINELENGTH - hexIndex - 3, L"   ", 4);
             }
         }
     }
 }
 
-// dumpmemoryw - Dumps a nicely formatted rendition of a region of memory.
+// DumpMemoryW - Dumps a nicely formatted rendition of a region of memory.
 //   Includes both the hex value of each byte and its Unicode equivalent.
 //
 //  - address (IN): Pointer to the beginning of the memory region to dump.
@@ -119,63 +120,63 @@ VOID dumpmemorya (LPCVOID address, SIZE_T size)
 //
 //    None.
 //
-VOID dumpmemoryw (LPCVOID address, SIZE_T size)
+VOID DumpMemoryW (LPCVOID address, SIZE_T size)
 {
     // Each line of output is 16 bytes.
-    SIZE_T dumplen;
+    SIZE_T dumpLen;
     if ((size % 16) == 0) {
         // No padding needed.
-        dumplen = size;
+        dumpLen = size;
     }
     else {
         // We'll need to pad the last line out to 16 bytes.
-        dumplen = size + (16 - (size % 16));
+        dumpLen = size + (16 - (size % 16));
     }
 
     // For each word of data, get both the Unicode equivalent and the hex
     // representation.
-    WCHAR  formatbuf [BYTEFORMATBUFFERLENGTH];
-    WCHAR  hexdump [HEXDUMPLINELENGTH] = {0};
+    WCHAR  formatBuf [BYTEFORMATBUFFERLENGTH];
+    WCHAR  hexDump [HEXDUMPLINELENGTH] = {0};
     WCHAR  unidump [18] = {0};
-    SIZE_T bytesdone = 0;
-    for (SIZE_T byteindex = 0; byteindex < dumplen; byteindex++) {
-        SIZE_T hexindex = 3 * ((byteindex % 16) + ((byteindex % 16) / 4));   // 3 characters per byte, plus a 3-character space after every 4 bytes.
-        SIZE_T uniindex = ((byteindex / 2) % 8) + ((byteindex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
-        if (byteindex < size) {
-            BYTE byte = ((PBYTE)address)[byteindex];
-            _snwprintf_s(formatbuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
-            formatbuf[BYTEFORMATBUFFERLENGTH - 1] = '\0';
-            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, formatbuf, 4);
-            if (((byteindex % 2) == 0) && ((byteindex + 1) < dumplen)) {
+    SIZE_T bytesDone = 0;
+    for (SIZE_T byteIndex = 0; byteIndex < dumpLen; byteIndex++) {
+        SIZE_T hexIndex = 3 * ((byteIndex % 16) + ((byteIndex % 16) / 4));   // 3 characters per byte, plus a 3-character space after every 4 bytes.
+        SIZE_T uniIndex = ((byteIndex / 2) % 8) + ((byteIndex / 2) % 8) / 8; // 1 character every other byte, plus a 1-character space after every 8 bytes.
+        if (byteIndex < size) {
+            BYTE byte = ((PBYTE)address)[byteIndex];
+            _snwprintf_s(formatBuf, BYTEFORMATBUFFERLENGTH, _TRUNCATE, L"%.2X ", byte);
+            formatBuf[BYTEFORMATBUFFERLENGTH - 1] = '\0';
+            wcsncpy_s(hexDump + hexIndex, HEXDUMPLINELENGTH - hexIndex, formatBuf, 4);
+            if (((byteIndex % 2) == 0) && ((byteIndex + 1) < dumpLen)) {
                 // On every even byte, print one character.
-                WORD   word = ((PWORD)address)[byteindex / 2];
+                WORD   word = ((PWORD)address)[byteIndex / 2];
                 if ((word == 0x0000) || (word == 0x0020)) {
-                    unidump[uniindex] = L'.';
+                    unidump[uniIndex] = L'.';
                 }
                 else {
-                    unidump[uniindex] = word;
+                    unidump[uniIndex] = word;
                 }
             }
         }
         else {
             // Add padding to fill out the last line to 16 bytes.
-            wcsncpy_s(hexdump + hexindex, HEXDUMPLINELENGTH - hexindex, L"   ", 4);
-            unidump[uniindex] = L'.';
+            wcsncpy_s(hexDump + hexIndex, HEXDUMPLINELENGTH - hexIndex, L"   ", 4);
+            unidump[uniIndex] = L'.';
         }
-        bytesdone++;
-        if ((bytesdone % 16) == 0) {
+        bytesDone++;
+        if ((bytesDone % 16) == 0) {
             // Print one line of data for every 16 bytes. Include the
             // ASCII dump and the hex dump side-by-side.
-            report(L"    %s    %s\n", hexdump, unidump);
+            Report(L"    %s    %s\n", hexDump, unidump);
         }
         else {
-            if ((bytesdone % 8) == 0) {
+            if ((bytesDone % 8) == 0) {
                 // Add a spacer in the ASCII dump after every 8 bytes.
-                unidump[uniindex + 1] = L' ';
+                unidump[uniIndex + 1] = L' ';
             }
-            if ((bytesdone % 4) == 0) {
+            if ((bytesDone % 4) == 0) {
                 // Add a spacer in the hex dump after every 4 bytes.
-                wcsncpy_s(hexdump + hexindex + 3, HEXDUMPLINELENGTH - hexindex - 3, L"   ", 4);
+                wcsncpy_s(hexDump + hexIndex + 3, HEXDUMPLINELENGTH - hexIndex - 3, L"   ", 4);
             }
         }
     }
@@ -210,7 +211,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imagelock.Enter();
+    g_imageLock.Enter();
     __try
     {
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -220,7 +221,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     {
         idte = NULL;
     }
-    g_imagelock.Leave();
+    g_imageLock.Leave();
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return NULL;
@@ -262,7 +263,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
 //    Returns TRUE if the module imports to the specified import. Otherwise
 //    returns FALSE.
 //
-BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname)
+BOOL FindImport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodulename, LPCSTR importname)
 {
     IMAGE_IMPORT_DESCRIPTOR *idte;
     IMAGE_THUNK_DATA        *iate;
@@ -319,17 +320,17 @@ BOOL findimport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
 //    Returns TRUE if the module has been patched to use the specified
 //    replacement export.
 //
-BOOL findpatch (HMODULE importmodule, moduleentry_t *module)
+BOOL FindPatch (HMODULE importmodule, moduleentry_t *module)
 {
     IMAGE_IMPORT_DESCRIPTOR *idte;
 
-    idte = findoriginalimportdescriptor(importmodule, module->exportmodulename);
+    idte = findoriginalimportdescriptor(importmodule, module->exportModuleName);
     if (idte == NULL)
         return FALSE;
 
     int i = 0;
-    patchentry_t *entry = module->patchtable;
-    while(entry->importname)
+    patchentry_t *entry = module->patchTable;
+    while(entry->importName)
     {
         LPCVOID replacement = entry->replacement;
 
@@ -360,9 +361,9 @@ BOOL findpatch (HMODULE importmodule, moduleentry_t *module)
 //
 //    None.
 //
-VOID insertreportdelay ()
+VOID InsertReportDelay ()
 {
-    reportdelay = TRUE;
+    s_reportDelay = TRUE;
 }
 
 // moduleispatched - Checks to see if any of the imports listed in the specified
@@ -381,7 +382,7 @@ VOID insertreportdelay ()
 //    Returns TRUE if at least one of the patches listed in the patch table is
 //    installed in the importmodule. Otherwise returns FALSE.
 //
-BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
+BOOL IsModulePatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
     // Loop through the import patch table, individually checking each patch
     // entry to see if it is installed in the import module. If any patch entry
@@ -389,7 +390,7 @@ BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     BOOL found = FALSE;
     for (UINT index = 0; index < tablesize; index++) {
         moduleentry_t *entry = &patchtable[index];
-        found = findpatch(importmodule, entry);
+        found = FindPatch(importmodule, entry);
         if (found == TRUE) {
             // Found one of the listed patches installed in the import module.
             return TRUE;
@@ -430,9 +431,9 @@ BOOL moduleispatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
 //    import module does not import the specified export, so nothing changed,
 //    then FALSE will be returned.
 //
-BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
+BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 {
-    HMODULE exportmodule = (HMODULE)module->modulebase;
+    HMODULE exportmodule = (HMODULE)module->moduleBase;
     if (exportmodule == NULL)
         return FALSE;
 
@@ -444,7 +445,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imagelock.Enter();
+    g_imageLock.Enter();
     __try
     {
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -454,7 +455,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
     {
         idte = NULL;
     }
-    g_imagelock.Leave();
+    g_imageLock.Leave();
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -465,11 +466,11 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
         PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
         UNREFERENCED_PARAMETER(name);
 
-        patchentry_t *entry = module->patchtable;
+        patchentry_t *entry = module->patchTable;
         int i = 0;
-        while(entry->importname)
+        while(entry->importName)
         {
-            LPCSTR importname   = entry->importname;
+            LPCSTR importname   = entry->importName;
             LPCVOID replacement = entry->replacement;
 
             // Get the *real* address of the import. If we find this address in the IAT,
@@ -544,7 +545,7 @@ BOOL patchimport (HMODULE importmodule, moduleentry_t *module)
 //    Returns TRUE if at least one of the patches listed in the patch table was
 //    installed in the importmodule. Otherwise returns FALSE.
 //
-BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
+BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
     moduleentry_t *entry;
     UINT          index;
@@ -554,12 +555,25 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        if (patchimport(importmodule, entry) == TRUE) {
+        if (PatchImport(importmodule, entry) == TRUE) {
             patched = TRUE;
         }
     }
 
     return patched;
+}
+
+int CallReportHook(int reportType, LPCWSTR message, int* hook_retval)
+{
+    if (g_pReportHooks == NULL)
+        return 0;
+    for (ReportHookSet::Iterator it = g_pReportHooks->begin(); it != g_pReportHooks->end(); it++)
+    {
+        int result = (*it)(reportType, message, hook_retval);
+        if (result) // handled
+            return result;
+    }
+    return 0;
 }
 
 // print - Sends a message to the debugger for display
@@ -574,49 +588,52 @@ BOOL patchmodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
 //
 //    None.
 //
-VOID print (LPCWSTR messagew)
+VOID Print (LPCWSTR messagew)
 {
     if (NULL == messagew)
-    {
         return;
+
+    int hook_retval=0;
+    if (!CallReportHook(0, messagew, &hook_retval))
+    {
+        if (s_reportEncoding == unicode) {
+            if (s_reportFile != NULL) {
+                // Send the report to the previously specified file.
+                fwrite(messagew, sizeof(WCHAR), wcslen(messagew), s_reportFile);
+            }
+
+            if ( s_reportToStdOut )
+            	fwprintf(stdout,messagew);
+
+            if (s_reportToDebugger)
+                OutputDebugStringW(messagew);
+        }
+        else {
+            size_t  count = 0;
+            CHAR    messagea [MAXREPORTLENGTH + 1];
+            if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
+                // Failed to convert the Unicode message to ASCII.
+                assert(FALSE);
+                return;
+            }
+            messagea[MAXREPORTLENGTH] = '\0';
+
+            if (s_reportFile != NULL) {
+                // Send the report to the previously specified file.
+                fwrite(messagea, sizeof(CHAR), strlen(messagea), s_reportFile);
+            }
+
+            if ( s_reportToStdOut )
+                printf(messagea);
+
+            if (s_reportToDebugger)
+                OutputDebugStringA(messagea);
+        }
     }
+    else if (hook_retval == 1)
+        __debugbreak();
 
-    size_t  count = 0;
-
-    if (reportencoding == unicode) {
-        if (reportfile != NULL) {
-            // Send the report to the previously specified file.
-            fwrite(messagew, sizeof(WCHAR), wcslen(messagew), reportfile);
-        }
-        if ( reporttostdout )
-            fwprintf(stdout,messagew);
-
-        if (reporttodebugger) {
-            OutputDebugStringW(messagew);
-        }
-    }
-    else {
-        CHAR    messagea [MAXREPORTLENGTH + 1];
-        if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
-            // Failed to convert the Unicode message to ASCII.
-            assert(FALSE);
-            return;
-        }
-        messagea[MAXREPORTLENGTH] = '\0';
-        if (reportfile != NULL) {
-            // Send the report to the previously specified file.
-            fwrite(messagea, sizeof(CHAR), strlen(messagea), reportfile);
-        }
-
-        if ( reporttostdout )
-            printf(messagea);
-
-        if (reporttodebugger) {
-            OutputDebugStringA(messagea);
-        }
-    }
-
-    if (reporttodebugger && (reportdelay == TRUE)) {
+    if (s_reportToDebugger && (s_reportDelay == TRUE)) {
         Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
     }
 }
@@ -636,7 +653,7 @@ VOID print (LPCWSTR messagew)
 //
 //    None.
 //
-VOID report (LPCWSTR format, ...)
+VOID Report (LPCWSTR format, ...)
 {
     va_list args;
     WCHAR   messagew [MAXREPORTLENGTH + 1];
@@ -647,7 +664,7 @@ VOID report (LPCWSTR format, ...)
     messagew[MAXREPORTLENGTH] = L'\0';
 
     if (result >= 0)
-        print(messagew);
+        Print(messagew);
 }
 
 // restoreimport - Restores the IAT entry for an import previously patched via
@@ -673,10 +690,10 @@ VOID report (LPCWSTR format, ...)
 //
 //    None.
 //
-VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
+VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
 {
-    HMODULE exportmodule = (HMODULE)module->modulebase;
-    LPCSTR exportmodulename = module->exportmodulename;
+    HMODULE exportmodule = (HMODULE)module->moduleBase;
+    LPCSTR exportmodulename = module->exportModuleName;
     UNREFERENCED_PARAMETER(exportmodulename);
     if (exportmodule == NULL)
         return;
@@ -689,7 +706,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imagelock.Enter();
+    g_imageLock.Enter();
     __try
     {
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
@@ -699,7 +716,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
     {
         idte = NULL;
     }
-    g_imagelock.Leave();
+    g_imageLock.Leave();
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;
@@ -712,10 +729,10 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
         UNREFERENCED_PARAMETER(name);
 
         int i = 0;
-        patchentry_t *entry = module->patchtable;
-        while(entry->importname)
+        patchentry_t *entry = module->patchTable;
+        while(entry->importName)
         {
-            LPCSTR importname   = entry->importname;
+            LPCSTR importname   = entry->importName;
             LPCVOID replacement = entry->replacement;
             UNREFERENCED_PARAMETER(importname);
 
@@ -776,7 +793,7 @@ VOID restoreimport (HMODULE importmodule, moduleentry_t* module)
 //
 //    None.
 //
-VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
+VOID RestoreModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize)
 {
     moduleentry_t *entry;
     UINT          index;
@@ -785,7 +802,7 @@ VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tabl
     // listed in the table.
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        restoreimport(importmodule, entry);
+        RestoreImport(importmodule, entry);
     }
 }
 
@@ -798,12 +815,12 @@ VOID restoremodule (HMODULE importmodule, moduleentry_t patchtable [], UINT tabl
 //
 //    None.
 //
-VOID setreportencoding (encoding_e encoding)
+VOID SetReportEncoding (encoding_e encoding)
 {
     switch (encoding) {
     case ascii:
     case unicode:
-        reportencoding = encoding;
+        s_reportEncoding = encoding;
         break;
 
     default:
@@ -826,11 +843,11 @@ VOID setreportencoding (encoding_e encoding)
 //
 //    None.
 //
-VOID setreportfile (FILE *file, BOOL copydebugger, BOOL tostdout)
+VOID SetReportFile (FILE *file, BOOL copydebugger, BOOL tostdout)
 {
-    reportfile = file;
-    reporttodebugger = copydebugger;
-    reporttostdout = tostdout;
+    s_reportFile = file;
+    s_reportToDebugger = copydebugger;
+    s_reportToStdOut = tostdout;
 }
 
 // AppendString - Appends the specified source string to the specified destination
@@ -873,7 +890,7 @@ LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
 //    Returns TRUE if the string is recognized as a "true" string. Otherwise
 //    returns FALSE.
 //
-BOOL strtobool (LPCWSTR s) {
+BOOL StrToBool (LPCWSTR s) {
     WCHAR *end;
 
     if ((_wcsicmp(s, L"true") == 0) ||
@@ -1025,7 +1042,7 @@ void GetFormattedMessage(DWORD last_error)
         NULL );
 
     // Display the error message.
-    report(L"%s", lpMsgBuf);
+    Report(L"%s", lpMsgBuf);
 }
 
 // GetCallingModule - Return calling module by address.

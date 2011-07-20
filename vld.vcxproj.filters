@@ -80,7 +80,7 @@
     <ClInclude Include="criticalsection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="readwritelock.h">
+    <ClInclude Include="setup\version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
