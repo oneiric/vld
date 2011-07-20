@@ -1045,7 +1045,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             continue;
         }
 
-        if (!FindImport((HMODULE)modulebase, m_vldBase, VLDDLL, "?vld@@3VVisualLeakDetector@@A"))
+        if (!FindImport((HMODULE)modulebase, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
             // This module does not import VLD. This means that none of the module's
             // sources #included vld.h.
