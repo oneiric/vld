@@ -153,21 +153,25 @@ __declspec(dllimport) void VLDRefreshModules();
 
 // VLDEnableModule - Enable Memory leak checking on the specified module.
 //
+// module: module handle.
+//
 //  Return Value:
 //
 //    None.
 //
 
-__declspec(dllimport) void VLDEnableModule(HMODULE);
+__declspec(dllimport) void VLDEnableModule(HMODULE module);
 
 
 // VLDDisableModule - Disable Memory leak checking on the specified module.
 //
+// module: module handle.
+//
 //  Return Value:
 //
 //    None.
 //
-__declspec(dllimport) void VLDDisableModule(HMODULE);
+__declspec(dllimport) void VLDDisableModule(HMODULE module);
 
 // VLDGetOptions - Return all current options.
 //
@@ -251,15 +255,16 @@ __declspec(dllimport) BOOL VLDGetModulesList(WCHAR *modules, UINT size);
 //
 __declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
 
-// VLDSetReportHook - Update the report options via function call rather than INI file.
+// VLDSetReportHook - Installs or uninstalls a client-defined reporting function by hooking it 
+//  into the C run-time debug reporting process (debug version only).
 //
-// mode: Only the following flags are checked
+// mode: The action to take: VLD_RPTHOOK_INSTALL or VLD_RPTHOOK_REMOVE.
 //
-// pfnNewHook: maximum number of user-data bytes to dump for each leaked block.
+// pfnNewHook: Report hook to install or remove.
 //
 //  Return Value:
 //
-//    None.
+//    int: 0 if success.
 //
 __declspec(dllimport) int VLDSetReportHook(int mode,  VLD_REPORT_HOOK pfnNewHook);
 
