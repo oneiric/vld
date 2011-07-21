@@ -122,7 +122,7 @@ VOID InsertReportDelay ();
 BOOL IsModulePatched (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 BOOL PatchImport (HMODULE importmodule, moduleentry_t *module);
 BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
-VOID Print (LPCWSTR message);
+VOID Print (LPWSTR message);
 VOID Report (LPCWSTR format, ...);
 VOID RestoreImport (HMODULE importmodule, moduleentry_t* module);
 VOID RestoreModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);

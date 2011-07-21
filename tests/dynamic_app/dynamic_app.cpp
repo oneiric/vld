@@ -135,7 +135,7 @@ void PrintUsage()
 	wprintf(_T("\t<resolve> - [OPTIONAL] Resolves callstacks before unloading the dynamic DLL.\n"));
 }
 
-int __cdecl ReportHook(int /*reportHook*/, const wchar_t *message, int* /*returnValue*/)
+int __cdecl ReportHook(int /*reportHook*/, wchar_t *message, int* /*returnValue*/)
 {
 	OutputDebugString(message);
 	return 1;

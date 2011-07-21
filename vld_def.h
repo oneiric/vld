@@ -41,4 +41,4 @@
 #define VLD_RPTHOOK_INSTALL  0
 #define VLD_RPTHOOK_REMOVE   1
 
-typedef int (__cdecl * VLD_REPORT_HOOK)(int reportType, const wchar_t *message, int *returnValue);
+typedef int (__cdecl * VLD_REPORT_HOOK)(int reportType, wchar_t *message, int *returnValue);

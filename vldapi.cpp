@@ -69,7 +69,7 @@ __declspec(dllexport) UINT VLDReportLeaks ()
 
 __declspec(dllexport) UINT VLDGetLeaksCount ()
 {
-    return g_vld.GetLeaksCount();
+    return (UINT)g_vld.GetLeaksCount();
 }
 
 __declspec(dllexport) void VLDMarkAllLeaksAsReported ()
@@ -92,7 +92,7 @@ __declspec(dllexport) void VLDDisableModule(HMODULE module)
     g_vld.DisableModule(module);
 }
 
-__declspec(dllexport) UINT32 VLDGetOptions()
+__declspec(dllexport) UINT VLDGetOptions()
 {
     return g_vld.GetOptions();
 }
@@ -102,7 +102,7 @@ __declspec(dllexport) void VLDGetReportFilename(WCHAR *filename)
     g_vld.GetReportFilename(filename);
 }
 
-__declspec(dllexport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames)
+__declspec(dllexport) void VLDSetOptions(UINT option_mask, SIZE_T maxDataDump, UINT maxTraceFrames)
 {
     g_vld.SetOptions(option_mask, maxDataDump, maxTraceFrames);
 }
@@ -122,7 +122,7 @@ __declspec(dllexport) BOOL VLDGetModulesList(WCHAR *modules, UINT size)
     return g_vld.GetModulesList(modules, size);
 }
 
-__declspec(dllexport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename)
+__declspec(dllexport) void VLDSetReportOptions(UINT option_mask, CONST WCHAR *filename)
 {
     g_vld.SetReportOptions(option_mask,filename);
 }

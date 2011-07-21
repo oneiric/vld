@@ -563,7 +563,7 @@ BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
     return patched;
 }
 
-int CallReportHook(int reportType, LPCWSTR message, int* hook_retval)
+int CallReportHook(int reportType, LPWSTR message, int* hook_retval)
 {
     if (g_pReportHooks == NULL)
         return 0;
@@ -588,7 +588,7 @@ int CallReportHook(int reportType, LPCWSTR message, int* hook_retval)
 //
 //    None.
 //
-VOID Print (LPCWSTR messagew)
+VOID Print (LPWSTR messagew)
 {
     if (NULL == messagew)
         return;

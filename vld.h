@@ -179,7 +179,7 @@ __declspec(dllimport) void VLDDisableModule(HMODULE module);
 //
 //    Mask of current options.
 //
-__declspec(dllimport) UINT32 VLDGetOptions();
+__declspec(dllimport) UINT VLDGetOptions();
 
 // VLDGetReportFilename - Return current report filename.
 //
@@ -211,7 +211,7 @@ __declspec(dllimport) void VLDGetReportFilename(WCHAR *filename);
 //
 //    None.
 //
-__declspec(dllimport) void VLDSetOptions(UINT32 option_mask, SIZE_T maxDataDump, UINT32 maxTraceFrames);
+__declspec(dllimport) void VLDSetOptions(UINT option_mask, SIZE_T maxDataDump, UINT maxTraceFrames);
 
 // VLDSetModulesList - Set list of modules included/excluded in leak detection
 // depending on parameter "includeModules".
@@ -253,7 +253,7 @@ __declspec(dllimport) BOOL VLDGetModulesList(WCHAR *modules, UINT size);
 //
 //    None.
 //
-__declspec(dllimport) void VLDSetReportOptions(UINT32 option_mask, CONST WCHAR *filename);
+__declspec(dllimport) void VLDSetReportOptions(UINT option_mask, CONST WCHAR *filename);
 
 // VLDSetReportHook - Installs or uninstalls a client-defined reporting function by hooking it 
 //  into the C run-time debug reporting process (debug version only).
