@@ -188,7 +188,7 @@ DWORD FilterFunction(long)
     return EXCEPTION_CONTINUE_SEARCH;
 } 
 
-// findoriginalimportdescriptor - Determines if the specified module imports the named import
+// FindOriginalImportDescriptor - Determines if the specified module imports the named import
 //   from the named exporting module.
 //
 //  - importmodule (IN): Handle (base address) of the module to be searched to
@@ -201,7 +201,7 @@ DWORD FilterFunction(long)
 //
 //    Returns pointer to descriptor.
 //
-IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPCSTR exportmodulename)
+IMAGE_IMPORT_DESCRIPTOR* FindOriginalImportDescriptor (HMODULE importmodule, LPCSTR exportmodulename)
 {
     IMAGE_IMPORT_DESCRIPTOR* idte = NULL;
     IMAGE_SECTION_HEADER*    section = NULL;
@@ -242,7 +242,7 @@ IMAGE_IMPORT_DESCRIPTOR* findoriginalimportdescriptor (HMODULE importmodule, LPC
     return idte;
 }
 
-// findimport - Determines if the specified module imports the named import
+// FindImport - Determines if the specified module imports the named import
 //   from the named exporting module.
 //
 //  - importmodule (IN): Handle (base address) of the module to be searched to
@@ -269,7 +269,7 @@ BOOL FindImport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     IMAGE_THUNK_DATA        *iate;
     FARPROC                  import;
 
-    idte = findoriginalimportdescriptor(importmodule, exportmodulename);
+    idte = FindOriginalImportDescriptor(importmodule, exportmodulename);
     if (idte == NULL)
         return FALSE;
     
@@ -302,7 +302,7 @@ BOOL FindImport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     return FALSE;
 }
 
-// findpatch - Determines if the specified module has been patched to use the
+// FindPatch - Determines if the specified module has been patched to use the
 //   specified replacement.
 //
 //  - importmodule (IN): Handle (base address) of the module to be searched to
@@ -324,7 +324,7 @@ BOOL FindPatch (HMODULE importmodule, moduleentry_t *module)
 {
     IMAGE_IMPORT_DESCRIPTOR *idte;
 
-    idte = findoriginalimportdescriptor(importmodule, module->exportModuleName);
+    idte = FindOriginalImportDescriptor(importmodule, module->exportModuleName);
     if (idte == NULL)
         return FALSE;
 
@@ -354,7 +354,7 @@ BOOL FindPatch (HMODULE importmodule, moduleentry_t *module)
     return FALSE;
 }
 
-// insertreportdelay - Sets the report function to sleep for a bit after each
+// InsertReportDelay - Sets the report function to sleep for a bit after each
 //   call to OutputDebugString, in order to allow the debugger to catch up.
 //
 //  Return Value:
@@ -366,7 +366,7 @@ VOID InsertReportDelay ()
     s_reportDelay = TRUE;
 }
 
-// moduleispatched - Checks to see if any of the imports listed in the specified
+// IsModulePatched - Checks to see if any of the imports listed in the specified
 //   patch table have been patched into the specified importmodule.
 //
 //  - importmodule (IN): Handle (base address) of the module to be queried to
@@ -401,7 +401,7 @@ BOOL IsModulePatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     return FALSE;
 }
 
-// patchimport - Patches all future calls to an imported function, or references
+// PatchImport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
 //   module's Import Address Table (IAT) with the address of the replacement
@@ -525,7 +525,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
     return result > 0;
 }
 
-// patchmodule - Patches all imports listed in the supplied patch table, and
+// PatchModule - Patches all imports listed in the supplied patch table, and
 //   which are imported by the specified module, through to their respective
 //   replacement functions.
 //
@@ -576,7 +576,7 @@ int CallReportHook(int reportType, LPWSTR message, int* hook_retval)
     return 0;
 }
 
-// print - Sends a message to the debugger for display
+// Print - Sends a message to the debugger for display
 //   and/or to a file.
 //
 //   Note: A message longer than MAXREPORTLENGTH characters will be truncated
@@ -638,7 +638,7 @@ VOID Print (LPWSTR messagew)
     }
 }
 
-// report - Sends a printf-style formatted message to the debugger for display
+// Report - Sends a printf-style formatted message to the debugger for display
 //   and/or to a file.
 //
 //   Note: A message longer than MAXREPORTLENGTH characters will be truncated
@@ -667,8 +667,8 @@ VOID Report (LPCWSTR format, ...)
         Print(messagew);
 }
 
-// restoreimport - Restores the IAT entry for an import previously patched via
-//   a call to "patchimport" to the original address of the import.
+// RestoreImport - Restores the IAT entry for an import previously patched via
+//   a call to "PatchImport" to the original address of the import.
 //
 //  - importmodule (IN): Handle (base address) of the target module for which
 //      calls or references to the import should be restored.
@@ -684,7 +684,7 @@ VOID Report (LPCWSTR format, ...)
 //      import is exported by ordinal.
 //
 //  - replacement (IN): Address of the function or variable which the import was
-//      previously patched through to via a call to "patchimport".
+//      previously patched through to via a call to "PatchImport".
 //
 //  Return Value:
 //
@@ -775,7 +775,7 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
     }
 }
 
-// restoremodule - Restores all imports listed in the supplied patch table, and
+// RestoreModule - Restores all imports listed in the supplied patch table, and
 //   which are imported by the specified module, to their original functions.
 //
 //   Note: If the specified module does not import any of the functions listed
@@ -806,7 +806,7 @@ VOID RestoreModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tabl
     }
 }
 
-// setreportencoding - Sets the output encoding of report messages to either
+// SetReportEncoding - Sets the output encoding of report messages to either
 //   ASCII (the default) or Unicode.
 //
 //  - encoding (IN): Specifies either "ascii" or "unicode".
@@ -828,7 +828,7 @@ VOID SetReportEncoding (encoding_e encoding)
     }
 }
 
-// setreportfile - Sets a destination file to which all report messages should
+// SetReportFile - Sets a destination file to which all report messages should
 //   be sent. If this function is not called to set a destination file, then
 //   report messages will be sent to the debugger instead of to a file.
 //
@@ -868,7 +868,7 @@ VOID SetReportFile (FILE *file, BOOL copydebugger, BOOL tostdout)
 //
 LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
 {
-    if ((source == NULL) || (wcslen(source) == 0))
+    if ((source == NULL) || (source[0] == '\0'))
     {
         return dest;
     }
@@ -880,7 +880,7 @@ LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
     return new_str;
 }
 
-// strtobool - Converts string values (e.g. "yes", "no", "on", "off") to boolean
+// StrToBool - Converts string values (e.g. "yes", "no", "on", "off") to boolean
 //   values.
 //
 //  - s (IN): String value to convert.
