@@ -37,10 +37,9 @@
 #include "vldheap.h"     // Provides internal new and delete operators.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
 
-#define BLOCKMAPRESERVE     64  // This should strike a balance between memory use and a desire to minimize heap hits.
-#define HEAPMAPRESERVE      2   // Usually there won't be more than a few heaps in the process, so this should be small.
-#define MAXSYMBOLNAMELENGTH 256 // Maximum symbol name length that we will allow. Longer names will be truncated.
-#define MODULESETRESERVE    16  // There are likely to be several modules loaded in the process.
+#define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
+#define HEAP_MAP_RESERVE    2   // Usually there won't be more than a few heaps in the process, so this should be small.
+#define MODULE_SET_RESERVE  16  // There are likely to be several modules loaded in the process.
 
 // Imported global variables.
 extern vldblockheader_t *g_vldBlockList;
@@ -632,7 +631,7 @@ VisualLeakDetector::VisualLeakDetector ()
 
     // Initialize remaining private data.
     m_heapMap         = new HeapMap;
-    m_heapMap->reserve(HEAPMAPRESERVE);
+    m_heapMap->reserve(HEAP_MAP_RESERVE);
     m_iMalloc         = NULL;
     m_requestCurr     = 1;
     m_totalAlloc      = 0;
@@ -713,7 +712,7 @@ VisualLeakDetector::VisualLeakDetector ()
 
     // Attach Visual Leak Detector to every module loaded in the process.
     ModuleSet* newmodules = new ModuleSet();
-    newmodules->reserve(MODULESETRESERVE);
+    newmodules->reserve(MODULE_SET_RESERVE);
     EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
     attachToLoadedModules(newmodules);
     m_loadedModules = newmodules;
@@ -1299,7 +1298,7 @@ VOID VisualLeakDetector::configure ()
     // Read the report destination (debugger, file, or both).
     WCHAR filename [MAX_PATH] = {0};
     GetPrivateProfileString(L"Options", L"ReportFile", L"", filename, MAX_PATH, inipath);
-    if (wcslen(filename) == 0) {
+    if (filename[0] == '\0') {
         wcsncpy_s(filename, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
     }
     WCHAR* path = _wfullpath(m_reportFilePath, filename, MAX_PATH);
@@ -1533,7 +1532,7 @@ VOID VisualLeakDetector::mapHeap (HANDLE heap)
 {
     // Create a new block map for this heap and insert it into the heap map.
     heapinfo_t* heapinfo = new heapinfo_t;
-    heapinfo->blockMap.reserve(BLOCKMAPRESERVE);
+    heapinfo->blockMap.reserve(BLOCK_MAP_RESERVE);
     heapinfo->flags = 0x0;
     CriticalSectionLocker cs(m_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->insert(heap, heapinfo);
@@ -1655,7 +1654,7 @@ VOID VisualLeakDetector::reportConfig ()
     if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
         Report(L"    Aggregating duplicate leaks.\n");
     }
-    if (wcslen(m_forcedModuleList) != 0) {
+    if (m_forcedModuleList[0] != '\0') {
         Report(L"    Forcing %s of these modules in leak detection: %s\n", 
             (m_options & VLD_OPT_MODULE_LIST_INCLUDE) ? L"inclusion" : L"exclusion", m_forcedModuleList);
     }
@@ -1887,7 +1886,7 @@ blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& hea
     // Iterate through all heaps
     for (HeapMap::Iterator it = m_heapMap->begin();
         it != m_heapMap->end();
-        it++)
+        ++it)
     {
         HANDLE heap_handle  = (*it).first;
         (heap_handle); // unused
@@ -1897,7 +1896,7 @@ blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& hea
         BlockMap& p_block_map = heapPtr->blockMap;
         for (BlockMap::Iterator iter = p_block_map.begin();
             iter != p_block_map.end();
-            iter++)
+            ++iter)
         {
             if ((*iter).first == mem)
             {
@@ -3491,10 +3490,10 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     g_vld.mapHeap(heap);
 
     // Try to get the name of the function containing the return address.
-    BYTE symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+    BYTE symbolbuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
     SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
     functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-    functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+    functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
 
     g_symbolLock.Enter();
     DWORD64 displacement;
@@ -3579,7 +3578,7 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
         // Create a new set of all loaded modules, including any newly loaded
         // modules.
         ModuleSet *newmodules = new ModuleSet;
-        newmodules->reserve(MODULESETRESERVE);
+        newmodules->reserve(MODULE_SET_RESERVE);
         EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
 
         // Attach to all modules included in the set.
@@ -3612,7 +3611,7 @@ VOID VisualLeakDetector::RefreshModules()
     // Create a new set of all loaded modules, including any newly loaded
     // modules.
     ModuleSet* newmodules = new ModuleSet();
-    newmodules->reserve(MODULESETRESERVE);
+    newmodules->reserve(MODULE_SET_RESERVE);
     EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
 
     // Attach to all modules included in the set.
@@ -4362,7 +4361,7 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
 
             break;
         }
-        moduleit++;
+        ++moduleit;
     }
 }
 

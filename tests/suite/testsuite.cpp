@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <windows.h>
 #include <tchar.h>
+#include <process.h>
 
 #include <vld.h>
 
@@ -81,9 +82,9 @@ static const int NUMTHREADS = 63;            // Number of threads to run simulta
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 struct blockholder_t {
-	action_e action;
 	PVOID    block;
-	BOOL     leak;
+	action_e action;
+	bool     leak;
 };
 
 typedef void* (__cdecl *free_t) (void* mem);
@@ -93,7 +94,7 @@ struct threadcontext_t {
 	UINT  index;
 	BOOL  leaky;
 	DWORD seed;
-	DWORD threadid;
+	unsigned threadid;
 };
 
 __declspec(thread) blockholder_t  blocks [MAXBLOCKS];
@@ -277,7 +278,7 @@ VOID recursivelyallocate (UINT depth, action_e action, SIZE_T size)
 	}
 }
 
-DWORD __stdcall threadproc_test (LPVOID param)
+unsigned __stdcall threadproc_test (LPVOID param)
 {
 	threadcontext_t* context = (threadcontext_t*)param;
 	assert(context);
@@ -378,7 +379,7 @@ void RunTestSuite()
 		else
 			contexts[index].leaky = FALSE;
 		contexts[index].seed = random(RAND_MAX);
-		HANDLE hthread = CreateThread(NULL, 0, threadproc_test, &contexts[index], 0, &contexts[index].threadid);
+		HANDLE hthread = (HANDLE)_beginthreadex(NULL, 0, threadproc_test, &contexts[index], 0, &contexts[index].threadid);
 		threads[index] = hthread;
 	}
 

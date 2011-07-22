@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "ThreadTests.h"
 #include "LoadTests.h"
+#include <process.h>
 
 void Call_LoaderLocks(bool resolve)
 {
@@ -28,7 +29,7 @@ void Call_One(bool resolve)
 	Call_Two(resolve);
 }
 
-DWORD __stdcall Dynamic_Thread_Procedure(LPVOID foo)
+unsigned __stdcall Dynamic_Thread_Procedure(LPVOID foo)
 {
 	bool* resolve = (bool*)(foo);
 	Call_One(*resolve);
@@ -39,11 +40,11 @@ void RunLoaderLockTests(bool resolve)
 {
 	static const int NUMTHREADS = 64;
 	HANDLE threads[NUMTHREADS] = {0};
-	ULONG thread_id = NULL;
+	unsigned thread_id = NULL;
 
 	for (UINT i = 0; i < NUMTHREADS; ++i)
 	{
-		threads[i] = CreateThread(NULL, // security attribute
+		threads[i] = (HANDLE)_beginthreadex(NULL, // security attribute
 			0,                          // stack size
 			Dynamic_Thread_Procedure,           // start function
 			&resolve,                   // thread parameters

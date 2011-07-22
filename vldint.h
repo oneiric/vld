@@ -336,7 +336,7 @@ private:
     HeapMap             *m_heapMap;           // Map of all active heaps in the process.
     IMalloc             *m_iMalloc;           // Pointer to the system implementation of IMalloc.
 
-    LONG                 m_requestCurr;       // Current request number.
+    SIZE_T               m_requestCurr;       // Current request number.
     SIZE_T               m_totalAlloc;        // Grand total - sum of all allocations.
     SIZE_T               m_curAlloc;          // Total amount currently allocated.
     SIZE_T               m_maxAlloc;          // Largest ever allocated at once.

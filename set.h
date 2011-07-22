@@ -138,7 +138,7 @@ public:
 
         // operator - - Subtraction operator for Set Iterators. Causes the
         //   the Iterator to reference a key that is an in-order predecessor of
-        //   the currently refereced key.
+        //   the currently referenced key.
         //
         //  - num (IN): Number indicating the number of preceding keys to
         //      decrement the iterator.
@@ -150,12 +150,10 @@ public:
         //
         Iterator operator - (SIZE_T num) const
         {
-            SIZE_T                     count;
             typename Tree<Tk>::node_t *cur = m_node;
 
-            cur = m_tree->prev(m_node);
-            for (count = 0; count < num; count++)  {
-                cur = m_tree->prev(m_node);
+            for (SIZE_T count = 0; count < num; count++)  {
+                cur = m_tree->prev(cur);
                 if (cur == NULL) {
                     return Iterator(m_tree, NULL);
                 }
@@ -201,7 +199,7 @@ public:
     // Iterators are const Iterators). By dereferencing a Muterator, you get
     // a modifiable element.
     //
-    //   Caution: Modifing an element in a way that changes its sorting value
+    //   Caution: Modifying an element in a way that changes its sorting value
     //     will corrupt the Set container. Muterators should only be used when
     //     you are absolutely certain you will not be using it to make a
     //     modification that changes the sort order of the referenced element.
@@ -240,7 +238,7 @@ public:
     //  Return Value:
     //
     //    Returns an Iterator referencing the first key in the Set. If no keys
-    //    are currenly stored in the Set, returns the "NULL" Iterator.
+    //    are currently stored in the Set, returns the "NULL" Iterator.
     //
     Iterator begin () const
     {

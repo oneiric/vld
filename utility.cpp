@@ -567,7 +567,7 @@ int CallReportHook(int reportType, LPWSTR message, int* hook_retval)
 {
     if (g_pReportHooks == NULL)
         return 0;
-    for (ReportHookSet::Iterator it = g_pReportHooks->begin(); it != g_pReportHooks->end(); it++)
+    for (ReportHookSet::Iterator it = g_pReportHooks->begin(); it != g_pReportHooks->end(); ++it)
     {
         int result = (*it)(reportType, message, hook_retval);
         if (result) // handled

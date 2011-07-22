@@ -32,7 +32,9 @@
 #include <windows.h>
 #include "utility.h"
 
-#define CALLSTACKCHUNKSIZE 32 // Number of frame slots in each CallStack chunk.
+#define CALLSTACK_CHUNK_SIZE    32	// Number of frame slots in each CallStack chunk.
+#define MAX_SYMBOL_NAME_LENGTH  256 // Maximum symbol name length that we will allow. Longer names will be truncated.
+#define MAX_SYMBOL_NAME_SIZE    ((MAX_SYMBOL_NAME_LENGTH * sizeof(WCHAR)) - 1)
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -107,7 +109,7 @@ private:
 	// The chunk list is made of a linked list of Chunks.
 	struct chunk_t {
 		chunk_t*    next;					    // Pointer to the next chunk in the chunk list.
-		UINT_PTR    frames[CALLSTACKCHUNKSIZE]; // Pushed frames (program counter addresses) are stored in this array.
+		UINT_PTR    frames[CALLSTACK_CHUNK_SIZE]; // Pushed frames (program counter addresses) are stored in this array.
 	};
 
 	// Private data.

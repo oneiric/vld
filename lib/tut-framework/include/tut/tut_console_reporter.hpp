@@ -89,7 +89,7 @@ public:
         init();
     }
 
-    console_reporter(const std::string name = "default")
+    console_reporter(const std::string &name = "default")
         : current_group(),
           not_passed(),
           os(std::cout),

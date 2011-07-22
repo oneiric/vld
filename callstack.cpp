@@ -28,8 +28,6 @@
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"     // Provides access to VLD internals.
 
-#define MAXSYMBOLNAMELENGTH 256
-
 // Imported global variables.
 extern HANDLE             g_currentProcess;
 extern HANDLE             g_currentThread;
@@ -42,7 +40,7 @@ extern VisualLeakDetector g_vld;
 //
 CallStack::CallStack ()
 {
-	m_capacity   = CALLSTACKCHUNKSIZE;
+	m_capacity   = CALLSTACK_CHUNK_SIZE;
 	m_size       = 0;
 	m_status     = 0x0;
 	m_store.next = NULL;
@@ -113,7 +111,8 @@ BOOL CallStack::operator == (const CallStack &other) const
 	const CallStack::chunk_t *chunk = &m_store;
 	const CallStack::chunk_t *otherChunk = &other.m_store;
 	while (prevChunk != m_topChunk) {
-		for (UINT32 index = 0; index < ((chunk == m_topChunk) ? m_topIndex : CALLSTACKCHUNKSIZE); index++) {
+		UINT32 size = (chunk == m_topChunk) ? m_topIndex : CALLSTACK_CHUNK_SIZE;
+		for (UINT32 index = 0; index < size; index++) {
 			if (chunk->frames[index] != otherChunk->frames[index]) {
 				// Found a mismatch. They are not equal.
 				return FALSE;
@@ -147,14 +146,14 @@ BOOL CallStack::operator == (const CallStack &other) const
 //
 UINT_PTR CallStack::operator [] (UINT32 index) const
 {
-	UINT32                    chunknumber = index / CALLSTACKCHUNKSIZE;
+	UINT32                    chunknumber = index / CALLSTACK_CHUNK_SIZE;
 	const CallStack::chunk_t *chunk = &m_store;
 
 	for (UINT32 count = 0; count < chunknumber; count++) {
 		chunk = chunk->next;
 	}
 
-	return chunk->frames[index % CALLSTACKCHUNKSIZE];
+	return chunk->frames[index % CALLSTACK_CHUNK_SIZE];
 }
 
 // clear - Resets the CallStack, returning it to a state where no frames have
@@ -216,8 +215,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 	IMAGEHLP_LINE64  sourceInfo = { 0 };
 	sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-	const UINT32 symbolBufSize = sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1;
-	BYTE symbolBuffer [symbolBufSize] = { 0 };
+	BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 	
 	WCHAR callingModuleName [MAX_PATH];
 
@@ -245,7 +243,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 		// Initialize structures passed to the symbol handler.
 		SYMBOL_INFO* functionInfo = (SYMBOL_INFO*)&symbolBuffer;
 		functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-		functionInfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+		functionInfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
 
 		// Try to get the name of the function containing this program
 		// counter address.
@@ -335,8 +333,7 @@ void CallStack::resolve(BOOL showInternalFrames)
 	IMAGEHLP_LINE64  sourceInfo = { 0 };
 	sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-	const UINT32 symbolBufSize = sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1;
-	BYTE symbolBuffer [symbolBufSize] = { 0 };
+	BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 	
 	WCHAR callingModuleName [MAX_PATH] = L"";
 
@@ -374,7 +371,7 @@ void CallStack::resolve(BOOL showInternalFrames)
 		// Initialize structures passed to the symbol handler.
 		SYMBOL_INFO* functionInfo = (SYMBOL_INFO*)&symbolBuffer;
 		functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-		functionInfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+		functionInfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
 
 		// Try to get the name of the function containing this program
 		// counter address.
@@ -477,9 +474,9 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 		m_topChunk->next = chunk;
 		m_topChunk = chunk;
 		m_topIndex = 0;
-		m_capacity += CALLSTACKCHUNKSIZE;
+		m_capacity += CALLSTACK_CHUNK_SIZE;
 	}
-	else if (m_topIndex >= CALLSTACKCHUNKSIZE) {
+	else if (m_topIndex >= CALLSTACK_CHUNK_SIZE) {
 		// There is more capacity, but not in this chunk. Go to the next chunk.
 		// Note that this only happens if this CallStack has previously been
 		// cleared (clearing resets the data, but doesn't give up any allocated
