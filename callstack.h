@@ -118,7 +118,6 @@ private:
 	CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
 	CallStack::chunk_t* m_topChunk; // Pointer to the chunk at the top of the stack
 	UINT32              m_topIndex; // Index, within the top chunk, of the top of the stack
-	UINT32              m_hashCode; // Call stack hash code
 
 	// The string that contains the stack converted into a human readable format.
 	// This is always NULL if the callstack has not been 'converted'.

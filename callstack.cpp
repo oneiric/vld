@@ -49,7 +49,6 @@ CallStack::CallStack ()
 	m_resolved   = NULL;
 	m_resolvedCapacity   = 0;
 	m_resolvedLength = 0;
-	m_hashCode    = 0xD202EF8D;
 }
 
 // Destructor - Frees all memory allocated to the CallStack.
@@ -449,7 +448,14 @@ void CallStack::dumpResolved() const
 //
 DWORD CallStack::getHashValue () const
 {
-	return m_hashCode;
+	DWORD       hashcode = 0xD202EF8D;
+
+	// Iterate through each frame in the call stack.
+	for (UINT32 frame = 0; frame < m_size; frame++) {
+		UINT_PTR programcounter = (*this)[frame];
+		hashcode = CalculateCRC32(programcounter, hashcode);
+	}
+	return hashcode;
 }
 
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
@@ -484,9 +490,6 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 		m_topChunk = m_topChunk->next;
 		m_topIndex = 0;
 	}
-
-	UINT_PTR BaseAddress = (UINT_PTR)GetCallingModule(programcounter);
-	m_hashCode = CalculateCRC32(programcounter - BaseAddress, m_hashCode);
 
 	m_topChunk->frames[m_topIndex++] = programcounter;
 	m_size++;
