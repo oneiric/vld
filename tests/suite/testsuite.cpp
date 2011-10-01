@@ -495,6 +495,7 @@ int main (int argc, char *argv [])
 	_tprintf(_T("======================================\n"));
 
 
+	int prevleaks = (int)VLDGetLeaksCount();
 	DWORD start = GetTickCount();
 	srand(start);
 
@@ -506,7 +507,7 @@ int main (int argc, char *argv [])
 	_snprintf_s(message, MESSAGESIZE, _TRUNCATE, "Elapsed Time = %ums\n", end - start);
 	OutputDebugString(message);
 
-	int totalleaks = (int)VLDGetLeaksCount();
+	int totalleaks = (int)VLDGetLeaksCount() - prevleaks;
 	int diff = leaks_count - totalleaks;
 	assert(diff == 0);
 

@@ -228,10 +228,10 @@ copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.dll $(Outdir)\vld_x64.dll /y
-copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x64.pdb $(Outdir)\vld_x64.pdb /y
-copy $(ProjectDir)..\..\setup\dbghelp\x64\dbghelp.dll $(OutDir)\dbghelp.dll /y
-copy $(ProjectDir)..\..\setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest</Command>
+      <Command>copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.dll $(Outdir)\vld_x86.dll /y
+copy $(ProjectDir)..\..\$(Platform)\$(Configuration)\vld_x86.pdb $(Outdir)\vld_x86.pdb /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\dbghelp.dll $(OutDir)\dbghelp.dll /y
+copy $(ProjectDir)..\..\setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest $(OutDir)\Microsoft.DTfW.DHL.manifest</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
