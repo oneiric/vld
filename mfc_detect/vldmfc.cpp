@@ -217,45 +217,53 @@ BOOL CMFCExampleApp::InitInstance()
 #ifdef _DEBUG
 #ifndef _UNICODE
 #if _MFC_VER == 0x0700		// VS 2003
-#define MFCDLLNAME   _T("mfc70d.dll") 
+#define MFCDLLNAME   _T("mfc70d.dll")
 #elif _MFC_VER == 0x0800	// VS 2005
-#define MFCDLLNAME   _T("mfc80d.dll")      
+#define MFCDLLNAME   _T("mfc80d.dll")
 #elif _MFC_VER == 0x0900	// VS 2008
-#define MFCDLLNAME   _T("mfc90d.dll")      
+#define MFCDLLNAME   _T("mfc90d.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
-#define MFCDLLNAME   _T("mfc100d.dll") 
+#define MFCDLLNAME   _T("mfc100d.dll")   
+#elif _MFC_VER == 0x0B00	// VS 2011
+#define MFCDLLNAME   _T("mfc110d.dll")
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
-#define MFCDLLNAME   _T("mfc70ud.dll")     
+#define MFCDLLNAME   _T("mfc70ud.dll")
 #elif _MFC_VER == 0x0800	// VS 2005
-#define MFCDLLNAME   _T("mfc80ud.dll")      
+#define MFCDLLNAME   _T("mfc80ud.dll")
 #elif _MFC_VER == 0x0900	// VS 2008
-#define MFCDLLNAME   _T("mfc90ud.dll")      
+#define MFCDLLNAME   _T("mfc90ud.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
-#define MFCDLLNAME   _T("mfc100ud.dll") 
+#define MFCDLLNAME   _T("mfc100ud.dll")
+#elif _MFC_VER == 0x0B00	// VS 2011
+#define MFCDLLNAME   _T("mfc110ud.dll") 
 #endif
 #endif
 #else
 #ifndef _UNICODE
 #if _MFC_VER == 0x0700		// VS 2003
-#define MFCDLLNAME   _T("mfc70.dll") 
+#define MFCDLLNAME   _T("mfc70.dll")
 #elif _MFC_VER == 0x0800	// VS 2005
-#define MFCDLLNAME   _T("mfc80.dll")      
+#define MFCDLLNAME   _T("mfc80.dll")
 #elif _MFC_VER == 0x0900	// VS 2008
-#define MFCDLLNAME   _T("mfc90.dll")      
+#define MFCDLLNAME   _T("mfc90.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
-#define MFCDLLNAME   _T("mfc100.dll") 
+#define MFCDLLNAME   _T("mfc100.dll")
+#elif _MFC_VER == 0x0B00	// VS 2010
+#define MFCDLLNAME   _T("mfc110.dll")
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
-#define MFCDLLNAME   _T("mfc70u.dll")     
+#define MFCDLLNAME   _T("mfc70u.dll")
 #elif _MFC_VER == 0x0800	// VS 2005
-#define MFCDLLNAME   _T("mfc80u.dll")      
+#define MFCDLLNAME   _T("mfc80u.dll")
 #elif _MFC_VER == 0x0900	// VS 2008
-#define MFCDLLNAME   _T("mfc90u.dll")      
+#define MFCDLLNAME   _T("mfc90u.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
-#define MFCDLLNAME   _T("mfc100u.dll") 
+#define MFCDLLNAME   _T("mfc100u.dll")
+#elif _MFC_VER == 0x0B00	// VS 2011
+#define MFCDLLNAME   _T("mfc110u.dll") 
 #endif
 #endif
 #endif

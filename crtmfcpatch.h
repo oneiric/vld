@@ -1197,6 +1197,11 @@ typedef CrtMfcPatch<100>
     VS100;
 typedef CrtMfcPatch<100, true>
     VS100d;
+// Visual Studio 2011
+typedef CrtMfcPatch<110>
+    VS110;
+typedef CrtMfcPatch<110, true>
+    VS110d;
 
 void* VS60::pcrtd__calloc_dbg = NULL;
 void* VS60::pcrtd__malloc_dbg = NULL;
@@ -1641,3 +1646,78 @@ void* VS100d::pmfcud__scalar_new_dbg_4p = NULL;
 void* VS100d::pmfcud__vector_new_dbg_4p = NULL;
 void* VS100d::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS100d::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS110::pcrtd__calloc_dbg = NULL;
+void* VS110::pcrtd__malloc_dbg = NULL;
+void* VS110::pcrtd__realloc_dbg = NULL;
+void* VS110::pcrtd__recalloc_dbg = NULL;
+void* VS110::pcrtd_calloc = NULL;
+void* VS110::pcrtd_malloc = NULL;
+void* VS110::pcrtd_realloc = NULL;
+void* VS110::pcrtd_recalloc = NULL;
+void* VS110::pcrtd__aligned_malloc_dbg = NULL;
+void* VS110::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS110::pcrtd__aligned_realloc_dbg = NULL;
+void* VS110::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS110::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS110::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS110::pcrtd_aligned_malloc = NULL;
+void* VS110::pcrtd_aligned_offset_malloc = NULL;
+void* VS110::pcrtd_aligned_realloc = NULL;
+void* VS110::pcrtd_aligned_offset_realloc = NULL;
+void* VS110::pcrtd_aligned_recalloc = NULL;
+void* VS110::pcrtd_aligned_offset_recalloc = NULL;
+void* VS110::pcrtd__scalar_new_dbg = NULL;
+void* VS110::pcrtd__vector_new_dbg = NULL;
+void* VS110::pcrtd_scalar_new = NULL;
+void* VS110::pcrtd_vector_new = NULL;
+void* VS110::pmfcd_scalar_new = NULL;
+void* VS110::pmfcd_vector_new = NULL;
+void* VS110::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS110::pmfcd__vector_new_dbg_4p = NULL;
+void* VS110::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS110::pmfcd__vector_new_dbg_3p = NULL;
+void* VS110::pmfcud_scalar_new = NULL;
+void* VS110::pmfcud_vector_new = NULL;
+void* VS110::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS110::pmfcud__vector_new_dbg_4p = NULL;
+void* VS110::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS110::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS110d::pcrtd__calloc_dbg = NULL;
+void* VS110d::pcrtd__malloc_dbg = NULL;
+void* VS110d::pcrtd__realloc_dbg = NULL;
+void* VS110d::pcrtd__recalloc_dbg = NULL;
+void* VS110d::pcrtd_calloc = NULL;
+void* VS110d::pcrtd_malloc = NULL;
+void* VS110d::pcrtd_realloc = NULL;
+void* VS110d::pcrtd_recalloc = NULL;
+void* VS110d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS110d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS110d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS110d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS110d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS110d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS110d::pcrtd_aligned_malloc = NULL;
+void* VS110d::pcrtd_aligned_offset_malloc = NULL;
+void* VS110d::pcrtd_aligned_realloc = NULL;
+void* VS110d::pcrtd_aligned_offset_realloc = NULL;
+void* VS110d::pcrtd_aligned_recalloc = NULL;
+void* VS110d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS110d::pcrtd__scalar_new_dbg = NULL;
+void* VS110d::pcrtd__vector_new_dbg = NULL;
+void* VS110d::pcrtd_scalar_new = NULL;
+void* VS110d::pcrtd_vector_new = NULL;
+void* VS110d::pmfcd_scalar_new = NULL;
+void* VS110d::pmfcd_vector_new = NULL;
+void* VS110d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS110d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS110d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS110d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS110d::pmfcud_scalar_new = NULL;
+void* VS110d::pmfcud_vector_new = NULL;
+void* VS110d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS110d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS110d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS110d::pmfcud__vector_new_dbg_3p = NULL;
+

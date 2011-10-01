@@ -243,13 +243,13 @@ static patchentry_t mfc90udPatch [] = {
     ORDINAL2(936, 914),   &VS90d::pmfcud__scalar_new_dbg_4p,    VS90d::mfcud__scalar_new_dbg_4p,
     ORDINAL2(937, 915),   &VS90d::pmfcud__scalar_new_dbg_3p,    VS90d::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL,                                 NULL
-};															    
+};
                                                                 
 static patchentry_t mfc100Patch [] = {						    
     ORDINAL(265),         &VS100::pmfcd_vector_new,		        VS100::mfcd_vector_new,
     ORDINAL2(1294, 1272), &VS100::pmfcd_scalar_new,		        VS100::mfcd_scalar_new,
     NULL,                 NULL,                                 NULL
-};															    
+};
                                                                 
 static patchentry_t mfc100dPatch [] = {						    
     ORDINAL(267),         &VS100d::pmfcd_vector_new,		    VS100d::mfcd_vector_new,
@@ -259,7 +259,7 @@ static patchentry_t mfc100dPatch [] = {
     ORDINAL2(1428, 1406), &VS100d::pmfcd__scalar_new_dbg_4p,    VS100d::mfcd__scalar_new_dbg_4p,
     ORDINAL2(1429, 1407), &VS100d::pmfcd__scalar_new_dbg_3p,    VS100d::mfcd__scalar_new_dbg_3p,
     NULL,                 NULL,                                 NULL
-};															    
+};
                                                                 
 static patchentry_t mfc100uPatch [] = {						    
     ORDINAL(265),         &VS100::pmfcud_vector_new,		    VS100::mfcud_vector_new,
@@ -274,6 +274,38 @@ static patchentry_t mfc100udPatch [] = {
     ORDINAL2(1434, 1412), &VS100d::pmfcud_scalar_new,		    VS100d::mfcud_scalar_new,
     ORDINAL2(1435, 1413), &VS100d::pmfcud__scalar_new_dbg_4p,   VS100d::mfcud__scalar_new_dbg_4p,
     ORDINAL2(1436, 1414), &VS100d::pmfcud__scalar_new_dbg_3p,   VS100d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};
+                                                                
+static patchentry_t mfc110Patch [] = {						    
+    ORDINAL(265),         &VS110::pmfcd_vector_new,		        VS110::mfcd_vector_new,
+    ORDINAL2(1498, 1476), &VS110::pmfcd_scalar_new,		        VS110::mfcd_scalar_new,
+    NULL,                 NULL,                                 NULL
+};
+                                                                
+static patchentry_t mfc110dPatch [] = {						    
+    ORDINAL(267),         &VS110d::pmfcd_vector_new,		    VS110d::mfcd_vector_new,
+    ORDINAL(268),         &VS110d::pmfcd__vector_new_dbg_4p,    VS110d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &VS110d::pmfcd__vector_new_dbg_3p,    VS110d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1629, 1607), &VS110d::pmfcd_scalar_new,		    VS110d::mfcd_scalar_new,
+    ORDINAL2(1630, 1608), &VS110d::pmfcd__scalar_new_dbg_4p,    VS110d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1631, 1609), &VS110d::pmfcd__scalar_new_dbg_3p,    VS110d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                 NULL
+};
+                                                                
+static patchentry_t mfc110uPatch [] = {						    
+    ORDINAL(265),         &VS110::pmfcud_vector_new,		    VS110::mfcud_vector_new,
+    ORDINAL2(1502, 1480), &VS110::pmfcud_scalar_new,		    VS110::mfcud_scalar_new,
+    NULL,                 NULL,                                 NULL
+};															    
+                                                                
+static patchentry_t mfc110udPatch [] = {					    
+    ORDINAL(267),         &VS110d::pmfcud_vector_new,		    VS110d::mfcud_vector_new,
+    ORDINAL(268),         &VS110d::pmfcud__vector_new_dbg_4p,   VS110d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &VS110d::pmfcud__vector_new_dbg_3p,   VS110d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1636, 1614), &VS110d::pmfcud_scalar_new,		    VS110d::mfcud_scalar_new,
+    ORDINAL2(1637, 1615), &VS110d::pmfcud__scalar_new_dbg_4p,   VS110d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1638, 1616), &VS110d::pmfcud__scalar_new_dbg_3p,   VS110d::mfcud__scalar_new_dbg_3p,
     NULL,                 NULL,                                 NULL
 };
 
@@ -481,6 +513,52 @@ static patchentry_t msvcr100dPatch [] = {
     NULL,                           NULL,                                       NULL,                                       
 };
 
+static patchentry_t msvcr110Patch [] = {
+    scalar_new_dbg_name,  &VS110::pcrtd__scalar_new_dbg,    VS110::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS110::pcrtd__vector_new_dbg,    VS110::crtd__vector_new_dbg,
+    "calloc",             &VS110::pcrtd_calloc,             VS110::crtd_calloc,
+    "malloc",             &VS110::pcrtd_malloc,             VS110::crtd_malloc,
+    "realloc",            &VS110::pcrtd_realloc,            VS110::crtd_realloc,
+    "_recalloc",          &VS110::pcrtd_recalloc,           VS110::crtd__recalloc,
+    scalar_new_name,      &VS110::pcrtd_scalar_new,         VS110::crtd_scalar_new,
+    vector_new_name,      &VS110::pcrtd_vector_new,         VS110::crtd_vector_new,
+    "_aligned_malloc",			    &VS110::pcrtd_aligned_malloc,               VS110::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &VS110::pcrtd_aligned_offset_malloc,        VS110::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &VS110::pcrtd_aligned_realloc,              VS110::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &VS110::pcrtd_aligned_offset_realloc,       VS110::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &VS110::pcrtd_aligned_recalloc,             VS110::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &VS110::pcrtd_aligned_offset_recalloc,      VS110::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                       NULL,                                       
+};
+
+static patchentry_t msvcr110dPatch [] = {
+    "_calloc_dbg",        &VS110d::pcrtd__calloc_dbg,	    VS110d::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS110d::pcrtd__malloc_dbg,	    VS110d::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS110d::pcrtd__realloc_dbg,      VS110d::crtd__realloc_dbg,
+    "_recalloc_dbg",      &VS110d::pcrtd__recalloc_dbg,     VS110d::crtd__recalloc_dbg,
+    scalar_new_dbg_name,  &VS110d::pcrtd__scalar_new_dbg,   VS110d::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &VS110d::pcrtd__vector_new_dbg,   VS110d::crtd__vector_new_dbg,
+    "calloc",             &VS110d::pcrtd_calloc,            VS110d::crtd_calloc,
+    "malloc",             &VS110d::pcrtd_malloc,            VS110d::crtd_malloc,
+    "realloc",            &VS110d::pcrtd_realloc,           VS110d::crtd_realloc,
+    "_recalloc",          &VS110d::pcrtd_recalloc,          VS110d::crtd__recalloc,
+    scalar_new_name,      &VS110d::pcrtd_scalar_new,        VS110d::crtd_scalar_new,
+    vector_new_name,      &VS110d::pcrtd_vector_new,        VS110d::crtd_vector_new,
+    "_aligned_malloc_dbg",          &VS110d::pcrtd__aligned_malloc_dbg,         VS110d::crtd__aligned_malloc_dbg,
+    "_aligned_offset_malloc_dbg",   &VS110d::pcrtd__aligned_offset_malloc_dbg,  VS110d::crtd__aligned_offset_malloc_dbg,
+    "_aligned_realloc_dbg",		    &VS110d::pcrtd__aligned_realloc_dbg,        VS110d::crtd__aligned_realloc_dbg,
+    "_aligned_offset_realloc_dbg",  &VS110d::pcrtd__aligned_offset_realloc_dbg, VS110d::crtd__aligned_offset_realloc_dbg,
+    "_aligned_recalloc_dbg",		&VS110d::pcrtd__aligned_recalloc_dbg,       VS110d::crtd__aligned_recalloc_dbg,
+    "_aligned_offset_recalloc_dbg", &VS110d::pcrtd__aligned_offset_recalloc_dbg,VS110d::crtd__aligned_offset_recalloc_dbg,
+    "_aligned_malloc",			    &VS110d::pcrtd_aligned_malloc,              VS110d::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &VS110d::pcrtd_aligned_offset_malloc,       VS110d::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &VS110d::pcrtd_aligned_realloc,             VS110d::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &VS110d::pcrtd_aligned_offset_realloc,      VS110d::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &VS110d::pcrtd_aligned_recalloc,            VS110d::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &VS110d::pcrtd_aligned_offset_recalloc,     VS110d::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                       NULL,                                       
+};
+
 patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
     "RtlAllocateHeap",    NULL, VisualLeakDetector::_RtlAllocateHeap,
     "RtlFreeHeap",        NULL, VisualLeakDetector::_RtlFreeHeap,
@@ -525,6 +603,10 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
     "mfc100d.dll",  0x0, mfc100dPatch,
     "mfc100u.dll",  0x0, mfc100uPatch,
     "mfc100ud.dll", 0x0, mfc100udPatch,
+    "mfc110.dll",   0x0, mfc110Patch,
+    "mfc110d.dll",  0x0, mfc110dPatch,
+    "mfc110u.dll",  0x0, mfc110uPatch,
+    "mfc110ud.dll", 0x0, mfc110udPatch,
 
     // CRT new operators and heap APIs.
     "msvcrt.dll",   0x0, msvcrtPatch,
@@ -539,6 +621,8 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
     "msvcr90d.dll", 0x0, msvcr90dPatch,
     "msvcr100.dll", 0x0, msvcr100Patch,
     "msvcr100d.dll",0x0, msvcr100dPatch,
+    "msvcr110.dll", 0x0, msvcr110Patch,
+    "msvcr110d.dll",0x0, msvcr110dPatch,
 
     // NT APIs.
     "ntdll.dll",    0x0, m_ntdllPatch,
