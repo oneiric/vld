@@ -46,7 +46,7 @@ struct unicodestring_t {
 // be load-time linked (no import library is available for these).
 typedef NTSTATUS (__stdcall *LdrLoadDll_t) (LPWSTR, ULONG, unicodestring_t *, PHANDLE);
 typedef LPVOID (__stdcall *RtlAllocateHeap_t) (HANDLE, DWORD, SIZE_T);
-typedef BOOL (__stdcall *RtlFreeHeap_t) (HANDLE, DWORD, LPVOID);
+typedef BYTE (__stdcall *RtlFreeHeap_t) (HANDLE, DWORD, LPVOID);
 typedef LPVOID (__stdcall *RtlReAllocateHeap_t) (HANDLE, DWORD, LPVOID, SIZE_T);
 
 // Provide forward declarations for the NT APIs for any source files that

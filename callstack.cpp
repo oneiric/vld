@@ -215,7 +215,8 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 	sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
 	BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
-	
+
+	WCHAR lowerCaseName [MAX_PATH];
 	WCHAR callingModuleName [MAX_PATH];
 
 	const size_t max_size = MAXREPORTLENGTH + 1;
@@ -231,8 +232,9 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 		DWORD            displacement = 0;
 		foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 		if (foundline && !showInternalFrames) {
-			_wcslwr_s(sourceInfo.FileName, wcslen(sourceInfo.FileName) + 1);
-			if (isInternalModule(sourceInfo.FileName)) {
+			wcscpy_s(lowerCaseName, sourceInfo.FileName);
+			_wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
+			if (isInternalModule(lowerCaseName)) {
 				// Don't show frames in files internal to the heap.
 				g_symbolLock.Leave();
 				continue;
@@ -335,6 +337,7 @@ void CallStack::resolve(BOOL showInternalFrames)
 	BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 	
 	WCHAR callingModuleName [MAX_PATH] = L"";
+	WCHAR lowerCaseName [MAX_PATH];
 
 	const size_t max_line_length = MAXREPORTLENGTH + 1;
 	m_resolvedCapacity = m_size * max_line_length;
@@ -359,8 +362,9 @@ void CallStack::resolve(BOOL showInternalFrames)
 		assert(m_resolved != NULL);
 
 		if (foundline && !showInternalFrames) {
-			_wcslwr_s(sourceInfo.FileName, wcslen(sourceInfo.FileName) + 1);
-			if (isInternalModule(sourceInfo.FileName)) {
+			wcscpy_s(lowerCaseName, sourceInfo.FileName);
+			_wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
+			if (isInternalModule(lowerCaseName)) {
 				// Don't show frames in files internal to the heap.
 				g_symbolLock.Leave();
 				continue;
@@ -497,15 +501,18 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
 
 bool CallStack::isInternalModule( const PWSTR filename ) const
 {
-	return wcsstr(filename, L"afxmem.cpp") ||
-		wcsstr(filename, L"dbgheap.c") ||
-		wcsstr(filename, L"malloc.c") ||
-		wcsstr(filename, L"new.cpp") ||
-		wcsstr(filename, L"newaop.cpp") ||
-		wcsstr(filename, L"dbgcalloc.c") ||
-		wcsstr(filename, L"realloc.c") ||
-		wcsstr(filename, L"dbgrealloc.c") ||
-		wcsstr(filename, L"free.c");
+	return wcsstr(filename, L"\\crt\\src\\afxmem.cpp") ||
+		wcsstr(filename, L"\\crt\\src\\dbgheap.c") ||
+		wcsstr(filename, L"\\crt\\src\\malloc.c") ||
+		wcsstr(filename, L"\\crt\\src\\dbgmalloc.c") ||
+		wcsstr(filename, L"\\crt\\src\\new.cpp") ||
+		wcsstr(filename, L"\\crt\\src\\newaop.cpp") ||
+		wcsstr(filename, L"\\crt\\src\\dbgcalloc.c") ||
+		wcsstr(filename, L"\\crt\\src\\realloc.c") ||
+		wcsstr(filename, L"\\crt\\src\\dbgrealloc.c") ||
+		wcsstr(filename, L"\\crt\\src\\dbgdel.cp") ||
+		wcsstr(filename, L"\\crt\\src\\free.c") ||
+		wcsstr(filename, L"\\vc\\include\\xmemory0");
 }
 
 // getStackTrace - Traces the stack as far back as possible, or until 'maxdepth'

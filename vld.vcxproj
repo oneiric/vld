@@ -237,6 +237,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="callstack.cpp" />
+    <ClCompile Include="dllspatches.cpp" />
     <ClCompile Include="ntapi.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -248,6 +249,7 @@
     <ClCompile Include="vld.cpp" />
     <ClCompile Include="vldapi.cpp" />
     <ClCompile Include="vldheap.cpp" />
+    <ClCompile Include="vld_hooks.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="callstack.h" />

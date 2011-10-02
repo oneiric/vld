@@ -1147,26 +1147,6 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
 
-#ifndef WIN64
-//void * __cdecl operator new(unsigned int,int,char const *,int)
-const extern char    scalar_new_dbg_name[] = "??2@YAPAXIHPBDH@Z";
-//void * __cdecl operator new[](unsigned int,int,char const *,int)
-const extern char    vector_new_dbg_name[] = "??_U@YAPAXIHPBDH@Z";
-//void * __cdecl operator new(unsigned int)
-const extern char    scalar_new_name[] = "??2@YAPAXI@Z";
-//void * __cdecl operator new[](unsigned int)
-const extern char    vector_new_name[] = "??_U@YAPAXI@Z";
-#else
-//void * __ptr64 __cdecl operator new(unsigned __int64,int,char const * __ptr64,int)
-const extern char    scalar_new_dbg_name[] = "??2@YAPEAX_KHPEBDH@Z";
-//void * __ptr64 __cdecl operator new[](unsigned __int64,int,char const * __ptr64,int)
-const extern char    vector_new_dbg_name[] = "??_U@YAPEAX_KHPEBDH@Z";
-//void * __ptr64 __cdecl operator new(unsigned __int64)
-const extern char    scalar_new_name[] = "??2@YAPEAX_K@Z";
-//void * __ptr64 __cdecl operator new[](unsigned __int64)
-const extern char    vector_new_name[] = "??_U@YAPEAX_K@Z";
-#endif
-
 // Visual Studio 6.0
 typedef CrtMfcPatch<60>
     VS60;
