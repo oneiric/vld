@@ -181,6 +181,7 @@ SectionEnd
 
 Section "Source Code"
     SetOutPath "${SRC_PATH}"
+    File "version.h"
     File "..\*.cpp"
     File "..\*.h"
     File "..\vld.vcxproj"
