@@ -65,16 +65,16 @@ namespace tut
 		ensure("leaks", leaks == (repeat * 2)); 
 	}
 
-	template<>
-	template<>
-	void object::test<4>()
-	{
-		set_test_name("Calloc");
-		int prev = (int)VLDGetLeaksCount();
-		LeakMemory(eCalloc,repeat,false);
-		int leaks = (int)VLDGetLeaksCount() - prev;
-		ensure("leaks", leaks == (repeat * 2)); 
-	}
+	//template<>
+	//template<>
+	//void object::test<4>()
+	//{
+	//	set_test_name("Calloc");
+	//	int prev = (int)VLDGetLeaksCount();
+	//	LeakMemory(eCalloc,repeat,false);
+	//	int leaks = (int)VLDGetLeaksCount() - prev;
+	//	ensure("leaks", leaks == (repeat * 2)); 
+	//}
 
 	template<>
 	template<>
@@ -222,7 +222,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else if (_tcsicmp(_T("all"), argv[1]) == 0)
 		{
 			checkAll = true;
-			multiplayer = 17;
+			multiplayer = 17 - 2;
 		}
 		else
 		{
@@ -243,7 +243,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		else
 		{
 			for (int leak_type = 0; leak_type < eCount; leak_type++)
+			{
+				if (leak_type == eCalloc)
+					continue;
 				LeakMemory((LeakOption)leak_type,repeat,bFree);
+			}
 		}
 		int leaks = (int)VLDGetLeaksCount() - prevleaks;
 		wprintf(_T("End of test app...\n\n"));

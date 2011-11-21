@@ -301,7 +301,7 @@ static patchentry_t mfc110udPatch [] = {
 static patchentry_t msvcrtPatch [] = {
     scalar_new_dbg_name,  &VS60::pcrtd__scalar_new_dbg,	    VS60::crtd__scalar_new_dbg,
     //vector_new_dbg_name,  &VS60::pcrtd__vector_new_dbg,     VS60::crtd__vector_new_dbg,
-    "calloc",             &VS60::pcrtd_calloc,              VS60::crtd_calloc,
+    //"calloc",             &VS60::pcrtd_calloc,              VS60::crtd_calloc,
     "malloc",             &VS60::pcrtd_malloc,              VS60::crtd_malloc,
     "realloc",            &VS60::pcrtd_realloc,             VS60::crtd_realloc,
     scalar_new_name,      &VS60::pcrtd_scalar_new,          VS60::crtd_scalar_new,
@@ -310,12 +310,12 @@ static patchentry_t msvcrtPatch [] = {
 };
 
 static patchentry_t msvcrtdPatch [] = {
-    "_calloc_dbg",        &VS60d::pcrtd__calloc_dbg,	    VS60d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS60d::pcrtd__calloc_dbg,	    VS60d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS60d::pcrtd__malloc_dbg,	    VS60d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS60d::pcrtd__realloc_dbg,       VS60d::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS60d::pcrtd__scalar_new_dbg,    VS60d::crtd__scalar_new_dbg,
     //vector_new_dbg_name,  &VS60d::pcrtd__vector_new_dbg,     VS60d::crtd__vector_new_dbg,
-    "calloc",             &VS60d::pcrtd_calloc,             VS60d::crtd_calloc,
+    //"calloc",             &VS60d::pcrtd_calloc,             VS60d::crtd_calloc,
     "malloc",             &VS60d::pcrtd_malloc,             VS60d::crtd_malloc,
     "realloc",            &VS60d::pcrtd_realloc,            VS60d::crtd_realloc,
     scalar_new_name,      &VS60d::pcrtd_scalar_new,         VS60d::crtd_scalar_new,
@@ -326,7 +326,7 @@ static patchentry_t msvcrtdPatch [] = {
 static patchentry_t msvcr70Patch [] = {
     scalar_new_dbg_name,  &VS70::pcrtd__scalar_new_dbg,     VS70::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS70::pcrtd__vector_new_dbg,     VS70::crtd__vector_new_dbg,
-    "calloc",             &VS70::pcrtd_calloc,              VS70::crtd_calloc,
+    //"calloc",             &VS70::pcrtd_calloc,              VS70::crtd_calloc,
     "malloc",             &VS70::pcrtd_malloc,              VS70::crtd_malloc,
     "realloc",            &VS70::pcrtd_realloc,             VS70::crtd_realloc,
     scalar_new_name,      &VS70::pcrtd_scalar_new,          VS70::crtd_scalar_new,
@@ -335,12 +335,12 @@ static patchentry_t msvcr70Patch [] = {
 };
 
 static patchentry_t msvcr70dPatch [] = {
-    "_calloc_dbg",        &VS70d::pcrtd__calloc_dbg,	    VS70d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS70d::pcrtd__calloc_dbg,	    VS70d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS70d::pcrtd__malloc_dbg,	    VS70d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS70d::pcrtd__realloc_dbg,       VS70d::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS70d::pcrtd__scalar_new_dbg,    VS70d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS70d::pcrtd__vector_new_dbg,    VS70d::crtd__vector_new_dbg,
-    "calloc",             &VS70d::pcrtd_calloc,             VS70d::crtd_calloc,
+    //"calloc",             &VS70d::pcrtd_calloc,             VS70d::crtd_calloc,
     "malloc",             &VS70d::pcrtd_malloc,             VS70d::crtd_malloc,
     "realloc",            &VS70d::pcrtd_realloc,            VS70d::crtd_realloc,
     scalar_new_name,      &VS70d::pcrtd_scalar_new,         VS70d::crtd_scalar_new,
@@ -351,7 +351,7 @@ static patchentry_t msvcr70dPatch [] = {
 static patchentry_t msvcr71Patch [] = {
     scalar_new_dbg_name,  &VS71::pcrtd__scalar_new_dbg,     VS71::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS71::pcrtd__vector_new_dbg,     VS71::crtd__vector_new_dbg,
-    "calloc",             &VS71::pcrtd_calloc,              VS71::crtd_calloc,
+    //"calloc",             &VS71::pcrtd_calloc,              VS71::crtd_calloc,
     "malloc",             &VS71::pcrtd_malloc,              VS71::crtd_malloc,
     "realloc",            &VS71::pcrtd_realloc,             VS71::crtd_realloc,
     scalar_new_name,      &VS71::pcrtd_scalar_new,          VS71::crtd_scalar_new,
@@ -360,12 +360,12 @@ static patchentry_t msvcr71Patch [] = {
 };
 
 static patchentry_t msvcr71dPatch [] = {
-    "_calloc_dbg",        &VS71d::pcrtd__calloc_dbg,	    VS71d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS71d::pcrtd__calloc_dbg,	    VS71d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS71d::pcrtd__malloc_dbg,	    VS71d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS71d::pcrtd__realloc_dbg,       VS71d::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS71d::pcrtd__scalar_new_dbg,    VS71d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS71d::pcrtd__vector_new_dbg,    VS71d::crtd__vector_new_dbg,
-    "calloc",             &VS71d::pcrtd_calloc,             VS71d::crtd_calloc,
+    //"calloc",             &VS71d::pcrtd_calloc,             VS71d::crtd_calloc,
     "malloc",             &VS71d::pcrtd_malloc,             VS71d::crtd_malloc,
     "realloc",            &VS71d::pcrtd_realloc,            VS71d::crtd_realloc,
     scalar_new_name,      &VS71d::pcrtd_scalar_new,         VS71d::crtd_scalar_new,
@@ -376,7 +376,7 @@ static patchentry_t msvcr71dPatch [] = {
 static patchentry_t msvcr80Patch [] = {
     scalar_new_dbg_name,  &VS80::pcrtd__scalar_new_dbg,     VS80::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS80::pcrtd__vector_new_dbg,     VS80::crtd__vector_new_dbg,
-    "calloc",             &VS80::pcrtd_calloc,              VS80::crtd_calloc,
+    //"calloc",             &VS80::pcrtd_calloc,              VS80::crtd_calloc,
     "malloc",             &VS80::pcrtd_malloc,              VS80::crtd_malloc,
     "realloc",            &VS80::pcrtd_realloc,             VS80::crtd_realloc,
     scalar_new_name,      &VS80::pcrtd_scalar_new,          VS80::crtd_scalar_new,
@@ -389,12 +389,12 @@ static patchentry_t msvcr80Patch [] = {
 };
 
 static patchentry_t msvcr80dPatch [] = {
-    "_calloc_dbg",        &VS80d::pcrtd__calloc_dbg,	    VS80d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS80d::pcrtd__calloc_dbg,	    VS80d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS80d::pcrtd__malloc_dbg,	    VS80d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS80d::pcrtd__realloc_dbg,	    VS80d::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS80d::pcrtd__scalar_new_dbg,    VS80d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS80d::pcrtd__vector_new_dbg,    VS80d::crtd__vector_new_dbg,
-    "calloc",             &VS80d::pcrtd_calloc,			    VS80d::crtd_calloc,
+    //"calloc",             &VS80d::pcrtd_calloc,			    VS80d::crtd_calloc,
     "malloc",             &VS80d::pcrtd_malloc,			    VS80d::crtd_malloc,
     "realloc",            &VS80d::pcrtd_realloc,		    VS80d::crtd_realloc,
     scalar_new_name,      &VS80d::pcrtd_scalar_new,		    VS80d::crtd_scalar_new,
@@ -413,7 +413,7 @@ static patchentry_t msvcr80dPatch [] = {
 static patchentry_t msvcr90Patch [] = {
     scalar_new_dbg_name,  &VS90::pcrtd__scalar_new_dbg,     VS90::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS90::pcrtd__vector_new_dbg,     VS90::crtd__vector_new_dbg,
-    "calloc",             &VS90::pcrtd_calloc,              VS90::crtd_calloc,
+    //"calloc",             &VS90::pcrtd_calloc,              VS90::crtd_calloc,
     "malloc",             &VS90::pcrtd_malloc,              VS90::crtd_malloc,
     "realloc",            &VS90::pcrtd_realloc,             VS90::crtd_realloc,
     "_recalloc",          &VS90::pcrtd_recalloc,            VS90::crtd__recalloc,
@@ -429,13 +429,13 @@ static patchentry_t msvcr90Patch [] = {
 };
 
 static patchentry_t msvcr90dPatch [] = {
-    "_calloc_dbg",        &VS90d::pcrtd__calloc_dbg,	    VS90d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS90d::pcrtd__calloc_dbg,	    VS90d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS90d::pcrtd__malloc_dbg,	    VS90d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS90d::pcrtd__realloc_dbg,       VS90d::crtd__realloc_dbg,
     "_recalloc_dbg",      &VS90d::pcrtd__recalloc_dbg,      VS90d::crtd__recalloc_dbg,
     scalar_new_dbg_name,  &VS90d::pcrtd__scalar_new_dbg,    VS90d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS90d::pcrtd__vector_new_dbg,    VS90d::crtd__vector_new_dbg,
-    "calloc",             &VS90d::pcrtd_calloc,             VS90d::crtd_calloc,
+    //"calloc",             &VS90d::pcrtd_calloc,             VS90d::crtd_calloc,
     "malloc",             &VS90d::pcrtd_malloc,             VS90d::crtd_malloc,
     "realloc",            &VS90d::pcrtd_realloc,            VS90d::crtd_realloc,
     "_recalloc",          &VS90d::pcrtd_recalloc,           VS90d::crtd__recalloc,
@@ -459,7 +459,7 @@ static patchentry_t msvcr90dPatch [] = {
 static patchentry_t msvcr100Patch [] = {
     scalar_new_dbg_name,  &VS100::pcrtd__scalar_new_dbg,    VS100::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS100::pcrtd__vector_new_dbg,    VS100::crtd__vector_new_dbg,
-    "calloc",             &VS100::pcrtd_calloc,             VS100::crtd_calloc,
+    //"calloc",             &VS100::pcrtd_calloc,             VS100::crtd_calloc,
     "malloc",             &VS100::pcrtd_malloc,             VS100::crtd_malloc,
     "realloc",            &VS100::pcrtd_realloc,            VS100::crtd_realloc,
     "_recalloc",          &VS100::pcrtd_recalloc,           VS100::crtd__recalloc,
@@ -475,13 +475,13 @@ static patchentry_t msvcr100Patch [] = {
 };
 
 static patchentry_t msvcr100dPatch [] = {
-    "_calloc_dbg",        &VS100d::pcrtd__calloc_dbg,	    VS100d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS100d::pcrtd__calloc_dbg,	    VS100d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS100d::pcrtd__malloc_dbg,	    VS100d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS100d::pcrtd__realloc_dbg,      VS100d::crtd__realloc_dbg,
     "_recalloc_dbg",      &VS100d::pcrtd__recalloc_dbg,     VS100d::crtd__recalloc_dbg,
     scalar_new_dbg_name,  &VS100d::pcrtd__scalar_new_dbg,   VS100d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS100d::pcrtd__vector_new_dbg,   VS100d::crtd__vector_new_dbg,
-    "calloc",             &VS100d::pcrtd_calloc,            VS100d::crtd_calloc,
+    //"calloc",             &VS100d::pcrtd_calloc,            VS100d::crtd_calloc,
     "malloc",             &VS100d::pcrtd_malloc,            VS100d::crtd_malloc,
     "realloc",            &VS100d::pcrtd_realloc,           VS100d::crtd_realloc,
     "_recalloc",          &VS100d::pcrtd_recalloc,          VS100d::crtd__recalloc,
@@ -505,7 +505,7 @@ static patchentry_t msvcr100dPatch [] = {
 static patchentry_t msvcr110Patch [] = {
     scalar_new_dbg_name,  &VS110::pcrtd__scalar_new_dbg,    VS110::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS110::pcrtd__vector_new_dbg,    VS110::crtd__vector_new_dbg,
-    "calloc",             &VS110::pcrtd_calloc,             VS110::crtd_calloc,
+    //"calloc",             &VS110::pcrtd_calloc,             VS110::crtd_calloc,
     "malloc",             &VS110::pcrtd_malloc,             VS110::crtd_malloc,
     "realloc",            &VS110::pcrtd_realloc,            VS110::crtd_realloc,
     "_recalloc",          &VS110::pcrtd_recalloc,           VS110::crtd__recalloc,
@@ -521,13 +521,13 @@ static patchentry_t msvcr110Patch [] = {
 };
 
 static patchentry_t msvcr110dPatch [] = {
-    "_calloc_dbg",        &VS110d::pcrtd__calloc_dbg,	    VS110d::crtd__calloc_dbg,
+    //"_calloc_dbg",        &VS110d::pcrtd__calloc_dbg,	    VS110d::crtd__calloc_dbg,
     "_malloc_dbg",        &VS110d::pcrtd__malloc_dbg,	    VS110d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS110d::pcrtd__realloc_dbg,      VS110d::crtd__realloc_dbg,
     "_recalloc_dbg",      &VS110d::pcrtd__recalloc_dbg,     VS110d::crtd__recalloc_dbg,
     scalar_new_dbg_name,  &VS110d::pcrtd__scalar_new_dbg,   VS110d::crtd__scalar_new_dbg,
     vector_new_dbg_name,  &VS110d::pcrtd__vector_new_dbg,   VS110d::crtd__vector_new_dbg,
-    "calloc",             &VS110d::pcrtd_calloc,            VS110d::crtd_calloc,
+    //"calloc",             &VS110d::pcrtd_calloc,            VS110d::crtd_calloc,
     "malloc",             &VS110d::pcrtd_malloc,            VS110d::crtd_malloc,
     "realloc",            &VS110d::pcrtd_realloc,           VS110d::crtd_realloc,
     "_recalloc",          &VS110d::pcrtd_recalloc,          VS110d::crtd__recalloc,
