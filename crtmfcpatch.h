@@ -46,6 +46,10 @@ public:
     static void* __cdecl crtd_malloc (size_t size);
     static void* __cdecl crtd_realloc (void *mem, size_t size);
     static void* __cdecl crtd__recalloc (void *mem, size_t num, size_t size);
+
+    static char* __cdecl crtd__strdup (const char* src);
+    static char* __cdecl crtd__strdup_dbg (const char* src, int type, char const *file, int line);
+    
     static void* __cdecl crtd_scalar_new (size_t size);
     static void* __cdecl crtd_vector_new (size_t size);
 
@@ -79,10 +83,12 @@ public:
     static void* pcrtd__malloc_dbg;
     static void* pcrtd__realloc_dbg;
     static void* pcrtd__recalloc_dbg;
+    static void* pcrtd__strdup_dbg;
     static void* pcrtd_calloc;
     static void* pcrtd_malloc;
     static void* pcrtd_realloc;
     static void* pcrtd_recalloc;
+    static void* pcrtd__strdup;
     static void* pcrtd__aligned_malloc_dbg;
     static void* pcrtd__aligned_offset_malloc_dbg;
     static void* pcrtd__aligned_realloc_dbg;
@@ -256,6 +262,22 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
     return g_vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
 }
 
+
+template<int CRTVersion, bool debug>
+char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
+    int         type,
+    char const *file,
+    int         line)
+{
+    _strdup_dbg_t pcrtxxd__strdup_dbg = (_strdup_dbg_t)pcrtd__strdup_dbg;
+    assert(pcrtxxd__strdup_dbg);
+
+    context_t context;
+    CAPTURE_CONTEXT(context);
+
+    return g_vld.__strdup_dbg(pcrtxxd__strdup_dbg, context, debug, src, type, file, line);
+}
+
 // crtd__scalar_new_dbg - Calls to the CRT's debug scalar new operator from
 //   msvcrXXd.dll are patched through to this function.
 //
@@ -414,6 +436,19 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, siz
     CAPTURE_CONTEXT(context);
 
     return g_vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
+}
+
+
+template<int CRTVersion, bool debug>
+char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
+{
+    _strdup_t pcrtxxd_strdup = (_strdup_t)pcrtd__strdup;
+    assert(pcrtxxd_strdup);
+
+    context_t context;
+    CAPTURE_CONTEXT(context);
+
+    return g_vld.__strdup(pcrtxxd_strdup, context, debug, src);
 }
 
 // crtd__aligned_malloc_dbg - Calls to _aligned_malloc_dbg from msvcrXXd.dll are patched
@@ -1187,10 +1222,12 @@ void* VS60::pcrtd__calloc_dbg = NULL;
 void* VS60::pcrtd__malloc_dbg = NULL;
 void* VS60::pcrtd__realloc_dbg = NULL;
 void* VS60::pcrtd__recalloc_dbg = NULL;
+void* VS60::pcrtd__strdup_dbg = NULL;
 void* VS60::pcrtd_calloc = NULL;
 void* VS60::pcrtd_malloc = NULL;
 void* VS60::pcrtd_realloc = NULL;
 void* VS60::pcrtd_recalloc = NULL;
+void* VS60::pcrtd__strdup = NULL;
 void* VS60::pcrtd__aligned_malloc_dbg = NULL;
 void* VS60::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS60::pcrtd__aligned_realloc_dbg = NULL;
@@ -1224,10 +1261,12 @@ void* VS60d::pcrtd__calloc_dbg = NULL;
 void* VS60d::pcrtd__malloc_dbg = NULL;
 void* VS60d::pcrtd__realloc_dbg = NULL;
 void* VS60d::pcrtd__recalloc_dbg = NULL;
+void* VS60d::pcrtd__strdup_dbg = NULL;
 void* VS60d::pcrtd_calloc = NULL;
 void* VS60d::pcrtd_malloc = NULL;
 void* VS60d::pcrtd_realloc = NULL;
 void* VS60d::pcrtd_recalloc = NULL;
+void* VS60d::pcrtd__strdup = NULL;
 void* VS60d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS60d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS60d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1261,10 +1300,12 @@ void* VS70::pcrtd__calloc_dbg = NULL;
 void* VS70::pcrtd__malloc_dbg = NULL;
 void* VS70::pcrtd__realloc_dbg = NULL;
 void* VS70::pcrtd__recalloc_dbg = NULL;
+void* VS70::pcrtd__strdup_dbg = NULL;
 void* VS70::pcrtd_calloc = NULL;
 void* VS70::pcrtd_malloc = NULL;
 void* VS70::pcrtd_realloc = NULL;
 void* VS70::pcrtd_recalloc = NULL;
+void* VS70::pcrtd__strdup = NULL;
 void* VS70::pcrtd__aligned_malloc_dbg = NULL;
 void* VS70::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS70::pcrtd__aligned_realloc_dbg = NULL;
@@ -1298,10 +1339,12 @@ void* VS70d::pcrtd__calloc_dbg = NULL;
 void* VS70d::pcrtd__malloc_dbg = NULL;
 void* VS70d::pcrtd__realloc_dbg = NULL;
 void* VS70d::pcrtd__recalloc_dbg = NULL;
+void* VS70d::pcrtd__strdup_dbg = NULL;
 void* VS70d::pcrtd_calloc = NULL;
 void* VS70d::pcrtd_malloc = NULL;
 void* VS70d::pcrtd_realloc = NULL;
 void* VS70d::pcrtd_recalloc = NULL;
+void* VS70d::pcrtd__strdup = NULL;
 void* VS70d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS70d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS70d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1335,10 +1378,12 @@ void* VS71::pcrtd__calloc_dbg = NULL;
 void* VS71::pcrtd__malloc_dbg = NULL;
 void* VS71::pcrtd__realloc_dbg = NULL;
 void* VS71::pcrtd__recalloc_dbg = NULL;
+void* VS71::pcrtd__strdup_dbg = NULL;
 void* VS71::pcrtd_calloc = NULL;
 void* VS71::pcrtd_malloc = NULL;
 void* VS71::pcrtd_realloc = NULL;
 void* VS71::pcrtd_recalloc = NULL;
+void* VS71::pcrtd__strdup = NULL;
 void* VS71::pcrtd__aligned_malloc_dbg = NULL;
 void* VS71::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS71::pcrtd__aligned_realloc_dbg = NULL;
@@ -1372,10 +1417,12 @@ void* VS71d::pcrtd__calloc_dbg = NULL;
 void* VS71d::pcrtd__malloc_dbg = NULL;
 void* VS71d::pcrtd__realloc_dbg = NULL;
 void* VS71d::pcrtd__recalloc_dbg = NULL;
+void* VS71d::pcrtd__strdup_dbg = NULL;
 void* VS71d::pcrtd_calloc = NULL;
 void* VS71d::pcrtd_malloc = NULL;
 void* VS71d::pcrtd_realloc = NULL;
 void* VS71d::pcrtd_recalloc = NULL;
+void* VS71d::pcrtd__strdup = NULL;
 void* VS71d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS71d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS71d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1409,10 +1456,12 @@ void* VS80::pcrtd__calloc_dbg = NULL;
 void* VS80::pcrtd__malloc_dbg = NULL;
 void* VS80::pcrtd__realloc_dbg = NULL;
 void* VS80::pcrtd__recalloc_dbg = NULL;
+void* VS80::pcrtd__strdup_dbg = NULL;
 void* VS80::pcrtd_calloc = NULL;
 void* VS80::pcrtd_malloc = NULL;
 void* VS80::pcrtd_realloc = NULL;
 void* VS80::pcrtd_recalloc = NULL;
+void* VS80::pcrtd__strdup = NULL;
 void* VS80::pcrtd__aligned_malloc_dbg = NULL;
 void* VS80::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS80::pcrtd__aligned_realloc_dbg = NULL;
@@ -1446,10 +1495,12 @@ void* VS80d::pcrtd__calloc_dbg = NULL;
 void* VS80d::pcrtd__malloc_dbg = NULL;
 void* VS80d::pcrtd__realloc_dbg = NULL;
 void* VS80d::pcrtd__recalloc_dbg = NULL;
+void* VS80d::pcrtd__strdup_dbg = NULL;
 void* VS80d::pcrtd_calloc = NULL;
 void* VS80d::pcrtd_malloc = NULL;
 void* VS80d::pcrtd_realloc = NULL;
 void* VS80d::pcrtd_recalloc = NULL;
+void* VS80d::pcrtd__strdup = NULL;
 void* VS80d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS80d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS80d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1483,10 +1534,12 @@ void* VS90::pcrtd__calloc_dbg = NULL;
 void* VS90::pcrtd__malloc_dbg = NULL;
 void* VS90::pcrtd__realloc_dbg = NULL;
 void* VS90::pcrtd__recalloc_dbg = NULL;
+void* VS90::pcrtd__strdup_dbg = NULL;
 void* VS90::pcrtd_calloc = NULL;
 void* VS90::pcrtd_malloc = NULL;
 void* VS90::pcrtd_realloc = NULL;
 void* VS90::pcrtd_recalloc = NULL;
+void* VS90::pcrtd__strdup = NULL;
 void* VS90::pcrtd__aligned_malloc_dbg = NULL;
 void* VS90::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS90::pcrtd__aligned_realloc_dbg = NULL;
@@ -1520,10 +1573,12 @@ void* VS90d::pcrtd__calloc_dbg = NULL;
 void* VS90d::pcrtd__malloc_dbg = NULL;
 void* VS90d::pcrtd__realloc_dbg = NULL;
 void* VS90d::pcrtd__recalloc_dbg = NULL;
+void* VS90d::pcrtd__strdup_dbg = NULL;
 void* VS90d::pcrtd_calloc = NULL;
 void* VS90d::pcrtd_malloc = NULL;
 void* VS90d::pcrtd_realloc = NULL;
 void* VS90d::pcrtd_recalloc = NULL;
+void* VS90d::pcrtd__strdup = NULL;
 void* VS90d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS90d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS90d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1557,10 +1612,12 @@ void* VS100::pcrtd__calloc_dbg = NULL;
 void* VS100::pcrtd__malloc_dbg = NULL;
 void* VS100::pcrtd__realloc_dbg = NULL;
 void* VS100::pcrtd__recalloc_dbg = NULL;
+void* VS100::pcrtd__strdup_dbg = NULL;
 void* VS100::pcrtd_calloc = NULL;
 void* VS100::pcrtd_malloc = NULL;
 void* VS100::pcrtd_realloc = NULL;
 void* VS100::pcrtd_recalloc = NULL;
+void* VS100::pcrtd__strdup = NULL;
 void* VS100::pcrtd__aligned_malloc_dbg = NULL;
 void* VS100::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS100::pcrtd__aligned_realloc_dbg = NULL;
@@ -1594,10 +1651,12 @@ void* VS100d::pcrtd__calloc_dbg = NULL;
 void* VS100d::pcrtd__malloc_dbg = NULL;
 void* VS100d::pcrtd__realloc_dbg = NULL;
 void* VS100d::pcrtd__recalloc_dbg = NULL;
+void* VS100d::pcrtd__strdup_dbg = NULL;
 void* VS100d::pcrtd_calloc = NULL;
 void* VS100d::pcrtd_malloc = NULL;
 void* VS100d::pcrtd_realloc = NULL;
 void* VS100d::pcrtd_recalloc = NULL;
+void* VS100d::pcrtd__strdup = NULL;
 void* VS100d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS100d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS100d::pcrtd__aligned_realloc_dbg = NULL;
@@ -1631,10 +1690,12 @@ void* VS110::pcrtd__calloc_dbg = NULL;
 void* VS110::pcrtd__malloc_dbg = NULL;
 void* VS110::pcrtd__realloc_dbg = NULL;
 void* VS110::pcrtd__recalloc_dbg = NULL;
+void* VS110::pcrtd__strdup_dbg = NULL;
 void* VS110::pcrtd_calloc = NULL;
 void* VS110::pcrtd_malloc = NULL;
 void* VS110::pcrtd_realloc = NULL;
 void* VS110::pcrtd_recalloc = NULL;
+void* VS110::pcrtd__strdup = NULL;
 void* VS110::pcrtd__aligned_malloc_dbg = NULL;
 void* VS110::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS110::pcrtd__aligned_realloc_dbg = NULL;
@@ -1668,10 +1729,12 @@ void* VS110d::pcrtd__calloc_dbg = NULL;
 void* VS110d::pcrtd__malloc_dbg = NULL;
 void* VS110d::pcrtd__realloc_dbg = NULL;
 void* VS110d::pcrtd__recalloc_dbg = NULL;
+void* VS110d::pcrtd__strdup_dbg = NULL;
 void* VS110d::pcrtd_calloc = NULL;
 void* VS110d::pcrtd_malloc = NULL;
 void* VS110d::pcrtd_realloc = NULL;
 void* VS110d::pcrtd_recalloc = NULL;
+void* VS110d::pcrtd__strdup = NULL;
 void* VS110d::pcrtd__aligned_malloc_dbg = NULL;
 void* VS110d::pcrtd__aligned_offset_malloc_dbg = NULL;
 void* VS110d::pcrtd__aligned_realloc_dbg = NULL;

@@ -120,6 +120,17 @@ namespace tut
 		ensure("leaks", leaks == (repeat * 3)); 
 	}
 
+	template<>
+	template<>
+	void object::test<9>()
+	{
+		set_test_name("Strdup");
+		int prev = (int)VLDGetLeaksCount();
+		LeakMemory(eStrdup,repeat,false);
+		int leaks = (int)VLDGetLeaksCount() - prev;
+		ensure("leaks", leaks == (repeat * 2)); 
+	}
+
 	test_runner_singleton runner; 
 }
 
@@ -161,7 +172,7 @@ void PrintUsage()
 	wprintf(_T("Usage:\n"));
 	wprintf(_T("\ttest_basics <type> <repeat>\n"));
 	wprintf(_T("\t<type>   - The type of memory allocation to test with. This can be one of the following:\n"));
-	wprintf(_T("\t           [malloc,new,new_array,calloc,realloc]\n"));
+	wprintf(_T("\t           [malloc,new,new_array,calloc,realloc,CoTaskMem,AlignedMalloc,AlignedRealloc,strdup,all]\n"));
 	wprintf(_T("\t<repeat> - The number of times to repeat each unique memory leak.\n\n"));
 }
 
@@ -218,6 +229,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			leak_type = eAlignedRealloc;
 			multiplayer = 3;
+		}
+		else if (_tcsicmp(_T("strdup"), argv[1]) == 0)
+		{
+			leak_type = eStrdup;
 		}
 		else if (_tcsicmp(_T("all"), argv[1]) == 0)
 		{

@@ -105,7 +105,18 @@ void AllocF(LeakOption type, bool bFree)
 			_aligned_free(leaked_memory);
 			_aligned_free_dbg(leaked_memory_dbg);
 		}
-	} 
+	}
+	else if (type == eStrdup)
+	{
+		leaked_memory     = (int*)strdup("strdup() leaks!");
+		leaked_memory_dbg = (int*)_strdup_dbg("_strdup_dbg() leaks!", _NORMAL_BLOCK,__FILE__,__LINE__);
+		if (bFree)
+		{
+			free(leaked_memory);
+			_free_dbg(leaked_memory_dbg,_NORMAL_BLOCK);
+		}
+	}
+
 }
 
 void AllocE(LeakOption type, bool bFree)

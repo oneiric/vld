@@ -70,6 +70,8 @@ typedef void* (__cdecl *new_dbg_crt_t) (size_t, int, const char *, int);
 typedef void* (__cdecl *new_dbg_mfc_t) (size_t, const char *, int);
 typedef void* (__cdecl *realloc_t) (void *, size_t);
 typedef void* (__cdecl *_recalloc_t) (void *, size_t, size_t);
+typedef char* (__cdecl *_strdup_t) (const char*);
+typedef char* (__cdecl *_strdup_dbg_t) (const char*, int, const char* ,int);
 typedef void* (__cdecl *_aligned_malloc_t) (size_t, size_t);
 typedef void* (__cdecl *_aligned_offset_malloc_t) (size_t, size_t, size_t);
 typedef void* (__cdecl *_aligned_realloc_t) (void *, size_t, size_t);
@@ -205,6 +207,7 @@ public:
     void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size); 
     void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
     void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
+    char* __strdup(_strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src);
 
     // Debug CRT and MFC common handlers
     void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
@@ -214,6 +217,7 @@ public:
     void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
     void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
     void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
+    char* __strdup_dbg(_strdup_dbg_t pstrdup, context_t& context, bool debugRuntime, const char* src, int type, char const *file, int line);
 
     void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
     void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);
@@ -373,6 +377,7 @@ private:
     VOID __stdcall ChangeModuleState(HMODULE module, bool on);
     static _GetProcAddressType * m_original_GetProcAddress;
 };
+
 
 // Configuration option default values
 #define VLD_DEFAULT_MAX_DATA_DUMP    256

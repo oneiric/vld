@@ -277,6 +277,32 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
 	return block;
 }
 
+char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src )
+{
+	tls_t *tls = g_vld.getTls();
+
+	// realloc is a CRT function and allocates from the CRT heap.
+	if (debugRuntime)
+		tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockProcessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlReAllocateHeap.
+	char* block = pstrdup(src);
+
+	if (firstcall)
+		firstAllocCall(tls);
+
+	return block;
+}
+
+
 // __aligned_malloc - This function is just a wrapper around the real malloc that sets
 //   appropriate flags to be consulted when the memory is actually allocated by
 //   RtlAllocateHeap.
@@ -1004,6 +1030,37 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
 	void* block = p_malloc_dbg(size, type, file, line);
+
+	if (firstcall)
+		firstAllocCall(tls);
+
+	return block;
+}
+
+char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg, 
+	context_t& context, 
+	bool debugRuntime, 
+	const char* src, 
+	int type, 
+	char const *file, 
+	int line)
+{
+	tls_t *tls = g_vld.getTls();
+
+	// _malloc_dbg is a CRT function and allocates from the CRT heap.
+	if (debugRuntime)
+		tls->flags |= VLD_TLS_CRTALLOC;
+
+	bool firstcall = (tls->context.fp == 0x0);
+	if (firstcall) {
+		// This is the first call to enter VLD for the current allocation.
+		// Record the current frame pointer.
+		tls->context = context;
+		tls->blockProcessed = FALSE;
+	}
+
+	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
+	char* block = p_strdup_dbg(src, type, file, line);
 
 	if (firstcall)
 		firstAllocCall(tls);
