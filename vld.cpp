@@ -1070,65 +1070,65 @@ VOID VisualLeakDetector::mapHeap (HANDLE heap)
 //
 VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &context)
 {
-	if (NULL == mem)
-		return;
+    if (NULL == mem)
+        return;
 
-	// Find this heap's block map.
-	CriticalSectionLocker cs(m_heapMapLock);
-	HeapMap::Iterator heapit = m_heapMap->find(heap);
-	if (heapit == m_heapMap->end()) {
-		// We don't have a block map for this heap. We must not have monitored
-		// this allocation (probably happened before VLD was initialized).
-		return;
-	}
+    // Find this heap's block map.
+    CriticalSectionLocker cs(m_heapMapLock);
+    HeapMap::Iterator heapit = m_heapMap->find(heap);
+    if (heapit == m_heapMap->end()) {
+        // We don't have a block map for this heap. We must not have monitored
+        // this allocation (probably happened before VLD was initialized).
+        return;
+    }
 
-	// Find this block in the block map.
-	BlockMap           *blockmap = &(*heapit).second->blockMap;
-	BlockMap::Iterator  blockit = blockmap->find(mem);
-	if (blockit == blockmap->end()) 
-	{
-		// This memory block is not in the block map. We must not have monitored this
-		// allocation (probably happened before VLD was initialized).
+    // Find this block in the block map.
+    BlockMap           *blockmap = &(*heapit).second->blockMap;
+    BlockMap::Iterator  blockit = blockmap->find(mem);
+    if (blockit == blockmap->end()) 
+    {
+        // This memory block is not in the block map. We must not have monitored this
+        // allocation (probably happened before VLD was initialized).
 
-		// This can also result from allocating on one heap, and freeing on another heap.
-		// This is an especially bad way to corrupt the application.
-		// Now we have to search through every heap and every single block in each to make 
-		// sure that this is indeed the case.
-		if (m_options & VLD_OPT_VALIDATE_HEAPFREE)
-		{
-			HANDLE other_heap = NULL;
-			blockinfo_t* alloc_block = findAllocedBlock(mem, other_heap); // other_heap is an out parameter
-			bool diff = other_heap != heap; // Check indeed if the other heap is different
-			if (alloc_block && alloc_block->callStack && diff)
-			{
-				Report(L"CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.\nThis will result in a corrupted heap.\nAllocation Call stack.\n");
-				Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
-				Report(L"  Call Stack:\n");
-				alloc_block->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+        // This can also result from allocating on one heap, and freeing on another heap.
+        // This is an especially bad way to corrupt the application.
+        // Now we have to search through every heap and every single block in each to make 
+        // sure that this is indeed the case.
+        if (m_options & VLD_OPT_VALIDATE_HEAPFREE)
+        {
+            HANDLE other_heap = NULL;
+            blockinfo_t* alloc_block = findAllocedBlock(mem, other_heap); // other_heap is an out parameter
+            bool diff = other_heap != heap; // Check indeed if the other heap is different
+            if (alloc_block && alloc_block->callStack && diff)
+            {
+                Report(L"CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.\nThis will result in a corrupted heap.\nAllocation Call stack.\n");
+                Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
+                Report(L"  Call Stack:\n");
+                alloc_block->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
-				// Now we need a way to print the current callstack at this point:
-				CallStack* stack_here = CallStack::Create();
-				stack_here->getStackTrace(m_maxTraceFrames, context);
-				Report(L"Deallocation Call stack.\n");
-				Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
-				Report(L"  Call Stack:\n");
-				stack_here->dump(FALSE);
-				// Now it should be safe to delete our temporary callstack
-				delete stack_here;
-				stack_here = NULL;
-				if (IsDebuggerPresent())
-					DebugBreak();
-			}
-		}
-		return;
-	}
+                // Now we need a way to print the current callstack at this point:
+                CallStack* stack_here = CallStack::Create();
+                stack_here->getStackTrace(m_maxTraceFrames, context);
+                Report(L"Deallocation Call stack.\n");
+                Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
+                Report(L"  Call Stack:\n");
+                stack_here->dump(FALSE);
+                // Now it should be safe to delete our temporary callstack
+                delete stack_here;
+                stack_here = NULL;
+                if (IsDebuggerPresent())
+                    DebugBreak();
+            }
+        }
+        return;
+    }
 
-	// Free the blockinfo_t structure and erase it from the block map.
-	blockinfo_t *info = (*blockit).second;
-	m_curAlloc -= info->size;
-	delete info->callStack;
-	delete info;
-	blockmap->erase(blockit);
+    // Free the blockinfo_t structure and erase it from the block map.
+    blockinfo_t *info = (*blockit).second;
+    m_curAlloc -= info->size;
+    delete info->callStack;
+    delete info;
+    blockmap->erase(blockit);
 }
 
 // unmapheap - Tracks heap destruction. Unmaps the specified heap from its block
@@ -1143,26 +1143,26 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
 //
 VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 {
-	// Find this heap's block map.
-	CriticalSectionLocker cs(m_heapMapLock);
-	HeapMap::Iterator heapit = m_heapMap->find(heap);
-	if (heapit == m_heapMap->end()) {
-		// This heap hasn't been mapped. We must not have monitored this heap's
-		// creation (probably happened before VLD was initialized).
-		return;
-	}
+    // Find this heap's block map.
+    CriticalSectionLocker cs(m_heapMapLock);
+    HeapMap::Iterator heapit = m_heapMap->find(heap);
+    if (heapit == m_heapMap->end()) {
+        // This heap hasn't been mapped. We must not have monitored this heap's
+        // creation (probably happened before VLD was initialized).
+        return;
+    }
 
-	// Free all of the blockinfo_t structures stored in the block map.
-	heapinfo_t *heapinfo = (*heapit).second;
-	BlockMap   *blockmap = &heapinfo->blockMap;
-	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-		delete (*blockit).second->callStack;
-		delete (*blockit).second;
-	}
-	delete heapinfo;
+    // Free all of the blockinfo_t structures stored in the block map.
+    heapinfo_t *heapinfo = (*heapit).second;
+    BlockMap   *blockmap = &heapinfo->blockMap;
+    for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+        delete (*blockit).second->callStack;
+        delete (*blockit).second;
+    }
+    delete heapinfo;
 
-	// Remove this heap's block map from the heap map.
-	m_heapMap->erase(heapit);
+    // Remove this heap's block map from the heap map.
+    m_heapMap->erase(heapit);
 }
 
 // remapblock - Tracks reallocations. Unmaps a block from its previously

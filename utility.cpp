@@ -603,7 +603,7 @@ VOID Print (LPWSTR messagew)
             }
 
             if ( s_reportToStdOut )
-            	fwprintf(stdout,messagew);
+                fputws(messagew, stdout);
 
             if (s_reportToDebugger)
                 OutputDebugStringW(messagew);
@@ -624,7 +624,7 @@ VOID Print (LPWSTR messagew)
             }
 
             if ( s_reportToStdOut )
-                printf(messagea);
+                fputs(messagea, stdout);
 
             if (s_reportToDebugger)
                 OutputDebugStringA(messagea);
