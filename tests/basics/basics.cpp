@@ -128,7 +128,7 @@ namespace tut
 		int prev = (int)VLDGetLeaksCount();
 		LeakMemory(eStrdup,repeat,false);
 		int leaks = (int)VLDGetLeaksCount() - prev;
-		ensure("leaks", leaks == (repeat * 2)); 
+		ensure("leaks", leaks == (repeat * 4)); 
 	}
 
 	test_runner_singleton runner; 
@@ -233,6 +233,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else if (_tcsicmp(_T("strdup"), argv[1]) == 0)
 		{
 			leak_type = eStrdup;
+			multiplayer = 4;
 		}
 		else if (_tcsicmp(_T("all"), argv[1]) == 0)
 		{

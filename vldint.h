@@ -72,6 +72,8 @@ typedef void* (__cdecl *realloc_t) (void *, size_t);
 typedef void* (__cdecl *_recalloc_t) (void *, size_t, size_t);
 typedef char* (__cdecl *_strdup_t) (const char*);
 typedef char* (__cdecl *_strdup_dbg_t) (const char*, int, const char* ,int);
+typedef wchar_t* (__cdecl *_wcsdup_t) (const wchar_t*);
+typedef wchar_t* (__cdecl *_wcsdup_dbg_t) (const wchar_t*, int, const char* ,int);
 typedef void* (__cdecl *_aligned_malloc_t) (size_t, size_t);
 typedef void* (__cdecl *_aligned_offset_malloc_t) (size_t, size_t, size_t);
 typedef void* (__cdecl *_aligned_realloc_t) (void *, size_t, size_t);
@@ -208,6 +210,7 @@ public:
     void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
     void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
     char* __strdup(_strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src);
+    wchar_t* __wcsdup(_wcsdup_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src);
 
     // Debug CRT and MFC common handlers
     void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
@@ -218,6 +221,7 @@ public:
     void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
     void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
     char* __strdup_dbg(_strdup_dbg_t pstrdup, context_t& context, bool debugRuntime, const char* src, int type, char const *file, int line);
+    wchar_t* __wcsdup_dbg(_wcsdup_dbg_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src, int type, char const *file, int line);
 
     void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
     void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);

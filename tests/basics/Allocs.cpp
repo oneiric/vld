@@ -110,10 +110,14 @@ void AllocF(LeakOption type, bool bFree)
 	{
 		leaked_memory     = (int*)strdup("strdup() leaks!");
 		leaked_memory_dbg = (int*)_strdup_dbg("_strdup_dbg() leaks!", _NORMAL_BLOCK,__FILE__,__LINE__);
+		void* leaked_wmemory = (int*)wcsdup(L"wcsdup() leaks!");
+		void* leaked_wmemory_dbg = (int*)_wcsdup_dbg(L"_wcsdup_dbg() leaks!", _NORMAL_BLOCK,__FILE__,__LINE__);
 		if (bFree)
 		{
 			free(leaked_memory);
 			_free_dbg(leaked_memory_dbg,_NORMAL_BLOCK);
+			free(leaked_wmemory);
+			_free_dbg(leaked_wmemory_dbg,_NORMAL_BLOCK);
 		}
 	}
 
