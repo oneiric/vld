@@ -1405,31 +1405,46 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 	HANDLE heap = HeapCreate(options, initsize, maxsize);
 
 	// Map the created heap handle to a new block map.
-	g_vld.mapHeap(heap);
+	vld.mapheap(heap);
 
 	// Try to get the name of the function containing the return address.
-	BYTE symbolbuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
+	BYTE symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
 	SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
 	functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-	functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+	functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
 
-	g_symbolLock.Enter();
+	g_symbollock.Enter();
 	DWORD64 displacement;
-	BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
-	g_symbolLock.Leave();
+	BOOL symfound = SymFromAddrW(g_currentprocess, ra, &displacement, functioninfo);
+	g_symbollock.Leave();
 	if (symfound == TRUE) {
 		if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
 			// HeapCreate was called by _heap_init. This is a static CRT heap (msvcr*.dll).
-			CriticalSectionLocker cs(g_vld.m_heapMapLock);
-			HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
-			assert(heapit != g_vld.m_heapMap->end());
+			CriticalSectionLocker cs(vld.m_heapmaplock);
+			HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
+			assert(heapit != vld.m_heapmap->end());
 			HMODULE hCallingModule = (HMODULE)functioninfo->ModBase;
-			WCHAR callingmodulename [MAX_PATH] = L"";
-			if (hCallingModule && GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
+			if (hCallingModule)
 			{
-				_wcslwr_s(callingmodulename);
-				if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
+				HMODULE hCurrentModule = GetModuleHandleW(NULL);
+				if (hCallingModule == hCurrentModule)
+				{
+					// CRT static linking
+#ifdef _DEBUG		// debug runtime
 					(*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+#endif
+				}
+				else
+				{
+					// CRT dynamic linking
+					WCHAR callingmodulename [MAX_PATH] = L"";
+					if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
+					{
+						_wcslwr_s(callingmodulename);
+						if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
+							(*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+					}
+				}
 			}
 		}
 	}
