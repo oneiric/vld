@@ -1405,24 +1405,24 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 	HANDLE heap = HeapCreate(options, initsize, maxsize);
 
 	// Map the created heap handle to a new block map.
-	vld.mapheap(heap);
+	g_vld.mapHeap(heap);
 
 	// Try to get the name of the function containing the return address.
-	BYTE symbolbuffer [sizeof(SYMBOL_INFO) + (MAXSYMBOLNAMELENGTH * sizeof(WCHAR)) - 1] = { 0 };
+	BYTE symbolbuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 	SYMBOL_INFO *functioninfo = (SYMBOL_INFO*)&symbolbuffer;
 	functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-	functioninfo->MaxNameLen = MAXSYMBOLNAMELENGTH;
+	functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
 
-	g_symbollock.Enter();
+	g_symbolLock.Enter();
 	DWORD64 displacement;
-	BOOL symfound = SymFromAddrW(g_currentprocess, ra, &displacement, functioninfo);
-	g_symbollock.Leave();
+	BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
+	g_symbolLock.Leave();
 	if (symfound == TRUE) {
 		if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
 			// HeapCreate was called by _heap_init. This is a static CRT heap (msvcr*.dll).
-			CriticalSectionLocker cs(vld.m_heapmaplock);
-			HeapMap::Iterator heapit = vld.m_heapmap->find(heap);
-			assert(heapit != vld.m_heapmap->end());
+			CriticalSectionLocker cs(g_vld.m_heapMapLock);
+			HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
+			assert(heapit != g_vld.m_heapMap->end());
 			HMODULE hCallingModule = (HMODULE)functioninfo->ModBase;
 			if (hCallingModule)
 			{
