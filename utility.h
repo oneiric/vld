@@ -124,6 +124,15 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module);
 BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 VOID Print (LPWSTR message);
 VOID Report (LPCWSTR format, ...);
+#ifdef _DEBUG
+#define DbgPrint(x)     Print(x)
+#define DbgReport(...)  Report(__VA_ARGS__)
+#define DbgTrace(...)
+#else
+#define DbgPrint(x)
+#define DbgReport(...)
+#define DbgTrace(...)
+#endif
 VOID RestoreImport (HMODULE importmodule, moduleentry_t* module);
 VOID RestoreModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tablesize);
 VOID SetReportEncoding (encoding_e encoding);

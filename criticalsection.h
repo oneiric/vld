@@ -62,7 +62,6 @@ public:
 	{
 		LeaveLock();
 	}
-
 	
 private:	
 	void LeaveLock() 

@@ -4,7 +4,7 @@ chrisJohnson            http://www.codeplex.com/site/users/view/chrisJohnson
 
 Contributors: (listed alphabetically)
 ------------------------------------------------
-geordi, jerker_back, Laurent Lessieux (llessieux), snakefoot, VictorKharkov
+benpmorgan, geordi, jerker_back, Laurent Lessieux (llessieux), snakefoot, VictorKharkov, xpol
 
 Many thanks to everyone who supported development without having
 svn write access.

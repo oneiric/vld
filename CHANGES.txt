@@ -1,7 +1,26 @@
-Visual Leak Detector (VLD) Version 2.2
+Visual Leak Detector (VLD) Version 2.2.2
 
   
   Change Log / Release Notes
+
+2.2.2 (18 December 2011)
+----------------------------
+  Bugs Fixed:
+  + Memory leaks with static linking fixed.
+  + Visual Studio C++ 2008/2010 Express Edition compilation fixed.
+  + Hang fixed with GetOpenFileName().
+
+2.2.1 (22 November 2011)
+----------------------------
+  Enhancements:
+  + strdup and _wcsdup functions support added.
+  + Preliminary support for VS 11 added.
+
+  Bugs Fixed:
+  + Low performance after upgrading from VLD v2.1.
+  + Runtime error R6002 fixed because of wrong memory dump format.
+  + version.h fixed in installer.
+  + Some PVS studio warning fixed.
 
 2.2 (21 Jule 2011)
 ----------------------------

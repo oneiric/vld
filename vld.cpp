@@ -54,6 +54,7 @@ HANDLE           g_processHeap;    // Handle to the process's heap (COM allocati
 CriticalSection  g_stackWalkLock;  // Serializes calls to StackWalk64 from the Debug Help Library.
 CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
 ReportHookSet*   g_pReportHooks;
+volatile long    g_loaderLockCounter = 0; 
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector g_vld;
@@ -209,6 +210,7 @@ VisualLeakDetector::VisualLeakDetector ()
 #else
     SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
 #endif
+    DbgTrace(L"dbghelp32.dll %i: SymInitializeW\n", GetCurrentThreadId());
     if (!SymInitializeW(g_currentProcess, symbolpath, FALSE)) {
         Report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
             L"    File and function names will probably not be available in call stacks.\n", GetLastError());
@@ -223,6 +225,7 @@ VisualLeakDetector::VisualLeakDetector ()
     // Attach Visual Leak Detector to every module loaded in the process.
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
+    DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
     EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
     attachToLoadedModules(newmodules);
     m_loadedModules = newmodules;
@@ -347,6 +350,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
+        DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
         EnumerateLoadedModulesW64(g_currentProcess, detachFromModule, NULL);
 
         HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
@@ -379,6 +383,7 @@ VisualLeakDetector::~VisualLeakDetector ()
         }
 
         // Free resources used by the symbol handler.
+        DbgTrace(L"dbghelp32.dll %i: SymCleanup\n", GetCurrentThreadId());
         if (!SymCleanup(g_currentProcess)) {
             Report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n",
                 GetLastError());
@@ -520,6 +525,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         g_symbolLock.Enter();
         if ((refresh == true) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
+            DbgTrace(L"dbghelp32.dll %i: SymUnloadModule64\n", GetCurrentThreadId());
             if (SymUnloadModule64(g_currentProcess, modulebase) == false) {
                 Report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
                     L" numbers shown in the memory leak report for %s may be inaccurate.\n", modulename, modulename);
@@ -539,9 +545,13 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         {
             CriticalSectionLocker cs(g_vld.m_heapMapLock); // fix GetModuleFileName thread lock
             g_symbolLock.Enter();
+            DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
             DWORD64 module = SymLoadModuleEx(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
             if (module == modulebase)
+            {
+                DbgTrace(L"dbghelp32.dll %i: SymGetModuleInfoW64\n", GetCurrentThreadId());
                 SymbolsLoaded = SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
+            }
             g_symbolLock.Leave();
         }
         if (SymbolsLoaded)
@@ -750,6 +760,7 @@ VOID VisualLeakDetector::configure ()
             wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
         }
     }
+    DbgReport(L"Visual Leak Detector read settings from file: %s\n", inipath);
 
 #define BSIZE 64
     WCHAR        buffer [BSIZE] = {0};
@@ -1769,35 +1780,13 @@ FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
 NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
     PHANDLE modulehandle)
 {
-    CriticalSectionLocker cs(g_vld.m_loaderLock);
-
     // Load the DLL.
+    _InterlockedIncrement(&g_loaderLockCounter);
     NTSTATUS status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
 
-    if (STATUS_SUCCESS == status) {
-        // Duplicate code here from VisualLeakDetector::RefreshModules. Consider refactoring this out.
-        // Create a new set of all loaded modules, including any newly loaded
-        // modules.
-        ModuleSet *newmodules = new ModuleSet;
-        newmodules->reserve(MODULE_SET_RESERVE);
-        EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
-
-        // Attach to all modules included in the set.
-        g_vld.attachToLoadedModules(newmodules);
-
-        // Start using the new set of loaded modules.
-        g_vld.m_modulesLock.Enter();
-        ModuleSet *oldmodules = g_vld.m_loadedModules;
-        g_vld.m_loadedModules = newmodules;
-        g_vld.m_modulesLock.Leave();
-
-        // Free resources used by the old module list.
-        for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
-            delete [] (*moduleit).name;
-            delete [] (*moduleit).path;
-        }
-        delete oldmodules;
-    }
+    if (STATUS_SUCCESS == status && g_loaderLockCounter == 1)
+        g_vld.RefreshModules();
+    _InterlockedDecrement(&g_loaderLockCounter);
 
     return status;
 }
@@ -1813,6 +1802,7 @@ VOID VisualLeakDetector::RefreshModules()
     // modules.
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
+    DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
     EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
 
     // Attach to all modules included in the set.
@@ -1849,7 +1839,6 @@ void VisualLeakDetector::getCallStack( CallStack **&ppcallstack, context_t &cont
 // Find the information for the module that initiated this reallocation.
 bool VisualLeakDetector::isModuleExcluded(UINT_PTR address)
 {
-    bool                 excluded = false;
     moduleinfo_t         moduleinfo;
     ModuleSet::Iterator  moduleit;
     moduleinfo.addrLow  = address;
@@ -1858,10 +1847,11 @@ bool VisualLeakDetector::isModuleExcluded(UINT_PTR address)
 
     CriticalSectionLocker cs(g_vld.m_modulesLock);
     moduleit = g_vld.m_loadedModules->find(moduleinfo);
-    if (moduleit != g_vld.m_loadedModules->end()) {
-        excluded = (*moduleit).flags & VLD_MODULE_EXCLUDED ? true : false;
-    }
-    return excluded;
+    if (moduleit != g_vld.m_loadedModules->end())
+        return (*moduleit).flags & VLD_MODULE_EXCLUDED ? true : false;
+    else if (g_loaderLockCounter != 0) // new module inside LdrLoadDll
+        return true;
+    return false;
 }
 
 SIZE_T VisualLeakDetector::GetLeaksCount()

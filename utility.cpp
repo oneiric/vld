@@ -269,6 +269,7 @@ BOOL FindImport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     IMAGE_THUNK_DATA        *iate;
     FARPROC                  import;
 
+    DbgTrace(L"dbghelp32.dll %i: FindImport - ImageDirectoryEntryToDataEx\n", GetCurrentThreadId());
     idte = FindOriginalImportDescriptor(importmodule, exportmodulename);
     if (idte == NULL)
         return FALSE;
@@ -553,6 +554,7 @@ BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
 
     // Loop through the import patch table, individually patching each import
     // listed in the table.
+    DbgTrace(L"dbghelp32.dll %i: PatchModule - ImageDirectoryEntryToDataEx\n", GetCurrentThreadId());
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
         if (PatchImport(importmodule, entry) == TRUE) {
@@ -800,6 +802,7 @@ VOID RestoreModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tabl
 
     // Loop through the import patch table, individually restoring each import
     // listed in the table.
+    DbgTrace(L"dbghelp32.dll %i: RestoreModule - ImageDirectoryEntryToDataEx\n", GetCurrentThreadId());
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
         RestoreImport(importmodule, entry);
