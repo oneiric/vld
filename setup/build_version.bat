@@ -18,6 +18,9 @@ PAUSE
 GOTO :EndGood
 
 :GoodPaths
+SET ProgFiles=%ProgramFiles%
+IF /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" SET ProgFiles=%ProgramFiles(x86)%
+
 SET BUILDTYPE=/%1
 IF "%1"=="" SET BUILDTYPE=/rebuild
 rem IF "%1"=="build" SET BUILDTYPE=
@@ -38,8 +41,8 @@ IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 devenv /nologo vld_vs10.sln %BUILDTYPE% "Release|x64" /Project vld
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 
-if not exist "%ProgramFiles%\NSIS\makensis.exe" GOTO EndBad
-"%ProgramFiles%\NSIS\makensis.exe" /V3 setup\vld-setup.nsi
+if not exist "%ProgFiles%\NSIS\makensis.exe" GOTO EndBad
+"%ProgFiles%\NSIS\makensis.exe" /V3 setup\vld-setup.nsi
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 CD setup
 
