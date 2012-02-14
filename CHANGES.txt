@@ -1,7 +1,15 @@
-Visual Leak Detector (VLD) Version 2.2.2
+Visual Leak Detector (VLD) Version 2.2.3
 
   
   Change Log / Release Notes
+
+2.2.3 (15 Febrary 2012)
+----------------------------
+  Enhancements:
+  + New option VLD_OPT_RELEASE_CRT_RUNTIME added. Useful only with define VLD_FORCE_ENABLE.
+  
+  Bugs Fixed:
+  + Memory leaks with static linking fixed finally.
 
 2.2.2 (18 December 2011)
 ----------------------------
