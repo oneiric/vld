@@ -1,8 +1,7 @@
-Debug
-Release
-C?Debug
-CPP?Debug
-*.ncb
-*.suo
-*.vcproj.*.*.user
-*setup.exe
+obj/
+Debug/
+Release/
+Win32/
+Win64/
+*.vcxproj.user
+*.*sdf
