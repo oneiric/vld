@@ -1,6 +1,7 @@
-Visual Leak Detector Example Console Application (Version 1.0.1)
+Visual Leak Detector Example Console Application
+================================================
 
-  Example Program Using Visual Leak Detector in a Console Application
+Example Program Using Visual Leak Detector in a Console Application
 
 
 About The Example Program:
@@ -33,4 +34,4 @@ program the memory was allocated and how it got there.
 Documentation:
 --------------
 
-See the README.html file for the complete Visual Leak Detector documentation.
+See the [http://vld.codeplex.com/documentation](http://vld.codeplex.com/documentation) for the complete Visual Leak Detector documentation.

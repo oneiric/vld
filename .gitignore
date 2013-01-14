@@ -5,3 +5,5 @@ Win32/
 Win64/
 *.vcxproj.user
 *.*sdf
+*.suo
+ipch/
