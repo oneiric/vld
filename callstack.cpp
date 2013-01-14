@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - CallStack Class Implementations
-//  Copyright (c) 2005-2012 VLD Team
+//  Copyright (c) 2005-2013 VLD Team
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -84,8 +84,8 @@ CallStack* CallStack::Create()
         result = new FastCallStack();
     }
     return result;
-    
 }
+
 // operator == - Equality operator. Compares the CallStack to another CallStack
 //   for equality. Two CallStacks are equal if they are the same size and if
 //   every frame in each is identical to the corresponding frame in the other.
