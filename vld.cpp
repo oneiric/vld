@@ -975,18 +975,31 @@ tls_t* VisualLeakDetector::getTls ()
     assert(GetLastError() == ERROR_SUCCESS);
 
     if (tls == NULL) {
-        // This thread's thread local storage structure has not been allocated.
-        tls = new tls_t;
+        DWORD threadId = GetCurrentThreadId();
+
+        {
+            CriticalSectionLocker cs(m_tlsLock);
+            TlsMap::Iterator it = m_tlsMap->find(threadId);
+            if(it == m_tlsMap->end()) {
+                // This thread's thread local storage structure has not been allocated.
+                tls = new tls_t;
+
+                // Add this thread's TLS to the TlsSet.
+                m_tlsMap->insert(threadId,tls);
+            }
+            else {
+                // Already had a thread with this ID
+                tls = (*it).second;
+            }
+        }
+
         TlsSetValue(m_tlsIndex, tls);
         ZeroMemory(&tls->context, sizeof(tls->context));
         tls->flags = 0x0;
         tls->oldFlags = 0x0;
-        tls->threadId = GetCurrentThreadId();
+        tls->threadId = threadId;
         tls->ppCallStack = NULL;
-
-        // Add this thread's TLS to the TlsSet.
-        CriticalSectionLocker cs(m_tlsLock);
-        m_tlsMap->insert(tls->threadId,tls);
+        tls->blockProcessed = FALSE;
     }
 
     return tls;
