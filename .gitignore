@@ -2,7 +2,7 @@ obj/
 Debug/
 Release/
 Win32/
-Win64/
+x64/
 *.vcxproj.user
 *.*sdf
 *.suo

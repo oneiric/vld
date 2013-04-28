@@ -81,6 +81,19 @@ BOOL IsWin7OrBetter()
     return FALSE;
 }
 
+BOOL IsWin8OrBetter()
+{
+    OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
+    GetVersionEx((LPOSVERSIONINFO)&info);
+    if (info.dwMajorVersion > 6)
+        return TRUE;
+
+    if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 2)
+        return TRUE;
+
+    return FALSE;
+}
+
 // Constructor - Initializes private data, loads configuration options, and
 //   attaches Visual Leak Detector to all other modules loaded into the current
 //   process.
@@ -129,7 +142,15 @@ VisualLeakDetector::VisualLeakDetector ()
     HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (ntdll)
     {
-        LdrLoadDll        = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+        if (!IsWin8OrBetter())
+        {
+            LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+        }
+        else
+        {
+            LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
+            ldrLoadDllPatch[0].replacement = VisualLeakDetector::_LdrLoadDllWin8;
+        }
         RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
         RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
         RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
@@ -1787,6 +1808,18 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
     if (STATUS_SUCCESS == status && g_loaderLockCounter == 1)
         g_vld.RefreshModules();
     _InterlockedDecrement(&g_loaderLockCounter);
+
+    return status;
+}
+
+NTSTATUS VisualLeakDetector::_LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, unicodestring_t *modulename,
+                                          PHANDLE modulehandle)
+{
+    // Load the DLL.
+    NTSTATUS status = LdrLoadDllWin8(reserved, flags, modulename, modulehandle);
+
+    if (STATUS_SUCCESS == status)
+        g_vld.RefreshModules();
 
     return status;
 }
