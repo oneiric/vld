@@ -1,7 +1,12 @@
-Visual Leak Detector (VLD) Version 2.2.3
+Visual Leak Detector (VLD) Version 2.3.0
 
   
   Change Log / Release Notes
+
+2.3 (29 April 2013)
+----------------------------
+  Enhancements:
+  + Windows 8 support added.
 
 2.2.3 (15 Febrary 2012)
 ----------------------------
