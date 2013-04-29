@@ -8,6 +8,9 @@ Visual Leak Detector (VLD) Version 2.3.0
   Enhancements:
   + Windows 8 support added.
 
+  Bugs Fixed:
+  + Memory leaks with duplicate thread id fixed (thanks to jlddodger).
+
 2.2.3 (15 Febrary 2012)
 ----------------------------
   Enhancements:

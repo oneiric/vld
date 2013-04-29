@@ -7,3 +7,4 @@ x64/
 *.*sdf
 *.suo
 ipch/
+setup/vld-*-setup.exe
