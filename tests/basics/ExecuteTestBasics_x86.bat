@@ -1,13 +1,23 @@
 @echo off
 
-.\Win32\Debug\test_basics 
-.\Win32\Debug\test_basics invalid_argument 5
-.\Win32\Debug\test_basics malloc 5
-.\Win32\Debug\test_basics new 5
-.\Win32\Debug\test_basics new_array 5
-.\Win32\Debug\test_basics calloc 5
-.\Win32\Debug\test_basics realloc 5
-.\Win32\Debug\test_basics CoTaskMem 5
+set Platform=.\Win32
+"%Platform%\Debug(Release)\test_basics"
+"%Platform%\Debug(Release)\test_basics" invalid_argument 5
+"%Platform%\Debug(Release)\test_basics" malloc 5
+"%Platform%\Debug(Release)\test_basics" new 5
+"%Platform%\Debug(Release)\test_basics" new_array 5
+"%Platform%\Debug(Release)\test_basics" calloc 5
+"%Platform%\Debug(Release)\test_basics" realloc 5
+"%Platform%\Debug(Release)\test_basics" CoTaskMem 5
+
+"%Platform%\Debug(Release)_StaticCrt\test_basics" 
+"%Platform%\Debug(Release)_StaticCrt\test_basics" invalid_argument 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" malloc 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" new 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" new_array 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" calloc 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" realloc 5
+"%Platform%\Debug(Release)_StaticCrt\test_basics" CoTaskMem 5
 
 pause
 
