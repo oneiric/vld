@@ -8,3 +8,4 @@ x64/
 *.suo
 ipch/
 setup/vld-*-setup.exe
+setup/Output/

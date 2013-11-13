@@ -41,8 +41,8 @@ IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 devenv /nologo vld_vs10.sln %BUILDTYPE% "Release|x64" /Project vld
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 
-if not exist "%ProgFiles%\NSIS\makensis.exe" GOTO EndBad
-"%ProgFiles%\NSIS\makensis.exe" /V3 setup\vld-setup.nsi
+if not exist "%ProgFiles%\Inno Setup 5\ISCC.exe" GOTO EndBad
+"%ProgFiles%\Inno Setup 5\ISCC.exe" setup\vld-setup.iss
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 CD setup
 
