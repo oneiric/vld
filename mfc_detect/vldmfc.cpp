@@ -224,7 +224,7 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc90d.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100d.dll")   
-#elif _MFC_VER == 0x0B00	// VS 2011
+#elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110d.dll")
 #endif
 #else
@@ -236,8 +236,10 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc90ud.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100ud.dll")
-#elif _MFC_VER == 0x0B00	// VS 2011
+#elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110ud.dll") 
+#elif _MFC_VER == 0x0C00	// VS 2013
+#define MFCDLLNAME   _T("mfc120ud.dll") 
 #endif
 #endif
 #else
@@ -250,7 +252,7 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc90.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100.dll")
-#elif _MFC_VER == 0x0B00	// VS 2010
+#elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110.dll")
 #endif
 #else
@@ -262,8 +264,10 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc90u.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100u.dll")
-#elif _MFC_VER == 0x0B00	// VS 2011
+#elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110u.dll") 
+#elif _MFC_VER == 0x0C00	// VS 2013
+#define MFCDLLNAME   _T("mfc120u.dll") 
 #endif
 #endif
 #endif

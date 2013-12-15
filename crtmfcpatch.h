@@ -1244,11 +1244,16 @@ typedef CrtMfcPatch<100>
     VS100;
 typedef CrtMfcPatch<100, true>
     VS100d;
-// Visual Studio 2011
+// Visual Studio 2012
 typedef CrtMfcPatch<110>
     VS110;
 typedef CrtMfcPatch<110, true>
     VS110d;
+// Visual Studio 2013
+typedef CrtMfcPatch<120>
+    VS120;
+typedef CrtMfcPatch<120, true>
+    VS120d;
 
 void* VS60::pcrtd__calloc_dbg = NULL;
 void* VS60::pcrtd__malloc_dbg = NULL;
@@ -1824,3 +1829,84 @@ void* VS110d::pmfcud__vector_new_dbg_4p = NULL;
 void* VS110d::pmfcud__scalar_new_dbg_3p = NULL;
 void* VS110d::pmfcud__vector_new_dbg_3p = NULL;
 
+void* VS120::pcrtd__calloc_dbg = NULL;
+void* VS120::pcrtd__malloc_dbg = NULL;
+void* VS120::pcrtd__realloc_dbg = NULL;
+void* VS120::pcrtd__recalloc_dbg = NULL;
+void* VS120::pcrtd__strdup_dbg = NULL;
+void* VS120::pcrtd__wcsdup_dbg = NULL;
+void* VS120::pcrtd_calloc = NULL;
+void* VS120::pcrtd_malloc = NULL;
+void* VS120::pcrtd_realloc = NULL;
+void* VS120::pcrtd_recalloc = NULL;
+void* VS120::pcrtd__strdup = NULL;
+void* VS120::pcrtd__wcsdup = NULL;
+void* VS120::pcrtd__aligned_malloc_dbg = NULL;
+void* VS120::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS120::pcrtd__aligned_realloc_dbg = NULL;
+void* VS120::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS120::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS120::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS120::pcrtd_aligned_malloc = NULL;
+void* VS120::pcrtd_aligned_offset_malloc = NULL;
+void* VS120::pcrtd_aligned_realloc = NULL;
+void* VS120::pcrtd_aligned_offset_realloc = NULL;
+void* VS120::pcrtd_aligned_recalloc = NULL;
+void* VS120::pcrtd_aligned_offset_recalloc = NULL;
+void* VS120::pcrtd__scalar_new_dbg = NULL;
+void* VS120::pcrtd__vector_new_dbg = NULL;
+void* VS120::pcrtd_scalar_new = NULL;
+void* VS120::pcrtd_vector_new = NULL;
+void* VS120::pmfcd_scalar_new = NULL;
+void* VS120::pmfcd_vector_new = NULL;
+void* VS120::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS120::pmfcd__vector_new_dbg_4p = NULL;
+void* VS120::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS120::pmfcd__vector_new_dbg_3p = NULL;
+void* VS120::pmfcud_scalar_new = NULL;
+void* VS120::pmfcud_vector_new = NULL;
+void* VS120::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS120::pmfcud__vector_new_dbg_4p = NULL;
+void* VS120::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS120::pmfcud__vector_new_dbg_3p = NULL;
+
+void* VS120d::pcrtd__calloc_dbg = NULL;
+void* VS120d::pcrtd__malloc_dbg = NULL;
+void* VS120d::pcrtd__realloc_dbg = NULL;
+void* VS120d::pcrtd__recalloc_dbg = NULL;
+void* VS120d::pcrtd__strdup_dbg = NULL;
+void* VS120d::pcrtd__wcsdup_dbg = NULL;
+void* VS120d::pcrtd_calloc = NULL;
+void* VS120d::pcrtd_malloc = NULL;
+void* VS120d::pcrtd_realloc = NULL;
+void* VS120d::pcrtd_recalloc = NULL;
+void* VS120d::pcrtd__strdup = NULL;
+void* VS120d::pcrtd__wcsdup = NULL;
+void* VS120d::pcrtd__aligned_malloc_dbg = NULL;
+void* VS120d::pcrtd__aligned_offset_malloc_dbg = NULL;
+void* VS120d::pcrtd__aligned_realloc_dbg = NULL;
+void* VS120d::pcrtd__aligned_offset_realloc_dbg = NULL;
+void* VS120d::pcrtd__aligned_recalloc_dbg = NULL;
+void* VS120d::pcrtd__aligned_offset_recalloc_dbg = NULL;
+void* VS120d::pcrtd_aligned_malloc = NULL;
+void* VS120d::pcrtd_aligned_offset_malloc = NULL;
+void* VS120d::pcrtd_aligned_realloc = NULL;
+void* VS120d::pcrtd_aligned_offset_realloc = NULL;
+void* VS120d::pcrtd_aligned_recalloc = NULL;
+void* VS120d::pcrtd_aligned_offset_recalloc = NULL;
+void* VS120d::pcrtd__scalar_new_dbg = NULL;
+void* VS120d::pcrtd__vector_new_dbg = NULL;
+void* VS120d::pcrtd_scalar_new = NULL;
+void* VS120d::pcrtd_vector_new = NULL;
+void* VS120d::pmfcd_scalar_new = NULL;
+void* VS120d::pmfcd_vector_new = NULL;
+void* VS120d::pmfcd__scalar_new_dbg_4p = NULL;
+void* VS120d::pmfcd__vector_new_dbg_4p = NULL;
+void* VS120d::pmfcd__scalar_new_dbg_3p = NULL;
+void* VS120d::pmfcd__vector_new_dbg_3p = NULL;
+void* VS120d::pmfcud_scalar_new = NULL;
+void* VS120d::pmfcud_vector_new = NULL;
+void* VS120d::pmfcud__scalar_new_dbg_4p = NULL;
+void* VS120d::pmfcud__vector_new_dbg_4p = NULL;
+void* VS120d::pmfcud__scalar_new_dbg_3p = NULL;
+void* VS120d::pmfcud__vector_new_dbg_3p = NULL;

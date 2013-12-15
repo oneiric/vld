@@ -363,7 +363,7 @@ private:
     static patchentry_t  m_kernel32Patch [];
     static patchentry_t  m_ntdllPatch [];
     static patchentry_t  m_ole32Patch [];
-    static moduleentry_t m_patchTable [46];     // Table of imports patched for attaching VLD to other modules.
+    static moduleentry_t m_patchTable [50];   // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportFile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportFilePath [MAX_PATH]; // Full path and name of file to send memory leak report to.
     const char          *m_selfTestFile;      // Filename where the memory leak self-test block is leaked.

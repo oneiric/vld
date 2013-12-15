@@ -1,6 +1,8 @@
 obj/
 Debug/
+Debug (Unicode)/
 Release/
+Release (Unicode)/
 Win32/
 x64/
 *.vcxproj.user

@@ -60,8 +60,10 @@ enum action_e {
 #define CRTDLLNAME   _T("msvcr90d.dll")
 #elif _MSC_VER == 1600	// VS 2010
 #define CRTDLLNAME   _T("msvcr100d.dll")
-#elif _MSC_VER == 1700	// VS 2011
+#elif _MSC_VER == 1700	// VS 2012
 #define CRTDLLNAME   _T("msvcr110d.dll")
+#elif _MSC_VER == 1800	// VS 2013
+#define CRTDLLNAME   _T("msvcr120d.dll")
 #endif
 #else
 #if _MSC_VER == 1400	// VS 2005
@@ -70,8 +72,10 @@ enum action_e {
 #define CRTDLLNAME   _T("msvcr90.dll")
 #elif _MSC_VER == 1600	// VS 2010
 #define CRTDLLNAME   _T("msvcr100.dll")
-#elif _MSC_VER == 1700	// VS 2011
+#elif _MSC_VER == 1700	// VS 2012
 #define CRTDLLNAME   _T("msvcr110.dll")
+#elif _MSC_VER == 1800	// VS 2013
+#define CRTDLLNAME   _T("msvcr120.dll")
 #endif
 #endif
 
