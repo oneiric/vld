@@ -61,6 +61,7 @@ Applications should never include this header."
 struct context_t
 {
     UINT_PTR* fp;
+    UINT_PTR func;
 #if defined(_M_X64)
     DWORD64 Rsp;
     DWORD64 Rip;
@@ -69,14 +70,18 @@ struct context_t
 
 #if defined(_M_IX86)
 // Copies the current frame pointer to the supplied variable.
-#define CAPTURE_CONTEXT(context)     context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1
+#define CAPTURE_CONTEXT(context, function)                                  \
+    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;                \
+    context.func = (UINT_PTR)(function)
 #define GET_RETURN_ADDRESS(context)  *(context.fp + 1)
 #elif defined(_M_X64)
 // Capture current context
-#define CAPTURE_CONTEXT(context)     CONTEXT _ctx;                          \
+#define CAPTURE_CONTEXT(context, function)									\
+    CONTEXT _ctx;															\
     RtlCaptureContext(&_ctx);                                               \
-    context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip; \
-    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1
+    context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;							\
+    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;		    	\
+    context.func = (UINT_PTR)(function)
 #define GET_RETURN_ADDRESS(context)  *(context.fp + 1)
 #else
 // If you want to retarget Visual Leak Detector to another processor

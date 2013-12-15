@@ -56,6 +56,10 @@ extern "C" __declspec(dllexport) void VLDRestore ();
 
 // Function pointer types for explicit dynamic linking with functions listed in
 // the import patch table.
+typedef HANDLE(__stdcall *GetProcessHeap_t) ();
+typedef HANDLE(__stdcall *HeapCreate_t) (DWORD, SIZE_T, SIZE_T);
+typedef FARPROC(__stdcall *GetProcAddress_t) (HMODULE, LPCSTR);
+
 typedef void* (__cdecl *_calloc_dbg_t) (size_t, size_t, int, const char*, int);
 typedef void* (__cdecl *_malloc_dbg_t) (size_t, int, const char *, int);
 typedef void* (__cdecl *_realloc_dbg_t) (void *, size_t, int, const char *, int);
@@ -319,7 +323,8 @@ private:
     // within this class's code. See crtmfcpatch.cpp for those functions.
     ////////////////////////////////////////////////////////////////////////////////
     // Win32 IAT replacement functions
-    static FARPROC  __stdcall _GetProcAddress (HMODULE module, LPCSTR procname);
+    static FARPROC  __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
+    static HANDLE   __stdcall _GetProcessHeap();
 
     static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
     static BOOL     __stdcall _HeapDestroy (HANDLE heap);
@@ -378,10 +383,10 @@ private:
     TlsMap              *m_tlsMap;            // Set of all thread-local storage structures for the process.
     HMODULE              m_vldBase;           // Visual Leak Detector's own module handle (base address).
 
-    typedef FARPROC __stdcall _GetProcAddressType(HMODULE module, LPCSTR procname);
-
     VOID __stdcall ChangeModuleState(HMODULE module, bool on);
-    static _GetProcAddressType * m_original_GetProcAddress;
+    static GetProcAddress_t m_GetProcAddress;
+    static GetProcessHeap_t m_GetProcessHeap;
+    static HeapCreate_t m_HeapCreate;
 };
 
 

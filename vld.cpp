@@ -124,14 +124,14 @@ VisualLeakDetector::VisualLeakDetector ()
     if (!IsWin7OrBetter()) // kernel32.dll
     {
         if (kernel32)
-            m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernel32,"GetProcAddress");
+            m_GetProcAddress = (GetProcAddress_t) GetProcAddress(kernel32,"GetProcAddress");
     }
     else
     {
         assert(m_patchTable[0].patchTable == m_kernelbasePatch);
         m_patchTable[0].exportModuleName = "kernelbase.dll";
         if (kernelBase)
-            m_original_GetProcAddress = (_GetProcAddressType *) GetProcAddress(kernelBase,"GetProcAddress");
+            m_GetProcAddress = (GetProcAddress_t) GetProcAddress(kernelBase,"GetProcAddress");
     }
 
     // Initialize global variables.
@@ -157,7 +157,7 @@ VisualLeakDetector::VisualLeakDetector ()
     }
     g_stackWalkLock.Initialize();
     g_symbolLock.Initialize();
-    g_vldHeap           = HeapCreate(0x0, 0, 0);
+    g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
     g_pReportHooks    = new ReportHookSet;
 
@@ -1712,6 +1712,74 @@ BOOL VisualLeakDetector::detachFromModule (PCWSTR /*modulepath*/, DWORD64 module
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+
+// GetProcessHeap - Calls to GetProcessHeap are patched through to this function. This
+//   function is just a wrapper around the real GetProcessHeap.
+//
+//  Return Value:
+//
+//    Returns the value returned by GetProcessHeap.
+//
+HANDLE VisualLeakDetector::_GetProcessHeap()
+{
+    // Get the return address within the calling function.
+    UINT_PTR ra = (UINT_PTR) _ReturnAddress();
+
+    // Get the process heap.
+    HANDLE heap = m_GetProcessHeap();
+
+    // Try to get the name of the function containing the return address.
+    BYTE symbolbuffer[sizeof(SYMBOL_INFO) +MAX_SYMBOL_NAME_SIZE] = { 0 };
+    SYMBOL_INFO *functioninfo = (SYMBOL_INFO*) &symbolbuffer;
+    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+    functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+
+    g_symbolLock.Enter();
+    DWORD64 displacement;
+    DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
+    BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
+    g_symbolLock.Leave();
+    if (symfound == TRUE) {
+        if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
+            // GetProcessHeap was called by _heap_init (VS2012 and upper). This is a static CRT heap (msvcr*.dll).
+            CriticalSectionLocker cs(g_vld.m_heapMapLock);
+            HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
+            if (heapit == g_vld.m_heapMap->end())
+            {
+                g_vld.mapHeap(heap);
+                heapit = g_vld.m_heapMap->find(heap);
+            }
+            HMODULE hCallingModule = (HMODULE) functioninfo->ModBase;
+            if (hCallingModule)
+            {
+                HMODULE hCurrentModule = GetModuleHandleW(NULL);
+                if (hCallingModule == hCurrentModule)
+                {
+                    // CRT static linking
+                    if (!(g_vld.m_options & VLD_OPT_RELEASE_CRT_RUNTIME))
+                    {
+                        // debug runtime
+                        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+                    }
+                }
+                else
+                {
+                    // CRT dynamic linking
+                    WCHAR callingmodulename[MAX_PATH] = L"";
+                    if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
+                    {
+                        _wcslwr_s(callingmodulename);
+                        if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
+                            (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+                    }
+                }
+            }
+        }
+    }
+
+    return heap;
+}
+
 // _GetProcAddress - Calls to GetProcAddress are patched through to this
 //   function. If the requested function is a function that has been patched
 //   through to one of VLD's handlers, then the address of VLD's handler
@@ -1786,7 +1854,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 
 FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
 {
-    return m_original_GetProcAddress(module, procname);
+    return m_GetProcAddress(module, procname);
 }
 
 // _LdrLoadDll - Calls to LdrLoadDll are patched through to this function. This
@@ -1877,6 +1945,7 @@ void VisualLeakDetector::getCallStack( CallStack **&ppcallstack, context_t &cont
     context_t context = context_;
     *ppcallstack = callstack;
     context_.fp = 0x0;
+    context_.func = 0x0;
     ppcallstack = NULL;
 
     callstack->getStackTrace(g_vld.m_maxTraceFrames, context);

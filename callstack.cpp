@@ -541,6 +541,12 @@ bool CallStack::isInternalModule( const PWSTR filename ) const
 VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
 {
     UINT32  count = 0;
+    UINT_PTR function = context.func;
+    if (function != NULL)
+    {
+        count++;
+        push_back(function);
+    }
     UINT_PTR* framePointer = context.fp;
 
 #if defined(_M_IX86)
@@ -629,6 +635,14 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
 //
 VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
 {
+    UINT32 count = 0;
+    UINT_PTR function = context.func;
+    if (function != NULL)
+    {
+        count++;
+        push_back(function);
+    }
+
     UINT_PTR* framePointer = context.fp;
     DWORD   architecture   = X86X64ARCHITECTURE;
     CONTEXT currentContext;
@@ -666,7 +680,6 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
 
     // Walk the stack.
     CriticalSectionLocker cs(g_stackWalkLock);
-    UINT32 count = 0;
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());

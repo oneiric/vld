@@ -57,16 +57,17 @@ const char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
     "GetProcAddress",     NULL, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+    "GetProcessHeap",     (LPVOID*)&m_GetProcessHeap, _GetProcessHeap,
     NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
-    "HeapAlloc",          NULL, _HeapAlloc,
-    "HeapCreate",         NULL, _HeapCreate,
-    "HeapDestroy",        NULL, _HeapDestroy,
-    "HeapFree",           NULL, _HeapFree,
-    "HeapReAlloc",        NULL, _HeapReAlloc,
-    NULL,                 NULL, NULL
+    "HeapAlloc",          NULL,                     _HeapAlloc,
+    "HeapCreate",         (LPVOID*)&m_HeapCreate,   _HeapCreate,
+    "HeapDestroy",        NULL,                     _HeapDestroy,
+    "HeapFree",           NULL,                     _HeapFree,
+    "HeapReAlloc",        NULL,                     _HeapReAlloc,
+    NULL,                 NULL,                     NULL
 };
 
 #define ORDINAL(x)          (LPCSTR)x
@@ -76,7 +77,9 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 #define ORDINAL2(x86, x64)  (LPCSTR)x64
 #endif
 
-VisualLeakDetector::_GetProcAddressType *VisualLeakDetector::m_original_GetProcAddress = NULL;
+GetProcAddress_t VisualLeakDetector::m_GetProcAddress = NULL;
+GetProcessHeap_t VisualLeakDetector::m_GetProcessHeap = NULL;
+HeapCreate_t VisualLeakDetector::m_HeapCreate = NULL;
 
 static patchentry_t mfc42Patch [] = {
     // XXX why are the vector new operators missing for mfc42.dll?

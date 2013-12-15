@@ -50,6 +50,7 @@ void VisualLeakDetector::firstAllocCall(tls_t * tls)
 
     // Reset thread local flags and variables for the next allocation.
     tls->context.fp = 0x0;
+    tls->context.func = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 }
 
@@ -1402,7 +1403,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     UINT_PTR ra = (UINT_PTR)_ReturnAddress();
 
     // Create the heap.
-    HANDLE heap = HeapCreate(options, initsize, maxsize);
+    HANDLE heap = m_HeapCreate(options, initsize, maxsize);
 
     // Map the created heap handle to a new block map.
     g_vld.mapHeap(heap);
@@ -1420,7 +1421,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     g_symbolLock.Leave();
     if (symfound == TRUE) {
         if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
-            // HeapCreate was called by _heap_init. This is a static CRT heap (msvcr*.dll).
+            // HeapCreate was called by _heap_init (VS2010 and before). This is a static CRT heap (msvcr*.dll).
             CriticalSectionLocker cs(g_vld.m_heapMapLock);
             HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
             assert(heapit != g_vld.m_heapMap->end());
@@ -1510,7 +1511,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, RtlAllocateHeap);
     }
     else
         context = tls->context;
@@ -1522,7 +1523,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
         firstcall = true;
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, RtlAllocateHeap);
     }
 
     tls->context = context;
@@ -1551,7 +1552,7 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, HeapAlloc);
     }
     else
         context = tls->context;
@@ -1563,7 +1564,7 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
         firstcall = true;
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, HeapAlloc);
     }
 
     tls->context = context;
@@ -1608,7 +1609,7 @@ BYTE VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
     {
         context_t context;
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, RtlFreeHeap);
 
         // Unmap the block from the specified heap.
         g_vld.unmapBlock(heap, mem, context);
@@ -1628,7 +1629,7 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
     {
         context_t context;
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, HeapFree);
 
         // Unmap the block from the specified heap.
         g_vld.unmapBlock(heap, mem, context);
@@ -1675,7 +1676,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, RtlReAllocateHeap);
     }
     else
         context = tls->context;
@@ -1687,7 +1688,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
         firstcall = true;
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, RtlReAllocateHeap);
     }
 
     ReAllocateHeap(tls, heap, mem, newmem, size, context);
@@ -1718,7 +1719,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, HeapReAlloc);
     }
     else
         context = tls->context;
@@ -1730,7 +1731,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
         // Begin the stack trace with the current frame. Obtain the current
         // frame pointer.
         firstcall = true;
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, HeapReAlloc);
     }
 
     ReAllocateHeap(tls, heap, mem, newmem, size, context);
@@ -1751,6 +1752,7 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LP
     // Reset thread local flags and variables, in case any libraries called
     // into while remapping the block allocate some memory.
     tls->context.fp = 0x0;
+    tls->context.func = 0x0;
     tls->flags &= ~VLD_TLS_CRTALLOC;
 
     // The module that initiated this allocation is included in leak
@@ -1847,7 +1849,7 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, pCoTaskMemAlloc);
         tls->context = context;
         tls->blockProcessed = FALSE;
     }
@@ -1894,7 +1896,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, pCoTaskMemRealloc);
         tls->context = context;
         tls->blockProcessed = FALSE;
     }
@@ -1955,7 +1957,7 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, NULL);
         tls->context = context;
         tls->blockProcessed = FALSE;
     }
@@ -2074,7 +2076,7 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context);
+        CAPTURE_CONTEXT(context, NULL);
         tls->context = context;
         tls->blockProcessed = FALSE;
     }

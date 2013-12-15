@@ -161,7 +161,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
     assert(pcrtxxd__calloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__calloc_dbg);
 
     return g_vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
 }
@@ -192,7 +192,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__malloc_dbg);
 
     return g_vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
 }
@@ -226,7 +226,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__realloc_dbg);
 
     return g_vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
 }
@@ -261,7 +261,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__recalloc_dbg);
 
     return g_vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
 }
@@ -277,7 +277,7 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
     assert(pcrtxxd__strdup_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__strdup_dbg);
 
     return g_vld.__strdup_dbg(pcrtxxd__strdup_dbg, context, debug, src, type, file, line);
 }
@@ -293,7 +293,7 @@ wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
     assert(pcrtxxd__wcsdup_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__wcsdup_dbg);
 
     return g_vld.__wcsdup_dbg(pcrtxxd__wcsdup_dbg, context, debug, src, type, file, line);
 }
@@ -324,7 +324,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__scalar_new_dbg);
 
     return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
@@ -355,7 +355,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__vector_new_dbg);
 
     return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
@@ -380,7 +380,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
     assert(pcrtxxd_calloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_calloc);
 
     return g_vld._calloc(pcrtxxd_calloc, context, debug, num, size);
 }
@@ -403,7 +403,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_malloc);
 
     return g_vld._malloc(pcrtxxd_malloc, context, debug, size);
 }
@@ -428,7 +428,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_realloc);
 
     return g_vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
 }
@@ -453,7 +453,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, siz
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_recalloc);
 
     return g_vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
 }
@@ -466,7 +466,7 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
     assert(pcrtxxd_strdup);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__strdup);
 
     return g_vld.__strdup(pcrtxxd_strdup, context, debug, src);
 }
@@ -478,7 +478,7 @@ wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
     assert(pcrtxxd_wcsdup);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__wcsdup);
 
     return g_vld.__wcsdup(pcrtxxd_wcsdup, context, debug, src);
 }
@@ -510,7 +510,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size
     assert(pcrtxxd__aligned_malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_malloc_dbg);
 
     return g_vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
 }
@@ -543,7 +543,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t   
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_malloc_dbg);
 
     return g_vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
 }
@@ -578,7 +578,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_realloc_dbg);
 
     return g_vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
 }
@@ -614,7 +614,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void    
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_realloc_dbg);
 
     return g_vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
 }
@@ -652,7 +652,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *me
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_recalloc_dbg);
 
     return g_vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
 }
@@ -691,7 +691,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void   
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_recalloc_dbg);
 
     return g_vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
 }
@@ -714,7 +714,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t 
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_malloc);
 
     return g_vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
 }
@@ -737,7 +737,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, 
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_malloc);
 
     return g_vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
 }
@@ -762,7 +762,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t s
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_realloc);
 
     return g_vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
 }
@@ -787,7 +787,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, s
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_realloc);
 
     return g_vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
 }
@@ -814,7 +814,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t 
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_recalloc);
 
     return g_vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
 }
@@ -841,7 +841,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, 
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_recalloc);
 
     return g_vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
 }
@@ -862,7 +862,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
     assert(pcrtxxd_scalar_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_scalar_new);
 
     return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
@@ -883,7 +883,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
     assert(pcrtxxd_scalar_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pcrtd_vector_new);
 
     return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
@@ -920,7 +920,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_4p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -948,7 +948,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_3p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -979,7 +979,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_4p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1007,7 +1007,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd__vector_new_dbg_3p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1028,7 +1028,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd_scalar_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1049,7 +1049,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcd_vector_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1080,7 +1080,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_4p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1108,7 +1108,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_3p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1139,7 +1139,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_4p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1167,7 +1167,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud__vector_new_dbg_3p);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1188,7 +1188,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud_scalar_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1209,7 +1209,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context);
+    CAPTURE_CONTEXT(context, pmfcud_vector_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
