@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Visual Leak Detector - Import Library Header
-//  Copyright (c) 2005-2013 VLD Team
+//  Copyright (c) 2005-2014 VLD Team
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -293,18 +293,18 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDEnable()
 #define VLDDisable()
 #define VLDRestore()
-#define VLDReportLeaks() 0
-#define VLDGetLeaksCount() 0
+#define VLDReportLeaks() (0)
+#define VLDGetLeaksCount() (0)
 #define VLDMarkAllLeaksAsReported()
 #define VLDRefreshModules()
 #define VLDEnableModule(a)
 #define VLDDisableModule(b)
-#define VLDGetOptions() 0
+#define VLDGetOptions() (0)
 #define VLDGetReportFilename(a)
 #define VLDSetOptions(a, b, c)
 #define VLDSetReportHook(a, b)
 #define VLDSetModulesList(a)
-#define VLDGetModulesList(a, b) FALSE
+#define VLDGetModulesList(a, b) (FALSE)
 #define VLDSetReportOptions(a, b)
 
 #endif // _DEBUG
