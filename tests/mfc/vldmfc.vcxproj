@@ -85,34 +85,42 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -208,7 +216,7 @@
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x86 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -254,7 +262,7 @@
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x86 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -298,7 +306,7 @@
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x64 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -342,7 +350,7 @@
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x64 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -390,7 +398,7 @@
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x86 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -438,7 +446,7 @@
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Debug x86 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -483,7 +491,7 @@
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x64 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -528,7 +536,7 @@
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Debug x64 $(Outdir)</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>

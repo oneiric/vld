@@ -125,39 +125,51 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)_StaticCrt|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)_StaticCrt|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Common.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -252,7 +264,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -281,7 +293,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Debug x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -309,7 +321,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -333,7 +345,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -357,7 +369,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -382,7 +394,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Debug x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -406,7 +418,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -430,7 +442,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -458,7 +470,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -487,7 +499,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x86 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -513,7 +525,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\$(Configuration) x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
@@ -540,7 +552,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>..\copydlls.bat $(Platform)\Release x64 $(Outdir)
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
