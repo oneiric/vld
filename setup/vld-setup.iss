@@ -5,6 +5,7 @@
 #define MyAppVersion "2.4"
 #define MyAppPublisher "VLD Team"
 #define MyAppURL "http://vld.codeplex.com/"
+#define MyAppRegKey "Software\Visual Leak Detector"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -18,7 +19,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={reg:HKLM\{#MyAppRegKey},InstallPath|{pf}\{#MyAppName}}
 DefaultGroupName={#MyAppName}
 LicenseFile=license-free.txt
 OutputBaseFilename=vld-{#MyAppVersion}-setup
@@ -84,9 +85,16 @@ Source: "..\vld.vcxproj.filters"; DestDir: "{app}\src"; Flags: ignoreversion
 
 [Tasks]
 Name: "modifypath"; Description: "Add VLD directory to your environmental path"
+Name: "modifyVSProps"; Description: "Add VLD directory to VS2010-2013"
 
 [ThirdParty]
 UseRelativePaths=True
+
+[Registry]
+Root: "HKLM"; Subkey: "{#MyAppRegKey}"; Flags: uninsdeletekeyifempty
+Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstalledVersion"; ValueData: "{#MyAppVersion}"
+Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"
+Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "IniFile"; ValueData: "{app}\vld.ini"
 
 [Code] 
 const
@@ -258,7 +266,8 @@ begin
   begin
     if not UninstallOldVersions() then
       Abort();
-    ModifyAllProps();
+    if IsTaskSelected('modifyVSProps') then
+      ModifyAllProps();
   end;
   CurStepChangedModPath(CurStep); 
 end;        
