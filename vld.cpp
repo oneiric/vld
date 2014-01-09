@@ -169,7 +169,7 @@ VisualLeakDetector::VisualLeakDetector ()
     m_totalAlloc      = 0;
     m_curAlloc        = 0;
     m_maxAlloc        = 0;
-    m_loadedModules   = NULL;
+    m_loadedModules   = new ModuleSet();
     m_optionsLock.Initialize();
     m_loaderLock.Initialize();
     m_heapMapLock.Initialize();
@@ -249,7 +249,9 @@ VisualLeakDetector::VisualLeakDetector ()
     DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
     EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
     attachToLoadedModules(newmodules);
+    ModuleSet* oldmodules = m_loadedModules;
     m_loadedModules = newmodules;
+    delete oldmodules;
     m_status |= VLD_STATUS_INSTALLED;
 
     HMODULE dbghelp = GetModuleHandleW(L"dbghelp.dll");
@@ -480,6 +482,44 @@ VisualLeakDetector::~VisualLeakDetector ()
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+UINT32 VisualLeakDetector::getModuleState(ModuleSet::Iterator& it, UINT32& moduleFlags)
+{
+    const moduleinfo_t& moduleinfo = *it;
+    DWORD64 modulebase = (DWORD64) moduleinfo.addrLow;
+    moduleFlags = 0;
+
+    if (IsBadReadPtr((UINT*) modulebase, sizeof(UINT*))) // module unloaded
+        return 0;
+
+    bool isNewModule = false;
+    m_modulesLock.Enter();
+    ModuleSet* oldmodules = m_loadedModules;
+    ModuleSet::Iterator oldit = oldmodules->find(moduleinfo);
+    if (oldit != oldmodules->end()) // We've seen this "new" module loaded in the process before.
+        moduleFlags = (*oldit).flags;
+    else // This is new loaded module
+        isNewModule = true;
+    m_modulesLock.Leave();
+
+    if (isNewModule)
+        return 1;
+
+    if (IsModulePatched((HMODULE) modulebase, m_patchTable, _countof(m_patchTable)))
+    {
+        // This module is already attached. Just update the module's
+        // flags, nothing more.
+        ModuleSet::Muterator  updateit;
+        updateit = it;
+        (*updateit).flags = moduleFlags;
+        return 2;
+    }
+
+    // This module may have been attached before and has been
+    // detached. We'll need to try reattaching to it in case it
+    // was unloaded and then subsequently reloaded.
+    return 3;
+}
+
 // attachtoloadedmodules - Attaches VLD to all modules contained in the provided
 //   ModuleSet. Not all modules are in the ModuleSet will actually be included
 //   in leak detection. Only modules that import the global VisualLeakDetector
@@ -499,52 +539,22 @@ VisualLeakDetector::~VisualLeakDetector ()
 //
 VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 {
-    ModuleSet::Muterator  updateit;
-
     // Iterate through the supplied set, until all modules have been attached.
-    for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit) {
-        DWORD64 modulebase  = (DWORD64)(*newit).addrLow;
+    for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit)
+    {
+        UINT32 moduleFlags = 0x0;
+        UINT32 state = getModuleState(newit, moduleFlags);
 
-        bool moduleLoaded = false;
-        UINT32 moduleflags = 0x0;
-        m_modulesLock.Enter();
-        ModuleSet* oldmodules = m_loadedModules;
-        if (oldmodules != NULL) {
-            // This is not the first time we have been called to attach to the
-            // currently loaded modules.
-            ModuleSet::Iterator oldit = oldmodules->find(*newit);
-            if (oldit != oldmodules->end()) {
-                moduleLoaded = true;
-                moduleflags = (*oldit).flags;
-            }
-        }
-        m_modulesLock.Leave();
+        if (state == 0 || state == 2)
+            continue;
 
-        bool refresh = false;
-        if (moduleLoaded) // We've seen this "new" module loaded in the process before.
-        {
-            if (IsModulePatched((HMODULE)modulebase, m_patchTable, _countof(m_patchTable))) 
-            {
-                // This module is already attached. Just update the module's
-                // flags, nothing more.
-                updateit = newit;
-                (*updateit).flags = moduleflags;
-                continue;
-            }
-            else {
-                // This module may have been attached before and has been
-                // detached. We'll need to try reattaching to it in case it
-                // was unloaded and then subsequently reloaded.
-                refresh = true;
-            }
-        }
-
+        DWORD64 modulebase = (DWORD64) (*newit).addrLow;
         LPCWSTR modulename  = (*newit).name;
         LPCWSTR modulepath  = (*newit).path;
         DWORD modulesize  = (DWORD)((*newit).addrHigh - (*newit).addrLow) + 1;
 
         g_symbolLock.Enter();
-        if ((refresh == true) && (moduleflags & VLD_MODULE_SYMBOLSLOADED)) {
+        if ((state == 3) && (moduleFlags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
             DbgTrace(L"dbghelp32.dll %i: SymUnloadModule64\n", GetCurrentThreadId());
             if (SymUnloadModule64(g_currentProcess, modulebase) == false) {
@@ -576,7 +586,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             g_symbolLock.Leave();
         }
         if (SymbolsLoaded)
-            moduleflags |= VLD_MODULE_SYMBOLSLOADED;
+            moduleFlags |= VLD_MODULE_SYMBOLSLOADED;
 
         if (_wcsicmp(TEXT(VLDDLL), modulename) == 0) {
             // What happens when a module goes through it's own portal? Bad things.
@@ -585,7 +595,12 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             continue;
         }
 
-        if (!FindImport((HMODULE)modulebase, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
+        // increase reference count to module
+        HMODULE modulelocal = NULL;
+        if (!GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR) modulebase, &modulelocal))
+            continue;
+
+        if (!FindImport(modulelocal, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
             // This module does not import VLD. This means that none of the module's
             // sources #included vld.h.
@@ -593,19 +608,19 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             {
                 if (wcsstr(m_forcedModuleList, modulename) == NULL) {
                     // Exclude this module from leak detection.
-                    moduleflags |= VLD_MODULE_EXCLUDED;
+                    moduleFlags |= VLD_MODULE_EXCLUDED;
                 }
             }
             else
             {
                 if (wcsstr(m_forcedModuleList, modulename) != NULL) {
                     // Exclude this module from leak detection.
-                    moduleflags |= VLD_MODULE_EXCLUDED;
+                    moduleFlags |= VLD_MODULE_EXCLUDED;
                 }
             }
         }
-        if ((moduleflags & VLD_MODULE_EXCLUDED) == 0 && 
-            !(moduleflags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
+        if ((moduleFlags & VLD_MODULE_EXCLUDED) == 0 && 
+            !(moduleFlags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
             // This module is going to be included in leak detection, but complete
             // symbols for this module couldn't be loaded. This means that any stack
             // traces through this module may lack information, like line numbers
@@ -616,11 +631,14 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         }
 
         // Update the module's flags in the "new modules" set.
+        ModuleSet::Muterator  updateit;
         updateit = newit;
-        (*updateit).flags = moduleflags;
+        (*updateit).flags = moduleFlags;
 
         // Attach to the module.
-        PatchModule((HMODULE)modulebase, m_patchTable, _countof(m_patchTable));
+        PatchModule(modulelocal, m_patchTable, _countof(m_patchTable));
+
+        FreeLibrary(modulelocal);
     }
 }
 
@@ -1897,10 +1915,12 @@ NTSTATUS VisualLeakDetector::_LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, 
                                           PHANDLE modulehandle)
 {
     // Load the DLL.
+    _InterlockedIncrement(&g_loaderLockCounter);
     NTSTATUS status = LdrLoadDllWin8(reserved, flags, modulename, modulehandle);
 
-    if (STATUS_SUCCESS == status)
+    if (STATUS_SUCCESS == status && g_loaderLockCounter == 1)
         g_vld.RefreshModules();
+    _InterlockedDecrement(&g_loaderLockCounter);
 
     return status;
 }

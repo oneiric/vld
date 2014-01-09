@@ -284,7 +284,8 @@ private:
     // Private leak detection functions - see each function definition for details.
     ////////////////////////////////////////////////////////////////////////////////
     VOID   attachToLoadedModules (ModuleSet *newmodules);
-    LPWSTR buildSymbolSearchPath ();
+    UINT32 getModuleState(ModuleSet::Iterator& it, UINT32 &moduleFlags);
+    LPWSTR buildSymbolSearchPath();
     VOID   configure ();
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
