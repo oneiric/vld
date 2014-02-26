@@ -148,6 +148,7 @@ BOOL StrToBool (LPCWSTR s);
 DWORD _GetProcessIdOfThread (HANDLE thread);
 #define GetProcessIdOfThread _GetProcessIdOfThread
 #endif
+void ConvertModulePathToAscii( LPCWSTR modulename, LPSTR * modulenamea );
 DWORD CalculateCRC32(UINT_PTR p, UINT startValue = 0xD202EF8D);
 // Formats a message string using the specified message and variable
 // list of arguments.

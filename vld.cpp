@@ -602,20 +602,40 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 
         if (!FindImport(modulelocal, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
-            // This module does not import VLD. This means that none of the module's
-            // sources #included vld.h.
-            if ((m_options & VLD_OPT_MODULE_LIST_INCLUDE) != 0)
+            bool isMfcModule = false;
+            if (_wcsnicmp(modulename, L"mfc", 3) == 0)
             {
-                if (wcsstr(m_forcedModuleList, modulename) == NULL) {
-                    // Exclude this module from leak detection.
-                    moduleFlags |= VLD_MODULE_EXCLUDED;
+                LPSTR modulenamea;
+                ConvertModulePathToAscii(modulename, &modulenamea);
+
+                for (UINT index = 0; index < _countof(m_patchTable); index++) {
+                    moduleentry_t *entry = &m_patchTable[index];
+                    if (_stricmp(entry->exportModuleName, modulenamea) == 0) {
+                        isMfcModule = true;
+                        break;
+                    }
                 }
+
+                delete [] modulenamea;
             }
-            else
+            // mfc dll shouldn't be excluded
+            if (!isMfcModule) 
             {
-                if (wcsstr(m_forcedModuleList, modulename) != NULL) {
-                    // Exclude this module from leak detection.
-                    moduleFlags |= VLD_MODULE_EXCLUDED;
+                // This module does not import VLD. This means that none of the module's
+                // sources #included vld.h.
+                if ((m_options & VLD_OPT_MODULE_LIST_INCLUDE) != 0)
+                {
+                    if (wcsstr(m_forcedModuleList, modulename) == NULL) {
+                        // Exclude this module from leak detection.
+                        moduleFlags |= VLD_MODULE_EXCLUDED;
+                    }
+                }
+                else
+                {
+                    if (wcsstr(m_forcedModuleList, modulename) != NULL) {
+                        // Exclude this module from leak detection.
+                         moduleFlags |= VLD_MODULE_EXCLUDED;
+                    }
                 }
             }
         }
@@ -1650,24 +1670,8 @@ BOOL VisualLeakDetector::addLoadedModule (PCWSTR modulepath, DWORD64 modulebase,
         g_vld.m_vldBase = (HMODULE)modulebase;
     }
     else {
-        // Convert the module path to ASCII.
-        length = ::WideCharToMultiByte(CP_ACP, 0, modulename, -1, 0, 0, 0, 0);
-        LPSTR modulenamea = new CHAR [length];
-
-        // wcstombs_s requires locale to be already set up correctly, but it might not be correct on vld init step. So use WideCharToMultiByte instead
-        CHAR defaultChar     = '?';
-        BOOL defaultCharUsed = FALSE;
-
-        int count = ::WideCharToMultiByte(CP_ACP, 0/*flags*/, modulename, (int)-1, modulenamea, (int)length, &defaultChar, &defaultCharUsed);
-        assert(count != 0);
-        if ( defaultCharUsed )
-        {
-            ::OutputDebugStringW(__FILEW__ L": " __FUNCTIONW__ L" - defaultChar was used while conversion from \"");
-            ::OutputDebugStringW(modulename);
-            ::OutputDebugStringW(L"\" to ANSI \"");
-            ::OutputDebugStringA(modulenamea);
-            ::OutputDebugStringW(L"\". Result can be wrong.\n");
-        }
+        LPSTR modulenamea;
+        ConvertModulePathToAscii(modulename, &modulenamea);
 
         // See if this is a module listed in the patch table. If it is, update
         // the corresponding patch table entries' module base address.
@@ -1858,7 +1862,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
                         if (patchentry->original != NULL)
                             *patchentry->original = g_vld._RGetProcAddress(module, procname);
                         return (FARPROC)patchentry->replacement;
-                    }                	
+                    }
                 }
             }
             patchentry++;
@@ -2052,7 +2056,7 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
     CriticalSectionLocker cs(m_modulesLock);
     moduleit = m_loadedModules->begin();
     while( moduleit != m_loadedModules->end() )
-    {			
+    {
         if ( (*moduleit).addrLow == (UINT_PTR)module) 
         {
             moduleinfo_t *mod = (moduleinfo_t *)&(*moduleit);
