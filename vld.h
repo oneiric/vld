@@ -128,6 +128,16 @@ __declspec(dllimport) void VLDGlobalEnable ();
 //
 __declspec(dllimport) VLD_UINT VLDReportLeaks ();
 
+// VLDReportThreadLeaks - Report thread leaks up to the execution point.
+//
+// threadId: thread Id.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) VLD_UINT VLDReportThreadLeaks (VLD_UINT threadId);
+
 // VLDGetLeaksCount - Return memory leaks count to the execution point.
 //
 //  Return Value:
@@ -136,6 +146,16 @@ __declspec(dllimport) VLD_UINT VLDReportLeaks ();
 //
 __declspec(dllimport) VLD_UINT VLDGetLeaksCount ();
 
+// VLDGetThreadLeaksCount - Return thread memory leaks count to the execution point.
+//
+// threadId: thread Id.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) VLD_UINT VLDGetThreadLeaksCount (VLD_UINT threadId);
+
 // VLDMarkAllLeaksAsReported - Mark all leaks as reported.
 //
 //  Return Value:
@@ -143,6 +163,16 @@ __declspec(dllimport) VLD_UINT VLDGetLeaksCount ();
 //    None.
 //
 __declspec(dllimport) void VLDMarkAllLeaksAsReported ();
+
+// VLDMarkThreadLeaksAsReported - Mark thread leaks as reported.
+//
+// threadId: thread Id.
+//
+//  Return Value:
+//
+//    None.
+//
+__declspec(dllimport) void VLDMarkThreadLeaksAsReported (VLD_UINT threadId);
 
 
 // VLDRefreshModules - Look for recently loaded DLLs and patch them if necessary.
@@ -294,8 +324,11 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDDisable()
 #define VLDRestore()
 #define VLDReportLeaks() (0)
+#define VLDReportThreadLeaks() (0)
 #define VLDGetLeaksCount() (0)
+#define VLDGetThreadLeaksCount() (0)
 #define VLDMarkAllLeaksAsReported()
+#define VLDMarkThreadLeaksAsReported(a)
 #define VLDRefreshModules()
 #define VLDEnableModule(a)
 #define VLDDisableModule(b)

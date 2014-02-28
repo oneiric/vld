@@ -1583,7 +1583,7 @@ void VisualLeakDetector::AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SI
 
     // The module that initiated this allocation is included in leak
     // detection. Map this block to the specified heap.
-    g_vld.mapBlock(heap, block, size, crtalloc, tls->ppCallStack);
+    g_vld.mapBlock(heap, block, size, crtalloc, tls->threadId, tls->ppCallStack);
 }
 
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
@@ -1757,7 +1757,7 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LP
 
     // The module that initiated this allocation is included in leak
     // detection. Remap the block.
-    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->ppCallStack, context);
+    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, tls->ppCallStack, context);
 
 #ifdef _DEBUG
     if(tls->context.fp != 0)

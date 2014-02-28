@@ -177,7 +177,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	totalleaks = (int)VLDGetLeaksCount();
 	int leaks2 = totalleaks - prevleaks;
 	prevleaks = totalleaks;
-	assert(leaks2 == 7);
+	assert(leaks2 == 11);
  
 	LeakDuplicateLeaks();       // leaks 6
 	totalleaks = (int)VLDGetLeaksCount();

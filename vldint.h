@@ -96,7 +96,8 @@ typedef void* (__cdecl *_aligned_offset_recalloc_dbg_t) (void *, size_t, size_t,
 // a BlockMap which maps each of these structures to its corresponding memory
 // block.
 struct blockinfo_t {
-    CallStack *callStack;
+	CallStack *callStack;
+	DWORD      threadId;
     SIZE_T     serialNumber;
     SIZE_T     size;
     bool       reported;
@@ -260,9 +261,12 @@ public:
     void GlobalEnableLeakDetection ();
 
     VOID RefreshModules();
-    SIZE_T GetLeaksCount();
-    SIZE_T ReportLeaks();
-    VOID MarkAllLeaksAsReported();
+	SIZE_T GetLeaksCount();
+	SIZE_T GetThreadLeaksCount(DWORD threadId);
+	SIZE_T ReportLeaks();
+	SIZE_T ReportThreadLeaks(DWORD threadId);
+	VOID MarkAllLeaksAsReported();
+	VOID MarkThreadLeaksAsReported(DWORD threadId);
     VOID EnableModule(HMODULE module);
     VOID DisableModule(HMODULE module);
     UINT32 GetOptions();
@@ -290,15 +294,15 @@ private:
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
     tls_t* getTls ();
-    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, CallStack **&ppcallstack);
+    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, CallStack **&ppcallstack);
     VOID   mapHeap (HANDLE heap);
     VOID   remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-        bool crtalloc, CallStack **&ppcallstack, const context_t &context);
+        bool crtalloc, DWORD threadId, CallStack **&ppcallstack, const context_t &context);
     VOID   reportConfig ();
     SIZE_T reportHeapLeaks (HANDLE heap);
-    SIZE_T getLeaksCount (heapinfo_t* heapinfo);
-    SIZE_T reportLeaks( heapinfo_t* heapinfo, Set<blockinfo_t*> &aggregatedLeaks );
-    VOID   markAllLeaksAsReported (heapinfo_t* heapinfo);
+    SIZE_T getLeaksCount (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
+    SIZE_T reportLeaks(heapinfo_t* heapinfo, bool &firstLeak, Set<blockinfo_t*> &aggregatedLeaks, DWORD threadId = (DWORD)-1);
+	VOID   markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
     VOID   unmapBlock (HANDLE heap, LPCVOID mem, const context_t &context);
     VOID   unmapHeap (HANDLE heap);
     void   resolveStacks(heapinfo_t* heapinfo);
