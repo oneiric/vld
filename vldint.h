@@ -31,6 +31,7 @@
 
 #include <cstdio>
 #include <windows.h>
+#include <memory>
 #include "vld_def.h"
 #include "version.h"
 #include "callstack.h" // Provides a custom class for handling call stacks.
@@ -96,8 +97,8 @@ typedef void* (__cdecl *_aligned_offset_recalloc_dbg_t) (void *, size_t, size_t,
 // a BlockMap which maps each of these structures to its corresponding memory
 // block.
 struct blockinfo_t {
-	CallStack *callStack;
-	DWORD      threadId;
+    std::unique_ptr<CallStack> callStack;
+    DWORD      threadId;
     SIZE_T     serialNumber;
     SIZE_T     size;
     bool       reported;
@@ -159,7 +160,7 @@ struct tls_t {
     UINT32	    oldFlags;         // Thread-local status old flags
     BOOL	    blockProcessed;   // Internal diagnostic feature
     DWORD 	    threadId;         // Thread ID of the thread that owns this TLS structure.
-    CallStack** ppCallStack; 	  // Memory block callstack pointer.
+    blockinfo_t* pblockInfo; 	  // Store pointer to callstack.
 };
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
@@ -261,12 +262,12 @@ public:
     void GlobalEnableLeakDetection ();
 
     VOID RefreshModules();
-	SIZE_T GetLeaksCount();
-	SIZE_T GetThreadLeaksCount(DWORD threadId);
-	SIZE_T ReportLeaks();
-	SIZE_T ReportThreadLeaks(DWORD threadId);
-	VOID MarkAllLeaksAsReported();
-	VOID MarkThreadLeaksAsReported(DWORD threadId);
+    SIZE_T GetLeaksCount();
+    SIZE_T GetThreadLeaksCount(DWORD threadId);
+    SIZE_T ReportLeaks();
+    SIZE_T ReportThreadLeaks(DWORD threadId);
+    VOID MarkAllLeaksAsReported();
+    VOID MarkThreadLeaksAsReported(DWORD threadId);
     VOID EnableModule(HMODULE module);
     VOID DisableModule(HMODULE module);
     UINT32 GetOptions();
@@ -294,15 +295,15 @@ private:
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
     tls_t* getTls ();
-    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, CallStack **&ppcallstack);
+    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo);
     VOID   mapHeap (HANDLE heap);
     VOID   remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-        bool crtalloc, DWORD threadId, CallStack **&ppcallstack, const context_t &context);
+        bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context);
     VOID   reportConfig ();
     SIZE_T reportHeapLeaks (HANDLE heap);
     SIZE_T getLeaksCount (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
     SIZE_T reportLeaks(heapinfo_t* heapinfo, bool &firstLeak, Set<blockinfo_t*> &aggregatedLeaks, DWORD threadId = (DWORD)-1);
-	VOID   markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
+    VOID   markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
     VOID   unmapBlock (HANDLE heap, LPCVOID mem, const context_t &context);
     VOID   unmapHeap (HANDLE heap);
     void   resolveStacks(heapinfo_t* heapinfo);
@@ -314,7 +315,7 @@ private:
     // Utils
     static bool isModuleExcluded (UINT_PTR returnaddress);
     blockinfo_t* findAllocedBlock(LPCVOID, __out HANDLE& heap);
-    static void getCallStack( CallStack **&ppcallstack, context_t &context );
+    static void getCallStack( CallStack *&pcallstack, context_t &context );
     static inline void firstAllocCall(tls_t * tls);
     void setupReporting();
     void checkInternalMemoryLeaks();

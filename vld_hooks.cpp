@@ -42,10 +42,13 @@ extern CriticalSection  g_symbolLock;
 
 void VisualLeakDetector::firstAllocCall(tls_t * tls)
 {
-    if (tls->ppCallStack)
+    if (tls->pblockInfo)
     {
         tls->flags &= ~VLD_TLS_CRTALLOC;
-        getCallStack(tls->ppCallStack, tls->context);
+        CallStack* callstack;
+        getCallStack(callstack, tls->context);
+        tls->pblockInfo->callStack.reset(callstack);
+        tls->pblockInfo = NULL;
     }
 
     // Reset thread local flags and variables for the next allocation.
@@ -1583,7 +1586,7 @@ void VisualLeakDetector::AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SI
 
     // The module that initiated this allocation is included in leak
     // detection. Map this block to the specified heap.
-    g_vld.mapBlock(heap, block, size, crtalloc, tls->threadId, tls->ppCallStack);
+    g_vld.mapBlock(heap, block, size, crtalloc, tls->threadId, tls->pblockInfo);
 }
 
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
@@ -1696,7 +1699,9 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     if (firstcall)
     {
         firstAllocCall(tls);
-        tls->ppCallStack = NULL;
+        std::unique_ptr<CallStack> &callStack = tls->pblockInfo->callStack;
+        tls->pblockInfo = NULL;
+        callStack.reset();
     }
 
     return newmem;
@@ -1739,7 +1744,9 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     if (firstcall)
     {
         firstAllocCall(tls);
-        tls->ppCallStack = NULL;
+        std::unique_ptr<CallStack> &callStack = tls->pblockInfo->callStack;
+        tls->pblockInfo = NULL;
+        callStack.reset();
     }
 
     return newmem;
@@ -1757,7 +1764,7 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LP
 
     // The module that initiated this allocation is included in leak
     // detection. Remap the block.
-    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, tls->ppCallStack, context);
+    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, tls->pblockInfo, context);
 
 #ifdef _DEBUG
     if(tls->context.fp != 0)

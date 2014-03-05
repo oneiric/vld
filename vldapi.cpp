@@ -69,12 +69,12 @@ __declspec(dllexport) UINT VLDReportLeaks ()
 
 __declspec(dllexport) UINT VLDReportThreadLeaks (UINT threadId)
 {
-	return (UINT)g_vld.ReportThreadLeaks(threadId);
+    return (UINT)g_vld.ReportThreadLeaks(threadId);
 }
 
 __declspec(dllexport) UINT VLDGetLeaksCount ()
 {
-	return (UINT)g_vld.GetLeaksCount();
+    return (UINT)g_vld.GetLeaksCount();
 }
 
 __declspec(dllexport) UINT VLDGetThreadLeaksCount (UINT threadId)
@@ -84,12 +84,12 @@ __declspec(dllexport) UINT VLDGetThreadLeaksCount (UINT threadId)
 
 __declspec(dllexport) void VLDMarkAllLeaksAsReported ()
 {
-	g_vld.MarkAllLeaksAsReported();
+    g_vld.MarkAllLeaksAsReported();
 }
 
 __declspec(dllexport) void VLDMarkThreadLeaksAsReported (UINT threadId)
 {
-	g_vld.MarkThreadLeaksAsReported(threadId);
+    g_vld.MarkThreadLeaksAsReported(threadId);
 }
 
 __declspec(dllexport) void VLDRefreshModules()

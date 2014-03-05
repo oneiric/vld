@@ -416,7 +416,6 @@ VisualLeakDetector::~VisualLeakDetector ()
         for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
             BlockMap *blockmap = &(*heapit).second->blockMap;
             for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-                delete (*blockit).second->callStack;
                 delete (*blockit).second;
             }
             delete blockmap;
@@ -1036,7 +1035,7 @@ tls_t* VisualLeakDetector::getTls ()
         tls->flags = 0x0;
         tls->oldFlags = 0x0;
         tls->threadId = threadId;
-        tls->ppCallStack = NULL;
+        tls->pblockInfo = NULL;
         tls->blockProcessed = FALSE;
     }
 
@@ -1063,13 +1062,13 @@ tls_t* VisualLeakDetector::getTls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, CallStack **&ppcallstack)
+VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo)
 {
     // Record the block's information.
-    blockinfo_t* blockinfo = new blockinfo_t;
+    blockinfo_t* blockinfo = new blockinfo_t();
     blockinfo->callStack = NULL;
-	ppcallstack = &blockinfo->callStack;
-	blockinfo->threadId = threadId;
+    pblockInfo = blockinfo;
+    blockinfo->threadId = threadId;
     blockinfo->serialNumber = m_requestCurr++;
     blockinfo->size = size;
     blockinfo->reported = false;
@@ -1104,11 +1103,11 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool c
         // mechanism unknown to VLD), or the heap wouldn't have allocated it
         // again. Replace the previously allocated info with the new info.
         blockit = blockmap->find(mem);
-        delete (*blockit).second->callStack;
+        m_curAlloc -= (*blockit).second->size;
         delete (*blockit).second;
         blockmap->erase(blockit);
         blockmap->insert(mem, blockinfo);
-        ppcallstack = NULL;
+        pblockInfo = NULL;
     }
 }
 
@@ -1186,8 +1185,8 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
             if (alloc_block && alloc_block->callStack && diff)
             {
                 Report(L"CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.\nThis will result in a corrupted heap.\nAllocation Call stack.\n");
-				Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
-				Report(L"  TID: %u\n", alloc_block->threadId);
+                Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
+                Report(L"  TID: %u\n", alloc_block->threadId);
                 Report(L"  Call Stack:\n");
                 alloc_block->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
@@ -1211,7 +1210,6 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
     // Free the blockinfo_t structure and erase it from the block map.
     blockinfo_t *info = (*blockit).second;
     m_curAlloc -= info->size;
-    delete info->callStack;
     delete info;
     blockmap->erase(blockit);
 }
@@ -1241,7 +1239,7 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
     heapinfo_t *heapinfo = (*heapit).second;
     BlockMap   *blockmap = &heapinfo->blockMap;
     for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-        delete (*blockit).second->callStack;
+        m_curAlloc -= (*blockit).second->size;
         delete (*blockit).second;
     }
     delete heapinfo;
@@ -1278,13 +1276,13 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-    bool crtalloc, DWORD threadId, CallStack **&ppcallstack, const context_t &context)
+    bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
 {
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
         unmapBlock(heap, mem, context);
-        mapBlock(heap, newmem, size, crtalloc, threadId, ppcallstack);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
         return;
     }
 
@@ -1297,7 +1295,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // block has also not been mapped to a blockinfo_t entry yet either,
         // so treat this reallocation as a brand-new allocation (this will
         // also map the heap to a new block map).
-        mapBlock(heap, newmem, size, crtalloc, threadId, ppcallstack);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
         return;
     }
 
@@ -1307,7 +1305,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     if (blockit == blockmap->end()) {
         // The block hasn't been mapped to a blockinfo_t entry yet.
         // Treat this reallocation as a new allocation.
-        mapBlock(heap, newmem, size, crtalloc, threadId, ppcallstack);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
         return;
     }
 
@@ -1316,8 +1314,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     blockinfo_t* info = (*blockit).second;
     if (info->callStack)
     {
-        delete info->callStack;
-        info->callStack = NULL;
+        info->callStack.reset();
     }
 
     if (crtalloc) {
@@ -1340,10 +1337,10 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     if (m_curAlloc > m_maxAlloc)
         m_maxAlloc = m_curAlloc;
 
-	info->threadId = threadId;
-	// Update the block's size.
+    info->threadId = threadId;
+    // Update the block's size.
     info->size = size;
-    ppcallstack = &info->callStack;
+    pblockInfo = info;
 }
 
 // reportconfig - Generates a brief report summarizing Visual Leak Detector's
@@ -1422,10 +1419,10 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
         LPCVOID block = (*blockit).first;
         blockinfo_t* info = (*blockit).second;
         if (info->reported)
-			continue;
+            continue;
 
-		if (threadId != ((DWORD)-1) && info->threadId != threadId)
-			continue;
+        if (threadId != ((DWORD)-1) && info->threadId != threadId)
+            continue;
 
         if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
             // This block is allocated to a CRT heap, so the block has a CRT
@@ -1469,8 +1466,8 @@ SIZE_T VisualLeakDetector::reportHeapLeaks (HANDLE heap)
 
     Set<blockinfo_t*> aggregatedLeaks;
     heapinfo_t* heapinfo = (*heapit).second;
-	// Generate a memory leak report for heap.
-	bool firstLeak = true;
+    // Generate a memory leak report for heap.
+    bool firstLeak = true;
     SIZE_T leaks_count = reportLeaks(heapinfo, firstLeak, aggregatedLeaks);
 
     // Show a summary.
@@ -1495,8 +1492,8 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         if (info->reported)
             continue;
 
-		if (threadId != ((DWORD)-1) && info->threadId != threadId)
-			continue;
+        if (threadId != ((DWORD)-1) && info->threadId != threadId)
+            continue;
 
         Set<blockinfo_t*>::Iterator it = aggregatedLeaks.find(info);
         if (it != aggregatedLeaks.end())
@@ -1529,8 +1526,8 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         if (firstLeak) { // A confusing way to only display this message once
             Report(L"WARNING: Visual Leak Detector detected memory leaks!\n");
             firstLeak = false;
-		}
-		SIZE_T blockLeaksCount = 1;
+        }
+        SIZE_T blockLeaksCount = 1;
         Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialNumber, address, size);
         assert(info->callStack);
         if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
@@ -1541,19 +1538,19 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             // add only the number that were erased, since the 'one left over'
             // is already recorded as a leak
             blockLeaksCount += erased;
-		}
+        }
 
-		DWORD callstackCRC = 0;
-		if (info->callStack)
-			callstackCRC = CalculateCRC32(info->size, info->callStack->getHashValue());
-		Report(L"  Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, blockLeaksCount);
-		leaksFound += blockLeaksCount;
+        DWORD callstackCRC = 0;
+        if (info->callStack)
+            callstackCRC = CalculateCRC32(info->size, info->callStack->getHashValue());
+        Report(L"  Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, blockLeaksCount);
+        leaksFound += blockLeaksCount;
 
-		// Dump the call stack.
-		if (blockLeaksCount == 1)
-			Report(L"  Call Stack (TID %u):\n", info->threadId);
-		else
-			Report(L"  Call Stack:\n");
+        // Dump the call stack.
+        if (blockLeaksCount == 1)
+            Report(L"  Call Stack (TID %u):\n", info->threadId);
+        else
+            Report(L"  Call Stack:\n");
         if (info->callStack)
             info->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
@@ -1575,14 +1572,14 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
 
 VOID VisualLeakDetector::markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId)
 {
-	BlockMap* blockmap   = &heapinfo->blockMap;
+    BlockMap* blockmap   = &heapinfo->blockMap;
 
-	for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
-	{
-		blockinfo_t* info = (*blockit).second;
-		if (threadId == ((DWORD)-1) || info->threadId == threadId)
-			info->reported = true;
-	}
+    for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit)
+    {
+        blockinfo_t* info = (*blockit).second;
+        if (threadId == ((DWORD)-1) || info->threadId == threadId)
+            info->reported = true;
+    }
 }
 
 // FindAllocedBlock - Find if a particular memory allocation is tracked inside of VLD.
@@ -1598,6 +1595,7 @@ VOID VisualLeakDetector::markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD thr
 // 
 blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& heap)
 {
+    heap = NULL;
     blockinfo_t* result = NULL;
     // Iterate through all heaps
     for (HeapMap::Iterator it = m_heapMap->begin();
@@ -1975,17 +1973,16 @@ VOID VisualLeakDetector::RefreshModules()
     delete oldmodules;
 }
 
-void VisualLeakDetector::getCallStack( CallStack **&ppcallstack, context_t &context_ )
+void VisualLeakDetector::getCallStack( CallStack *&pcallstack, context_t &context_ )
 {
     CallStack* callstack = CallStack::Create();
 
     // Reset thread local flags and variables, in case any libraries called
     // into while mapping the block allocate some memory.
     context_t context = context_;
-    *ppcallstack = callstack;
+    pcallstack = callstack;
     context_.fp = 0x0;
     context_.func = 0x0;
-    ppcallstack = NULL;
 
     callstack->getStackTrace(g_vld.m_maxTraceFrames, context);
 }
@@ -2010,82 +2007,82 @@ bool VisualLeakDetector::isModuleExcluded(UINT_PTR address)
 
 SIZE_T VisualLeakDetector::GetLeaksCount()
 {
-	if (m_options & VLD_OPT_VLDOFF) {
-		// VLD has been turned off.
-		return 0;
-	}
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return 0;
+    }
 
-	SIZE_T leaksCount = 0;
-	// Generate a memory leak report for each heap in the process.
-	CriticalSectionLocker cs(m_heapMapLock);
-	for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-		HANDLE heap = (*heapit).first;
-		UNREFERENCED_PARAMETER(heap);
-		heapinfo_t* heapinfo = (*heapit).second;
-		leaksCount += getLeaksCount(heapinfo);
-	}
-	return leaksCount;
+    SIZE_T leaksCount = 0;
+    // Generate a memory leak report for each heap in the process.
+    CriticalSectionLocker cs(m_heapMapLock);
+    for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        leaksCount += getLeaksCount(heapinfo);
+    }
+    return leaksCount;
 }
 
 SIZE_T VisualLeakDetector::GetThreadLeaksCount(DWORD threadId)
 {
-	if (m_options & VLD_OPT_VLDOFF) {
-		// VLD has been turned off.
-		return 0;
-	}
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return 0;
+    }
 
-	SIZE_T leaksCount = 0;
-	// Generate a memory leak report for each heap in the process.
-	CriticalSectionLocker cs(m_heapMapLock);
-	for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-		HANDLE heap = (*heapit).first;
-		UNREFERENCED_PARAMETER(heap);
-		heapinfo_t* heapinfo = (*heapit).second;
-		leaksCount += getLeaksCount(heapinfo, threadId);
-	}
-	return leaksCount;
+    SIZE_T leaksCount = 0;
+    // Generate a memory leak report for each heap in the process.
+    CriticalSectionLocker cs(m_heapMapLock);
+    for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        leaksCount += getLeaksCount(heapinfo, threadId);
+    }
+    return leaksCount;
 }
 
 SIZE_T VisualLeakDetector::ReportLeaks( ) 
 {
-	if (m_options & VLD_OPT_VLDOFF) {
-		// VLD has been turned off.
-		return 0;
-	}
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return 0;
+    }
 
-	// Generate a memory leak report for each heap in the process.
-	SIZE_T leaksCount = 0;
-	CriticalSectionLocker cs(m_heapMapLock);
-	bool firstLeak = true;
-	Set<blockinfo_t*> aggregatedLeaks;
-	for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-		HANDLE heap = (*heapit).first;
-		UNREFERENCED_PARAMETER(heap);
-		heapinfo_t* heapinfo = (*heapit).second;
-		leaksCount += reportLeaks(heapinfo, firstLeak, aggregatedLeaks);
-	}
-	return leaksCount;
+    // Generate a memory leak report for each heap in the process.
+    SIZE_T leaksCount = 0;
+    CriticalSectionLocker cs(m_heapMapLock);
+    bool firstLeak = true;
+    Set<blockinfo_t*> aggregatedLeaks;
+    for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        leaksCount += reportLeaks(heapinfo, firstLeak, aggregatedLeaks);
+    }
+    return leaksCount;
 }
 
 SIZE_T VisualLeakDetector::ReportThreadLeaks( DWORD threadId ) 
 {
-	if (m_options & VLD_OPT_VLDOFF) {
-		// VLD has been turned off.
-		return 0;
-	}
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return 0;
+    }
 
-	// Generate a memory leak report for each heap in the process.
-	SIZE_T leaksCount = 0;
-	CriticalSectionLocker cs(m_heapMapLock);
-	bool firstLeak = true;
-	Set<blockinfo_t*> aggregatedLeaks;
-	for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-		HANDLE heap = (*heapit).first;
-		UNREFERENCED_PARAMETER(heap);
-		heapinfo_t* heapinfo = (*heapit).second;
-		leaksCount += reportLeaks(heapinfo, firstLeak, aggregatedLeaks, threadId);
-	}
-	return leaksCount;
+    // Generate a memory leak report for each heap in the process.
+    SIZE_T leaksCount = 0;
+    CriticalSectionLocker cs(m_heapMapLock);
+    bool firstLeak = true;
+    Set<blockinfo_t*> aggregatedLeaks;
+    for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        leaksCount += reportLeaks(heapinfo, firstLeak, aggregatedLeaks, threadId);
+    }
+    return leaksCount;
 }
 
 VOID VisualLeakDetector::MarkAllLeaksAsReported( ) 
@@ -2107,19 +2104,19 @@ VOID VisualLeakDetector::MarkAllLeaksAsReported( )
 
 VOID VisualLeakDetector::MarkThreadLeaksAsReported( DWORD threadId ) 
 {
-	if (m_options & VLD_OPT_VLDOFF) {
-		// VLD has been turned off.
-		return;
-	}
+    if (m_options & VLD_OPT_VLDOFF) {
+        // VLD has been turned off.
+        return;
+    }
 
-	// Generate a memory leak report for each heap in the process.
-	CriticalSectionLocker cs(m_heapMapLock);
-	for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-		HANDLE heap = (*heapit).first;
-		UNREFERENCED_PARAMETER(heap);
-		heapinfo_t* heapinfo = (*heapit).second;
-		markAllLeaksAsReported(heapinfo, threadId);
-	}
+    // Generate a memory leak report for each heap in the process.
+    CriticalSectionLocker cs(m_heapMapLock);
+    for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+        HANDLE heap = (*heapit).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapit).second;
+        markAllLeaksAsReported(heapinfo, threadId);
+    }
 }
 
 void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
