@@ -335,7 +335,7 @@ void VisualLeakDetector::checkInternalMemoryLeaks()
         leakline = header->line;
         mbstowcs_s(&count, leakfilew, MAX_PATH, leakfile, _TRUNCATE);
         Report(L"ERROR: Visual Leak Detector: Detected a memory leak internal to Visual Leak Detector!!\n");
-        Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %u bytes ----------\n", header->serialNumber, VLDBLOCKDATA(header), header->size);
+        Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %Iu bytes ----------\n", header->serialNumber, VLDBLOCKDATA(header), header->size);
         Report(L"  Call Stack:\n");
         Report(L"    %s (%d): Full call stack not available.\n", leakfilew, leakline);
         if (m_maxDataDump != 0) {
@@ -1185,7 +1185,7 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
             if (alloc_block && alloc_block->callStack && diff)
             {
                 Report(L"CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.\nThis will result in a corrupted heap.\nAllocation Call stack.\n");
-                Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
+                Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %Iu bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
                 Report(L"  TID: %u\n", alloc_block->threadId);
                 Report(L"  Call Stack:\n");
                 alloc_block->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
@@ -1194,7 +1194,7 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
                 CallStack* stack_here = CallStack::Create();
                 stack_here->getStackTrace(m_maxTraceFrames, context);
                 Report(L"Deallocation Call stack.\n");
-                Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
+                Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %Iu bytes ----------\n", alloc_block->serialNumber, mem, alloc_block->size);
                 Report(L"  Call Stack:\n");
                 stack_here->dump(FALSE);
                 // Now it should be safe to delete our temporary callstack
@@ -1528,7 +1528,7 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             firstLeak = false;
         }
         SIZE_T blockLeaksCount = 1;
-        Report(L"---------- Block %ld at " ADDRESSFORMAT L": %u bytes ----------\n", info->serialNumber, address, size);
+        Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %Iu bytes ----------\n", info->serialNumber, address, size);
         assert(info->callStack);
         if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
             // Aggregate all other leaks which are duplicates of this one
@@ -1543,7 +1543,7 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         DWORD callstackCRC = 0;
         if (info->callStack)
             callstackCRC = CalculateCRC32(info->size, info->callStack->getHashValue());
-        Report(L"  Leak Hash: 0x%08X Count: %Iu\n", callstackCRC, blockLeaksCount);
+        Report(L"  Leak Hash: 0x%08X, Count: %Iu, Total %Iu bytes\n", callstackCRC, blockLeaksCount, size * blockLeaksCount);
         leaksFound += blockLeaksCount;
 
         // Dump the call stack.
