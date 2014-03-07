@@ -179,6 +179,7 @@
 		<ClInclude Include="tree.h" />
 		<ClInclude Include="utility.h" />
 		<ClInclude Include="vld.h" />
+		<ClInclude Include="vldallocator.h" />
 		<ClInclude Include="vldheap.h" />
 		<ClInclude Include="vldint.h" />
 		<ClInclude Include="vld_def.h" />

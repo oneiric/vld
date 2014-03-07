@@ -34,7 +34,7 @@
 #include "ntapi.h"       // Provides access to NT APIs.
 #include "set.h"         // Provides a lightweight STL-like set template.
 #include "utility.h"     // Provides various utility functions.
-#include "vldheap.h"     // Provides internal new and delete operators.
+#include "vldallocator.h"// Provides internal allocator.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
 
 #define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
@@ -265,7 +265,6 @@ VisualLeakDetector::VisualLeakDetector ()
             L"  debugger is the only selected report destination. The debugger cannot display\n"
             L"  Unicode characters, so the report will also be sent to a file. If no file has\n"
             L"  been specified, the default file name is \"" VLD_DEFAULT_REPORT_FILE_NAME L"\".\n");
-
     }
     reportConfig();
 }
