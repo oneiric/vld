@@ -31,7 +31,6 @@
 
 #include <cstdio>
 #include <windows.h>
-#include <memory>
 #include "vld_def.h"
 #include "version.h"
 #include "callstack.h" // Provides a custom class for handling call stacks.
@@ -39,6 +38,11 @@
 #include "ntapi.h"     // Provides access to NT APIs.
 #include "set.h"       // Provides a custom STL-like set template.
 #include "utility.h"   // Provides miscellaneous utility functions.
+
+#pragma push_macro("new")
+#undef new
+#include <memory>
+#pragma pop_macro("new")
 
 #define MAXMODULELISTLENGTH 512     // Maximum module list length, in characters.
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
