@@ -366,7 +366,6 @@ private:
     SIZE_T               m_curAlloc;          // Total amount currently allocated.
     SIZE_T               m_maxAlloc;          // Largest ever allocated at once.
     ModuleSet           *m_loadedModules;     // Contains information about all modules loaded in the process.
-    CriticalSection      m_loaderLock;        // Serializes the attachment of newly loaded modules.
     CriticalSection      m_heapMapLock;       // Serializes access to the heap and block maps.
     SIZE_T               m_maxDataDump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxTraceFrames;    // Maximum number of frames per stack trace for each leaked block.

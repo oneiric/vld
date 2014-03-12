@@ -53,8 +53,8 @@ CriticalSection  g_imageLock;      // Serializes calls to the Debug Help Library
 HANDLE           g_processHeap;    // Handle to the process's heap (COM allocations come from here).
 CriticalSection  g_stackWalkLock;  // Serializes calls to StackWalk64 from the Debug Help Library.
 CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
+CriticalSection  g_loaderLock;     // Serializes calls to LdrLoadDll, GetProcAddress and EnumerateLoadedModulesW64().
 ReportHookSet*   g_pReportHooks;
-volatile long    g_loaderLockCounter = 0; 
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector g_vld;
@@ -159,6 +159,7 @@ VisualLeakDetector::VisualLeakDetector ()
     g_symbolLock.Initialize();
     g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
+    g_loaderLock.Initialize();
     g_pReportHooks    = new ReportHookSet;
 
     // Initialize remaining private data.
@@ -171,7 +172,6 @@ VisualLeakDetector::VisualLeakDetector ()
     m_maxAlloc        = 0;
     m_loadedModules   = new ModuleSet();
     m_optionsLock.Initialize();
-    m_loaderLock.Initialize();
     m_heapMapLock.Initialize();
     m_modulesLock.Initialize();
     m_selfTestFile    = __FILE__;
@@ -455,10 +455,10 @@ VisualLeakDetector::~VisualLeakDetector ()
     HeapDestroy(g_vldHeap);
 
     m_optionsLock.Delete();
-    m_loaderLock.Delete();
     m_heapMapLock.Delete();
     m_modulesLock.Delete();
     m_tlsLock.Delete();
+    g_loaderLock.Delete();
     g_imageLock.Delete();
     g_stackWalkLock.Delete();
     g_symbolLock.Delete();
@@ -1916,13 +1916,13 @@ FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
 NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
     PHANDLE modulehandle)
 {
-    // Load the DLL.
-    _InterlockedIncrement(&g_loaderLockCounter);
+    // Load the DLL
+    g_loaderLock.Enter();
     NTSTATUS status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
+    g_loaderLock.Leave();
 
-    if (STATUS_SUCCESS == status && g_loaderLockCounter == 1)
+    if (STATUS_SUCCESS == status)
         g_vld.RefreshModules();
-    _InterlockedDecrement(&g_loaderLockCounter);
 
     return status;
 }
@@ -1930,13 +1930,13 @@ NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicod
 NTSTATUS VisualLeakDetector::_LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, unicodestring_t *modulename,
                                           PHANDLE modulehandle)
 {
-    // Load the DLL.
-    _InterlockedIncrement(&g_loaderLockCounter);
+    // Load the DLL
+    g_loaderLock.Enter();
     NTSTATUS status = LdrLoadDllWin8(reserved, flags, modulename, modulehandle);
+    g_loaderLock.Leave();
 
-    if (STATUS_SUCCESS == status && g_loaderLockCounter == 1)
+    if (STATUS_SUCCESS == status)
         g_vld.RefreshModules();
-    _InterlockedDecrement(&g_loaderLockCounter);
 
     return status;
 }
@@ -1946,17 +1946,19 @@ VOID VisualLeakDetector::RefreshModules()
     if (m_options & VLD_OPT_VLDOFF)
         return;
 
-    CriticalSectionLocker cs(m_loaderLock);
-    // Duplicate code here in this method. Consider refactoring out to another method.
-    // Create a new set of all loaded modules, including any newly loaded
-    // modules.
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
-    DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
-    EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
+    {
+        CriticalSectionLocker cs(g_loaderLock);
+        // Duplicate code here in this method. Consider refactoring out to another method.
+        // Create a new set of all loaded modules, including any newly loaded
+        // modules.
+        DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
+        EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
 
-    // Attach to all modules included in the set.
-    attachToLoadedModules(newmodules);
+        // Attach to all modules included in the set.
+        attachToLoadedModules(newmodules);
+    }
 
     // Start using the new set of loaded modules.
     m_modulesLock.Enter();
@@ -1999,8 +2001,6 @@ bool VisualLeakDetector::isModuleExcluded(UINT_PTR address)
     moduleit = g_vld.m_loadedModules->find(moduleinfo);
     if (moduleit != g_vld.m_loadedModules->end())
         return (*moduleit).flags & VLD_MODULE_EXCLUDED ? true : false;
-    else if (g_loaderLockCounter != 0) // new module inside LdrLoadDll
-        return true;
     return false;
 }
 
