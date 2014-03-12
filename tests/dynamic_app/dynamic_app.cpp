@@ -63,10 +63,15 @@ namespace tut
         set_test_name("MFCLoaderTests");
         int prevleaks = (int) VLDGetLeaksCount();
         HMODULE hmfcLib = RunMFCLoaderTests(resolve); // leaks 11
+#ifndef STATIC_CRT
+        FreeLibrary(hmfcLib);
+#endif
         int totalleaks = (int) VLDGetLeaksCount();
         int leaks = totalleaks - prevleaks;
         ensure("leaks", leaks == 11);
+#ifdef STATIC_CRT
         FreeLibrary(hmfcLib);
+#endif
     }
 
     template<>
@@ -177,10 +182,16 @@ int _tmain(int argc, _TCHAR* argv[])
     FreeLibrary(hmfcLib);
  
     hmfcLib = RunMFCLoaderTests(resolve); // leaks 11
+#ifndef STATIC_CRT
+    FreeLibrary(hmfcLib);
+#endif
     totalleaks = (int)VLDGetLeaksCount();
     int leaks2 = totalleaks - prevleaks;
     prevleaks = totalleaks;
     assert(leaks2 == 11);
+#ifdef STATIC_CRT
+    FreeLibrary(hmfcLib);
+#endif
     FreeLibrary(hmfcLib);
  
     LeakDuplicateLeaks();       // leaks 6

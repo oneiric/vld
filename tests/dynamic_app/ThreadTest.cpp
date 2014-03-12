@@ -16,7 +16,8 @@ void RunPSApiLoaderTests()
 void Call_LoaderLocks(bool resolve)
 {
     RunPSApiLoaderTests(); // will not crash
-    RunMFCLoaderTests(resolve); // Leaks 11 allocs
+    HMODULE hmfcLib = RunMFCLoaderTests(resolve); // Leaks 11 allocs
+    FreeLibrary(hmfcLib);
 
     //HMODULE this_app = NULL;
     //WCHAR path_name[MAX_PATH] = {0};
