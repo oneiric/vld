@@ -1,4 +1,4 @@
 #pragma once
 
-void RunLoaderTests( bool resolve );
-void RunMFCLoaderTests( bool resolve );
+HMODULE RunLoaderTests( bool resolve );
+HMODULE RunMFCLoaderTests( bool resolve );

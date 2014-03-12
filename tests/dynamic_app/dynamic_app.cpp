@@ -49,10 +49,11 @@ namespace tut
     {
         set_test_name("LoaderTests");
         int prevleaks = (int)VLDGetLeaksCount();
-        RunLoaderTests(resolve);    // leaks 18
+        HMODULE hmfcLib = RunLoaderTests(resolve);    // leaks 18
         int totalleaks = (int)VLDGetLeaksCount();
         int leaks = totalleaks - prevleaks;
-        ensure("leaks", leaks == 18); 
+        ensure("leaks", leaks == 18);
+        FreeLibrary(hmfcLib);
     }
 
     template<>
@@ -61,10 +62,11 @@ namespace tut
     {
         set_test_name("MFCLoaderTests");
         int prevleaks = (int) VLDGetLeaksCount();
-        RunMFCLoaderTests(resolve); // leaks 11
+        HMODULE hmfcLib = RunMFCLoaderTests(resolve); // leaks 11
         int totalleaks = (int) VLDGetLeaksCount();
         int leaks = totalleaks - prevleaks;
         ensure("leaks", leaks == 11);
+        FreeLibrary(hmfcLib);
     }
 
     template<>
@@ -167,17 +169,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
     int tutleaks = (int)VLDGetLeaksCount();
     int prevleaks = tutleaks;
-    RunLoaderTests(resolve);    // leaks 18
+    HMODULE hmfcLib = RunLoaderTests(resolve);    // leaks 18
     int totalleaks = (int)VLDGetLeaksCount();
     int leaks1 = totalleaks - prevleaks;
     prevleaks = totalleaks;
     assert(leaks1 == 18);
+    FreeLibrary(hmfcLib);
  
-    RunMFCLoaderTests(resolve); // leaks 11
+    hmfcLib = RunMFCLoaderTests(resolve); // leaks 11
     totalleaks = (int)VLDGetLeaksCount();
     int leaks2 = totalleaks - prevleaks;
     prevleaks = totalleaks;
     assert(leaks2 == 11);
+    FreeLibrary(hmfcLib);
  
     LeakDuplicateLeaks();       // leaks 6
     totalleaks = (int)VLDGetLeaksCount();
