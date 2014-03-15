@@ -353,7 +353,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -378,7 +378,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -402,7 +402,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -426,7 +426,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -502,7 +502,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -528,7 +528,7 @@ exit /b 0</Command>
     <PostBuildEvent>
       <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
 
-if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
+if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
