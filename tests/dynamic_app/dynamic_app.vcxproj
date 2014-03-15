@@ -373,7 +373,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -398,7 +398,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -422,7 +422,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -446,7 +446,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -529,7 +529,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
@@ -556,7 +556,7 @@ exit /b 0</Command>
 
 copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
 copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
+if "%processor_architecture%"=="AMD64" "$(TargetPath)" test
 exit /b 0</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>

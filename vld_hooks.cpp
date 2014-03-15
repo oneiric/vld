@@ -1699,9 +1699,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     if (firstcall)
     {
         firstAllocCall(tls);
-        std::unique_ptr<CallStack> &callStack = tls->pblockInfo->callStack;
         tls->pblockInfo = NULL;
-        callStack.reset();
     }
 
     return newmem;
@@ -1744,9 +1742,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     if (firstcall)
     {
         firstAllocCall(tls);
-        std::unique_ptr<CallStack> &callStack = tls->pblockInfo->callStack;
         tls->pblockInfo = NULL;
-        callStack.reset();
     }
 
     return newmem;
