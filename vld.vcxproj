@@ -21,10 +21,14 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}</ProjectGuid>
     <RootNamespace>vld</RootNamespace>
-    <SccProjectName>SAK</SccProjectName>
-    <SccAuxPath>SAK</SccAuxPath>
-    <SccLocalPath>SAK</SccLocalPath>
-    <SccProvider>SAK</SccProvider>
+    <SccProjectName>
+    </SccProjectName>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccProvider>
+    </SccProvider>
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
@@ -55,7 +59,8 @@
       <AdditionalLibraryDirectories>..\..\lib\dbghelp\lib\$(PlatformName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
-			<AssemblyIdentity></AssemblyIdentity>
+      <AssemblyIdentity>
+      </AssemblyIdentity>
     </Manifest>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName).lib" "$(OutDir)vld.lib" /y</Command>
@@ -179,7 +184,7 @@
     <ClInclude Include="tree.h" />
     <ClInclude Include="utility.h" />
     <ClInclude Include="vld.h" />
-		<ClInclude Include="vldallocator.h" />
+    <ClInclude Include="vldallocator.h" />
     <ClInclude Include="vldheap.h" />
     <ClInclude Include="vldint.h" />
     <ClInclude Include="vld_def.h" />
@@ -188,5 +193,6 @@
     <ResourceCompile Include="vld.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-	<ImportGroup Label="ExtensionTargets"></ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>
