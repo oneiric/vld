@@ -39,7 +39,11 @@ namespace tut
 
     typedef test_group<test> tg;
     typedef tg::object object;
-    tg dynamic_group("dynamic");
+#ifdef _M_IX86
+    tg dynamic_group("dynamic_x86");
+#else
+    tg dynamic_group("dynamic_x64");
+#endif
 
     static const bool resolve = false;
 
