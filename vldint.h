@@ -118,6 +118,7 @@ struct heapinfo_t {
     BlockMap blockMap;   // Map of all blocks allocated from this heap.
     UINT32   flags;      // Heap status flags:
 #define VLD_HEAP_CRT_DBG 0x1 //   If set, this heap is a CRT heap (i.e. the CRT uses it for new/malloc).
+#define VLD_HEAP_CRT_UNKNOWN 0x2 //   If set, this heap is a unknown CRT heap.
 };
 
 // HeapMaps map heaps (via their handles) to BlockMaps.
@@ -299,7 +300,7 @@ private:
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
     tls_t* getTls ();
-    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo);
+    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, UINT_PTR ra);
     VOID   mapHeap (HANDLE heap);
     VOID   remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
         bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context);

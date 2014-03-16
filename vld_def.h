@@ -39,7 +39,6 @@
 #define VLD_OPT_REPORT_TO_STDOUT        0x0800 //   If set, the memory leak report is sent to stdout.
 #define VLD_OPT_SKIP_HEAPFREE_LEAKS     0x1000 //   If set, VLD skip HeapFree memory leaks.
 #define VLD_OPT_VALIDATE_HEAPFREE       0x2000 //   If set, VLD verifies and reports heap consistency for HeapFree calls.
-#define VLD_OPT_RELEASE_CRT_RUNTIME     0x4000 //   If set, VLD treat CRT runtime as release version (use only with define VLD_FORCE_ENABLE).
 
 #define VLD_RPTHOOK_INSTALL  0
 #define VLD_RPTHOOK_REMOVE   1

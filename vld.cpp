@@ -1061,7 +1061,7 @@ tls_t* VisualLeakDetector::getTls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo)
+VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, UINT_PTR ra)
 {
     // Record the block's information.
     blockinfo_t* blockinfo = new blockinfo_t();
@@ -1092,7 +1092,32 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool c
     }
     if (crtalloc) {
         // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+        (*heapit).second->flags = VLD_HEAP_CRT_DBG;
+    }
+    else if (ra != 0 && (*heapit).second->flags == VLD_HEAP_CRT_UNKNOWN)
+    {
+        // Try to get the name of the function containing the return address.
+        BYTE symbolbuffer[sizeof(SYMBOL_INFO) +MAX_SYMBOL_NAME_SIZE] = { 0 };
+        SYMBOL_INFO *functioninfo = (SYMBOL_INFO*) &symbolbuffer;
+        functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+        functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+
+        g_symbolLock.Enter();
+        DWORD64 displacement;
+        DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
+        VLDDisable();
+        BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
+        VLDRestore();
+        g_symbolLock.Leave();
+        if (symfound == TRUE && wcscmp(L"_heap_alloc_base", functioninfo->Name) == 0)
+        {
+            // Debug static linked CRT
+            (*heapit).second->flags = VLD_HEAP_CRT_DBG;
+        }
+        else
+        {
+            (*heapit).second->flags = 0;
+        }
     }
     BlockMap* blockmap = &(*heapit).second->blockMap;
     BlockMap::Iterator blockit = blockmap->insert(mem, blockinfo);
@@ -1281,7 +1306,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
         unmapBlock(heap, mem, context);
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1294,7 +1319,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // block has also not been mapped to a blockinfo_t entry yet either,
         // so treat this reallocation as a brand-new allocation (this will
         // also map the heap to a new block map).
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1304,7 +1329,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     if (blockit == blockmap->end()) {
         // The block hasn't been mapped to a blockinfo_t entry yet.
         // Treat this reallocation as a new allocation.
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1318,7 +1343,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     if (crtalloc) {
         // The heap that this block was allocated from is a CRT heap.
-        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
+        (*heapit).second->flags = VLD_HEAP_CRT_DBG;
     }
 
     if (m_totalAlloc < SIZE_MAX)
@@ -1745,74 +1770,6 @@ BOOL VisualLeakDetector::detachFromModule (PCWSTR /*modulepath*/, DWORD64 module
 // Win32 IAT Replacement Functions
 //
 ////////////////////////////////////////////////////////////////////////////////
-
-
-// GetProcessHeap - Calls to GetProcessHeap are patched through to this function. This
-//   function is just a wrapper around the real GetProcessHeap.
-//
-//  Return Value:
-//
-//    Returns the value returned by GetProcessHeap.
-//
-HANDLE VisualLeakDetector::_GetProcessHeap()
-{
-    // Get the return address within the calling function.
-    UINT_PTR ra = (UINT_PTR) _ReturnAddress();
-
-    // Get the process heap.
-    HANDLE heap = m_GetProcessHeap();
-
-    // Try to get the name of the function containing the return address.
-    BYTE symbolbuffer[sizeof(SYMBOL_INFO) +MAX_SYMBOL_NAME_SIZE] = { 0 };
-    SYMBOL_INFO *functioninfo = (SYMBOL_INFO*) &symbolbuffer;
-    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-    functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
-
-    g_symbolLock.Enter();
-    DWORD64 displacement;
-    DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-    BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
-    g_symbolLock.Leave();
-    if (symfound == TRUE) {
-        if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
-            // GetProcessHeap was called by _heap_init (VS2012 and upper). This is a static CRT heap (msvcr*.dll).
-            CriticalSectionLocker cs(g_vld.m_heapMapLock);
-            HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
-            if (heapit == g_vld.m_heapMap->end())
-            {
-                g_vld.mapHeap(heap);
-                heapit = g_vld.m_heapMap->find(heap);
-            }
-            HMODULE hCallingModule = (HMODULE) functioninfo->ModBase;
-            if (hCallingModule)
-            {
-                HMODULE hCurrentModule = GetModuleHandleW(NULL);
-                if (hCallingModule == hCurrentModule)
-                {
-                    // CRT static linking
-                    if (!(g_vld.m_options & VLD_OPT_RELEASE_CRT_RUNTIME))
-                    {
-                        // debug runtime
-                        (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
-                    }
-                }
-                else
-                {
-                    // CRT dynamic linking
-                    WCHAR callingmodulename[MAX_PATH] = L"";
-                    if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
-                    {
-                        _wcslwr_s(callingmodulename);
-                        if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
-                            (*heapit).second->flags |= VLD_HEAP_CRT_DBG;
-                    }
-                }
-            }
-        }
-    }
-
-    return heap;
-}
 
 // _GetProcAddress - Calls to GetProcAddress are patched through to this
 //   function. If the requested function is a function that has been patched
@@ -2256,8 +2213,7 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
     VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
-    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE | 
-    VLD_OPT_RELEASE_CRT_RUNTIME;
+    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE;
 
 UINT32 VisualLeakDetector::GetOptions()
 {
