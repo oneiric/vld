@@ -36,6 +36,8 @@ template<int CRTVersion, bool debug = false>
 class CrtMfcPatch
 {
 public:
+    static CrtMfcPatch data;
+
     static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
     static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
     static void* __cdecl crtd__realloc_dbg (void *mem, size_t size, int type, char const *file, int line);
@@ -81,50 +83,56 @@ public:
     static void* __cdecl mfcud__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
     static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
-    static void* pcrtd__calloc_dbg;
-    static void* pcrtd__malloc_dbg;
-    static void* pcrtd__realloc_dbg;
-    static void* pcrtd__recalloc_dbg;
-    static void* pcrtd__strdup_dbg;
-    static void* pcrtd__wcsdup_dbg;
-    static void* pcrtd_calloc;
-    static void* pcrtd_malloc;
-    static void* pcrtd_realloc;
-    static void* pcrtd_recalloc;
-    static void* pcrtd__strdup;
-    static void* pcrtd__wcsdup;
-    static void* pcrtd__aligned_malloc_dbg;
-    static void* pcrtd__aligned_offset_malloc_dbg;
-    static void* pcrtd__aligned_realloc_dbg;
-    static void* pcrtd__aligned_offset_realloc_dbg;
-    static void* pcrtd__aligned_recalloc_dbg;
-    static void* pcrtd__aligned_offset_recalloc_dbg;
-    static void* pcrtd_aligned_malloc;
-    static void* pcrtd_aligned_offset_malloc;
-    static void* pcrtd_aligned_realloc;
-    static void* pcrtd_aligned_offset_realloc;
-    static void* pcrtd_aligned_recalloc;
-    static void* pcrtd_aligned_offset_recalloc;
-    static void* pcrtd__scalar_new_dbg;
-    static void* pcrtd__vector_new_dbg;
-    static void* pcrtd_scalar_new;
-    static void* pcrtd_vector_new;
+    union
+    {
+        void* function[40];
+        struct  
+        {
+            void* pcrtd__calloc_dbg;
+            void* pcrtd__malloc_dbg;
+            void* pcrtd__realloc_dbg;
+            void* pcrtd__recalloc_dbg;
+            void* pcrtd__strdup_dbg;
+            void* pcrtd__wcsdup_dbg;
+            void* pcrtd_calloc;
+            void* pcrtd_malloc;
+            void* pcrtd_realloc;
+            void* pcrtd_recalloc;
+            void* pcrtd__strdup;
+            void* pcrtd__wcsdup;
+            void* pcrtd__aligned_malloc_dbg;
+            void* pcrtd__aligned_offset_malloc_dbg;
+            void* pcrtd__aligned_realloc_dbg;
+            void* pcrtd__aligned_offset_realloc_dbg;
+            void* pcrtd__aligned_recalloc_dbg;
+            void* pcrtd__aligned_offset_recalloc_dbg;
+            void* pcrtd_aligned_malloc;
+            void* pcrtd_aligned_offset_malloc;
+            void* pcrtd_aligned_realloc;
+            void* pcrtd_aligned_offset_realloc;
+            void* pcrtd_aligned_recalloc;
+            void* pcrtd_aligned_offset_recalloc;
+            void* pcrtd__scalar_new_dbg;
+            void* pcrtd__vector_new_dbg;
+            void* pcrtd_scalar_new;
+            void* pcrtd_vector_new;
 
-    static void* pmfcd_scalar_new;
-    static void* pmfcd_vector_new;
-    static void* pmfcd__scalar_new_dbg_4p;
-    static void* pmfcd__vector_new_dbg_4p;
-    static void* pmfcd__scalar_new_dbg_3p;
-    static void* pmfcd__vector_new_dbg_3p;
+            void* pmfcd_scalar_new;
+            void* pmfcd_vector_new;
+            void* pmfcd__scalar_new_dbg_4p;
+            void* pmfcd__vector_new_dbg_4p;
+            void* pmfcd__scalar_new_dbg_3p;
+            void* pmfcd__vector_new_dbg_3p;
 
-    static void* pmfcud_scalar_new;
-    static void* pmfcud_vector_new;
-    static void* pmfcud__scalar_new_dbg_4p;
-    static void* pmfcud__vector_new_dbg_4p;
-    static void* pmfcud__scalar_new_dbg_3p;
-    static void* pmfcud__vector_new_dbg_3p;
+            void* pmfcud_scalar_new;
+            void* pmfcud_vector_new;
+            void* pmfcud__scalar_new_dbg_4p;
+            void* pmfcud__vector_new_dbg_4p;
+            void* pmfcud__scalar_new_dbg_3p;
+            void* pmfcud__vector_new_dbg_3p;
+        };
+    };
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -157,11 +165,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
                                                     char const *file,
                                                     int         line)
 {
-    _calloc_dbg_t pcrtxxd__calloc_dbg = (_calloc_dbg_t)pcrtd__calloc_dbg;
+    _calloc_dbg_t pcrtxxd__calloc_dbg = (_calloc_dbg_t)data.pcrtd__calloc_dbg;
     assert(pcrtxxd__calloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__calloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__calloc_dbg);
 
     return g_vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
 }
@@ -188,11 +196,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
                                                     char const *file,
                                                     int         line)
 {
-    _malloc_dbg_t pcrtxxd__malloc_dbg = (_malloc_dbg_t)pcrtd__malloc_dbg;
+    _malloc_dbg_t pcrtxxd__malloc_dbg = (_malloc_dbg_t)data.pcrtd__malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__malloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__malloc_dbg);
 
     return g_vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
 }
@@ -222,11 +230,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     char const *file,
     int        line)
 {
-    _realloc_dbg_t pcrtxxd__realloc_dbg = (_realloc_dbg_t)pcrtd__realloc_dbg;
+    _realloc_dbg_t pcrtxxd__realloc_dbg = (_realloc_dbg_t)data.pcrtd__realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__realloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__realloc_dbg);
 
     return g_vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
 }
@@ -257,11 +265,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
                                                       char const *file,
                                                       int        line)
 {
-    _recalloc_dbg_t pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)pcrtd__recalloc_dbg;
+    _recalloc_dbg_t pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)data.pcrtd__recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__recalloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__recalloc_dbg);
 
     return g_vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
 }
@@ -273,11 +281,11 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
     char const *file,
     int         line)
 {
-    _strdup_dbg_t pcrtxxd__strdup_dbg = (_strdup_dbg_t)pcrtd__strdup_dbg;
+    _strdup_dbg_t pcrtxxd__strdup_dbg = (_strdup_dbg_t)data.pcrtd__strdup_dbg;
     assert(pcrtxxd__strdup_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__strdup_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__strdup_dbg);
 
     return g_vld.__strdup_dbg(pcrtxxd__strdup_dbg, context, debug, src, type, file, line);
 }
@@ -289,11 +297,11 @@ wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
     char const *file,
     int         line)
 {
-    _wcsdup_dbg_t pcrtxxd__wcsdup_dbg = (_wcsdup_dbg_t)pcrtd__wcsdup_dbg;
+    _wcsdup_dbg_t pcrtxxd__wcsdup_dbg = (_wcsdup_dbg_t)data.pcrtd__wcsdup_dbg;
     assert(pcrtxxd__wcsdup_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__wcsdup_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__wcsdup_dbg);
 
     return g_vld.__wcsdup_dbg(pcrtxxd__wcsdup_dbg, context, debug, src, type, file, line);
 }
@@ -320,11 +328,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
-    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)pcrtd__scalar_new_dbg;
+    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__scalar_new_dbg;
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__scalar_new_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd_new_dbg);
 
     return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
@@ -351,11 +359,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
-    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)pcrtd__vector_new_dbg;
+    new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__vector_new_dbg;
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__vector_new_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd_new_dbg);
 
     return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
 }
@@ -376,11 +384,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 {
-    calloc_t pcrtxxd_calloc = (calloc_t)pcrtd_calloc;
+    calloc_t pcrtxxd_calloc = (calloc_t)data.pcrtd_calloc;
     assert(pcrtxxd_calloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_calloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_calloc);
 
     return g_vld._calloc(pcrtxxd_calloc, context, debug, num, size);
 }
@@ -399,11 +407,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 {
-    malloc_t pcrtxxd_malloc = (malloc_t)pcrtd_malloc;
+    malloc_t pcrtxxd_malloc = (malloc_t)data.pcrtd_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_malloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_malloc);
 
     return g_vld._malloc(pcrtxxd_malloc, context, debug, size);
 }
@@ -424,11 +432,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 {
-    realloc_t pcrtxxd_realloc = (realloc_t)pcrtd_realloc;
+    realloc_t pcrtxxd_realloc = (realloc_t)data.pcrtd_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_realloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_realloc);
 
     return g_vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
 }
@@ -449,11 +457,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t size)
 {
-    _recalloc_t pcrtxxd_recalloc = (_recalloc_t)pcrtd_recalloc;
+    _recalloc_t pcrtxxd_recalloc = (_recalloc_t)data.pcrtd_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_recalloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_recalloc);
 
     return g_vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
 }
@@ -462,11 +470,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, siz
 template<int CRTVersion, bool debug>
 char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
 {
-    _strdup_t pcrtxxd_strdup = (_strdup_t)pcrtd__strdup;
+    _strdup_t pcrtxxd_strdup = (_strdup_t)data.pcrtd__strdup;
     assert(pcrtxxd_strdup);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__strdup);
+    CAPTURE_CONTEXT(context, pcrtxxd_strdup);
 
     return g_vld.__strdup(pcrtxxd_strdup, context, debug, src);
 }
@@ -474,11 +482,11 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
 template<int CRTVersion, bool debug>
 wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
 {
-    _wcsdup_t pcrtxxd_wcsdup = (_wcsdup_t)pcrtd__wcsdup;
+    _wcsdup_t pcrtxxd_wcsdup = (_wcsdup_t)data.pcrtd__wcsdup;
     assert(pcrtxxd_wcsdup);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__wcsdup);
+    CAPTURE_CONTEXT(context, pcrtxxd_wcsdup);
 
     return g_vld.__wcsdup(pcrtxxd_wcsdup, context, debug, src);
 }
@@ -506,11 +514,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size
     char const *file,
     int         line)
 {
-    _aligned_malloc_dbg_t pcrtxxd__aligned_malloc_dbg = (_aligned_malloc_dbg_t)pcrtd__aligned_malloc_dbg;
+    _aligned_malloc_dbg_t pcrtxxd__aligned_malloc_dbg = (_aligned_malloc_dbg_t)data.pcrtd__aligned_malloc_dbg;
     assert(pcrtxxd__aligned_malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_malloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__aligned_malloc_dbg);
 
     return g_vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
 }
@@ -539,11 +547,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t   
     char const *file,
     int         line)
 {
-    _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)pcrtd__aligned_offset_malloc_dbg;
+    _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)data.pcrtd__aligned_offset_malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_malloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__malloc_dbg);
 
     return g_vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
 }
@@ -574,11 +582,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem
     char const *file,
     int        line)
 {
-    _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)pcrtd__aligned_realloc_dbg;
+    _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)data.pcrtd__aligned_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_realloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__realloc_dbg);
 
     return g_vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
 }
@@ -610,11 +618,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void    
     char const *file,
     int        line)
 {
-    _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)pcrtd__aligned_offset_realloc_dbg;
+    _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)data.pcrtd__aligned_offset_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_realloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__realloc_dbg);
 
     return g_vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
 }
@@ -648,11 +656,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *me
     char const *file,
     int        line)
 {
-    _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)pcrtd__aligned_recalloc_dbg;
+    _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)data.pcrtd__aligned_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_recalloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__recalloc_dbg);
 
     return g_vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
 }
@@ -687,11 +695,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void   
     char const *file,
     int        line)
 {
-    _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)pcrtd__aligned_offset_recalloc_dbg;
+    _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)data.pcrtd__aligned_offset_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd__aligned_offset_recalloc_dbg);
+    CAPTURE_CONTEXT(context, pcrtxxd__recalloc_dbg);
 
     return g_vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
 }
@@ -710,11 +718,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void   
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t alignment)
 {
-    _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)pcrtd_aligned_malloc;
+    _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)data.pcrtd_aligned_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_malloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_malloc);
 
     return g_vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
 }
@@ -733,11 +741,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t 
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
 {
-    _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)pcrtd_aligned_offset_malloc;
+    _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)data.pcrtd_aligned_offset_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_malloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_malloc);
 
     return g_vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
 }
@@ -758,11 +766,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, 
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
 {
-    _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)pcrtd_aligned_realloc;
+    _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)data.pcrtd_aligned_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_realloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_realloc);
 
     return g_vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
 }
@@ -783,11 +791,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t s
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
 {
-    _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)pcrtd_aligned_offset_realloc;
+    _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)data.pcrtd_aligned_offset_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_realloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_realloc);
 
     return g_vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
 }
@@ -810,11 +818,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, s
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
 {
-    _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)pcrtd_aligned_recalloc;
+    _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)data.pcrtd_aligned_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_recalloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_recalloc);
 
     return g_vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
 }
@@ -837,11 +845,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t 
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
 {
-    _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)pcrtd_aligned_offset_recalloc;
+    _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)data.pcrtd_aligned_offset_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_aligned_offset_recalloc);
+    CAPTURE_CONTEXT(context, pcrtxxd_recalloc);
 
     return g_vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
 }
@@ -858,11 +866,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, 
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 {
-    new_t pcrtxxd_scalar_new = (new_t)pcrtd_scalar_new;
+    new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_scalar_new;
     assert(pcrtxxd_scalar_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_scalar_new);
+    CAPTURE_CONTEXT(context, pcrtxxd_scalar_new);
 
     return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
@@ -879,11 +887,11 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 {
-    new_t pcrtxxd_scalar_new = (new_t)pcrtd_vector_new;
+    new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_vector_new;
     assert(pcrtxxd_scalar_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtd_vector_new);
+    CAPTURE_CONTEXT(context, pcrtxxd_scalar_new);
 
     return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
 }
@@ -916,11 +924,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size
                                                            char const  *file,
                                                            int          line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcd__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_4p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -944,11 +952,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size
                                                            char const  *file,
                                                            int          line)
 {
-    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcd__scalar_new_dbg_3p;
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_3p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -975,11 +983,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size
                                                            char const  *file,
                                                            int          line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcd__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd__scalar_new_dbg_4p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1003,11 +1011,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size
                                                            char const  *file,
                                                            int          line)
 {
-    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcd__vector_new_dbg_3p;
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd__vector_new_dbg_3p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1024,11 +1032,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 {
-    new_t pmfcxxd_new = (new_t)pmfcd_scalar_new;
+    new_t pmfcxxd_new = (new_t)data.pmfcd_scalar_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd_scalar_new);
+    CAPTURE_CONTEXT(context, pmfcxxd_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1045,11 +1053,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
 {
-    new_t pmfcxxd_new = (new_t)pmfcd_vector_new;
+    new_t pmfcxxd_new = (new_t)data.pmfcd_vector_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcd_vector_new);
+    CAPTURE_CONTEXT(context, pmfcxxd_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1076,11 +1084,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size
                                                             char const *file,
                                                             int         line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcud__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_4p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1104,11 +1112,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size
                                                             char const *file,
                                                             int         line)
 {
-    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcud__scalar_new_dbg_3p;
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_3p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1135,11 +1143,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size
                                                             char const *file,
                                                             int         line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)pmfcud__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud__scalar_new_dbg_4p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
 }
@@ -1163,11 +1171,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size
                                                             char const *file,
                                                             int         line)
 {
-    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)pmfcud__vector_new_dbg_3p;
+    new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud__vector_new_dbg_3p);
+    CAPTURE_CONTEXT(context, pmfcxxd__new_dbg);
 
     return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
 }
@@ -1184,11 +1192,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 {
-    new_t pmfcxxd_new = (new_t)pmfcud_scalar_new;
+    new_t pmfcxxd_new = (new_t)data.pmfcud_scalar_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud_scalar_new);
+    CAPTURE_CONTEXT(context, pmfcxxd_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1205,11 +1213,11 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
 {
-    new_t pmfcxxd_new = (new_t)pmfcud_vector_new;
+    new_t pmfcxxd_new = (new_t)data.pmfcud_vector_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pmfcud_vector_new);
+    CAPTURE_CONTEXT(context, pmfcxxd_new);
 
     return g_vld._new(pmfcxxd_new, context, debug, size);
 }
@@ -1255,658 +1263,19 @@ typedef CrtMfcPatch<120>
 typedef CrtMfcPatch<120, true>
     VS120d;
 
-void* VS60::pcrtd__calloc_dbg = NULL;
-void* VS60::pcrtd__malloc_dbg = NULL;
-void* VS60::pcrtd__realloc_dbg = NULL;
-void* VS60::pcrtd__recalloc_dbg = NULL;
-void* VS60::pcrtd__strdup_dbg = NULL;
-void* VS60::pcrtd__wcsdup_dbg = NULL;
-void* VS60::pcrtd_calloc = NULL;
-void* VS60::pcrtd_malloc = NULL;
-void* VS60::pcrtd_realloc = NULL;
-void* VS60::pcrtd_recalloc = NULL;
-void* VS60::pcrtd__strdup = NULL;
-void* VS60::pcrtd__wcsdup = NULL;
-void* VS60::pcrtd__aligned_malloc_dbg = NULL;
-void* VS60::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS60::pcrtd__aligned_realloc_dbg = NULL;
-void* VS60::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS60::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS60::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS60::pcrtd_aligned_malloc = NULL;
-void* VS60::pcrtd_aligned_offset_malloc = NULL;
-void* VS60::pcrtd_aligned_realloc = NULL;
-void* VS60::pcrtd_aligned_offset_realloc = NULL;
-void* VS60::pcrtd_aligned_recalloc = NULL;
-void* VS60::pcrtd_aligned_offset_recalloc = NULL;
-void* VS60::pcrtd__scalar_new_dbg = NULL;
-void* VS60::pcrtd__vector_new_dbg = NULL;
-void* VS60::pcrtd_scalar_new = NULL;
-void* VS60::pcrtd_vector_new = NULL;
-void* VS60::pmfcd_scalar_new = NULL;
-void* VS60::pmfcd_vector_new = NULL;
-void* VS60::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS60::pmfcd__vector_new_dbg_4p = NULL;
-void* VS60::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS60::pmfcd__vector_new_dbg_3p = NULL;
-void* VS60::pmfcud_scalar_new = NULL;
-void* VS60::pmfcud_vector_new = NULL;
-void* VS60::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS60::pmfcud__vector_new_dbg_4p = NULL;
-void* VS60::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS60::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS60d::pcrtd__calloc_dbg = NULL;
-void* VS60d::pcrtd__malloc_dbg = NULL;
-void* VS60d::pcrtd__realloc_dbg = NULL;
-void* VS60d::pcrtd__recalloc_dbg = NULL;
-void* VS60d::pcrtd__strdup_dbg = NULL;
-void* VS60d::pcrtd__wcsdup_dbg = NULL;
-void* VS60d::pcrtd_calloc = NULL;
-void* VS60d::pcrtd_malloc = NULL;
-void* VS60d::pcrtd_realloc = NULL;
-void* VS60d::pcrtd_recalloc = NULL;
-void* VS60d::pcrtd__strdup = NULL;
-void* VS60d::pcrtd__wcsdup = NULL;
-void* VS60d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS60d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS60d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS60d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS60d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS60d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS60d::pcrtd_aligned_malloc = NULL;
-void* VS60d::pcrtd_aligned_offset_malloc = NULL;
-void* VS60d::pcrtd_aligned_realloc = NULL;
-void* VS60d::pcrtd_aligned_offset_realloc = NULL;
-void* VS60d::pcrtd_aligned_recalloc = NULL;
-void* VS60d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS60d::pcrtd__scalar_new_dbg = NULL;
-void* VS60d::pcrtd__vector_new_dbg = NULL;
-void* VS60d::pcrtd_scalar_new = NULL;
-void* VS60d::pcrtd_vector_new = NULL;
-void* VS60d::pmfcd_scalar_new = NULL;
-void* VS60d::pmfcd_vector_new = NULL;
-void* VS60d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS60d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS60d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS60d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS60d::pmfcud_scalar_new = NULL;
-void* VS60d::pmfcud_vector_new = NULL;
-void* VS60d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS60d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS60d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS60d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS70::pcrtd__calloc_dbg = NULL;
-void* VS70::pcrtd__malloc_dbg = NULL;
-void* VS70::pcrtd__realloc_dbg = NULL;
-void* VS70::pcrtd__recalloc_dbg = NULL;
-void* VS70::pcrtd__strdup_dbg = NULL;
-void* VS70::pcrtd__wcsdup_dbg = NULL;
-void* VS70::pcrtd_calloc = NULL;
-void* VS70::pcrtd_malloc = NULL;
-void* VS70::pcrtd_realloc = NULL;
-void* VS70::pcrtd_recalloc = NULL;
-void* VS70::pcrtd__strdup = NULL;
-void* VS70::pcrtd__wcsdup = NULL;
-void* VS70::pcrtd__aligned_malloc_dbg = NULL;
-void* VS70::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS70::pcrtd__aligned_realloc_dbg = NULL;
-void* VS70::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS70::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS70::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS70::pcrtd_aligned_malloc = NULL;
-void* VS70::pcrtd_aligned_offset_malloc = NULL;
-void* VS70::pcrtd_aligned_realloc = NULL;
-void* VS70::pcrtd_aligned_offset_realloc = NULL;
-void* VS70::pcrtd_aligned_recalloc = NULL;
-void* VS70::pcrtd_aligned_offset_recalloc = NULL;
-void* VS70::pcrtd__scalar_new_dbg = NULL;
-void* VS70::pcrtd__vector_new_dbg = NULL;
-void* VS70::pcrtd_scalar_new = NULL;
-void* VS70::pcrtd_vector_new = NULL;
-void* VS70::pmfcd_scalar_new = NULL;
-void* VS70::pmfcd_vector_new = NULL;
-void* VS70::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS70::pmfcd__vector_new_dbg_4p = NULL;
-void* VS70::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS70::pmfcd__vector_new_dbg_3p = NULL;
-void* VS70::pmfcud_scalar_new = NULL;
-void* VS70::pmfcud_vector_new = NULL;
-void* VS70::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS70::pmfcud__vector_new_dbg_4p = NULL;
-void* VS70::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS70::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS70d::pcrtd__calloc_dbg = NULL;
-void* VS70d::pcrtd__malloc_dbg = NULL;
-void* VS70d::pcrtd__realloc_dbg = NULL;
-void* VS70d::pcrtd__recalloc_dbg = NULL;
-void* VS70d::pcrtd__strdup_dbg = NULL;
-void* VS70d::pcrtd__wcsdup_dbg = NULL;
-void* VS70d::pcrtd_calloc = NULL;
-void* VS70d::pcrtd_malloc = NULL;
-void* VS70d::pcrtd_realloc = NULL;
-void* VS70d::pcrtd_recalloc = NULL;
-void* VS70d::pcrtd__strdup = NULL;
-void* VS70d::pcrtd__wcsdup = NULL;
-void* VS70d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS70d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS70d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS70d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS70d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS70d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS70d::pcrtd_aligned_malloc = NULL;
-void* VS70d::pcrtd_aligned_offset_malloc = NULL;
-void* VS70d::pcrtd_aligned_realloc = NULL;
-void* VS70d::pcrtd_aligned_offset_realloc = NULL;
-void* VS70d::pcrtd_aligned_recalloc = NULL;
-void* VS70d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS70d::pcrtd__scalar_new_dbg = NULL;
-void* VS70d::pcrtd__vector_new_dbg = NULL;
-void* VS70d::pcrtd_scalar_new = NULL;
-void* VS70d::pcrtd_vector_new = NULL;
-void* VS70d::pmfcd_scalar_new = NULL;
-void* VS70d::pmfcd_vector_new = NULL;
-void* VS70d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS70d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS70d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS70d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS70d::pmfcud_scalar_new = NULL;
-void* VS70d::pmfcud_vector_new = NULL;
-void* VS70d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS70d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS70d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS70d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS71::pcrtd__calloc_dbg = NULL;
-void* VS71::pcrtd__malloc_dbg = NULL;
-void* VS71::pcrtd__realloc_dbg = NULL;
-void* VS71::pcrtd__recalloc_dbg = NULL;
-void* VS71::pcrtd__strdup_dbg = NULL;
-void* VS71::pcrtd__wcsdup_dbg = NULL;
-void* VS71::pcrtd_calloc = NULL;
-void* VS71::pcrtd_malloc = NULL;
-void* VS71::pcrtd_realloc = NULL;
-void* VS71::pcrtd_recalloc = NULL;
-void* VS71::pcrtd__strdup = NULL;
-void* VS71::pcrtd__wcsdup = NULL;
-void* VS71::pcrtd__aligned_malloc_dbg = NULL;
-void* VS71::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS71::pcrtd__aligned_realloc_dbg = NULL;
-void* VS71::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS71::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS71::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS71::pcrtd_aligned_malloc = NULL;
-void* VS71::pcrtd_aligned_offset_malloc = NULL;
-void* VS71::pcrtd_aligned_realloc = NULL;
-void* VS71::pcrtd_aligned_offset_realloc = NULL;
-void* VS71::pcrtd_aligned_recalloc = NULL;
-void* VS71::pcrtd_aligned_offset_recalloc = NULL;
-void* VS71::pcrtd__scalar_new_dbg = NULL;
-void* VS71::pcrtd__vector_new_dbg = NULL;
-void* VS71::pcrtd_scalar_new = NULL;
-void* VS71::pcrtd_vector_new = NULL;
-void* VS71::pmfcd_scalar_new = NULL;
-void* VS71::pmfcd_vector_new = NULL;
-void* VS71::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS71::pmfcd__vector_new_dbg_4p = NULL;
-void* VS71::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS71::pmfcd__vector_new_dbg_3p = NULL;
-void* VS71::pmfcud_scalar_new = NULL;
-void* VS71::pmfcud_vector_new = NULL;
-void* VS71::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS71::pmfcud__vector_new_dbg_4p = NULL;
-void* VS71::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS71::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS71d::pcrtd__calloc_dbg = NULL;
-void* VS71d::pcrtd__malloc_dbg = NULL;
-void* VS71d::pcrtd__realloc_dbg = NULL;
-void* VS71d::pcrtd__recalloc_dbg = NULL;
-void* VS71d::pcrtd__strdup_dbg = NULL;
-void* VS71d::pcrtd__wcsdup_dbg = NULL;
-void* VS71d::pcrtd_calloc = NULL;
-void* VS71d::pcrtd_malloc = NULL;
-void* VS71d::pcrtd_realloc = NULL;
-void* VS71d::pcrtd_recalloc = NULL;
-void* VS71d::pcrtd__strdup = NULL;
-void* VS71d::pcrtd__wcsdup = NULL;
-void* VS71d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS71d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS71d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS71d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS71d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS71d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS71d::pcrtd_aligned_malloc = NULL;
-void* VS71d::pcrtd_aligned_offset_malloc = NULL;
-void* VS71d::pcrtd_aligned_realloc = NULL;
-void* VS71d::pcrtd_aligned_offset_realloc = NULL;
-void* VS71d::pcrtd_aligned_recalloc = NULL;
-void* VS71d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS71d::pcrtd__scalar_new_dbg = NULL;
-void* VS71d::pcrtd__vector_new_dbg = NULL;
-void* VS71d::pcrtd_scalar_new = NULL;
-void* VS71d::pcrtd_vector_new = NULL;
-void* VS71d::pmfcd_scalar_new = NULL;
-void* VS71d::pmfcd_vector_new = NULL;
-void* VS71d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS71d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS71d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS71d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS71d::pmfcud_scalar_new = NULL;
-void* VS71d::pmfcud_vector_new = NULL;
-void* VS71d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS71d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS71d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS71d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS80::pcrtd__calloc_dbg = NULL;
-void* VS80::pcrtd__malloc_dbg = NULL;
-void* VS80::pcrtd__realloc_dbg = NULL;
-void* VS80::pcrtd__recalloc_dbg = NULL;
-void* VS80::pcrtd__strdup_dbg = NULL;
-void* VS80::pcrtd__wcsdup_dbg = NULL;
-void* VS80::pcrtd_calloc = NULL;
-void* VS80::pcrtd_malloc = NULL;
-void* VS80::pcrtd_realloc = NULL;
-void* VS80::pcrtd_recalloc = NULL;
-void* VS80::pcrtd__strdup = NULL;
-void* VS80::pcrtd__wcsdup = NULL;
-void* VS80::pcrtd__aligned_malloc_dbg = NULL;
-void* VS80::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS80::pcrtd__aligned_realloc_dbg = NULL;
-void* VS80::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS80::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS80::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS80::pcrtd_aligned_malloc = NULL;
-void* VS80::pcrtd_aligned_offset_malloc = NULL;
-void* VS80::pcrtd_aligned_realloc = NULL;
-void* VS80::pcrtd_aligned_offset_realloc = NULL;
-void* VS80::pcrtd_aligned_recalloc = NULL;
-void* VS80::pcrtd_aligned_offset_recalloc = NULL;
-void* VS80::pcrtd__scalar_new_dbg = NULL;
-void* VS80::pcrtd__vector_new_dbg = NULL;
-void* VS80::pcrtd_scalar_new = NULL;
-void* VS80::pcrtd_vector_new = NULL;
-void* VS80::pmfcd_scalar_new = NULL;
-void* VS80::pmfcd_vector_new = NULL;
-void* VS80::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS80::pmfcd__vector_new_dbg_4p = NULL;
-void* VS80::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS80::pmfcd__vector_new_dbg_3p = NULL;
-void* VS80::pmfcud_scalar_new = NULL;
-void* VS80::pmfcud_vector_new = NULL;
-void* VS80::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS80::pmfcud__vector_new_dbg_4p = NULL;
-void* VS80::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS80::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS80d::pcrtd__calloc_dbg = NULL;
-void* VS80d::pcrtd__malloc_dbg = NULL;
-void* VS80d::pcrtd__realloc_dbg = NULL;
-void* VS80d::pcrtd__recalloc_dbg = NULL;
-void* VS80d::pcrtd__strdup_dbg = NULL;
-void* VS80d::pcrtd__wcsdup_dbg = NULL;
-void* VS80d::pcrtd_calloc = NULL;
-void* VS80d::pcrtd_malloc = NULL;
-void* VS80d::pcrtd_realloc = NULL;
-void* VS80d::pcrtd_recalloc = NULL;
-void* VS80d::pcrtd__strdup = NULL;
-void* VS80d::pcrtd__wcsdup = NULL;
-void* VS80d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS80d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS80d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS80d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS80d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS80d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS80d::pcrtd_aligned_malloc = NULL;
-void* VS80d::pcrtd_aligned_offset_malloc = NULL;
-void* VS80d::pcrtd_aligned_realloc = NULL;
-void* VS80d::pcrtd_aligned_offset_realloc = NULL;
-void* VS80d::pcrtd_aligned_recalloc = NULL;
-void* VS80d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS80d::pcrtd__scalar_new_dbg = NULL;
-void* VS80d::pcrtd__vector_new_dbg = NULL;
-void* VS80d::pcrtd_scalar_new = NULL;
-void* VS80d::pcrtd_vector_new = NULL;
-void* VS80d::pmfcd_scalar_new = NULL;
-void* VS80d::pmfcd_vector_new = NULL;
-void* VS80d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS80d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS80d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS80d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS80d::pmfcud_scalar_new = NULL;
-void* VS80d::pmfcud_vector_new = NULL;
-void* VS80d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS80d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS80d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS80d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS90::pcrtd__calloc_dbg = NULL;
-void* VS90::pcrtd__malloc_dbg = NULL;
-void* VS90::pcrtd__realloc_dbg = NULL;
-void* VS90::pcrtd__recalloc_dbg = NULL;
-void* VS90::pcrtd__strdup_dbg = NULL;
-void* VS90::pcrtd__wcsdup_dbg = NULL;
-void* VS90::pcrtd_calloc = NULL;
-void* VS90::pcrtd_malloc = NULL;
-void* VS90::pcrtd_realloc = NULL;
-void* VS90::pcrtd_recalloc = NULL;
-void* VS90::pcrtd__strdup = NULL;
-void* VS90::pcrtd__wcsdup = NULL;
-void* VS90::pcrtd__aligned_malloc_dbg = NULL;
-void* VS90::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS90::pcrtd__aligned_realloc_dbg = NULL;
-void* VS90::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS90::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS90::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS90::pcrtd_aligned_malloc = NULL;
-void* VS90::pcrtd_aligned_offset_malloc = NULL;
-void* VS90::pcrtd_aligned_realloc = NULL;
-void* VS90::pcrtd_aligned_offset_realloc = NULL;
-void* VS90::pcrtd_aligned_recalloc = NULL;
-void* VS90::pcrtd_aligned_offset_recalloc = NULL;
-void* VS90::pcrtd__scalar_new_dbg = NULL;
-void* VS90::pcrtd__vector_new_dbg = NULL;
-void* VS90::pcrtd_scalar_new = NULL;
-void* VS90::pcrtd_vector_new = NULL;
-void* VS90::pmfcd_scalar_new = NULL;
-void* VS90::pmfcd_vector_new = NULL;
-void* VS90::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS90::pmfcd__vector_new_dbg_4p = NULL;
-void* VS90::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS90::pmfcd__vector_new_dbg_3p = NULL;
-void* VS90::pmfcud_scalar_new = NULL;
-void* VS90::pmfcud_vector_new = NULL;
-void* VS90::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS90::pmfcud__vector_new_dbg_4p = NULL;
-void* VS90::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS90::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS90d::pcrtd__calloc_dbg = NULL;
-void* VS90d::pcrtd__malloc_dbg = NULL;
-void* VS90d::pcrtd__realloc_dbg = NULL;
-void* VS90d::pcrtd__recalloc_dbg = NULL;
-void* VS90d::pcrtd__strdup_dbg = NULL;
-void* VS90d::pcrtd__wcsdup_dbg = NULL;
-void* VS90d::pcrtd_calloc = NULL;
-void* VS90d::pcrtd_malloc = NULL;
-void* VS90d::pcrtd_realloc = NULL;
-void* VS90d::pcrtd_recalloc = NULL;
-void* VS90d::pcrtd__strdup = NULL;
-void* VS90d::pcrtd__wcsdup = NULL;
-void* VS90d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS90d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS90d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS90d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS90d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS90d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS90d::pcrtd_aligned_malloc = NULL;
-void* VS90d::pcrtd_aligned_offset_malloc = NULL;
-void* VS90d::pcrtd_aligned_realloc = NULL;
-void* VS90d::pcrtd_aligned_offset_realloc = NULL;
-void* VS90d::pcrtd_aligned_recalloc = NULL;
-void* VS90d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS90d::pcrtd__scalar_new_dbg = NULL;
-void* VS90d::pcrtd__vector_new_dbg = NULL;
-void* VS90d::pcrtd_scalar_new = NULL;
-void* VS90d::pcrtd_vector_new = NULL;
-void* VS90d::pmfcd_scalar_new = NULL;
-void* VS90d::pmfcd_vector_new = NULL;
-void* VS90d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS90d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS90d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS90d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS90d::pmfcud_scalar_new = NULL;
-void* VS90d::pmfcud_vector_new = NULL;
-void* VS90d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS90d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS90d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS90d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS100::pcrtd__calloc_dbg = NULL;
-void* VS100::pcrtd__malloc_dbg = NULL;
-void* VS100::pcrtd__realloc_dbg = NULL;
-void* VS100::pcrtd__recalloc_dbg = NULL;
-void* VS100::pcrtd__strdup_dbg = NULL;
-void* VS100::pcrtd__wcsdup_dbg = NULL;
-void* VS100::pcrtd_calloc = NULL;
-void* VS100::pcrtd_malloc = NULL;
-void* VS100::pcrtd_realloc = NULL;
-void* VS100::pcrtd_recalloc = NULL;
-void* VS100::pcrtd__strdup = NULL;
-void* VS100::pcrtd__wcsdup = NULL;
-void* VS100::pcrtd__aligned_malloc_dbg = NULL;
-void* VS100::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS100::pcrtd__aligned_realloc_dbg = NULL;
-void* VS100::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS100::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS100::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS100::pcrtd_aligned_malloc = NULL;
-void* VS100::pcrtd_aligned_offset_malloc = NULL;
-void* VS100::pcrtd_aligned_realloc = NULL;
-void* VS100::pcrtd_aligned_offset_realloc = NULL;
-void* VS100::pcrtd_aligned_recalloc = NULL;
-void* VS100::pcrtd_aligned_offset_recalloc = NULL;
-void* VS100::pcrtd__scalar_new_dbg = NULL;
-void* VS100::pcrtd__vector_new_dbg = NULL;
-void* VS100::pcrtd_scalar_new = NULL;
-void* VS100::pcrtd_vector_new = NULL;
-void* VS100::pmfcd_scalar_new = NULL;
-void* VS100::pmfcd_vector_new = NULL;
-void* VS100::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS100::pmfcd__vector_new_dbg_4p = NULL;
-void* VS100::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS100::pmfcd__vector_new_dbg_3p = NULL;
-void* VS100::pmfcud_scalar_new = NULL;
-void* VS100::pmfcud_vector_new = NULL;
-void* VS100::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS100::pmfcud__vector_new_dbg_4p = NULL;
-void* VS100::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS100::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS100d::pcrtd__calloc_dbg = NULL;
-void* VS100d::pcrtd__malloc_dbg = NULL;
-void* VS100d::pcrtd__realloc_dbg = NULL;
-void* VS100d::pcrtd__recalloc_dbg = NULL;
-void* VS100d::pcrtd__strdup_dbg = NULL;
-void* VS100d::pcrtd__wcsdup_dbg = NULL;
-void* VS100d::pcrtd_calloc = NULL;
-void* VS100d::pcrtd_malloc = NULL;
-void* VS100d::pcrtd_realloc = NULL;
-void* VS100d::pcrtd_recalloc = NULL;
-void* VS100d::pcrtd__strdup = NULL;
-void* VS100d::pcrtd__wcsdup = NULL;
-void* VS100d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS100d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS100d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS100d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS100d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS100d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS100d::pcrtd_aligned_malloc = NULL;
-void* VS100d::pcrtd_aligned_offset_malloc = NULL;
-void* VS100d::pcrtd_aligned_realloc = NULL;
-void* VS100d::pcrtd_aligned_offset_realloc = NULL;
-void* VS100d::pcrtd_aligned_recalloc = NULL;
-void* VS100d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS100d::pcrtd__scalar_new_dbg = NULL;
-void* VS100d::pcrtd__vector_new_dbg = NULL;
-void* VS100d::pcrtd_scalar_new = NULL;
-void* VS100d::pcrtd_vector_new = NULL;
-void* VS100d::pmfcd_scalar_new = NULL;
-void* VS100d::pmfcd_vector_new = NULL;
-void* VS100d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS100d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS100d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS100d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS100d::pmfcud_scalar_new = NULL;
-void* VS100d::pmfcud_vector_new = NULL;
-void* VS100d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS100d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS100d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS100d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS110::pcrtd__calloc_dbg = NULL;
-void* VS110::pcrtd__malloc_dbg = NULL;
-void* VS110::pcrtd__realloc_dbg = NULL;
-void* VS110::pcrtd__recalloc_dbg = NULL;
-void* VS110::pcrtd__strdup_dbg = NULL;
-void* VS110::pcrtd__wcsdup_dbg = NULL;
-void* VS110::pcrtd_calloc = NULL;
-void* VS110::pcrtd_malloc = NULL;
-void* VS110::pcrtd_realloc = NULL;
-void* VS110::pcrtd_recalloc = NULL;
-void* VS110::pcrtd__strdup = NULL;
-void* VS110::pcrtd__wcsdup = NULL;
-void* VS110::pcrtd__aligned_malloc_dbg = NULL;
-void* VS110::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS110::pcrtd__aligned_realloc_dbg = NULL;
-void* VS110::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS110::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS110::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS110::pcrtd_aligned_malloc = NULL;
-void* VS110::pcrtd_aligned_offset_malloc = NULL;
-void* VS110::pcrtd_aligned_realloc = NULL;
-void* VS110::pcrtd_aligned_offset_realloc = NULL;
-void* VS110::pcrtd_aligned_recalloc = NULL;
-void* VS110::pcrtd_aligned_offset_recalloc = NULL;
-void* VS110::pcrtd__scalar_new_dbg = NULL;
-void* VS110::pcrtd__vector_new_dbg = NULL;
-void* VS110::pcrtd_scalar_new = NULL;
-void* VS110::pcrtd_vector_new = NULL;
-void* VS110::pmfcd_scalar_new = NULL;
-void* VS110::pmfcd_vector_new = NULL;
-void* VS110::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS110::pmfcd__vector_new_dbg_4p = NULL;
-void* VS110::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS110::pmfcd__vector_new_dbg_3p = NULL;
-void* VS110::pmfcud_scalar_new = NULL;
-void* VS110::pmfcud_vector_new = NULL;
-void* VS110::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS110::pmfcud__vector_new_dbg_4p = NULL;
-void* VS110::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS110::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS110d::pcrtd__calloc_dbg = NULL;
-void* VS110d::pcrtd__malloc_dbg = NULL;
-void* VS110d::pcrtd__realloc_dbg = NULL;
-void* VS110d::pcrtd__recalloc_dbg = NULL;
-void* VS110d::pcrtd__strdup_dbg = NULL;
-void* VS110d::pcrtd__wcsdup_dbg = NULL;
-void* VS110d::pcrtd_calloc = NULL;
-void* VS110d::pcrtd_malloc = NULL;
-void* VS110d::pcrtd_realloc = NULL;
-void* VS110d::pcrtd_recalloc = NULL;
-void* VS110d::pcrtd__strdup = NULL;
-void* VS110d::pcrtd__wcsdup = NULL;
-void* VS110d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS110d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS110d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS110d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS110d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS110d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS110d::pcrtd_aligned_malloc = NULL;
-void* VS110d::pcrtd_aligned_offset_malloc = NULL;
-void* VS110d::pcrtd_aligned_realloc = NULL;
-void* VS110d::pcrtd_aligned_offset_realloc = NULL;
-void* VS110d::pcrtd_aligned_recalloc = NULL;
-void* VS110d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS110d::pcrtd__scalar_new_dbg = NULL;
-void* VS110d::pcrtd__vector_new_dbg = NULL;
-void* VS110d::pcrtd_scalar_new = NULL;
-void* VS110d::pcrtd_vector_new = NULL;
-void* VS110d::pmfcd_scalar_new = NULL;
-void* VS110d::pmfcd_vector_new = NULL;
-void* VS110d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS110d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS110d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS110d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS110d::pmfcud_scalar_new = NULL;
-void* VS110d::pmfcud_vector_new = NULL;
-void* VS110d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS110d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS110d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS110d::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS120::pcrtd__calloc_dbg = NULL;
-void* VS120::pcrtd__malloc_dbg = NULL;
-void* VS120::pcrtd__realloc_dbg = NULL;
-void* VS120::pcrtd__recalloc_dbg = NULL;
-void* VS120::pcrtd__strdup_dbg = NULL;
-void* VS120::pcrtd__wcsdup_dbg = NULL;
-void* VS120::pcrtd_calloc = NULL;
-void* VS120::pcrtd_malloc = NULL;
-void* VS120::pcrtd_realloc = NULL;
-void* VS120::pcrtd_recalloc = NULL;
-void* VS120::pcrtd__strdup = NULL;
-void* VS120::pcrtd__wcsdup = NULL;
-void* VS120::pcrtd__aligned_malloc_dbg = NULL;
-void* VS120::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS120::pcrtd__aligned_realloc_dbg = NULL;
-void* VS120::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS120::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS120::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS120::pcrtd_aligned_malloc = NULL;
-void* VS120::pcrtd_aligned_offset_malloc = NULL;
-void* VS120::pcrtd_aligned_realloc = NULL;
-void* VS120::pcrtd_aligned_offset_realloc = NULL;
-void* VS120::pcrtd_aligned_recalloc = NULL;
-void* VS120::pcrtd_aligned_offset_recalloc = NULL;
-void* VS120::pcrtd__scalar_new_dbg = NULL;
-void* VS120::pcrtd__vector_new_dbg = NULL;
-void* VS120::pcrtd_scalar_new = NULL;
-void* VS120::pcrtd_vector_new = NULL;
-void* VS120::pmfcd_scalar_new = NULL;
-void* VS120::pmfcd_vector_new = NULL;
-void* VS120::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS120::pmfcd__vector_new_dbg_4p = NULL;
-void* VS120::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS120::pmfcd__vector_new_dbg_3p = NULL;
-void* VS120::pmfcud_scalar_new = NULL;
-void* VS120::pmfcud_vector_new = NULL;
-void* VS120::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS120::pmfcud__vector_new_dbg_4p = NULL;
-void* VS120::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS120::pmfcud__vector_new_dbg_3p = NULL;
-
-void* VS120d::pcrtd__calloc_dbg = NULL;
-void* VS120d::pcrtd__malloc_dbg = NULL;
-void* VS120d::pcrtd__realloc_dbg = NULL;
-void* VS120d::pcrtd__recalloc_dbg = NULL;
-void* VS120d::pcrtd__strdup_dbg = NULL;
-void* VS120d::pcrtd__wcsdup_dbg = NULL;
-void* VS120d::pcrtd_calloc = NULL;
-void* VS120d::pcrtd_malloc = NULL;
-void* VS120d::pcrtd_realloc = NULL;
-void* VS120d::pcrtd_recalloc = NULL;
-void* VS120d::pcrtd__strdup = NULL;
-void* VS120d::pcrtd__wcsdup = NULL;
-void* VS120d::pcrtd__aligned_malloc_dbg = NULL;
-void* VS120d::pcrtd__aligned_offset_malloc_dbg = NULL;
-void* VS120d::pcrtd__aligned_realloc_dbg = NULL;
-void* VS120d::pcrtd__aligned_offset_realloc_dbg = NULL;
-void* VS120d::pcrtd__aligned_recalloc_dbg = NULL;
-void* VS120d::pcrtd__aligned_offset_recalloc_dbg = NULL;
-void* VS120d::pcrtd_aligned_malloc = NULL;
-void* VS120d::pcrtd_aligned_offset_malloc = NULL;
-void* VS120d::pcrtd_aligned_realloc = NULL;
-void* VS120d::pcrtd_aligned_offset_realloc = NULL;
-void* VS120d::pcrtd_aligned_recalloc = NULL;
-void* VS120d::pcrtd_aligned_offset_recalloc = NULL;
-void* VS120d::pcrtd__scalar_new_dbg = NULL;
-void* VS120d::pcrtd__vector_new_dbg = NULL;
-void* VS120d::pcrtd_scalar_new = NULL;
-void* VS120d::pcrtd_vector_new = NULL;
-void* VS120d::pmfcd_scalar_new = NULL;
-void* VS120d::pmfcd_vector_new = NULL;
-void* VS120d::pmfcd__scalar_new_dbg_4p = NULL;
-void* VS120d::pmfcd__vector_new_dbg_4p = NULL;
-void* VS120d::pmfcd__scalar_new_dbg_3p = NULL;
-void* VS120d::pmfcd__vector_new_dbg_3p = NULL;
-void* VS120d::pmfcud_scalar_new = NULL;
-void* VS120d::pmfcud_vector_new = NULL;
-void* VS120d::pmfcud__scalar_new_dbg_4p = NULL;
-void* VS120d::pmfcud__vector_new_dbg_4p = NULL;
-void* VS120d::pmfcud__scalar_new_dbg_3p = NULL;
-void* VS120d::pmfcud__vector_new_dbg_3p = NULL;
+VS60    VS60::data;
+VS60d   VS60d::data;
+VS70    VS70::data;
+VS70d   VS70d::data;
+VS71    VS71::data;
+VS71d   VS71d::data;
+VS80    VS80::data;
+VS80d   VS80d::data;
+VS90    VS90::data;
+VS90d   VS90d::data;
+VS100   VS100::data;
+VS100d  VS100d::data;
+VS110   VS110::data;
+VS110d  VS110d::data;
+VS120   VS120::data;
+VS120d  VS120d::data;
