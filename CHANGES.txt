@@ -3,16 +3,19 @@ Visual Leak Detector (VLD) Version 2.4.0
   
   Change Log / Release Notes
 
-2.4 (16 December 2013)
+2.4RC (23 March 2014)
 ----------------------------
   Enhancements:
   + VS2013 support added.
   + Improved usage in C code.
-  + Setup rewrited to InnoSetup, autopatching common props implemented for VS2010-2013.
+  + Setup rewrited to InnoSetup, autopatching common props implemented for VS2008-2013.
   + Called allocation function added to printed callstack.
+  ! Memory leaks count fixed for case static/dynamic linked MFC.
+  ! Release static linked CRT detection improved (VLD_OPT_RELEASE_CRT_RUNTIME define removed).
 
   Bugs Fixed:
   + Memory leaks with static linked CRT fixed for VS2012/2013.
+  + Deadlock fixed and missed memory leaks when dll loading (first appear in version 2.2.2).
 
 2.3 (29 April 2013)
 ----------------------------
