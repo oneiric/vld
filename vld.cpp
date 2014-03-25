@@ -518,6 +518,9 @@ UINT32 VisualLeakDetector::getModuleState(ModuleSet::Iterator& it, UINT32& modul
     return 3;
 }
 
+// dbghelp32.dll should be updated in setup folder if you update dbghelp.h
+static char dbghelp32_assert[sizeof(IMAGEHLP_MODULE64) == 3256 ? 1 : -1];
+
 // attachtoloadedmodules - Attaches VLD to all modules contained in the provided
 //   ModuleSet. Not all modules are in the ModuleSet will actually be included
 //   in leak detection. Only modules that import the global VisualLeakDetector
