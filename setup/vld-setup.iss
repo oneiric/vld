@@ -43,10 +43,10 @@ Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\dbghelp\x64"; Flags: ignoreve
 Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\dbghelp\x64"; Flags: ignoreversion
 Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\dbghelp\x86"; Flags: ignoreversion
 Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\dbghelp\x86"; Flags: ignoreversion
-Source: "..\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
-Source: "..\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
-Source: "..\x64\Release\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\bin\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
+Source: "..\bin\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\bin\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
+Source: "..\bin\x64\Release\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "..\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld.ini"; DestDir: "{app}"; Flags: ignoreversion
