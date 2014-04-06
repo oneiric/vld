@@ -30,19 +30,20 @@
 #endif
 
 #include <cstdio>
+#pragma push_macro("new")
+#undef new
+#include <string>
+#include <memory>
+#pragma pop_macro("new")
 #include <windows.h>
 #include "vld_def.h"
 #include "version.h"
-#include "callstack.h" // Provides a custom class for handling call stacks.
-#include "map.h"       // Provides a custom STL-like map template.
-#include "ntapi.h"     // Provides access to NT APIs.
-#include "set.h"       // Provides a custom STL-like set template.
-#include "utility.h"   // Provides miscellaneous utility functions.
-
-#pragma push_macro("new")
-#undef new
-#include <memory>
-#pragma pop_macro("new")
+#include "callstack.h"  // Provides a custom class for handling call stacks.
+#include "map.h"        // Provides a custom STL-like map template.
+#include "ntapi.h"      // Provides access to NT APIs.
+#include "set.h"        // Provides a custom STL-like set template.
+#include "utility.h"    // Provides miscellaneous utility functions.
+#include "vldallocator.h"   // Provides internal allocator.
 
 #define MAXMODULELISTLENGTH 512     // Maximum module list length, in characters.
 #define SELFTESTTEXTA       "Memory Leak Self-Test"
@@ -123,6 +124,7 @@ struct heapinfo_t {
 
 // HeapMaps map heaps (via their handles) to BlockMaps.
 typedef Map<HANDLE, heapinfo_t*> HeapMap;
+typedef std::basic_string<wchar_t, std::char_traits<wchar_t>, vldallocator<wchar_t> > vldstring;
 
 // This structure stores information, primarily the virtual address range, about
 // a given module and can be used with the Set template because it supports the
@@ -143,8 +145,8 @@ struct moduleinfo_t {
     UINT32 flags;                    // Module flags:
 #define VLD_MODULE_EXCLUDED      0x1 //   If set, this module is excluded from leak detection.
 #define VLD_MODULE_SYMBOLSLOADED 0x2 //   If set, this module's debug symbols have been loaded.
-    LPCWSTR name;                    // The module's name (e.g. "kernel32.dll").
-    LPCWSTR path;                    // The fully qualified path from where the module was loaded.
+    vldstring name;                  // The module's name (e.g. "kernel32.dll").
+    vldstring path;                  // The fully qualified path from where the module was loaded.
 };
 
 // ModuleSets store information about modules loaded in the process.

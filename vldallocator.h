@@ -25,6 +25,8 @@
 #include <memory>
 #include "vldheap.h"     // Provides internal new and delete operators.
 
+#pragma push_macro("new")
+#undef new
 template <typename T>
 class vldallocator: public std::allocator<T>
 {
@@ -39,17 +41,20 @@ public:
         typedef vldallocator<_Tp1> other;
     };
 
-    pointer allocate(size_type n, const void *hint=0)
+    pointer allocate(size_type n, const void * /*hint*/ = 0)
     {
         return (pointer)::operator new(sizeof(T)*n, __FILE__, __LINE__);
     }
 
-    void deallocate(pointer p, size_type n)
+    void deallocate(pointer p, size_type /*n*/)
     {
         return ::operator delete(p);
     }
 
-    vldallocator() throw(): std::allocator<T>() { }
-    vldallocator(const vldallocator &a) throw(): std::allocator<T>(a) { }
+    vldallocator() throw() : std::allocator<T>() { }
+    vldallocator(const vldallocator &a) throw() : std::allocator<T>(a) { }
+    template<class Other>
+    vldallocator(const vldallocator<Other> &a) throw() : std::allocator<T>(a) { }
     ~vldallocator() throw() { }
 };
+#pragma pop_macro("new")

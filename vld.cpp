@@ -34,7 +34,6 @@
 #include "ntapi.h"       // Provides access to NT APIs.
 #include "set.h"         // Provides a lightweight STL-like set template.
 #include "utility.h"     // Provides various utility functions.
-#include "vldallocator.h"// Provides internal allocator.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
 
 #define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
@@ -421,11 +420,6 @@ VisualLeakDetector::~VisualLeakDetector ()
         }
         delete m_heapMap;
 
-        // Free internally allocated resources used by the loaded module set.
-        for (ModuleSet::Iterator moduleit = m_loadedModules->begin(); moduleit != m_loadedModules->end(); ++moduleit) {
-            delete [] (*moduleit).name;
-            delete [] (*moduleit).path;
-        }
         delete m_loadedModules;
 
         // Free internally allocated resources used for thread local storage.
@@ -550,9 +544,9 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             continue;
 
         DWORD64 modulebase = (DWORD64) (*newit).addrLow;
-        LPCWSTR modulename  = (*newit).name;
-        LPCWSTR modulepath  = (*newit).path;
-        DWORD modulesize  = (DWORD)((*newit).addrHigh - (*newit).addrLow) + 1;
+        LPCWSTR modulename = (*newit).name.c_str();
+        LPCWSTR modulepath = (*newit).path.c_str();
+        DWORD modulesize   = (DWORD)((*newit).addrHigh - (*newit).addrLow) + 1;
 
         g_symbolLock.Enter();
         if ((state == 3) && (moduleFlags & VLD_MODULE_SYMBOLSLOADED)) {
@@ -1690,28 +1684,24 @@ blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& hea
 //
 BOOL VisualLeakDetector::addLoadedModule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context)
 {
-    size_t length = wcslen(modulepath) + 1;
-    LPWSTR modulepathw = new WCHAR [length];
-    wcsncpy_s(modulepathw, length, modulepath, _TRUNCATE);
+    vldstring modulepathw(modulepath);
 
     // Extract just the filename and extension from the module path.
     WCHAR filename [_MAX_FNAME];
     WCHAR extension [_MAX_EXT];
-    _wsplitpath_s(modulepathw, NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
+    _wsplitpath_s(modulepathw.c_str(), NULL, 0, NULL, 0, filename, _MAX_FNAME, extension, _MAX_EXT);
 
-    length = wcslen(filename) + wcslen(extension) + 1;
-    LPWSTR modulename = new WCHAR [length];
-    wcsncpy_s(modulename, length, filename, _TRUNCATE);
-    wcsncat_s(modulename, length, extension, _TRUNCATE);
-    _wcslwr_s(modulename, length);
+    vldstring modulename(filename);
+    modulename.append(extension);
+    _wcslwr_s(&modulename[0], modulename.size() + 1);
 
-    if (_wcsicmp(modulename, TEXT(VLDDLL)) == 0) {
+    if (_wcsicmp(modulename.c_str(), TEXT(VLDDLL)) == 0) {
         // Record Visual Leak Detector's own base address.
         g_vld.m_vldBase = (HMODULE)modulebase;
     }
     else {
         LPSTR modulenamea;
-        ConvertModulePathToAscii(modulename, &modulenamea);
+        ConvertModulePathToAscii(modulename.c_str(), &modulenamea);
 
         // See if this is a module listed in the patch table. If it is, update
         // the corresponding patch table entries' module base address.
@@ -1927,10 +1917,6 @@ VOID VisualLeakDetector::RefreshModules()
     m_modulesLock.Leave();
 
     // Free resources used by the old module list.
-    for (ModuleSet::Iterator moduleit = oldmodules->begin(); moduleit != oldmodules->end(); ++moduleit) {
-        delete [] (*moduleit).name;
-        delete [] (*moduleit).path;
-    }
     delete oldmodules;
 }
 
