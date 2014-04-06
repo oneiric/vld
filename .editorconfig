@@ -13,16 +13,11 @@ indent_style = space
 indent_size = 4
 
 # 4 space indentation
-[*.c]
+[*.{c,cpp,h}]
 indent_style = space
 indent_size = 4
 
-# 4 space indentation
-[*.cpp]
+# 2 space indentation
+[*.iss]
 indent_style = space
-indent_size = 4
-
-# 4 space indentation
-[*.h]
-indent_style = space
-indent_size = 4
+indent_size = 2

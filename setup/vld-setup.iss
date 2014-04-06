@@ -333,8 +333,10 @@ var
   XMLParent, IdgNode, XMLNode, XMLNodes: Variant;
   IncludeDirectoriesNode: Variant;
   AdditionalIncludeDirectories: string;
-  LibraryDirectoriesNode: Variant;
-  AdditionalLibraryDirectories: string; 
+  DynamicLibraryDirectoriesNode: Variant;
+  AdditionalDynamicLibraryDirectories: string;
+  StaticLibraryDirectoriesNode: Variant;
+  AdditionalStaticLibraryDirectories: string;
 begin
   if not FileExists(filename) then
     Exit;
@@ -359,6 +361,7 @@ begin
                     'http://schemas.microsoft.com/developer/msbuild/2003');
         IdgNode := IdgNode.AppendChild(XMLNode);
       end;
+
       XMLNodes := IdgNode.SelectNodes('//b:ClCompile');
       if XMLNodes.Length > 0 then
         XMLParent := XMLNodes.Item[0]
@@ -368,7 +371,7 @@ begin
                     'http://schemas.microsoft.com/developer/msbuild/2003');
         XMLParent := IdgNode.AppendChild(XMLNode);
       end;
-      XMLNodes := XMLParent.SelectNodes('//b:AdditionalIncludeDirectories');
+      XMLNodes := XMLParent.SelectNodes('//b:ClCompile/b:AdditionalIncludeDirectories');
       if XMLNodes.Length > 0 then
         IncludeDirectoriesNode := XMLNodes.Item[0]
       else
@@ -377,6 +380,7 @@ begin
                     'http://schemas.microsoft.com/developer/msbuild/2003');
         IncludeDirectoriesNode := XMLParent.AppendChild(XMLNode);
       end;
+
       XMLNodes := IdgNode.SelectNodes('//b:Link');
       if XMLNodes.Length > 0 then
         XMLParent := XMLNodes.Item[0]
@@ -386,25 +390,50 @@ begin
                     'http://schemas.microsoft.com/developer/msbuild/2003');
         XMLParent := IdgNode.AppendChild(XMLNode);
       end;
-      XMLNodes := XMLParent.SelectNodes('//b:AdditionalLibraryDirectories');
+      XMLNodes := XMLParent.SelectNodes('//b:Link/b:AdditionalLibraryDirectories');
       if XMLNodes.Length > 0 then
-        LibraryDirectoriesNode := XMLNodes.Item[0]
+        DynamicLibraryDirectoriesNode := XMLNodes.Item[0]
       else
       begin
         XMLNode := XMLDocument.CreateNode(1, 'AdditionalLibraryDirectories',
                     'http://schemas.microsoft.com/developer/msbuild/2003');
-        LibraryDirectoriesNode := XMLParent.AppendChild(XMLNode);
+        DynamicLibraryDirectoriesNode := XMLParent.AppendChild(XMLNode);
       end;
+
+      XMLNodes := IdgNode.SelectNodes('//b:Lib');
+      if XMLNodes.Length > 0 then
+        XMLParent := XMLNodes.Item[0]
+      else
+      begin
+        XMLNode := XMLDocument.CreateNode(1, 'Lib',
+                    'http://schemas.microsoft.com/developer/msbuild/2003');
+        XMLParent := IdgNode.AppendChild(XMLNode);
+      end;
+      XMLNodes := XMLParent.SelectNodes('//b:Lib/b:AdditionalLibraryDirectories');
+      if XMLNodes.Length > 0 then
+        StaticLibraryDirectoriesNode := XMLNodes.Item[0]
+      else
+      begin
+        XMLNode := XMLDocument.CreateNode(1, 'AdditionalLibraryDirectories',
+                    'http://schemas.microsoft.com/developer/msbuild/2003');
+        StaticLibraryDirectoriesNode := XMLParent.AppendChild(XMLNode);
+      end;
+
       AdditionalIncludeDirectories := '';
       if not VarIsNull(IncludeDirectoriesNode) then
         AdditionalIncludeDirectories := IncludeDirectoriesNode.Text;
-      AdditionalLibraryDirectories := '';;
-      if not VarIsNull(LibraryDirectoriesNode) then
-        AdditionalLibraryDirectories := LibraryDirectoriesNode.Text;
+      AdditionalDynamicLibraryDirectories := '';;
+      if not VarIsNull(DynamicLibraryDirectoriesNode) then
+        AdditionalDynamicLibraryDirectories := DynamicLibraryDirectoriesNode.Text;
+      AdditionalStaticLibraryDirectories := '';;
+      if not VarIsNull(StaticLibraryDirectoriesNode) then
+        AdditionalStaticLibraryDirectories := StaticLibraryDirectoriesNode.Text;
       UpdateString(AdditionalIncludeDirectories, ExpandConstant('{app}\include;'), '%(AdditionalIncludeDirectories)');
-      UpdateString(AdditionalLibraryDirectories, ExpandConstant('{app}\lib\' + libfolder + ';'), '%(AdditionalLibraryDirectories)');
+      UpdateString(AdditionalDynamicLibraryDirectories, ExpandConstant('{app}\lib\' + libfolder + ';'), '%(AdditionalLibraryDirectories)');
+      UpdateString(AdditionalStaticLibraryDirectories, ExpandConstant('{app}\lib\' + libfolder + ';'), '%(AdditionalLibraryDirectories)');
       IncludeDirectoriesNode.Text := AdditionalIncludeDirectories;
-      LibraryDirectoriesNode.Text := AdditionalLibraryDirectories;
+      DynamicLibraryDirectoriesNode.Text := AdditionalDynamicLibraryDirectories;
+      StaticLibraryDirectoriesNode.Text := AdditionalStaticLibraryDirectories;
       XMLDocument.save(filename);
     end;
   except
