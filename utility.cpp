@@ -628,14 +628,11 @@ VOID Print (LPWSTR messagew)
 
             if ( s_reportToStdOut )
                 fputws(messagew, stdout);
-
-            if (s_reportToDebugger)
-                OutputDebugStringW(messagew);
         }
         else {
             size_t  count = 0;
             CHAR    messagea [MAXREPORTLENGTH + 1];
-            if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) == -1) {
+            if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) != 0) {
                 // Failed to convert the Unicode message to ASCII.
                 assert(FALSE);
                 return;
@@ -649,10 +646,10 @@ VOID Print (LPWSTR messagew)
 
             if ( s_reportToStdOut )
                 fputs(messagea, stdout);
+		}
 
-            if (s_reportToDebugger)
-                OutputDebugStringA(messagea);
-        }
+		if (s_reportToDebugger)
+			OutputDebugStringW(messagew);
     }
     else if (hook_retval == 1)
         __debugbreak();
