@@ -99,7 +99,7 @@ namespace tut
         int prev = (int)VLDGetLeaksCount();
         LeakMemory(eCoTaskMem,repeat,false);
         int leaks = (int)VLDGetLeaksCount() - prev;
-        ensure("leaks", leaks == (repeat * 1)); 
+        ensure("leaks", leaks == (repeat * 2)); 
     }
 
     template<>
@@ -222,7 +222,7 @@ int _tmain(int argc, _TCHAR* argv[])
         else if (_tcsicmp(_T("CoTaskMem"), argv[1]) == 0)
         {
             leak_type = eCoTaskMem;
-            multiplayer = 1;
+            multiplayer = 2;
         }
         else if (_tcsicmp(_T("AlignedMalloc"), argv[1]) == 0)
         {
@@ -242,7 +242,7 @@ int _tmain(int argc, _TCHAR* argv[])
         else if (_tcsicmp(_T("all"), argv[1]) == 0)
         {
             checkAll = true;
-            multiplayer = 21;
+            multiplayer = 22;
         }
         else
         {

@@ -1911,6 +1911,13 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
     HMODULE  ole32;
     tls_t   *tls = g_vld.getTls();
 
+    if (pCoTaskMemAlloc == NULL) {
+        // This is the first call to this function. Link to the real
+        // CoTaskMemAlloc.
+        ole32 = GetModuleHandleW(L"ole32.dll");
+        pCoTaskMemAlloc = (CoTaskMemAlloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
+    }
+
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
@@ -1918,13 +1925,6 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
         CAPTURE_CONTEXT(context, pCoTaskMemAlloc);
         tls->context = context;
         tls->blockProcessed = FALSE;
-    }
-
-    if (pCoTaskMemAlloc == NULL) {
-        // This is the first call to this function. Link to the real
-        // CoTaskMemAlloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
-        pCoTaskMemAlloc = (CoTaskMemAlloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1958,6 +1958,13 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
     HMODULE  ole32;
     tls_t   *tls = g_vld.getTls();
 
+    if (pCoTaskMemRealloc == NULL) {
+        // This is the first call to this function. Link to the real
+        // CoTaskMemRealloc.
+        ole32 = GetModuleHandleW(L"ole32.dll");
+        pCoTaskMemRealloc = (CoTaskMemRealloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
+    }
+
     bool firstcall = (tls->context.fp == 0x0);
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
@@ -1965,13 +1972,6 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
         CAPTURE_CONTEXT(context, pCoTaskMemRealloc);
         tls->context = context;
         tls->blockProcessed = FALSE;
-    }
-
-    if (pCoTaskMemRealloc == NULL) {
-        // This is the first call to this function. Link to the real
-        // CoTaskMemRealloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
-        pCoTaskMemRealloc = (CoTaskMemRealloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.

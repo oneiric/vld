@@ -221,6 +221,11 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 
     const size_t max_size = MAXREPORTLENGTH + 1;
 
+    // Use static here to increase performance, and avoid heap allocs. Hopefully this won't
+    // prove to be an issue in thread safety. If it does, it will have to be simply non-static.
+    static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
+    bool isPrevFrameInternal = false;
+
     // Iterate through each frame in the call stack.
     for (UINT32 frame = start_frame; frame < m_size; frame++)
     {
@@ -232,13 +237,15 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
             wcscpy_s(lowerCaseName, sourceInfo.FileName);
             _wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
-            if (isInternalModule(lowerCaseName)) {
+            if (isInternalModule(lowerCaseName))
+            {
+                isFrameInternal = true;
                 // Don't show frames in files internal to the heap.
                 g_symbolLock.Leave();
-                continue;
             }
         }
 
@@ -276,9 +283,10 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
                 moduleName = callingModuleName;
         }
 
-        // Use static here to increase performance, and avoid heap allocs. Hopefully this won't
-        // prove to be an issue in thread safety. If it does, it will have to be simply non-static.
-        static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
+        if (!isFrameInternal && isPrevFrameInternal)
+            Print(stack_line);
+        isPrevFrameInternal = isFrameInternal;
+
         int NumChars = -1;
         // Display the current stack frame's information.
         if (foundline) {
@@ -298,7 +306,8 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
                 programCounter, moduleName, functionName, (DWORD)displacement64);	
         }
 
-        Print(stack_line);
+        if (!isFrameInternal)
+            Print(stack_line);
     }
 }
 
@@ -511,11 +520,14 @@ bool CallStack::isInternalModule( const PWSTR filename ) const
         wcsstr(filename, L"\\crt\\src\\dbgmalloc.c") ||
         wcsstr(filename, L"\\crt\\src\\new.cpp") ||
         wcsstr(filename, L"\\crt\\src\\newaop.cpp") ||
+        wcsstr(filename, L"\\crt\\src\\dbgnew.cpp") ||
         wcsstr(filename, L"\\crt\\src\\dbgcalloc.c") ||
         wcsstr(filename, L"\\crt\\src\\realloc.c") ||
         wcsstr(filename, L"\\crt\\src\\dbgrealloc.c") ||
         wcsstr(filename, L"\\crt\\src\\dbgdel.cp") ||
         wcsstr(filename, L"\\crt\\src\\free.c") ||
+        wcsstr(filename, L"\\crt\\src\\strdup.c") ||
+        wcsstr(filename, L"\\crt\\src\\wcsdup.c") ||
         wcsstr(filename, L"\\vc\\include\\xmemory0");
 }
 
