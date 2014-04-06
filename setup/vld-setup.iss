@@ -39,10 +39,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "{group}\View Documentation"; Filename: "http://vld.codeplex.com/documentation"
 
 [Files]
-Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\dbghelp\x64"; Flags: ignoreversion
-Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\dbghelp\x64"; Flags: ignoreversion
-Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\dbghelp\x86"; Flags: ignoreversion
-Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\dbghelp\x86"; Flags: ignoreversion
+Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
 Source: "..\bin\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
 Source: "..\bin\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
 Source: "..\bin\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
@@ -330,7 +330,7 @@ end;
 procedure ModifyProps(filename: string; libfolder: string);
 var
   XMLDocument: Variant; 
-  XMLParent, XMLNode, XMLNodes: Variant;
+  XMLParent, IdgNode, XMLNode, XMLNodes: Variant;
   IncludeDirectoriesNode: Variant;
   AdditionalIncludeDirectories: string;
   LibraryDirectoriesNode: Variant;
@@ -349,24 +349,24 @@ begin
       XMLNodes := XMLDocument.SelectNodes('//b:Project');
       if XMLNodes.Length = 0 then
         Exit;
-      XMLParent := XMLNodes.Item[0];
-      XMLNodes := XMLParent.SelectNodes('//b:ItemDefinitionGroup');
+      IdgNode := XMLNodes.Item[0];
+      XMLNodes := IdgNode.SelectNodes('//b:ItemDefinitionGroup');
       if XMLNodes.Length > 0 then
-        XMLParent := XMLNodes.Item[0]
+        IdgNode := XMLNodes.Item[0]
       else
       begin
         XMLNode := XMLDocument.CreateNode(1, 'ItemDefinitionGroup',
                     'http://schemas.microsoft.com/developer/msbuild/2003');
-        XMLParent := XMLParent.AppendChild(XMLNode);
+        IdgNode := IdgNode.AppendChild(XMLNode);
       end;
-      XMLNodes := XMLParent.SelectNodes('//b:ClCompile');
+      XMLNodes := IdgNode.SelectNodes('//b:ClCompile');
       if XMLNodes.Length > 0 then
         XMLParent := XMLNodes.Item[0]
       else
       begin
         XMLNode := XMLDocument.CreateNode(1, 'ClCompile',
                     'http://schemas.microsoft.com/developer/msbuild/2003');
-        XMLParent := XMLParent.AppendChild(XMLNode);
+        XMLParent := IdgNode.AppendChild(XMLNode);
       end;
       XMLNodes := XMLParent.SelectNodes('//b:AdditionalIncludeDirectories');
       if XMLNodes.Length > 0 then
@@ -376,6 +376,15 @@ begin
         XMLNode := XMLDocument.CreateNode(1, 'AdditionalIncludeDirectories',
                     'http://schemas.microsoft.com/developer/msbuild/2003');
         IncludeDirectoriesNode := XMLParent.AppendChild(XMLNode);
+      end;
+      XMLNodes := IdgNode.SelectNodes('//b:Link');
+      if XMLNodes.Length > 0 then
+        XMLParent := XMLNodes.Item[0]
+      else
+      begin
+        XMLNode := XMLDocument.CreateNode(1, 'Link',
+                    'http://schemas.microsoft.com/developer/msbuild/2003');
+        XMLParent := IdgNode.AppendChild(XMLNode);
       end;
       XMLNodes := XMLParent.SelectNodes('//b:AdditionalLibraryDirectories');
       if XMLNodes.Length > 0 then
