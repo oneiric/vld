@@ -323,6 +323,8 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDEnable()
 #define VLDDisable()
 #define VLDRestore()
+#define VLDGlobalDisable()
+#define VLDGlobalEnable()
 #define VLDReportLeaks() (0)
 #define VLDReportThreadLeaks() (0)
 #define VLDGetLeaksCount() (0)
@@ -339,5 +341,6 @@ __declspec(dllexport) void VLDResolveCallstacks();
 #define VLDSetModulesList(a)
 #define VLDGetModulesList(a, b) (FALSE)
 #define VLDSetReportOptions(a, b)
+#define VLDResolveCallstacks()
 
 #endif // _DEBUG
