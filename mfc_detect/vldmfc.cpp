@@ -46,7 +46,7 @@ DWORD FindNptProc (PDWORD npt, DWORD size, PBYTE base, void* proc)
     for (DWORD i = 0; i < size; i++)
     {
         void* p = (void*)(npt[i] + base);
-        if (p == proc) 
+        if (p == proc)
             return i;
     }
 
@@ -153,7 +153,7 @@ LPVOID FindRealCode(LPVOID pCode)
             pCode = *(LPVOID*) (addr);
             return FindRealCode(pCode);
 #endif
-        } 
+        }
         else if (*(BYTE *) pCode == 0xE9)
         {
             // Relative next instruction
@@ -223,9 +223,13 @@ BOOL CMFCExampleApp::InitInstance()
 #elif _MFC_VER == 0x0900	// VS 2008
 #define MFCDLLNAME   _T("mfc90d.dll")
 #elif _MFC_VER == 0x0A00	// VS 2010
-#define MFCDLLNAME   _T("mfc100d.dll")   
+#define MFCDLLNAME   _T("mfc100d.dll")
 #elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110d.dll")
+#elif _MFC_VER == 0x0C00	// VS 2013
+#define MFCDLLNAME   _T("mfc120d.dll")
+#elif _MFC_VER == 0x0D00	// VS 2015
+#define MFCDLLNAME   _T("mfc130d.dll")
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
@@ -237,9 +241,11 @@ BOOL CMFCExampleApp::InitInstance()
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100ud.dll")
 #elif _MFC_VER == 0x0B00	// VS 2012
-#define MFCDLLNAME   _T("mfc110ud.dll") 
+#define MFCDLLNAME   _T("mfc110ud.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
-#define MFCDLLNAME   _T("mfc120ud.dll") 
+#define MFCDLLNAME   _T("mfc120ud.dll")
+#elif _MFC_VER == 0x0D00	// VS 2015
+#define MFCDLLNAME   _T("mfc130ud.dll")
 #endif
 #endif
 #else
@@ -254,6 +260,10 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc100.dll")
 #elif _MFC_VER == 0x0B00	// VS 2012
 #define MFCDLLNAME   _T("mfc110.dll")
+#elif _MFC_VER == 0x0C00	// VS 2013
+#define MFCDLLNAME   _T("mfc120.dll")
+#elif _MFC_VER == 0x0D00	// VS 2015
+#define MFCDLLNAME   _T("mfc130.dll")
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
@@ -265,9 +275,11 @@ BOOL CMFCExampleApp::InitInstance()
 #elif _MFC_VER == 0x0A00	// VS 2010
 #define MFCDLLNAME   _T("mfc100u.dll")
 #elif _MFC_VER == 0x0B00	// VS 2012
-#define MFCDLLNAME   _T("mfc110u.dll") 
+#define MFCDLLNAME   _T("mfc110u.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
-#define MFCDLLNAME   _T("mfc120u.dll") 
+#define MFCDLLNAME   _T("mfc120u.dll")
+#elif _MFC_VER == 0x0D00	// VS 2015
+#define MFCDLLNAME   _T("mfc130u.dll")
 #endif
 #endif
 #endif
@@ -286,16 +298,16 @@ BOOL CMFCExampleApp::InitInstance()
     int   o4 = GetProcOrdinal(module, p4);
     int   o5 = GetProcOrdinal(module, p5);
 #ifdef _DEBUG
-    int   o6 = GetProcOrdinal(module, p6);  
+    int   o6 = GetProcOrdinal(module, p6);
 #else
     int   o6 = -2;
-#endif 
+#endif
 
     TCHAR msg[256];
-    _stprintf(msg, _T("%d, %d, %d, %d, %d, %d"), 
+    _stprintf(msg, _T("%d, %d, %d, %d, %d, %d"),
         o1, o2, o3, o4, o5, o6);
     SetClipboardText(msg);
-    MessageBox(NULL, msg, _T("MFC ordinals"), 
+    MessageBox(NULL, msg, _T("MFC ordinals"),
         MB_ICONINFORMATION | MB_OK);
 
     return FALSE;
