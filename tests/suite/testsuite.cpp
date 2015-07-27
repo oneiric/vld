@@ -35,10 +35,7 @@
 
 #include <vld.h>
 
-#include <tut/tut.hpp>
-#include <tut/tut_console_reporter.hpp>
-#include <tut/tut_main.hpp>
-
+#include <gtest/gtest.h>
 
 enum action_e {
     a_calloc,
@@ -429,99 +426,16 @@ void RunTestSuite()
     }
 }
 
-namespace tut
+TEST(TestSuit, MultiThread)
 {
-    struct test
-    {
-        virtual ~test()
-        {
-        }
-    };
-
-    typedef test_group<test> tg;
-    typedef tg::object object;
-#ifdef _M_IX86
-    tg dynamic_group("TestSuite_x86");
-#else
-    tg dynamic_group("TestSuite_x64");
-#endif
-
-    static const bool resolve = false;
-
-    template<>
-    template<>
-    void object::test<1>()
-    {
-        set_test_name("MultiThread");
-        int prevleaks = (int)VLDGetLeaksCount();
-        RunTestSuite();
-        int leaks = (int)VLDGetLeaksCount() - prevleaks;
-        ensure("leaks", leaks == leaks_count); 
-    }
-
-    test_runner_singleton runner;
-} 
-
-int RunAllTest()
-{    
-    using namespace std;
-    tut::console_reporter reporter(std::cout);
-    tut::runner.get().set_callback(&reporter);
-
-    try
-    {
-        tut::runner.get().run_tests();
-        if(reporter.all_ok())
-        {
-            return 0;
-        }
-        else
-        {
-            std::cerr << "\nFAILURE and EXCEPTION in these tests are FAKE ;)" << std::endl;
-        }
-    }
-    catch(const tut::no_such_group &ex)
-    {
-        std::cerr << "No such group: " << ex.what() << std::endl;
-    }
-    catch(const tut::no_such_test &ex)
-    {
-        std::cerr << "No such test: " << ex.what() << std::endl;
-    }
-    catch(const tut::tut_error &ex)
-    {
-        std::cout << "General error: " << ex.what() << std::endl;
-    }
-    return 1;
+    int prevleaks = static_cast<int>(VLDGetLeaksCount());
+    RunTestSuite();
+    int totalleaks = static_cast<int>(VLDGetLeaksCount());
+    int leaks = totalleaks - prevleaks;
+    ASSERT_EQ(leaks, leaks_count);
 }
 
-int main (int argc, char *argv [])
-{
-    if (argc >= 2 && _tcsicmp(_T("test"), argv[1]) == 0)
-        return RunAllTest();
-
-    _tprintf(_T("======================================\n"));
-    _tprintf(_T("==\n"));
-    _tprintf(_T("==    VLD Tests: thread suite\n"));
-    _tprintf(_T("==\n"));
-    _tprintf(_T("======================================\n"));
-
-
-    int prevleaks = (int)VLDGetLeaksCount();
-    DWORD start = GetTickCount();
-    srand(start);
-
-    RunTestSuite();
-
-    DWORD end = GetTickCount();
-    static const int MESSAGESIZE = 512;
-    char            message [MESSAGESIZE] = {0};
-    _snprintf_s(message, MESSAGESIZE, _TRUNCATE, "Elapsed Time = %ums\n", end - start);
-    OutputDebugString(message);
-
-    int totalleaks = (int)VLDGetLeaksCount() - prevleaks;
-    int diff = leaks_count - totalleaks;
-    assert(diff == 0);
-
-    return diff;
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

@@ -62,7 +62,7 @@ __declspec(dllexport) VisualLeakDetector g_vld;
 patchentry_t ldrLoadDllPatch [] = {
     "LdrLoadDll",   NULL,    VisualLeakDetector::_LdrLoadDll,
     NULL,           NULL,    NULL
-}; 
+};
 moduleentry_t ntdllPatch [] = {
     "ntdll.dll",    NULL,   ldrLoadDllPatch,
 };
@@ -218,12 +218,12 @@ VisualLeakDetector::VisualLeakDetector ()
     LPWSTR symbolpath = buildSymbolSearchPath();
 #ifdef NOISY_DBGHELP_DIAGOSTICS
     // From MSDN docs about SYMOPT_DEBUG:
-    /* To view all attempts to load symbols, call SymSetOptions with SYMOPT_DEBUG. 
-    This causes DbgHelp to call the OutputDebugString function with detailed 
+    /* To view all attempts to load symbols, call SymSetOptions with SYMOPT_DEBUG.
+    This causes DbgHelp to call the OutputDebugString function with detailed
     information on symbol searches, such as the directories it is searching and and error messages.
     In other words, this will really pollute the debug output window with extra messages.
-    To enable this debug output to be displayed to the console without changing your source code, 
-    set the DBGHELP_DBGOUT environment variable to a non-NULL value before calling the SymInitialize function. 
+    To enable this debug output to be displayed to the console without changing your source code,
+    set the DBGHELP_DBGOUT environment variable to a non-NULL value before calling the SymInitialize function.
     To log the information to a file, set the DBGHELP_LOG environment variable to the name of the log file to be used.
     */
     SymSetOptions(SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
@@ -298,7 +298,7 @@ bool VisualLeakDetector::waitForAllVLDThreads()
             // graceful way for a thread to go down. Warn about this,
             // and wait until the thread has exited so that we know it
             // can't still be off running somewhere in VLD's code.
-            // 
+            //
             // Since we've been waiting a while, let the human know we are
             // still here and alive.
             waitcount++;
@@ -315,7 +315,7 @@ bool VisualLeakDetector::waitForAllVLDThreads()
     return threadsactive;
 }
 
-void VisualLeakDetector::checkInternalMemoryLeaks() 
+void VisualLeakDetector::checkInternalMemoryLeaks()
 {
     const char* leakfile = NULL;
     size_t count;
@@ -614,7 +614,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
                 delete [] modulenamea;
             }
             // mfc dll shouldn't be excluded
-            if (!isMfcModule) 
+            if (!isMfcModule)
             {
                 // This module does not import VLD. This means that none of the module's
                 // sources #included vld.h.
@@ -634,7 +634,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
                 }
             }
         }
-        if ((moduleFlags & VLD_MODULE_EXCLUDED) == 0 && 
+        if ((moduleFlags & VLD_MODULE_EXCLUDED) == 0 &&
             !(moduleFlags & VLD_MODULE_SYMBOLSLOADED) || (moduleimageinfo.SymType == SymExport)) {
             // This module is going to be included in leak detection, but complete
             // symbols for this module couldn't be loaded. This means that any stack
@@ -730,7 +730,7 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     HKEY debuggerkey;
     WCHAR symbolCacheDir [MAX_PATH] = {0};
     LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) 
+    if (regstatus != ERROR_SUCCESS)
         regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
 
     if (regstatus == ERROR_SUCCESS)
@@ -867,7 +867,7 @@ VOID VisualLeakDetector::configure ()
         m_forcedModuleList[0] = '\0';
     else
         m_options |= VLD_OPT_MODULE_LIST_INCLUDE;
-    
+
     // Read the report destination (debugger, file, or both).
     WCHAR filename [MAX_PATH] = {0};
     LoadStringOption(L"ReportFile", filename, MAX_PATH, inipath);
@@ -933,7 +933,7 @@ BOOL VisualLeakDetector::enabled ()
 
     tls_t* tls = getTls();
     if (!(tls->flags & VLD_TLS_DISABLED) && !(tls->flags & VLD_TLS_ENABLED)) {
-        // The enabled/disabled state for the current thread has not been 
+        // The enabled/disabled state for the current thread has not been
         // initialized yet. Use the default state.
         if (m_options & VLD_OPT_START_DISABLED) {
             tls->flags |= VLD_TLS_DISABLED;
@@ -1186,14 +1186,14 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
     // Find this block in the block map.
     BlockMap           *blockmap = &(*heapit).second->blockMap;
     BlockMap::Iterator  blockit = blockmap->find(mem);
-    if (blockit == blockmap->end()) 
+    if (blockit == blockmap->end())
     {
         // This memory block is not in the block map. We must not have monitored this
         // allocation (probably happened before VLD was initialized).
 
         // This can also result from allocating on one heap, and freeing on another heap.
         // This is an especially bad way to corrupt the application.
-        // Now we have to search through every heap and every single block in each to make 
+        // Now we have to search through every heap and every single block in each to make
         // sure that this is indeed the case.
         if (m_options & VLD_OPT_VALIDATE_HEAPFREE)
         {
@@ -1374,7 +1374,7 @@ VOID VisualLeakDetector::reportConfig ()
         Report(L"    Aggregating duplicate leaks.\n");
     }
     if (m_forcedModuleList[0] != '\0') {
-        Report(L"    Forcing %s of these modules in leak detection: %s\n", 
+        Report(L"    Forcing %s of these modules in leak detection: %s\n",
             (m_options & VLD_OPT_MODULE_LIST_INCLUDE) ? L"inclusion" : L"exclusion", m_forcedModuleList);
     }
     if (m_maxDataDump != VLD_DEFAULT_MAX_DATA_DUMP) {
@@ -1490,7 +1490,7 @@ SIZE_T VisualLeakDetector::reportHeapLeaks (HANDLE heap)
 
     // Show a summary.
     if (leaks_count != 0) {
-        Report(L"Visual Leak Detector detected %Iu memory leak%s in heap " ADDRESSFORMAT L"\n", 
+        Report(L"Visual Leak Detector detected %Iu memory leak%s in heap " ADDRESSFORMAT L"\n",
             leaks_count, (leaks_count > 1) ? L"s" : L"", heap);
      }
     return leaks_count;
@@ -1604,13 +1604,13 @@ VOID VisualLeakDetector::markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD thr
 //     This is a really good example of how to iterate through the data structures
 //     that represent heaps and their associated memory blocks.
 // Pre Condition: Be VERY sure that this is only called within a block that already has
-// acquired a critical section for m_maplock. 
+// acquired a critical section for m_maplock.
 //
 // mem - The particular memory address to search for.
-// 
+//
 //  Return Value:
 //   If mem is found, it will return the blockinfo_t pointer, otherwise NULL
-// 
+//
 blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& heap)
 {
     heap = NULL;
@@ -1764,7 +1764,7 @@ BOOL VisualLeakDetector::detachFromModule (PCWSTR /*modulepath*/, DWORD64 module
 // _GetProcAddress - Calls to GetProcAddress are patched through to this
 //   function. If the requested function is a function that has been patched
 //   through to one of VLD's handlers, then the address of VLD's handler
-//   function is returned instead of the real address. Otherwise, this 
+//   function is returned instead of the real address. Otherwise, this
 //   function is just a wrapper around the real GetProcAddress.
 //
 //  - module (IN): Handle (base address) of the module from which to retrieve
@@ -1985,7 +1985,7 @@ SIZE_T VisualLeakDetector::GetThreadLeaksCount(DWORD threadId)
     return leaksCount;
 }
 
-SIZE_T VisualLeakDetector::ReportLeaks( ) 
+SIZE_T VisualLeakDetector::ReportLeaks( )
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -2006,7 +2006,7 @@ SIZE_T VisualLeakDetector::ReportLeaks( )
     return leaksCount;
 }
 
-SIZE_T VisualLeakDetector::ReportThreadLeaks( DWORD threadId ) 
+SIZE_T VisualLeakDetector::ReportThreadLeaks( DWORD threadId )
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -2027,7 +2027,7 @@ SIZE_T VisualLeakDetector::ReportThreadLeaks( DWORD threadId )
     return leaksCount;
 }
 
-VOID VisualLeakDetector::MarkAllLeaksAsReported( ) 
+VOID VisualLeakDetector::MarkAllLeaksAsReported( )
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -2044,7 +2044,7 @@ VOID VisualLeakDetector::MarkAllLeaksAsReported( )
     }
 }
 
-VOID VisualLeakDetector::MarkThreadLeaksAsReported( DWORD threadId ) 
+VOID VisualLeakDetector::MarkThreadLeaksAsReported( DWORD threadId )
 {
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
@@ -2069,7 +2069,7 @@ void VisualLeakDetector::ChangeModuleState(HMODULE module, bool on)
     moduleit = m_loadedModules->begin();
     while( moduleit != m_loadedModules->end() )
     {
-        if ( (*moduleit).addrLow == (UINT_PTR)module) 
+        if ( (*moduleit).addrLow == (UINT_PTR)module)
         {
             moduleinfo_t *mod = (moduleinfo_t *)&(*moduleit);
             if ( on )
@@ -2197,8 +2197,8 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
     }
 }
 
-CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE | 
-    VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED | 
+CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE |
+    VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED |
     VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE;
 
 UINT32 VisualLeakDetector::GetOptions()
@@ -2278,7 +2278,7 @@ void VisualLeakDetector::SetReportOptions(UINT32 option_mask, CONST WCHAR *filen
     }
 
     CriticalSectionLocker cs(m_optionsLock);
-    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE | 
+    m_options &= ~(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE |
         VLD_OPT_REPORT_TO_STDOUT | VLD_OPT_UNICODE_REPORT); // clear used bits
 
     m_options |= option_mask & VLD_OPT_REPORT_TO_DEBUGGER;
@@ -2318,7 +2318,7 @@ int VisualLeakDetector::SetReportHook(int mode, VLD_REPORT_HOOK pfnNewHook)
     {
         ReportHookSet::Iterator it = g_pReportHooks->insert(pfnNewHook);
         return (it != g_pReportHooks->end()) ? 0 : -1;
-    } 
+    }
     else if (mode == VLD_RPTHOOK_REMOVE)
     {
         g_pReportHooks->erase(pfnNewHook);

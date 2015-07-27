@@ -6,12 +6,20 @@
 // This hooks vld into this app
 #include "../../vld.h"
 
+#include <gtest/gtest.h>
+
 enum CorruptionType
 {
 	eAllocMismatch,
 	eHeapMismatch,
 	eCount
 };
+
+int __cdecl ReportHook(int /*reportHook*/, wchar_t *message, int* /*returnValue*/)
+{
+    fwprintf(stderr, L"%s", message);
+    return 1;
+}
 
 void TestCorruption( CorruptionType check )
 {
@@ -28,42 +36,27 @@ void TestCorruption( CorruptionType check )
 	}
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+TEST(Corruption, AllocMismatch)
 {
-	wprintf(_T("======================================\n"));
-	wprintf(_T("==\n"));
-	wprintf(_T("==    VLD Tests: Memory Corruption\n"));
-	wprintf(_T("==\n"));
-	wprintf(_T("======================================\n"));
-
-	UINT vld_options = VLDGetOptions();
-	vld_options |= VLD_OPT_VALIDATE_HEAPFREE;
-	VLDSetOptions(vld_options, 15, 25);
-
-	CorruptionType check = (CorruptionType)-1;
-
-	if (argc == 2)
-	{
-		// Pick up options to determine which type of test to execute
-		if (_tcsicmp(_T("allocmismatch"), argv[1]) == 0)
-			check = eAllocMismatch;
-		else if (_tcsicmp(_T("heapmismatch"), argv[1]) == 0)
-			check = eHeapMismatch;
-		TestCorruption(check);
-	}
-
-	if (check == -1)
-	{
-		for (int i = 0; i < eCount; i++)
-		{
-			TestCorruption((CorruptionType)i);
-		}
-	}
-	else
-	{
-		TestCorruption(check);
-	}
-
-	return 0;
+    TestCorruption(eAllocMismatch);
 }
 
+TEST(CorruptionDeathTest, HeapMismatch)
+{
+    EXPECT_EXIT({
+        VLDSetReportHook(VLD_RPTHOOK_INSTALL, ReportHook);
+        TestCorruption(eHeapMismatch);
+        VLDSetReportHook(VLD_RPTHOOK_REMOVE, ReportHook);
+    }, ::testing::ExitedWithCode(0xC0000374), "CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.");
+}
+
+int main(int argc, char **argv) {
+    UINT vld_options = VLDGetOptions();
+    vld_options |= VLD_OPT_VALIDATE_HEAPFREE;
+    VLDSetOptions(vld_options, 15, 25);
+
+    ::testing::InitGoogleTest(&argc, argv);
+    int res = RUN_ALL_TESTS();
+    VLDMarkAllLeaksAsReported();
+    return res;
+}

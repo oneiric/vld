@@ -12,6 +12,9 @@ enum LeakOption
 	eAlignedMalloc,  // "_aligned_malloc"
 	eAlignedRealloc,  // "_aligned_realloc"
 	eStrdup,  // "strdup"
+    eHeapAlloc,
+    eGetProcMalloc,
+    eIMalloc,
 	eCount,
 };
 

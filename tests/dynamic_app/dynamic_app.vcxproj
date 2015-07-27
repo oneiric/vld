@@ -256,7 +256,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -264,12 +264,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -284,7 +279,7 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>STATIC_CRT;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -293,12 +288,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
     <CustomBuildStep>
@@ -313,7 +303,7 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -321,12 +311,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -337,7 +322,8 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>STATIC_CRT;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -345,12 +331,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -361,7 +342,7 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -369,12 +350,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -385,7 +361,7 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>STATIC_CRT;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -394,12 +370,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -410,7 +381,7 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -418,12 +389,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -434,7 +400,8 @@ exit /b 0</Command>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>STATIC_CRT;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -442,12 +409,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -460,7 +422,7 @@ exit /b 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>VLD_FORCE_ENABLE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -470,12 +432,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -488,7 +445,7 @@ exit /b 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>STATIC_CRT;VLD_FORCE_ENABLE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -499,12 +456,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-"$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -515,7 +467,7 @@ exit /b 0</Command>
       </PrecompiledHeader>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>VLD_FORCE_ENABLE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -525,12 +477,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -541,7 +488,7 @@ exit /b 0</Command>
       </PrecompiledHeader>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>STATIC_CRT;VLD_FORCE_ENABLE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;..\..\lib\tut-framework\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -552,12 +499,7 @@ exit /b 0</Command>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)
-
-copy $(ProjectDir)..\dynamic_dll\$(Platform)\$(Configuration)\dynamic.dll $(OutDir)\dynamic.dll /y
-copy $(ProjectDir)..\mfc_dll\$(Platform)\$(Configuration)\test_mfc.dll $(OutDir)\test_mfc.dll /y
-if "$(PROCESSOR_ARCHITEW6432)"=="AMD64" "$(TargetPath)" test
-exit /b 0</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -572,6 +514,11 @@ exit /b 0</Command>
     <ClCompile Include="LoadTests.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="ThreadTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\gtest\msvc\gtest.vcxproj">
+      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

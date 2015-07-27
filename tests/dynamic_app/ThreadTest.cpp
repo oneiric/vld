@@ -91,7 +91,7 @@ void RunLoaderLockTests(bool resolve)
                 lpMsgBuf,
                 MAX_PATH,
                 NULL );
-    
+
             _tprintf(_T("%s"), lpMsgBuf);
         }
 
