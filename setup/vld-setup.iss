@@ -43,45 +43,45 @@ Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\bin\Win64"; Flags: ignorevers
 Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
 Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\bin\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
-Source: "..\bin\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\bin\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
-Source: "..\bin\x64\Release\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
-Source: "..\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
-Source: "..\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\src\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
+Source: "..\src\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld.ini"; DestDir: "{app}"; Flags: ignoreversion
 Source: "version.h"; DestDir: "{app}\src"; Flags: ignoreversion
 Source: "..\AUTHORS.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\callstack.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\dllspatches.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\ntapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\stdafx.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\utility.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld_hooks.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vldapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vldheap.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\callstack.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\criticalsection.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\crtmfcpatch.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\map.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\ntapi.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\resource.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\set.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\stdafx.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\tree.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\utility.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld_def.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vldheap.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vldint.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.dll.dependency.x64.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.dll.dependency.x86.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.rc"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.vcxproj"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\vld.vcxproj.filters"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\callstack.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\dllspatches.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\ntapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\stdafx.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\utility.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld_hooks.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vldapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vldheap.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\callstack.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\criticalsection.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\crtmfcpatch.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\map.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\ntapi.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\resource.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\set.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\stdafx.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\tree.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\utility.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld_def.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vldheap.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vldint.h"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.dll.dependency.x64.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.dll.dependency.x86.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.rc"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.vcxproj"; DestDir: "{app}\src"; Flags: ignoreversion
+Source: "..\src\vld.vcxproj.filters"; DestDir: "{app}\src"; Flags: ignoreversion
 
 [Tasks]
 Name: "modifypath"; Description: "Add VLD directory to your environmental path"
@@ -132,7 +132,7 @@ begin
   Result := sUnInstString;
 end;
 
-function UninstallOldVersion(regPath: string; params: string): Boolean; 
+function UninstallOldVersion(regPath: string; params: string): Boolean;
 var
   iResultCode: Integer;
 begin
@@ -148,7 +148,7 @@ begin
   end
 end;
 
-function UninstallOldVersions(): Boolean; 
+function UninstallOldVersions(): Boolean;
 var
   nsisUnInstallString: String;
   isUnInstallString: String;
@@ -244,7 +244,7 @@ begin
   for i := 0 to GetArrayLength(map) - 1 do
   begin
     if map[i].Key = 'Win32' then map[i].Value := UpdatePath(map[i].Value, path32)
-    else if map[i].Key = 'x64' then map[i].Value := UpdatePath(map[i].Value, path64);      
+    else if map[i].Key = 'x64' then map[i].Value := UpdatePath(map[i].Value, path64);
   end;
   dirList := Merge(map, '|');
   Log(dirList);
@@ -252,7 +252,7 @@ end;
 
 procedure ModifySettings(filename: string);
 var
-  XMLDocument: Variant; 
+  XMLDocument: Variant;
   XMLParent, XMLNode, XMLNodes: Variant;
   IncludeDirectoriesNode: Variant;
   AdditionalIncludeDirectories: string;
@@ -292,7 +292,7 @@ begin
   except
     ShowExceptionMessage;
   end;
-end; 
+end;
 
 procedure ModifyVS2008Settings();
 var
@@ -311,14 +311,14 @@ begin
   end;
 end;
 
-function EncodeString(str: string): string; 
+function EncodeString(str: string): string;
 begin
   Result := str;
   StringChangeEx(Result, '(', '%28', True);
   StringChangeEx(Result, ')', '%29', True);
 end;
 
-procedure UpdateString(var dirList: string; path: string; suffix: string); 
+procedure UpdateString(var dirList: string; path: string; suffix: string);
 begin
   if dirList = '' then
     dirList := path + suffix
@@ -329,7 +329,7 @@ end;
 
 procedure ModifyProps(filename: string; libfolder: string);
 var
-  XMLDocument: Variant; 
+  XMLDocument: Variant;
   XMLParent, IdgNode, XMLNode, XMLNodes: Variant;
   IncludeDirectoriesNode: Variant;
   AdditionalIncludeDirectories: string;
@@ -439,7 +439,7 @@ begin
   except
     ShowExceptionMessage;
   end;
-end; 
+end;
 
 procedure ModifyAllProps();
 var
@@ -464,7 +464,7 @@ begin
     if IsTaskSelected('modifyVS2010Props') then
       ModifyAllProps();
   end;
-  CurStepChangedModPath(CurStep); 
+  CurStepChangedModPath(CurStep);
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

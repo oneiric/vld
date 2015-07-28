@@ -30,7 +30,7 @@ TEST_F(TestBasicsDisabled, Malloc)
     LeakMemory(eMalloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, New)
@@ -39,7 +39,7 @@ TEST_F(TestBasicsDisabled, New)
     LeakMemory(eNew, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, NewArray)
@@ -48,7 +48,7 @@ TEST_F(TestBasicsDisabled, NewArray)
     LeakMemory(eNewArray, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, Calloc)
@@ -57,7 +57,7 @@ TEST_F(TestBasicsDisabled, Calloc)
     LeakMemory(eCalloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, Realloc)
@@ -66,7 +66,7 @@ TEST_F(TestBasicsDisabled, Realloc)
     LeakMemory(eRealloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, CoTaskMem)
@@ -75,7 +75,7 @@ TEST_F(TestBasicsDisabled, CoTaskMem)
     LeakMemory(eCoTaskMem, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, AlignedMalloc)
@@ -84,7 +84,7 @@ TEST_F(TestBasicsDisabled, AlignedMalloc)
     LeakMemory(eAlignedMalloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, AlignedRealloc)
@@ -93,7 +93,7 @@ TEST_F(TestBasicsDisabled, AlignedRealloc)
     LeakMemory(eAlignedRealloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, Strdup)
@@ -102,7 +102,7 @@ TEST_F(TestBasicsDisabled, Strdup)
     LeakMemory(eStrdup, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, HeapAlloc)
@@ -111,7 +111,7 @@ TEST_F(TestBasicsDisabled, HeapAlloc)
     LeakMemory(eHeapAlloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, GetProcMalloc)
@@ -120,7 +120,7 @@ TEST_F(TestBasicsDisabled, GetProcMalloc)
     LeakMemory(eGetProcMalloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }
 
 TEST_F(TestBasicsDisabled, IMalloc)
@@ -129,5 +129,5 @@ TEST_F(TestBasicsDisabled, IMalloc)
     LeakMemory(eIMalloc, repeats, false);
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
-    ASSERT_EQ(leaks, 0);
+    ASSERT_EQ(0, leaks);
 }

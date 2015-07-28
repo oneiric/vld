@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "Tests.h"
 // This hooks vld into this app
-#include "../../vld.h"
+#include "vld.h"
 
 #include <gtest/gtest.h>
 

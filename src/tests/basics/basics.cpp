@@ -28,7 +28,7 @@ TEST_P(TestBasics, Malloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, New)
@@ -38,7 +38,7 @@ TEST_P(TestBasics, New)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, NewArray)
@@ -48,7 +48,7 @@ TEST_P(TestBasics, NewArray)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, Calloc)
@@ -58,7 +58,7 @@ TEST_P(TestBasics, Calloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, Realloc)
@@ -68,7 +68,7 @@ TEST_P(TestBasics, Realloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, CoTaskMem)
@@ -78,7 +78,7 @@ TEST_P(TestBasics, CoTaskMem)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, AlignedMalloc)
@@ -88,7 +88,7 @@ TEST_P(TestBasics, AlignedMalloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 3;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, AlignedRealloc)
@@ -98,7 +98,7 @@ TEST_P(TestBasics, AlignedRealloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 3;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, Strdup)
@@ -108,7 +108,7 @@ TEST_P(TestBasics, Strdup)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 4;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, HeapAlloc)
@@ -118,7 +118,7 @@ TEST_P(TestBasics, HeapAlloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, GetProcMalloc)
@@ -128,7 +128,7 @@ TEST_P(TestBasics, GetProcMalloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, IMalloc)
@@ -138,7 +138,7 @@ TEST_P(TestBasics, IMalloc)
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
-    ASSERT_EQ(leaks, correctLeaks);
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 INSTANTIATE_TEST_CASE_P(FreeVal,

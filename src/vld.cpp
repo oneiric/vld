@@ -598,7 +598,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         if (!FindImport(modulelocal, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
             bool isMfcModule = false;
-            if (_wcsnicmp(modulename, L"mfc", 3) == 0)
+            //if (_wcsnicmp(modulename, L"mfc", 3) == 0)
             {
                 LPSTR modulenamea;
                 ConvertModulePathToAscii(modulename, &modulenamea);
