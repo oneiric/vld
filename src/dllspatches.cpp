@@ -83,16 +83,16 @@ HeapCreate_t VisualLeakDetector::m_HeapCreate = NULL;
 
 static patchentry_t mfc42Patch [] = {
     // XXX why are the vector new operators missing for mfc42.dll?
-    //ORDINAL(711),         &VS60::pmfcd_scalar_new,              VS60::mfcd_scalar_new,
-    NULL,                 NULL,                                 NULL
+    //ORDINAL(711),           &Mfc60::pmfcd_scalar_new,             Mfc60::mfcd_scalar_new,
+    NULL,                   NULL,                                   NULL
 };
 
 static patchentry_t mfc42dPatch [] = {
     // XXX why are the vector new operators missing for mfc42d.dll?
-    ORDINAL(711),         &VS60d::data.pmfcd_scalar_new,            VS60d::mfcd_scalar_new,
-    ORDINAL(712),         &VS60d::data.pmfcd__scalar_new_dbg_4p,    VS60d::mfcd__scalar_new_dbg_4p,
-    ORDINAL(714),         &VS60d::data.pmfcd__scalar_new_dbg_3p,    VS60d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(711),         &Mfc60d::data.pmfcd_scalar_new,             Mfc60d::mfcd_scalar_new,
+    ORDINAL(712),         &Mfc60d::data.pmfcd__scalar_new_dbg_4p,     Mfc60d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(714),         &Mfc60d::data.pmfcd__scalar_new_dbg_3p,     Mfc60d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc42uPatch [] = {
@@ -103,234 +103,266 @@ static patchentry_t mfc42uPatch [] = {
 
 static patchentry_t mfc42udPatch [] = {
     // XXX why are the vector new operators missing for mfc42ud.dll?
-    ORDINAL(711),         &VS60d::data.pmfcud_scalar_new,           VS60d::mfcud_scalar_new,
-    ORDINAL(712),         &VS60d::data.pmfcud__scalar_new_dbg_4p,   VS60d::mfcud__scalar_new_dbg_4p,
-    ORDINAL(714),         &VS60d::data.pmfcud__scalar_new_dbg_3p,   VS60d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(711),         &Mfc60d::data.pmfcud_scalar_new,            Mfc60d::mfcud_scalar_new,
+    ORDINAL(712),         &Mfc60d::data.pmfcud__scalar_new_dbg_4p,    Mfc60d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(714),         &Mfc60d::data.pmfcud__scalar_new_dbg_3p,    Mfc60d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc70Patch [] = {
-    //ORDINAL(257),         &VS70::data.pmfcd_vector_new,             VS70::mfcd_vector_new,
-    //ORDINAL(832),         &VS70::data.pmfcd_scalar_new,             VS70::mfcd_scalar_new,
+    //ORDINAL(257),         &Mfc70::data.pmfcd_vector_new,             Mfc70::mfcd_vector_new,
+    //ORDINAL(832),         &Mfc70::data.pmfcd_scalar_new,             Mfc70::mfcd_scalar_new,
     NULL,                 NULL,                                     NULL
 };
 
 static patchentry_t mfc70dPatch [] = {
-    ORDINAL(257),         &VS70d::data.pmfcd_vector_new,            VS70d::mfcd_vector_new,
-    ORDINAL(258),         &VS70d::data.pmfcd__vector_new_dbg_4p,    VS70d::mfcd__vector_new_dbg_4p,
-    ORDINAL(259),         &VS70d::data.pmfcd__vector_new_dbg_3p,    VS70d::mfcd__vector_new_dbg_3p,
-    ORDINAL(832),         &VS70d::data.pmfcd_scalar_new,            VS70d::mfcd_scalar_new,
-    ORDINAL(833),         &VS70d::data.pmfcd__scalar_new_dbg_4p,    VS70d::mfcd__scalar_new_dbg_4p,
-    ORDINAL(834),         &VS70d::data.pmfcd__scalar_new_dbg_3p,    VS70d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(257),         &Mfc70d::data.pmfcd_vector_new,             Mfc70d::mfcd_vector_new,
+    ORDINAL(258),         &Mfc70d::data.pmfcd__vector_new_dbg_4p,     Mfc70d::mfcd__vector_new_dbg_4p,
+    ORDINAL(259),         &Mfc70d::data.pmfcd__vector_new_dbg_3p,     Mfc70d::mfcd__vector_new_dbg_3p,
+    ORDINAL(832),         &Mfc70d::data.pmfcd_scalar_new,             Mfc70d::mfcd_scalar_new,
+    ORDINAL(833),         &Mfc70d::data.pmfcd__scalar_new_dbg_4p,     Mfc70d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(834),         &Mfc70d::data.pmfcd__scalar_new_dbg_3p,     Mfc70d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc70uPatch [] = {
-    //ORDINAL(258),         &VS70::data.pmfcud_vector_new,            VS70::mfcud_vector_new,
-    //ORDINAL(833),         &VS70::data.pmfcud_scalar_new,            VS70::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    //ORDINAL(258),         &Mfc70::data.pmfcud_vector_new,             Mfc70::mfcud_vector_new,
+    //ORDINAL(833),         &Mfc70::data.pmfcud_scalar_new,             Mfc70::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc70udPatch [] = {
-    ORDINAL(258),         &VS70d::data.pmfcud_vector_new,           VS70d::mfcud_vector_new,
-    ORDINAL(259),         &VS70d::data.pmfcud__vector_new_dbg_4p,   VS70d::mfcud__vector_new_dbg_4p,
-    ORDINAL(260),         &VS70d::data.pmfcud__vector_new_dbg_3p,   VS70d::mfcud__vector_new_dbg_3p,
-    ORDINAL(833),         &VS70d::data.pmfcud_scalar_new,           VS70d::mfcud_scalar_new,
-    ORDINAL(834),         &VS70d::data.pmfcud__scalar_new_dbg_4p,   VS70d::mfcud__scalar_new_dbg_4p,
-    ORDINAL(835),         &VS70d::data.pmfcud__scalar_new_dbg_3p,   VS70d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(258),         &Mfc70d::data.pmfcud_vector_new,            Mfc70d::mfcud_vector_new,
+    ORDINAL(259),         &Mfc70d::data.pmfcud__vector_new_dbg_4p,    Mfc70d::mfcud__vector_new_dbg_4p,
+    ORDINAL(260),         &Mfc70d::data.pmfcud__vector_new_dbg_3p,    Mfc70d::mfcud__vector_new_dbg_3p,
+    ORDINAL(833),         &Mfc70d::data.pmfcud_scalar_new,            Mfc70d::mfcud_scalar_new,
+    ORDINAL(834),         &Mfc70d::data.pmfcud__scalar_new_dbg_4p,    Mfc70d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(835),         &Mfc70d::data.pmfcud__scalar_new_dbg_3p,    Mfc70d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc71Patch [] = {
-    //ORDINAL(267),         &VS71::data.pmfcd_vector_new,             VS71::mfcd_vector_new,
-    //ORDINAL(893),         &VS71::data.pmfcd_scalar_new,             VS71::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    //ORDINAL(267),         &Mfc71::data.pmfcd_vector_new,              MfcMfc71::mfcd_vector_new,
+    //ORDINAL(893),         &Mfc71::data.pmfcd_scalar_new,              MfcMfc71::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc71dPatch [] = {
-    ORDINAL(267),         &VS71d::data.pmfcd_vector_new,            VS71d::mfcd_vector_new,
-    ORDINAL(268),         &VS71d::data.pmfcd__vector_new_dbg_4p,    VS71d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS71d::data.pmfcd__vector_new_dbg_3p,    VS71d::mfcd__vector_new_dbg_3p,
-    ORDINAL(893),         &VS71d::data.pmfcd_scalar_new,            VS71d::mfcd_scalar_new,
-    ORDINAL(894),         &VS71d::data.pmfcd__scalar_new_dbg_4p,    VS71d::mfcd__scalar_new_dbg_4p,
-    ORDINAL(895),         &VS71d::data.pmfcd__scalar_new_dbg_3p,    VS71d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc71d::data.pmfcd_vector_new,             Mfc71d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc71d::data.pmfcd__vector_new_dbg_4p,     Mfc71d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc71d::data.pmfcd__vector_new_dbg_3p,     Mfc71d::mfcd__vector_new_dbg_3p,
+    ORDINAL(893),         &Mfc71d::data.pmfcd_scalar_new,             Mfc71d::mfcd_scalar_new,
+    ORDINAL(894),         &Mfc71d::data.pmfcd__scalar_new_dbg_4p,     Mfc71d::mfcd__scalar_new_dbg_4p,
+    ORDINAL(895),         &Mfc71d::data.pmfcd__scalar_new_dbg_3p,     Mfc71d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc71uPatch [] = {
-    //ORDINAL(267),         &VS71::data.pmfcud_vector_new,            VS71::mfcud_vector_new,
-    //ORDINAL(893),         &VS71::data.pmfcud_scalar_new,            VS71::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    //ORDINAL(267),         &Mfc71::data.pmfcud_vector_new,             Mfc71::mfcud_vector_new,
+    //ORDINAL(893),         &Mfc71::data.pmfcud_scalar_new,             Mfc71::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc71udPatch [] = {
-    ORDINAL(267),         &VS71d::data.pmfcud_vector_new,           VS71d::mfcud_vector_new,
-    ORDINAL(268),         &VS71d::data.pmfcud__vector_new_dbg_4p,   VS71d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS71d::data.pmfcud__vector_new_dbg_3p,   VS71d::mfcud__vector_new_dbg_3p,
-    ORDINAL(893),         &VS71d::data.pmfcud_scalar_new,           VS71d::mfcud_scalar_new,
-    ORDINAL(894),         &VS71d::data.pmfcud__scalar_new_dbg_4p,   VS71d::mfcud__scalar_new_dbg_4p,
-    ORDINAL(895),         &VS71d::data.pmfcud__scalar_new_dbg_3p,   VS71d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc71d::data.pmfcud_vector_new,            Mfc71d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc71d::data.pmfcud__vector_new_dbg_4p,    Mfc71d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc71d::data.pmfcud__vector_new_dbg_3p,    Mfc71d::mfcud__vector_new_dbg_3p,
+    ORDINAL(893),         &Mfc71d::data.pmfcud_scalar_new,            Mfc71d::mfcud_scalar_new,
+    ORDINAL(894),         &Mfc71d::data.pmfcud__scalar_new_dbg_4p,    Mfc71d::mfcud__scalar_new_dbg_4p,
+    ORDINAL(895),         &Mfc71d::data.pmfcud__scalar_new_dbg_3p,    Mfc71d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc80Patch [] = {
-    //ORDINAL(267),         &VS80::data.pmfcd_vector_new,             VS80::mfcd_vector_new,
-    //ORDINAL2(893,907),    &VS80::data.pmfcd_scalar_new,             VS80::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    //ORDINAL(267),         &Mfc80::data.pmfcd_vector_new,              Mfc80::mfcd_vector_new,
+    //ORDINAL2(893,907),    &Mfc80::data.pmfcd_scalar_new,              Mfc80::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc80dPatch [] = {
-    ORDINAL(267),         &VS80d::data.pmfcd_vector_new,            VS80d::mfcd_vector_new,
-    ORDINAL(268),         &VS80d::data.pmfcd__vector_new_dbg_4p,    VS80d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS80d::data.pmfcd__vector_new_dbg_3p,    VS80d::mfcd__vector_new_dbg_3p,
-    ORDINAL2(893,907),    &VS80d::data.pmfcd_scalar_new,            VS80d::mfcd_scalar_new,
-    ORDINAL2(894,908),    &VS80d::data.pmfcd__scalar_new_dbg_4p,    VS80d::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    &VS80d::data.pmfcd__scalar_new_dbg_3p,    VS80d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc80d::data.pmfcd_vector_new,             Mfc80d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc80d::data.pmfcd__vector_new_dbg_4p,     Mfc80d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc80d::data.pmfcd__vector_new_dbg_3p,     Mfc80d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(893,907),    &Mfc80d::data.pmfcd_scalar_new,             Mfc80d::mfcd_scalar_new,
+    ORDINAL2(894,908),    &Mfc80d::data.pmfcd__scalar_new_dbg_4p,     Mfc80d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    &Mfc80d::data.pmfcd__scalar_new_dbg_3p,     Mfc80d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc80uPatch [] = {
-    //ORDINAL(267),         &VS80::data.pmfcud_vector_new,            VS80::mfcud_vector_new,
-    //ORDINAL2(893,907),    &VS80::data.pmfcud_scalar_new,            VS80::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    //ORDINAL(267),         &Mfc80::data.pmfcud_vector_new,             Mfc80::mfcud_vector_new,
+    //ORDINAL2(893,907),    &Mfc80::data.pmfcud_scalar_new,             Mfc80::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc80udPatch [] = {
-    ORDINAL(267),         &VS80d::data.pmfcud_vector_new,           VS80d::mfcud_vector_new,
-    ORDINAL(268),         &VS80d::data.pmfcud__vector_new_dbg_4p,   VS80d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS80d::data.pmfcud__vector_new_dbg_3p,   VS80d::mfcud__vector_new_dbg_3p,
-    ORDINAL2(893,907),    &VS80d::data.pmfcud_scalar_new,           VS80d::mfcud_scalar_new,
-    ORDINAL2(894,908),    &VS80d::data.pmfcud__scalar_new_dbg_4p,   VS80d::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(895,909),    &VS80d::data.pmfcud__scalar_new_dbg_3p,   VS80d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc80d::data.pmfcud_vector_new,            Mfc80d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc80d::data.pmfcud__vector_new_dbg_4p,    Mfc80d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc80d::data.pmfcud__vector_new_dbg_3p,    Mfc80d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(893,907),    &Mfc80d::data.pmfcud_scalar_new,            Mfc80d::mfcud_scalar_new,
+    ORDINAL2(894,908),    &Mfc80d::data.pmfcud__scalar_new_dbg_4p,    Mfc80d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(895,909),    &Mfc80d::data.pmfcud__scalar_new_dbg_3p,    Mfc80d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc90Patch [] = {
-    ORDINAL(265),         &VS90::data.pmfcd_vector_new,               VS90::mfcd_vector_new,
-    ORDINAL2(798, 776),   &VS90::data.pmfcd_scalar_new,               VS90::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc90::data.pmfcd_vector_new,              Mfc90::mfcd_vector_new,
+    ORDINAL2(798, 776),   &Mfc90::data.pmfcd_scalar_new,              Mfc90::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc90dPatch [] = {
-    ORDINAL(267),         &VS90d::data.pmfcd_vector_new,            VS90d::mfcd_vector_new,
-    ORDINAL(268),         &VS90d::data.pmfcd__vector_new_dbg_4p,    VS90d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS90d::data.pmfcd__vector_new_dbg_3p,    VS90d::mfcd__vector_new_dbg_3p,
-    ORDINAL2(931, 909),   &VS90d::data.pmfcd_scalar_new,            VS90d::mfcd_scalar_new,
-    ORDINAL2(932, 910),   &VS90d::data.pmfcd__scalar_new_dbg_4p,    VS90d::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(933, 911),   &VS90d::data.pmfcd__scalar_new_dbg_3p,    VS90d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc90d::data.pmfcd_vector_new,             Mfc90d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc90d::data.pmfcd__vector_new_dbg_4p,     Mfc90d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc90d::data.pmfcd__vector_new_dbg_3p,     Mfc90d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(931, 909),   &Mfc90d::data.pmfcd_scalar_new,             Mfc90d::mfcd_scalar_new,
+    ORDINAL2(932, 910),   &Mfc90d::data.pmfcd__scalar_new_dbg_4p,     Mfc90d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(933, 911),   &Mfc90d::data.pmfcd__scalar_new_dbg_3p,     Mfc90d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc90uPatch [] = {
-    ORDINAL(265),         &VS90::data.pmfcud_vector_new,            VS90::mfcud_vector_new,
-    ORDINAL2(798, 776),   &VS90::data.pmfcud_scalar_new,            VS90::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc90::data.pmfcud_vector_new,             Mfc90::mfcud_vector_new,
+    ORDINAL2(798, 776),   &Mfc90::data.pmfcud_scalar_new,             Mfc90::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc90udPatch [] = {
-    ORDINAL(267),         &VS90d::data.pmfcud_vector_new,           VS90d::mfcud_vector_new,
-    ORDINAL(268),         &VS90d::data.pmfcud__vector_new_dbg_4p,   VS90d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS90d::data.pmfcud__vector_new_dbg_3p,   VS90d::mfcud__vector_new_dbg_3p,
-    ORDINAL2(935, 913),   &VS90d::data.pmfcud_scalar_new,           VS90d::mfcud_scalar_new,
-    ORDINAL2(936, 914),   &VS90d::data.pmfcud__scalar_new_dbg_4p,   VS90d::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(937, 915),   &VS90d::data.pmfcud__scalar_new_dbg_3p,   VS90d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc90d::data.pmfcud_vector_new,            Mfc90d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc90d::data.pmfcud__vector_new_dbg_4p,    Mfc90d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc90d::data.pmfcud__vector_new_dbg_3p,    Mfc90d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(935, 913),   &Mfc90d::data.pmfcud_scalar_new,            Mfc90d::mfcud_scalar_new,
+    ORDINAL2(936, 914),   &Mfc90d::data.pmfcud__scalar_new_dbg_4p,    Mfc90d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(937, 915),   &Mfc90d::data.pmfcud__scalar_new_dbg_3p,    Mfc90d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc100Patch [] = {
-    ORDINAL(265),         &VS100::data.pmfcd_vector_new,            VS100::mfcd_vector_new,
-    ORDINAL2(1294, 1272), &VS100::data.pmfcd_scalar_new,            VS100::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc100::data.pmfcd_vector_new,             Mfc100::mfcd_vector_new,
+    ORDINAL2(1294, 1272), &Mfc100::data.pmfcd_scalar_new,             Mfc100::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc100dPatch [] = {
-    ORDINAL(267),         &VS100d::data.pmfcd_vector_new,           VS100d::mfcd_vector_new,
-    ORDINAL(268),         &VS100d::data.pmfcd__vector_new_dbg_4p,   VS100d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS100d::data.pmfcd__vector_new_dbg_3p,   VS100d::mfcd__vector_new_dbg_3p,
-    ORDINAL2(1427, 1405), &VS100d::data.pmfcd_scalar_new,           VS100d::mfcd_scalar_new,
-    ORDINAL2(1428, 1406), &VS100d::data.pmfcd__scalar_new_dbg_4p,   VS100d::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(1429, 1407), &VS100d::data.pmfcd__scalar_new_dbg_3p,   VS100d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc100d::data.pmfcd_vector_new,            Mfc100d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc100d::data.pmfcd__vector_new_dbg_4p,    Mfc100d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc100d::data.pmfcd__vector_new_dbg_3p,    Mfc100d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1427, 1405), &Mfc100d::data.pmfcd_scalar_new,            Mfc100d::mfcd_scalar_new,
+    ORDINAL2(1428, 1406), &Mfc100d::data.pmfcd__scalar_new_dbg_4p,    Mfc100d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1429, 1407), &Mfc100d::data.pmfcd__scalar_new_dbg_3p,    Mfc100d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc100uPatch [] = {
-    ORDINAL(265),         &VS100::data.pmfcud_vector_new,           VS100::mfcud_vector_new,
-    ORDINAL2(1298, 1276), &VS100::data.pmfcud_scalar_new,           VS100::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc100::data.pmfcud_vector_new,            Mfc100::mfcud_vector_new,
+    ORDINAL2(1298, 1276), &Mfc100::data.pmfcud_scalar_new,            Mfc100::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc100udPatch [] = {
-    ORDINAL(267),         &VS100d::data.pmfcud_vector_new,          VS100d::mfcud_vector_new,
-    ORDINAL(268),         &VS100d::data.pmfcud__vector_new_dbg_4p,  VS100d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS100d::data.pmfcud__vector_new_dbg_3p,  VS100d::mfcud__vector_new_dbg_3p,
-    ORDINAL2(1434, 1412), &VS100d::data.pmfcud_scalar_new,          VS100d::mfcud_scalar_new,
-    ORDINAL2(1435, 1413), &VS100d::data.pmfcud__scalar_new_dbg_4p,  VS100d::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(1436, 1414), &VS100d::data.pmfcud__scalar_new_dbg_3p,  VS100d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc100d::data.pmfcud_vector_new,           Mfc100d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc100d::data.pmfcud__vector_new_dbg_4p,   Mfc100d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc100d::data.pmfcud__vector_new_dbg_3p,   Mfc100d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1434, 1412), &Mfc100d::data.pmfcud_scalar_new,           Mfc100d::mfcud_scalar_new,
+    ORDINAL2(1435, 1413), &Mfc100d::data.pmfcud__scalar_new_dbg_4p,   Mfc100d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1436, 1414), &Mfc100d::data.pmfcud__scalar_new_dbg_3p,   Mfc100d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc110Patch [] = {
-    ORDINAL(265),         &VS110::data.pmfcd_vector_new,            VS110::mfcd_vector_new,
-    ORDINAL2(1498, 1476), &VS110::data.pmfcd_scalar_new,            VS110::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc110::data.pmfcd_vector_new,             Mfc110::mfcd_vector_new,
+    ORDINAL2(1498, 1476), &Mfc110::data.pmfcd_scalar_new,             Mfc110::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc110dPatch [] = {
-    ORDINAL(267),         &VS110d::data.pmfcd_vector_new,           VS110d::mfcd_vector_new,
-    ORDINAL(268),         &VS110d::data.pmfcd__vector_new_dbg_4p,   VS110d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS110d::data.pmfcd__vector_new_dbg_3p,   VS110d::mfcd__vector_new_dbg_3p,
-    ORDINAL2(1629, 1607), &VS110d::data.pmfcd_scalar_new,           VS110d::mfcd_scalar_new,
-    ORDINAL2(1630, 1608), &VS110d::data.pmfcd__scalar_new_dbg_4p,   VS110d::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(1631, 1609), &VS110d::data.pmfcd__scalar_new_dbg_3p,   VS110d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc110d::data.pmfcd_vector_new,            Mfc110d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc110d::data.pmfcd__vector_new_dbg_4p,    Mfc110d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc110d::data.pmfcd__vector_new_dbg_3p,    Mfc110d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1629, 1607), &Mfc110d::data.pmfcd_scalar_new,            Mfc110d::mfcd_scalar_new,
+    ORDINAL2(1630, 1608), &Mfc110d::data.pmfcd__scalar_new_dbg_4p,    Mfc110d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1631, 1609), &Mfc110d::data.pmfcd__scalar_new_dbg_3p,    Mfc110d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc110uPatch [] = {
-    ORDINAL(265),         &VS110::data.pmfcud_vector_new,           VS110::mfcud_vector_new,
-    ORDINAL2(1502, 1480), &VS110::data.pmfcud_scalar_new,           VS110::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc110::data.pmfcud_vector_new,            Mfc110::mfcud_vector_new,
+    ORDINAL2(1502, 1480), &Mfc110::data.pmfcud_scalar_new,            Mfc110::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc110udPatch [] = {
-    ORDINAL(267),         &VS110d::data.pmfcud_vector_new,          VS110d::mfcud_vector_new,
-    ORDINAL(268),         &VS110d::data.pmfcud__vector_new_dbg_4p,  VS110d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS110d::data.pmfcud__vector_new_dbg_3p,  VS110d::mfcud__vector_new_dbg_3p,
-    ORDINAL2(1636, 1614), &VS110d::data.pmfcud_scalar_new,          VS110d::mfcud_scalar_new,
-    ORDINAL2(1637, 1615), &VS110d::data.pmfcud__scalar_new_dbg_4p,  VS110d::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(1638, 1616), &VS110d::data.pmfcud__scalar_new_dbg_3p,  VS110d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc110d::data.pmfcud_vector_new,           Mfc110d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc110d::data.pmfcud__vector_new_dbg_4p,   Mfc110d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc110d::data.pmfcud__vector_new_dbg_3p,   Mfc110d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1636, 1614), &Mfc110d::data.pmfcud_scalar_new,           Mfc110d::mfcud_scalar_new,
+    ORDINAL2(1637, 1615), &Mfc110d::data.pmfcud__scalar_new_dbg_4p,   Mfc110d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1638, 1616), &Mfc110d::data.pmfcud__scalar_new_dbg_3p,   Mfc110d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc120Patch [] = {
-    ORDINAL(265),         &VS120::data.pmfcd_vector_new,            VS120::mfcd_vector_new,
-    ORDINAL2(1502, 1480), &VS120::data.pmfcd_scalar_new,            VS120::mfcd_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc120::data.pmfcd_vector_new,             Mfc120::mfcd_vector_new,
+    ORDINAL2(1502, 1480), &Mfc120::data.pmfcd_scalar_new,             Mfc120::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc120dPatch [] = {
-    ORDINAL(267),         &VS120d::data.pmfcd_vector_new,           VS120d::mfcd_vector_new,
-    ORDINAL(268),         &VS120d::data.pmfcd__vector_new_dbg_4p,   VS120d::mfcd__vector_new_dbg_4p,
-    ORDINAL(269),         &VS120d::data.pmfcd__vector_new_dbg_3p,   VS120d::mfcd__vector_new_dbg_3p,
-    ORDINAL2(1633, 1611), &VS120d::data.pmfcd_scalar_new,           VS120d::mfcd_scalar_new,
-    ORDINAL2(1634, 1612), &VS120d::data.pmfcd__scalar_new_dbg_4p,   VS120d::mfcd__scalar_new_dbg_4p,
-    ORDINAL2(1635, 1613), &VS120d::data.pmfcd__scalar_new_dbg_3p,   VS120d::mfcd__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc120d::data.pmfcd_vector_new,            Mfc120d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc120d::data.pmfcd__vector_new_dbg_4p,    Mfc120d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc120d::data.pmfcd__vector_new_dbg_3p,    Mfc120d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1633, 1611), &Mfc120d::data.pmfcd_scalar_new,            Mfc120d::mfcd_scalar_new,
+    ORDINAL2(1634, 1612), &Mfc120d::data.pmfcd__scalar_new_dbg_4p,    Mfc120d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1635, 1613), &Mfc120d::data.pmfcd__scalar_new_dbg_3p,    Mfc120d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc120uPatch [] = {
-    ORDINAL(265),         &VS120::data.pmfcud_vector_new,           VS120::mfcud_vector_new,
-    ORDINAL2(1506, 1484), &VS120::data.pmfcud_scalar_new,           VS120::mfcud_scalar_new,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(265),         &Mfc120::data.pmfcud_vector_new,            Mfc120::mfcud_vector_new,
+    ORDINAL2(1506, 1484), &Mfc120::data.pmfcud_scalar_new,            Mfc120::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t mfc120udPatch [] = {
-    ORDINAL(267),         &VS120d::data.pmfcud_vector_new,          VS120d::mfcud_vector_new,
-    ORDINAL(268),         &VS120d::data.pmfcud__vector_new_dbg_4p,  VS120d::mfcud__vector_new_dbg_4p,
-    ORDINAL(269),         &VS120d::data.pmfcud__vector_new_dbg_3p,  VS120d::mfcud__vector_new_dbg_3p,
-    ORDINAL2(1640, 1618), &VS120d::data.pmfcud_scalar_new,          VS120d::mfcud_scalar_new,
-    ORDINAL2(1641, 1619), &VS120d::data.pmfcud__scalar_new_dbg_4p,  VS120d::mfcud__scalar_new_dbg_4p,
-    ORDINAL2(1642, 1620), &VS120d::data.pmfcud__scalar_new_dbg_3p,  VS120d::mfcud__scalar_new_dbg_3p,
-    NULL,                 NULL,                                     NULL
+    ORDINAL(267),         &Mfc120d::data.pmfcud_vector_new,           Mfc120d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc120d::data.pmfcud__vector_new_dbg_4p,   Mfc120d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc120d::data.pmfcud__vector_new_dbg_3p,   Mfc120d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1640, 1618), &Mfc120d::data.pmfcud_scalar_new,           Mfc120d::mfcud_scalar_new,
+    ORDINAL2(1641, 1619), &Mfc120d::data.pmfcud__scalar_new_dbg_4p,   Mfc120d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1642, 1620), &Mfc120d::data.pmfcud__scalar_new_dbg_3p,   Mfc120d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
+};
+
+static patchentry_t mfc140Patch[] = {
+    ORDINAL(265),         &Mfc140::data.pmfcd_vector_new,             Mfc140::mfcd_vector_new,
+    ORDINAL2(1507, 1485), &Mfc140::data.pmfcd_scalar_new,             Mfc140::mfcd_scalar_new,
+    NULL,                 NULL,                                         NULL
+};
+
+static patchentry_t mfc140dPatch[] = {
+    ORDINAL(267),         &Mfc140d::data.pmfcd_vector_new,            Mfc140d::mfcd_vector_new,
+    ORDINAL(268),         &Mfc140d::data.pmfcd__vector_new_dbg_4p,    Mfc140d::mfcd__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc140d::data.pmfcd__vector_new_dbg_3p,    Mfc140d::mfcd__vector_new_dbg_3p,
+    ORDINAL2(1638, 1616), &Mfc140d::data.pmfcd_scalar_new,            Mfc140d::mfcd_scalar_new,
+    ORDINAL2(1639, 1617), &Mfc140d::data.pmfcd__scalar_new_dbg_4p,    Mfc140d::mfcd__scalar_new_dbg_4p,
+    ORDINAL2(1640, 1618), &Mfc140d::data.pmfcd__scalar_new_dbg_3p,    Mfc140d::mfcd__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
+};
+
+static patchentry_t mfc140uPatch[] = {
+    ORDINAL(265),         &Mfc140::data.pmfcud_vector_new,            Mfc140::mfcud_vector_new,
+    ORDINAL2(1511, 1489), &Mfc140::data.pmfcud_scalar_new,            Mfc140::mfcud_scalar_new,
+    NULL,                 NULL,                                         NULL
+};
+
+static patchentry_t mfc140udPatch[] = {
+    ORDINAL(267),         &Mfc140d::data.pmfcud_vector_new,           Mfc140d::mfcud_vector_new,
+    ORDINAL(268),         &Mfc140d::data.pmfcud__vector_new_dbg_4p,   Mfc140d::mfcud__vector_new_dbg_4p,
+    ORDINAL(269),         &Mfc140d::data.pmfcud__vector_new_dbg_3p,   Mfc140d::mfcud__vector_new_dbg_3p,
+    ORDINAL2(1645, 1623), &Mfc140d::data.pmfcud_scalar_new,           Mfc140d::mfcud_scalar_new,
+    ORDINAL2(1646, 1624), &Mfc140d::data.pmfcud__scalar_new_dbg_4p,   Mfc140d::mfcud__scalar_new_dbg_4p,
+    ORDINAL2(1647, 1625), &Mfc140d::data.pmfcud__scalar_new_dbg_3p,   Mfc140d::mfcud__scalar_new_dbg_3p,
+    NULL,                 NULL,                                         NULL
 };
 
 static patchentry_t msvcrtPatch [] = {
@@ -670,6 +702,59 @@ static patchentry_t msvcr120dPatch [] = {
     "_aligned_offset_recalloc",     &VS120d::data.pcrtd_aligned_offset_recalloc,        VS120d::crtd__aligned_offset_recalloc,
     NULL,                           NULL,                                               NULL,
 };
+
+static patchentry_t ucrtbasePatch[] = {
+    scalar_new_dbg_name,  &UCRT::data.pcrtd__scalar_new_dbg,   UCRT::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &UCRT::data.pcrtd__vector_new_dbg,   UCRT::crtd__vector_new_dbg,
+    "calloc",             &UCRT::data.pcrtd_calloc,            UCRT::crtd_calloc,
+    "malloc",             &UCRT::data.pcrtd_malloc,            UCRT::crtd_malloc,
+    "realloc",            &UCRT::data.pcrtd_realloc,           UCRT::crtd_realloc,
+    "_recalloc",          &UCRT::data.pcrtd_recalloc,          UCRT::crtd__recalloc,
+    "_strdup",            &UCRT::data.pcrtd__strdup,           UCRT::crtd__strdup,
+    "_wcsdup",            &UCRT::data.pcrtd__wcsdup,           UCRT::crtd__wcsdup,
+    scalar_new_name,      &UCRT::data.pcrtd_scalar_new,        UCRT::crtd_scalar_new,
+    vector_new_name,      &UCRT::data.pcrtd_vector_new,        UCRT::crtd_vector_new,
+    "_aligned_malloc",              &UCRT::data.pcrtd_aligned_malloc,              UCRT::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &UCRT::data.pcrtd_aligned_offset_malloc,       UCRT::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &UCRT::data.pcrtd_aligned_realloc,             UCRT::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &UCRT::data.pcrtd_aligned_offset_realloc,      UCRT::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &UCRT::data.pcrtd_aligned_recalloc,            UCRT::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &UCRT::data.pcrtd_aligned_offset_recalloc,     UCRT::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                           NULL,
+};
+
+static patchentry_t ucrtbasedPatch[] = {
+    "_calloc_dbg",        &UCRTd::data.pcrtd__calloc_dbg,      UCRTd::crtd__calloc_dbg,
+    "_malloc_dbg",        &UCRTd::data.pcrtd__malloc_dbg,      UCRTd::crtd__malloc_dbg,
+    "_realloc_dbg",       &UCRTd::data.pcrtd__realloc_dbg,     UCRTd::crtd__realloc_dbg,
+    "_recalloc_dbg",      &UCRTd::data.pcrtd__recalloc_dbg,    UCRTd::crtd__recalloc_dbg,
+    "_strdup_dbg",        &UCRTd::data.pcrtd__strdup_dbg,      UCRTd::crtd__strdup_dbg,
+    "_wcsdup_dbg",        &UCRTd::data.pcrtd__wcsdup_dbg,      UCRTd::crtd__wcsdup_dbg,
+    scalar_new_dbg_name,  &UCRTd::data.pcrtd__scalar_new_dbg,  UCRTd::crtd__scalar_new_dbg,
+    vector_new_dbg_name,  &UCRTd::data.pcrtd__vector_new_dbg,  UCRTd::crtd__vector_new_dbg,
+    "calloc",             &UCRTd::data.pcrtd_calloc,           UCRTd::crtd_calloc,
+    "malloc",             &UCRTd::data.pcrtd_malloc,           UCRTd::crtd_malloc,
+    "realloc",            &UCRTd::data.pcrtd_realloc,          UCRTd::crtd_realloc,
+    "_recalloc",          &UCRTd::data.pcrtd_recalloc,         UCRTd::crtd__recalloc,
+    "_strdup",            &UCRTd::data.pcrtd__strdup,          UCRTd::crtd__strdup,
+    "_wcsdup",            &UCRTd::data.pcrtd__wcsdup,          UCRTd::crtd__wcsdup,
+    scalar_new_name,      &UCRTd::data.pcrtd_scalar_new,       UCRTd::crtd_scalar_new,
+    vector_new_name,      &UCRTd::data.pcrtd_vector_new,       UCRTd::crtd_vector_new,
+    "_aligned_malloc_dbg",          &UCRTd::data.pcrtd__aligned_malloc_dbg,            UCRTd::crtd__aligned_malloc_dbg,
+    "_aligned_offset_malloc_dbg",   &UCRTd::data.pcrtd__aligned_offset_malloc_dbg,     UCRTd::crtd__aligned_offset_malloc_dbg,
+    "_aligned_realloc_dbg",         &UCRTd::data.pcrtd__aligned_realloc_dbg,           UCRTd::crtd__aligned_realloc_dbg,
+    "_aligned_offset_realloc_dbg",  &UCRTd::data.pcrtd__aligned_offset_realloc_dbg,    UCRTd::crtd__aligned_offset_realloc_dbg,
+    "_aligned_recalloc_dbg",        &UCRTd::data.pcrtd__aligned_recalloc_dbg,          UCRTd::crtd__aligned_recalloc_dbg,
+    "_aligned_offset_recalloc_dbg", &UCRTd::data.pcrtd__aligned_offset_recalloc_dbg,   UCRTd::crtd__aligned_offset_recalloc_dbg,
+    "_aligned_malloc",              &UCRTd::data.pcrtd_aligned_malloc,                 UCRTd::crtd__aligned_malloc,
+    "_aligned_offset_malloc",       &UCRTd::data.pcrtd_aligned_offset_malloc,          UCRTd::crtd__aligned_offset_malloc,
+    "_aligned_realloc",             &UCRTd::data.pcrtd_aligned_realloc,                UCRTd::crtd__aligned_realloc,
+    "_aligned_offset_realloc",      &UCRTd::data.pcrtd_aligned_offset_realloc,         UCRTd::crtd__aligned_offset_realloc,
+    "_aligned_recalloc",            &UCRTd::data.pcrtd_aligned_recalloc,               UCRTd::crtd__aligned_recalloc,
+    "_aligned_offset_recalloc",     &UCRTd::data.pcrtd_aligned_offset_recalloc,        UCRTd::crtd__aligned_offset_recalloc,
+    NULL,                           NULL,                                               NULL,
+};
+
 patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
     "RtlAllocateHeap",    NULL, VisualLeakDetector::_RtlAllocateHeap,
     "RtlFreeHeap",        NULL, VisualLeakDetector::_RtlFreeHeap,
@@ -722,6 +807,10 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
     "mfc120d.dll",  0x0, mfc120dPatch,
     "mfc120u.dll",  0x0, mfc120uPatch,
     "mfc120ud.dll", 0x0, mfc120udPatch,
+    "mfc140.dll",   0x0, mfc140Patch,
+    "mfc140d.dll",  0x0, mfc140dPatch,
+    "mfc140u.dll",  0x0, mfc140uPatch,
+    "mfc140ud.dll", 0x0, mfc140udPatch,
 
     // CRT new operators and heap APIs.
     "msvcrt.dll",   0x0, msvcrtPatch,
@@ -740,6 +829,8 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
     "msvcr110d.dll",0x0, msvcr110dPatch,
     "msvcr120.dll", 0x0, msvcr120Patch,
     "msvcr120d.dll",0x0, msvcr120dPatch,
+    "ucrtbase.dll", 0x0, ucrtbasePatch,
+    "ucrtbased.dll",0x0, ucrtbasedPatch,
 
     // NT APIs.
     "ntdll.dll",    0x0, m_ntdllPatch,

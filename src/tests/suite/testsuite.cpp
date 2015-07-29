@@ -61,6 +61,10 @@ enum action_e {
 #define CRTDLLNAME   _T("msvcr110d.dll")
 #elif _MSC_VER == 1800	// VS 2013
 #define CRTDLLNAME   _T("msvcr120d.dll")
+#elif _MSC_VER == 1900	// VS 2015
+#define CRTDLLNAME   _T("ucrtbased.dll")
+#else
+#error Unsupported compiler
 #endif
 #else
 #if _MSC_VER == 1400	// VS 2005
@@ -73,6 +77,10 @@ enum action_e {
 #define CRTDLLNAME   _T("msvcr110.dll")
 #elif _MSC_VER == 1800	// VS 2013
 #define CRTDLLNAME   _T("msvcr120.dll")
+#elif _MSC_VER == 1900	// VS 2015
+#define CRTDLLNAME   _T("ucrtbase.dll")
+#else
+#error Unsupported compiler
 #endif
 #endif
 

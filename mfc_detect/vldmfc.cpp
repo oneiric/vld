@@ -228,8 +228,12 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc110d.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
 #define MFCDLLNAME   _T("mfc120d.dll")
-#elif _MFC_VER == 0x0D00	// VS 2015
-#define MFCDLLNAME   _T("mfc130d.dll")
+#elif _MFC_VER == 0x0D00
+#error MFC version not supported
+#elif _MFC_VER == 0x0E00	// VS 2015
+#define MFCDLLNAME   _T("mfc140d.dll")
+#else
+#error MFC version not supported
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
@@ -244,8 +248,12 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc110ud.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
 #define MFCDLLNAME   _T("mfc120ud.dll")
-#elif _MFC_VER == 0x0D00	// VS 2015
-#define MFCDLLNAME   _T("mfc130ud.dll")
+#elif _MFC_VER == 0x0D00
+#error MFC version not supported
+#elif _MFC_VER == 0x0E00	// VS 2015
+#define MFCDLLNAME   _T("mfc140ud.dll")
+#else
+#error MFC version not supported
 #endif
 #endif
 #else
@@ -262,8 +270,12 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc110.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
 #define MFCDLLNAME   _T("mfc120.dll")
-#elif _MFC_VER == 0x0D00	// VS 2015
-#define MFCDLLNAME   _T("mfc130.dll")
+#elif _MFC_VER == 0x0D00
+#error MFC version not supported
+#elif _MFC_VER == 0x0E00	// VS 2015
+#define MFCDLLNAME   _T("mfc140.dll")
+#else
+#error MFC version not supported
 #endif
 #else
 #if _MFC_VER == 0x0700		// VS 2003
@@ -278,8 +290,12 @@ BOOL CMFCExampleApp::InitInstance()
 #define MFCDLLNAME   _T("mfc110u.dll")
 #elif _MFC_VER == 0x0C00	// VS 2013
 #define MFCDLLNAME   _T("mfc120u.dll")
-#elif _MFC_VER == 0x0D00	// VS 2015
-#define MFCDLLNAME   _T("mfc130u.dll")
+#elif _MFC_VER == 0x0D00
+#error MFC version not supported
+#elif _MFC_VER == 0x0E00	// VS 2015
+#define MFCDLLNAME   _T("mfc140u.dll")
+#else
+#error MFC version not supported
 #endif
 #endif
 #endif
@@ -304,10 +320,26 @@ BOOL CMFCExampleApp::InitInstance()
 #endif
 
     TCHAR msg[256];
+#ifdef _UNICODE
+    #define CHARSET _T(" Unicode")
+#elif defined(  _MBCS )
+    #define CHARSET _T(" MBCS")
+#endif
+#ifdef _DEBUG
+    #define CONF _T(" Debug")
+#else
+    #define CONF _T(" Release")
+#endif
+#ifndef _WIN64
+    #define PLATFORM _T(" Win32")
+#else
+    #define PLATFORM _T(" x64")
+#endif
+    TCHAR title[] = _T("MFC ordinals: ") CHARSET CONF PLATFORM;
     _stprintf(msg, _T("%d, %d, %d, %d, %d, %d"),
         o1, o2, o3, o4, o5, o6);
     SetClipboardText(msg);
-    MessageBox(NULL, msg, _T("MFC ordinals"),
+    MessageBox(NULL, msg, title,
         MB_ICONINFORMATION | MB_OK);
 
     return FALSE;

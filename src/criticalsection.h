@@ -13,20 +13,20 @@ public:
 	void Delete() 	  	{ DeleteCriticalSection(&m_critRegion); }
 
 	// enter the section
-	void Enter() 	  	
-	{ 
+	void Enter()
+	{
 		ULONG_PTR ownerThreadId = (ULONG_PTR)m_critRegion.OwningThread;
 		UNREFERENCED_PARAMETER(ownerThreadId);
 		EnterCriticalSection(&m_critRegion);
 	}
 
-	bool IsLocked() 	  	
-	{ 
+	bool IsLocked()
+	{
 		return (m_critRegion.OwningThread != NULL);
 	}
 
-	bool IsLockedByCurrentThread() 	  	
-	{ 
+	bool IsLockedByCurrentThread()
+	{
 		if (m_critRegion.OwningThread == NULL)
 			return false;
 		HANDLE ownerThreadId = (HANDLE)GetCurrentThreadId();
@@ -62,9 +62,9 @@ public:
 	{
 		LeaveLock();
 	}
-	
-private:	
-	void LeaveLock() 
+
+private:
+	void LeaveLock()
 	{
 		if (!m_leave)
 		{

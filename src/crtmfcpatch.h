@@ -33,10 +33,10 @@ Applications should never include this header."
 extern __declspec(dllexport) VisualLeakDetector g_vld;
 
 template<int CRTVersion, bool debug = false>
-class CrtMfcPatch
+class CrtPatch
 {
 public:
-    static CrtMfcPatch data;
+    static CrtPatch data;
 
     static void* __cdecl crtd__calloc_dbg (size_t num, size_t size, int type, char const *file, int line);
     static void* __cdecl crtd__malloc_dbg (size_t size, int type, const char *file, int line);
@@ -53,7 +53,7 @@ public:
     static char* __cdecl crtd__strdup_dbg (const char* src, int type, char const *file, int line);
     static wchar_t* __cdecl crtd__wcsdup (const wchar_t* src);
     static wchar_t* __cdecl crtd__wcsdup_dbg (const wchar_t* src, int type, char const *file, int line);
-    
+
     static void* __cdecl crtd_scalar_new (size_t size);
     static void* __cdecl crtd_vector_new (size_t size);
 
@@ -69,24 +69,11 @@ public:
     static void* __cdecl crtd__aligned_offset_realloc (void *memblock, size_t size, size_t alignment, size_t offset);
     static void* __cdecl crtd__aligned_recalloc (void *memblock, size_t num, size_t size, size_t alignment);
     static void* __cdecl crtd__aligned_offset_recalloc (void *memblock, size_t num, size_t size, size_t alignment, size_t offset);
-    
-    static void* __cdecl mfcd_vector_new (size_t size);
-    static void* __cdecl mfcd__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
-    static void* __cdecl mfcd__vector_new_dbg_3p (size_t size, char const *file, int line);
-    static void* __cdecl mfcd_scalar_new (size_t size);
-    static void* __cdecl mfcd__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
-    static void* __cdecl mfcd__scalar_new_dbg_3p (size_t size, char const *file, int line);
-    static void* __cdecl mfcud_vector_new (size_t size);
-    static void* __cdecl mfcud__vector_new_dbg_4p (size_t size, int type, char const *file, int line);
-    static void* __cdecl mfcud__vector_new_dbg_3p (size_t size, char const *file, int line);
-    static void* __cdecl mfcud_scalar_new (size_t size);
-    static void* __cdecl mfcud__scalar_new_dbg_4p (size_t size, int type, char const *file, int line);
-    static void* __cdecl mfcud__scalar_new_dbg_3p (size_t size, char const *file, int line);
 
     union
     {
-        void* function[40];
-        struct  
+        void* function[28];
+        struct
         {
             void* pcrtd__calloc_dbg;
             void* pcrtd__malloc_dbg;
@@ -116,7 +103,34 @@ public:
             void* pcrtd__vector_new_dbg;
             void* pcrtd_scalar_new;
             void* pcrtd_vector_new;
+        };
+    };
+};
 
+template<int MFCVersion, bool debug = false>
+class MfcPatch
+{
+public:
+    static MfcPatch data;
+
+    static void* __cdecl mfcd_vector_new(size_t size);
+    static void* __cdecl mfcd__vector_new_dbg_4p(size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcd__vector_new_dbg_3p(size_t size, char const *file, int line);
+    static void* __cdecl mfcd_scalar_new(size_t size);
+    static void* __cdecl mfcd__scalar_new_dbg_4p(size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcd__scalar_new_dbg_3p(size_t size, char const *file, int line);
+    static void* __cdecl mfcud_vector_new(size_t size);
+    static void* __cdecl mfcud__vector_new_dbg_4p(size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcud__vector_new_dbg_3p(size_t size, char const *file, int line);
+    static void* __cdecl mfcud_scalar_new(size_t size);
+    static void* __cdecl mfcud__scalar_new_dbg_4p(size_t size, int type, char const *file, int line);
+    static void* __cdecl mfcud__scalar_new_dbg_3p(size_t size, char const *file, int line);
+
+    union
+    {
+        void* function[12];
+        struct
+        {
             void* pmfcd_scalar_new;
             void* pmfcd_vector_new;
             void* pmfcd__scalar_new_dbg_4p;
@@ -159,7 +173,7 @@ public:
 //    Returns the value returned by _calloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
+void* CrtPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
                                                     size_t      size,
                                                     int         type,
                                                     char const *file,
@@ -191,7 +205,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
 //    Returns the value returned by _malloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
+void* CrtPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
                                                     int         type,
                                                     char const *file,
                                                     int         line)
@@ -224,7 +238,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
 //    Returns the value returned by _realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     size_t     size,
     int        type,
     char const *file,
@@ -258,7 +272,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
 //    Returns the value returned by _realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
                                                       size_t     num,
                                                       size_t     size,
                                                       int        type,
@@ -276,7 +290,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
 
 
 template<int CRTVersion, bool debug>
-char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
+char* CrtPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
     int         type,
     char const *file,
     int         line)
@@ -292,7 +306,7 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
 
 
 template<int CRTVersion, bool debug>
-wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
+wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
     int         type,
     char const *file,
     int         line)
@@ -323,7 +337,7 @@ wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
 //    Returns the value returned by the CRT debug scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
+void* CrtPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
@@ -354,7 +368,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
 //    Returns the value returned by the CRT debug vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
+void* CrtPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
                                                         int         type,
                                                         char const *file,
                                                         int         line)
@@ -382,7 +396,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
 //    Returns the valued returned from calloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 {
     calloc_t pcrtxxd_calloc = (calloc_t)data.pcrtd_calloc;
     assert(pcrtxxd_calloc);
@@ -405,7 +419,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 //    Returns the valued returned from malloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 {
     malloc_t pcrtxxd_malloc = (malloc_t)data.pcrtd_malloc;
     assert(pcrtxxd_malloc);
@@ -430,7 +444,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 {
     realloc_t pcrtxxd_realloc = (realloc_t)data.pcrtd_realloc;
     assert(pcrtxxd_realloc);
@@ -455,7 +469,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t size)
 {
     _recalloc_t pcrtxxd_recalloc = (_recalloc_t)data.pcrtd_recalloc;
     assert(pcrtxxd_recalloc);
@@ -468,7 +482,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, siz
 
 
 template<int CRTVersion, bool debug>
-char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
+char* CrtPatch<CRTVersion, debug>::crtd__strdup (const char* src)
 {
     _strdup_t pcrtxxd_strdup = (_strdup_t)data.pcrtd__strdup;
     assert(pcrtxxd_strdup);
@@ -480,7 +494,7 @@ char* CrtMfcPatch<CRTVersion, debug>::crtd__strdup (const char* src)
 }
 
 template<int CRTVersion, bool debug>
-wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
+wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
 {
     _wcsdup_t pcrtxxd_wcsdup = (_wcsdup_t)data.pcrtd__wcsdup;
     assert(pcrtxxd_wcsdup);
@@ -508,7 +522,7 @@ wchar_t* CrtMfcPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
 //    Returns the value returned by _aligned_malloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size,
     size_t      alignment,
     int         type,
     char const *file,
@@ -540,7 +554,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size
 //    Returns the value returned by _aligned_offset_malloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t      size,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t      size,
     size_t      alignment,
     size_t      offset,
     int         type,
@@ -575,7 +589,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t   
 //    Returns the value returned by _aligned_realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     int        type,
@@ -610,7 +624,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void       *mem,
     size_t     size,
     size_t     alignment,
     size_t     offset,
@@ -648,7 +662,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void    
 //    Returns the value returned by _aligned_realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *mem,
     size_t     num,
     size_t     size,
     size_t     alignment,
@@ -686,7 +700,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *me
 //    Returns the value returned by _aligned_offset_realloc_dbg.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void       *mem,
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void       *mem,
     size_t     num,
     size_t     size,
     size_t     alignment,
@@ -716,7 +730,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void   
 //    Returns the valued returned from malloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t alignment)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t alignment)
 {
     _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)data.pcrtd_aligned_malloc;
     assert(pcrtxxd_malloc);
@@ -739,7 +753,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t 
 //    Returns the valued returned from malloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)data.pcrtd_aligned_offset_malloc;
     assert(pcrtxxd_malloc);
@@ -764,7 +778,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, 
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
 {
     _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)data.pcrtd_aligned_realloc;
     assert(pcrtxxd_realloc);
@@ -789,7 +803,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t s
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)data.pcrtd_aligned_offset_realloc;
     assert(pcrtxxd_realloc);
@@ -816,7 +830,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, s
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
 {
     _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)data.pcrtd_aligned_recalloc;
     assert(pcrtxxd_recalloc);
@@ -843,7 +857,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t 
 //    Returns the value returned from realloc.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
+void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
 {
     _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)data.pcrtd_aligned_offset_recalloc;
     assert(pcrtxxd_recalloc);
@@ -864,7 +878,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, 
 //    Returns the value returned by the CRT scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 {
     new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_scalar_new;
     assert(pcrtxxd_scalar_new);
@@ -885,7 +899,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 //    Returns the value returned by the CRT vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
+void* CrtPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 {
     new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_vector_new;
     assert(pcrtxxd_scalar_new);
@@ -919,7 +933,7 @@ void* CrtMfcPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size,
+void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -948,7 +962,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size,
+void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -978,7 +992,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size
 //    Returns the value returned by the MFC debug vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
+void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            int          type,
                                                            char const  *file,
                                                            int          line)
@@ -1007,7 +1021,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size
 //    Returns the value returned by the MFC debug vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
+void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
@@ -1030,7 +1044,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size
 //    Returns the value returned by the MFC scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
+void* MfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)data.pmfcd_scalar_new;
     assert(pmfcxxd_new);
@@ -1051,7 +1065,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 //    Returns the value returned by the MFC vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
+void* MfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)data.pmfcd_vector_new;
     assert(pmfcxxd_new);
@@ -1079,7 +1093,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size,
+void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
@@ -1108,7 +1122,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size
 //    Returns the value returned by the MFC debug scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size,
+void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
@@ -1138,7 +1152,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size
 //    Returns the value returned by the MFC debug vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
+void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             int         type,
                                                             char const *file,
                                                             int         line)
@@ -1167,7 +1181,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size
 //    Returns the value returned by the MFC debug vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
+void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
@@ -1190,7 +1204,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size
 //    Returns the value returned by the MFC scalar new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
+void* MfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)data.pmfcud_scalar_new;
     assert(pmfcxxd_new);
@@ -1211,7 +1225,7 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 //    Returns the value returned by the MFC vector new operator.
 //
 template<int CRTVersion, bool debug>
-void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
+void* MfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
 {
     new_t pmfcxxd_new = (new_t)data.pmfcud_vector_new;
     assert(pmfcxxd_new);
@@ -1223,45 +1237,50 @@ void* CrtMfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
 }
 
 // Visual Studio 6.0
-typedef CrtMfcPatch<60>
+typedef CrtPatch<60>
     VS60;
-typedef CrtMfcPatch<60, true>
+typedef CrtPatch<60, true>
     VS60d;
 // Visual Studio .NET 2002
-typedef CrtMfcPatch<70>
+typedef CrtPatch<70>
     VS70;
-typedef CrtMfcPatch<70, true>
+typedef CrtPatch<70, true>
     VS70d;
 // Visual Studio .NET 2003
-typedef CrtMfcPatch<71>
+typedef CrtPatch<71>
     VS71;
-typedef CrtMfcPatch<71, true>
+typedef CrtPatch<71, true>
     VS71d;
 // Visual Studio 2005
-typedef CrtMfcPatch<80>
+typedef CrtPatch<80>
     VS80;
-typedef CrtMfcPatch<80, true>
+typedef CrtPatch<80, true>
     VS80d;
 // Visual Studio 2008
-typedef CrtMfcPatch<90>
+typedef CrtPatch<90>
     VS90;
-typedef CrtMfcPatch<90, true>
+typedef CrtPatch<90, true>
     VS90d;
 // Visual Studio 2010
-typedef CrtMfcPatch<100>
+typedef CrtPatch<100>
     VS100;
-typedef CrtMfcPatch<100, true>
+typedef CrtPatch<100, true>
     VS100d;
 // Visual Studio 2012
-typedef CrtMfcPatch<110>
+typedef CrtPatch<110>
     VS110;
-typedef CrtMfcPatch<110, true>
+typedef CrtPatch<110, true>
     VS110d;
 // Visual Studio 2013
-typedef CrtMfcPatch<120>
+typedef CrtPatch<120>
     VS120;
-typedef CrtMfcPatch<120, true>
+typedef CrtPatch<120, true>
     VS120d;
+// Visual Studio 2015 and higher
+typedef CrtPatch<130>
+    UCRT;
+typedef CrtPatch<130, true>
+    UCRTd;
 
 VS60    VS60::data;
 VS60d   VS60d::data;
@@ -1279,3 +1298,71 @@ VS110   VS110::data;
 VS110d  VS110d::data;
 VS120   VS120::data;
 VS120d  VS120d::data;
+UCRT   UCRT::data;
+UCRTd  UCRTd::data;
+
+
+// Visual Studio 6.0
+typedef MfcPatch<60>
+    Mfc60;
+typedef MfcPatch<60, true>
+    Mfc60d;
+// Visual Studio .NET 2002
+typedef MfcPatch<70>
+    Mfc70;
+typedef MfcPatch<70, true>
+    Mfc70d;
+// Visual Studio .NET 2003
+typedef MfcPatch<71>
+    Mfc71;
+typedef MfcPatch<71, true>
+    Mfc71d;
+// Visual Studio 2005
+typedef MfcPatch<80>
+    Mfc80;
+typedef MfcPatch<80, true>
+    Mfc80d;
+// Visual Studio 2008
+typedef MfcPatch<90>
+    Mfc90;
+typedef MfcPatch<90, true>
+    Mfc90d;
+// Visual Studio 2010
+typedef MfcPatch<100>
+    Mfc100;
+typedef MfcPatch<100, true>
+    Mfc100d;
+// Visual Studio 2012
+typedef MfcPatch<110>
+    Mfc110;
+typedef MfcPatch<110, true>
+    Mfc110d;
+// Visual Studio 2013
+typedef MfcPatch<120>
+    Mfc120;
+typedef MfcPatch<120, true>
+    Mfc120d;
+// Visual Studio 2015
+typedef MfcPatch<140>
+    Mfc140;
+typedef MfcPatch<140, true>
+    Mfc140d;
+
+Mfc60     Mfc60::data;
+Mfc60d    Mfc60d::data;
+Mfc70     Mfc70::data;
+Mfc70d    Mfc70d::data;
+Mfc71     Mfc71::data;
+Mfc71d    Mfc71d::data;
+Mfc80     Mfc80::data;
+Mfc80d    Mfc80d::data;
+Mfc90     Mfc90::data;
+Mfc90d    Mfc90d::data;
+Mfc100    Mfc100::data;
+Mfc100d   Mfc100d::data;
+Mfc110    Mfc110::data;
+Mfc110d   Mfc110d::data;
+Mfc120    Mfc120::data;
+Mfc120d   Mfc120d::data;
+Mfc140    Mfc140::data;
+Mfc140d   Mfc140d::data;
