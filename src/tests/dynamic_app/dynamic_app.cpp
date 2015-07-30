@@ -32,12 +32,10 @@ class DynamicLoader : public ::testing::TestWithParam<bool> {
 
 TEST_P(DynamicLoader, LoaderTests)
 {
-    VLDMarkAllLeaksAsReported();
     int prevleaks = (int)VLDGetLeaksCount();
     HMODULE hmfcLib = RunLoaderTests(GetParam());    // leaks 18
     int totalleaks = (int)VLDGetLeaksCount();
     int leaks = totalleaks - prevleaks;
-    VLDReportLeaks();
     ASSERT_EQ(18, leaks);
 }
 

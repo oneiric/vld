@@ -64,7 +64,7 @@ patchentry_t ldrLoadDllPatch [] = {
     NULL,           NULL,    NULL
 };
 moduleentry_t ntdllPatch [] = {
-    "ntdll.dll",    NULL,   ldrLoadDllPatch,
+    "ntdll.dll",    FALSE,  NULL,   ldrLoadDllPatch,
 };
 
 BOOL IsWin7OrBetter()
@@ -597,24 +597,21 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 
         if (!FindImport(modulelocal, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
-            bool isMfcModule = false;
-            //if (_wcsnicmp(modulename, L"mfc", 3) == 0)
-            {
-                LPSTR modulenamea;
-                ConvertModulePathToAscii(modulename, &modulenamea);
+            // mfc and crt dll's shouldn't be excluded
+            bool patchKnownModule = false;
+            LPSTR modulenamea;
+            ConvertModulePathToAscii(modulename, &modulenamea);
 
-                for (UINT index = 0; index < _countof(m_patchTable); index++) {
-                    moduleentry_t *entry = &m_patchTable[index];
-                    if (_stricmp(entry->exportModuleName, modulenamea) == 0) {
-                        isMfcModule = true;
-                        break;
-                    }
+            for (UINT index = 0; index < _countof(m_patchTable); index++) {
+                moduleentry_t *entry = &m_patchTable[index];
+                if (_stricmp(entry->exportModuleName, modulenamea) == 0) {
+                    patchKnownModule = entry->reportLeaks != 0;
+                    break;
                 }
-
-                delete [] modulenamea;
             }
-            // mfc dll shouldn't be excluded
-            if (!isMfcModule)
+            delete[] modulenamea;
+
+            if (!patchKnownModule)
             {
                 // This module does not import VLD. This means that none of the module's
                 // sources #included vld.h.

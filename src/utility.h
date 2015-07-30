@@ -114,6 +114,7 @@ struct patchentry_t
 struct moduleentry_t
 {
     LPCSTR          exportModuleName; // The name of the module exporting the patched API.
+    BOOL            reportLeaks;      // Patch module to report leaks from it
     UINT_PTR        moduleBase;       // The base address of the exporting module (filled in at runtime when the modules are loaded).
     patchentry_t*   patchTable;
 };

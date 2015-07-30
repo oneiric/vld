@@ -26,7 +26,7 @@ void CallVLDExportedMethod(const CHAR* function)
     }
 }
 
-void CallDynamicMethods(HMODULE module, const CHAR* function) 
+void CallDynamicMethods(HMODULE module, const CHAR* function)
 {
     typedef void (__cdecl *DYNAPI_FNC)();
     if (module != NULL)
@@ -63,7 +63,7 @@ HMODULE RunLoaderTests(bool resolve)
     return hdyn;
 }
 
-void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function ) 
+void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
 {
     HMODULE dynamic_module = hmfcLib;
     assert(dynamic_module);
