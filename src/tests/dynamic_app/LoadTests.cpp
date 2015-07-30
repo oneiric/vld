@@ -44,7 +44,6 @@ void CallDynamicMethods(HMODULE module, const CHAR* function)
 HMODULE RunLoaderTests(bool resolve)
 {
     HMODULE hdyn = LoadLibrary(_T("dynamic.dll"));
-    assert(hdyn);
     if (hdyn)
     {
         VLDEnableModule(hdyn);
@@ -84,7 +83,6 @@ void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
 HMODULE RunMFCLoaderTests(bool resolve)
 {
     HMODULE hmfcLib = LoadLibrary(_T("test_mfc.dll"));
-    assert(hmfcLib);
     if (hmfcLib)
     {
         VLDEnableModule(hmfcLib);

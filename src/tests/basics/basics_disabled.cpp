@@ -7,10 +7,6 @@
 
 #include <gtest/gtest.h>
 
-extern void LeakMemory(LeakOption type, int repeat, bool bFree);
-
-static const int repeats = 1;
-
 class TestBasicsDisabled : public ::testing::Test
 {
     virtual void SetUp()

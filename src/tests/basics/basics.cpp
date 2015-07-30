@@ -7,19 +7,9 @@
 
 #include <gtest/gtest.h>
 
-void LeakMemory(LeakOption type, int repeat, bool bFree)
-{
-    for (int i = 0; i < repeat; i++)
-    {
-        Alloc(type, bFree);
-    }
-}
-
 class TestBasics : public ::testing::TestWithParam<bool>
 {
 };
-
-static const int repeats = 1;
 
 TEST_P(TestBasics, Malloc)
 {

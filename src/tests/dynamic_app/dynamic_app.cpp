@@ -2,7 +2,6 @@
 //
 
 #include "stdafx.h"
-#include <assert.h>
 #include "LoadTests.h"
 #include "ThreadTests.h"
 #include "vld.h"
@@ -34,6 +33,7 @@ TEST_P(DynamicLoader, LoaderTests)
 {
     int prevleaks = (int)VLDGetLeaksCount();
     HMODULE hmfcLib = RunLoaderTests(GetParam());    // leaks 18
+    ASSERT_NE(0u, (UINT_PTR)hmfcLib);
     int totalleaks = (int)VLDGetLeaksCount();
     int leaks = totalleaks - prevleaks;
     ASSERT_EQ(18, leaks);
@@ -43,6 +43,7 @@ TEST_P(DynamicLoader, MFCLoaderTests)
 {
     int prevleaks = (int)VLDGetLeaksCount();
     HMODULE hmfcLib = RunMFCLoaderTests(GetParam()); // leaks 11
+    ASSERT_NE(0u, (UINT_PTR)hmfcLib);
 #ifndef STATIC_CRT
     FreeLibrary(hmfcLib);
 #endif

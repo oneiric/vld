@@ -10,14 +10,6 @@ extern "C" {
 // This is an example of an exported variable
 DYNAMIC_API int ndynamic = 0;
 
-void LeakMemory(LeakOption type, int repeat)
-{
-	for (int i = 0; i < repeat; i++)
-	{
-		Alloc(type);
-	}
-}
-
 // This is an example of an exported function.
 
 void SimpleLeak_Malloc(void)

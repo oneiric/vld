@@ -3,7 +3,8 @@
   <PropertyGroup Label="UserMacros">
     <!--debug suffix-->
     <DebugSuffix Condition="'$(Configuration)' == 'Debug'">d</DebugSuffix>
-    <DebugSuffix Condition="'$(Configuration)' != 'Debug'"></DebugSuffix>
+    <DebugSuffix Condition="'$(Configuration)' != 'Debug'">
+    </DebugSuffix>
     <!--platform-->
     <NumericPlatform Condition="'$(Platform)'=='Win32'">x86</NumericPlatform>
     <NumericPlatform Condition="'$(Platform)'=='x64'">x64</NumericPlatform>
@@ -17,7 +18,19 @@
   </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir>$(SolutionDir)src\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <PostBuildEvent>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
+      <Message>Copying over Visual Leak Detector Dependencies</Message>
+    </PostBuildEvent>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)\src\;$(SolutionDir)\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(VldConfiguration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
 </Project>
