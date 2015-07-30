@@ -597,7 +597,8 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 
         if (!FindImport(modulelocal, m_vldBase, VLDDLL, "?g_vld@@3VVisualLeakDetector@@A"))
         {
-            // mfc and crt dll's shouldn't be excluded
+            // mfc dll's shouldn't be excluded, to have matched number of leaks
+            // from the statically linked MFC and dynamically
             bool patchKnownModule = false;
             LPSTR modulenamea;
             ConvertModulePathToAscii(modulename, &modulenamea);
@@ -605,7 +606,8 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             for (UINT index = 0; index < _countof(m_patchTable); index++) {
                 moduleentry_t *entry = &m_patchTable[index];
                 if (_stricmp(entry->exportModuleName, modulenamea) == 0) {
-                    patchKnownModule = entry->reportLeaks != 0;
+                    if (entry->reportLeaks != 0)
+                        patchKnownModule = true;
                     break;
                 }
             }

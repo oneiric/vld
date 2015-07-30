@@ -385,7 +385,7 @@ void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t
 //
 //    Returns the value returned from the specified _aligned_offset_malloc.
 //
-void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmalloc, context_t& context, bool debugRuntime, 
+void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmalloc, context_t& context, bool debugRuntime,
     size_t size, size_t alignment, size_t offset)
 {
     tls_t   *tls = g_vld.getTls();
@@ -657,8 +657,8 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
     return block;
 }
 
-// __aligned_offset_malloc_dbg - This function is just a wrapper around the real 
-//   _aligned_offset_malloc_dbg that sets appropriate flags to be consulted when 
+// __aligned_offset_malloc_dbg - This function is just a wrapper around the real
+//   _aligned_offset_malloc_dbg that sets appropriate flags to be consulted when
 //   the memory is actually allocated by RtlAllocateHeap.
 //
 //  - p_malloc_dbg (IN): Pointer to the particular _malloc_dbg implementation to
@@ -770,7 +770,7 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
 }
 
 // _aligned_offset_realloc_debug - This function is just a wrapper around the real
-//   _aligned_offset_realloc_dbg that sets appropriate flags to be consulted when 
+//   _aligned_offset_realloc_dbg that sets appropriate flags to be consulted when
 //   the memory is actually allocated by RtlAllocateHeap.
 //
 //  - p_realloc_dbg (IN): Pointer to the particular __realloc_dbg implementation
@@ -888,7 +888,7 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
 }
 
 // _aligned_offset_recalloc_debug - This function is just a wrapper around the real
-//   _aligned_offset_recalloc_dbg that sets appropriate flags to be consulted when 
+//   _aligned_offset_recalloc_dbg that sets appropriate flags to be consulted when
 //   the memory is actually allocated by RtlAllocateHeap.
 //
 //  - p_recalloc_dbg (IN): Pointer to the particular __recalloc_dbg implementation
@@ -1065,12 +1065,12 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
     return block;
 }
 
-char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg, 
-    context_t& context, 
-    bool debugRuntime, 
-    const char* src, 
-    int type, 
-    char const *file, 
+char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
+    context_t& context,
+    bool debugRuntime,
+    const char* src,
+    int type,
+    char const *file,
     int line)
 {
     tls_t *tls = g_vld.getTls();
@@ -1096,12 +1096,12 @@ char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
     return block;
 }
 
-wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg, 
-    context_t& context, 
-    bool debugRuntime, 
-    const wchar_t* src, 
-    int type, 
-    char const *file, 
+wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg,
+    context_t& context,
+    bool debugRuntime,
+    const wchar_t* src,
+    int type,
+    char const *file,
     int line)
 {
     tls_t *tls = g_vld.getTls();
@@ -1732,7 +1732,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 
     // Reallocate the block.
     newmem = RtlReAllocateHeap(heap, flags, mem, size);
-    if (newmem == NULL)
+    if ((newmem == NULL) || !g_vld.enabled())
         return newmem;
 
     tls_t *tls = g_vld.getTls();
@@ -1775,7 +1775,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 
     // Reallocate the block.
     newmem = HeapReAlloc(heap, flags, mem, size);
-    if (newmem == NULL)
+    if ((newmem == NULL) || !g_vld.enabled())
         return newmem;
 
     tls_t *tls = g_vld.getTls();
