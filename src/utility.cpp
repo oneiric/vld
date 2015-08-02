@@ -28,6 +28,8 @@
 #include "vldint.h"
 #include <tchar.h>
 
+//#define PRINTHOOKINFO
+
 // Imported Global Variables
 extern CriticalSection  g_imageLock;
 extern ReportHookSet*   g_pReportHooks;
@@ -554,8 +556,6 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                 }
 
                 LPVOID func = FindRealCode((LPVOID)thunk->u1.Function);
-                //PIMAGE_IMPORT_BY_NAME funcEntry = (PIMAGE_IMPORT_BY_NAME)
-                //    R2VA(importmodule, origThunk->u1.AddressOfData);
                 if (((DWORD_PTR)func == (DWORD_PTR)import) /*||
                     (0 == strcmp(static_cast<const char*>(funcEntry->Name), importname))*/)
                 {
@@ -565,6 +565,10 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                     // writable.
                     if (import != replacement)
                     {
+#ifdef PRINTHOOKINFO
+                        DbgReport(L"Hook func by address. Patch dll %S. Found dll %S. Function %S.\n",
+                            module->exportModuleName, importdllname, importname);
+#endif
                         if (entry->original != NULL)
                             *entry->original = func;
 
@@ -577,6 +581,17 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                     result++;
                     break;
                 }
+#ifdef PRINTHOOKINFO
+                PIMAGE_IMPORT_BY_NAME funcEntry = (PIMAGE_IMPORT_BY_NAME)
+                    R2VA(importmodule, origThunk->u1.AddressOfData);
+                if (stricmp(importdllname, module->exportModuleName) == 0 &&
+                    strcmp(static_cast<const char*>(funcEntry->Name), importname) == 0)
+                {
+                    DbgReport(L"Hook func by name. Patch dll %S. Found dll %S. Function %S.\n",
+                        module->exportModuleName, importdllname, importname);
+                    break;
+                }
+#endif
             }
             entry++; i++;
         }

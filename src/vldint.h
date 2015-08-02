@@ -64,6 +64,7 @@ extern "C" __declspec(dllexport) void VLDRestore ();
 // the import patch table.
 typedef HANDLE(__stdcall *GetProcessHeap_t) ();
 typedef HANDLE(__stdcall *HeapCreate_t) (DWORD, SIZE_T, SIZE_T);
+typedef BOOL(__stdcall *HeapFree_t) (HANDLE, DWORD, LPVOID);
 typedef FARPROC(__stdcall *GetProcAddress_t) (HMODULE, LPCSTR);
 
 typedef void* (__cdecl *_calloc_dbg_t) (size_t, size_t, int, const char*, int);
@@ -399,6 +400,7 @@ private:
     static GetProcAddress_t m_GetProcAddress;
     static GetProcessHeap_t m_GetProcessHeap;
     static HeapCreate_t m_HeapCreate;
+    static HeapFree_t m_HeapFree;
 };
 
 

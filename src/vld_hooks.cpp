@@ -1695,13 +1695,13 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
     {
         context_t context;
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, HeapFree);
+        CAPTURE_CONTEXT(context, m_HeapFree);
 
         // Unmap the block from the specified heap.
         g_vld.unmapBlock(heap, mem, context);
     }
 
-    status = HeapFree(heap, flags, mem);
+    status = m_HeapFree(heap, flags, mem);
 
     return status;
 }

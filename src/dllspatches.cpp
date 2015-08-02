@@ -56,16 +56,17 @@ const char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 // through to replacement functions provided by VLD. Having this table simply
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
-    "GetProcAddress",     NULL, _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
+    "GetProcAddress",     NULL,                     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
     "GetProcessHeap",     (LPVOID*)&m_GetProcessHeap, _GetProcessHeap,
     NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
+    "GetProcAddress",     NULL,                     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
     "HeapAlloc",          NULL,                     _HeapAlloc,
     "HeapCreate",         (LPVOID*)&m_HeapCreate,   _HeapCreate,
     "HeapDestroy",        NULL,                     _HeapDestroy,
-    "HeapFree",           NULL,                     _HeapFree,
+    "HeapFree",           (LPVOID*)&m_HeapFree,     _HeapFree,
     "HeapReAlloc",        NULL,                     _HeapReAlloc,
     NULL,                 NULL,                     NULL
 };
@@ -80,6 +81,7 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 GetProcAddress_t VisualLeakDetector::m_GetProcAddress = NULL;
 GetProcessHeap_t VisualLeakDetector::m_GetProcessHeap = NULL;
 HeapCreate_t VisualLeakDetector::m_HeapCreate = NULL;
+HeapFree_t VisualLeakDetector::m_HeapFree = NULL;
 
 static patchentry_t mfc42Patch [] = {
     // XXX why are the vector new operators missing for mfc42.dll?
@@ -756,22 +758,22 @@ static patchentry_t ucrtbasedPatch[] = {
 };
 
 patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
-    "RtlAllocateHeap",    NULL, VisualLeakDetector::_RtlAllocateHeap,
-    "RtlFreeHeap",        NULL, VisualLeakDetector::_RtlFreeHeap,
-    "RtlReAllocateHeap",  NULL, VisualLeakDetector::_RtlReAllocateHeap,
+    "RtlAllocateHeap",    NULL, _RtlAllocateHeap,
+    "RtlFreeHeap",        NULL, _RtlFreeHeap,
+    "RtlReAllocateHeap",  NULL, _RtlReAllocateHeap,
     NULL,                 NULL, NULL
 };
 
 patchentry_t VisualLeakDetector::m_ole32Patch [] = {
-    "CoGetMalloc",        NULL, VisualLeakDetector::_CoGetMalloc,
-    "CoTaskMemAlloc",     NULL, VisualLeakDetector::_CoTaskMemAlloc,
-    "CoTaskMemRealloc",   NULL, VisualLeakDetector::_CoTaskMemRealloc,
+    "CoGetMalloc",        NULL, _CoGetMalloc,
+    "CoTaskMemAlloc",     NULL, _CoTaskMemAlloc,
+    "CoTaskMemRealloc",   NULL, _CoTaskMemRealloc,
     NULL,                 NULL, NULL
 };
 
 moduleentry_t VisualLeakDetector::m_patchTable [] = {
     // Win32 heap APIs.
-    "kernel32.dll", FALSE,  0x0, m_kernelbasePatch, // we patch this record on Win7
+    "kernel32.dll", FALSE,  0x0, m_kernelbasePatch, // we patch this record on Win7 and higher
     "kernel32.dll", FALSE,  0x0, m_kernel32Patch,
 
     // MFC new operators (exported by ordinal).
