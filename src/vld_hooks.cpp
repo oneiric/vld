@@ -1395,56 +1395,46 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
 //
 HANDLE VisualLeakDetector::_GetProcessHeap()
 {
-    // Get the return address within the calling function.
-    UINT_PTR ra = (UINT_PTR) _ReturnAddress();
-
     // Get the process heap.
     HANDLE heap = m_GetProcessHeap();
 
-    // Try to get the name of the function containing the return address.
-    BYTE symbolbuffer[sizeof(SYMBOL_INFO) +MAX_SYMBOL_NAME_SIZE] = { 0 };
-    SYMBOL_INFO *functioninfo = (SYMBOL_INFO*) &symbolbuffer;
-    functioninfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-    functioninfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+    CriticalSectionLocker cs(g_vld.m_heapMapLock);
+    HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
+    if (heapit == g_vld.m_heapMap->end())
+    {
+        g_vld.mapHeap(heap);
+        heapit = g_vld.m_heapMap->find(heap);
+    }
 
-    g_symbolLock.Enter();
-    DWORD64 displacement;
-    DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-    VLDDisable();
-    BOOL symfound = SymFromAddrW(g_currentProcess, ra, &displacement, functioninfo);
-    VLDRestore();
-    g_symbolLock.Leave();
-    if (symfound == TRUE) {
-        if (wcscmp(L"_heap_init", functioninfo->Name) == 0) {
-            // GetProcessHeap was called by _heap_init (VS2012 and upper). This is a static CRT heap (msvcr*.dll).
-            CriticalSectionLocker cs(g_vld.m_heapMapLock);
-            HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
-            if (heapit == g_vld.m_heapMap->end())
+    // GetProcessHeap was called by _heap_init (VS2012 and VS2013) or __acrt_initialize_heap (VS2015 and upper).
+    // This is a static CRT heap (msvcr*.dll and ucrtbase*.dll).
+    if ((*heapit).second->flags == 0)
+    {
+        // Get the return address within the calling function.
+        UINT_PTR ra = (UINT_PTR)_ReturnAddress();
+
+        HMODULE hCallingModule = NULL;
+        if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            (LPCTSTR)ra, &hCallingModule))
+        {
+            HMODULE hCurrentModule = GetModuleHandleW(NULL);
+            UINT32 flags = VLD_HEAP_CRT_UNKNOWN;
+            if (hCallingModule != hCurrentModule)
             {
-                g_vld.mapHeap(heap);
-                heapit = g_vld.m_heapMap->find(heap);
-            }
-            HMODULE hCallingModule = (HMODULE) functioninfo->ModBase;
-            if (hCallingModule)
-            {
-                HMODULE hCurrentModule = GetModuleHandleW(NULL);
-                if (hCallingModule != hCurrentModule)
+                // CRT dynamic linking
+                WCHAR callingmodulename[MAX_PATH] = L"";
+                if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
                 {
-                    // CRT dynamic linking
-                    WCHAR callingmodulename[MAX_PATH] = L"";
-                    if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
-                    {
-                        _wcslwr_s(callingmodulename);
-                        if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
-                            (*heapit).second->flags = VLD_HEAP_CRT_DBG;
-                    }
-                }
-                else
-                {
-                    // CRT static linking
-                    (*heapit).second->flags = VLD_HEAP_CRT_UNKNOWN;
+                    _wcslwr_s(callingmodulename);
+                    if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
+                        flags = VLD_HEAP_CRT_DBG;
                 }
             }
+            else
+            {
+                // CRT static linking
+            }
+            (*heapit).second->flags = flags;
         }
     }
 
