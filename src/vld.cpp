@@ -67,30 +67,31 @@ moduleentry_t ntdllPatch [] = {
     "ntdll.dll",    FALSE,  NULL,   ldrLoadDllPatch,
 };
 
-BOOL IsWin7OrBetter()
+bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
 {
-    OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
-    GetVersionEx((LPOSVERSIONINFO)&info);
-    if (info.dwMajorVersion > 6)
-        return TRUE;
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0,{ 0 }, 0, 0 };
+    DWORDLONG        const dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(
+            VerSetConditionMask(
+                0, VER_MAJORVERSION, VER_GREATER_EQUAL),
+            VER_MINORVERSION, VER_GREATER_EQUAL),
+        VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
 
-    if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 1)
-        return TRUE;
+    osvi.dwMajorVersion = wMajorVersion;
+    osvi.dwMinorVersion = wMinorVersion;
+    osvi.wServicePackMajor = wServicePackMajor;
 
-    return FALSE;
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask) != FALSE;
 }
 
-BOOL IsWin8OrBetter()
+bool IsWindows7OrGreater()
 {
-    OSVERSIONINFOEX info = { sizeof(OSVERSIONINFOEX) };
-    GetVersionEx((LPOSVERSIONINFO)&info);
-    if (info.dwMajorVersion > 6)
-        return TRUE;
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 0);
+}
 
-    if (info.dwMajorVersion == 6 && info.dwMinorVersion >= 2)
-        return TRUE;
-
-    return FALSE;
+bool IsWindows8OrGreater()
+{
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN8), LOBYTE(_WIN32_WINNT_WIN8), 0);
 }
 
 // Constructor - Initializes private data, loads configuration options, and
@@ -120,17 +121,17 @@ VisualLeakDetector::VisualLeakDetector ()
     HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
     HMODULE kernelBase = GetModuleHandleW(L"KernelBase.dll");
 
-    if (!IsWin7OrBetter()) // kernel32.dll
+    if (!IsWindows7OrGreater()) // kernel32.dll
     {
         if (kernel32)
-            m_GetProcAddress = (GetProcAddress_t) GetProcAddress(kernel32,"GetProcAddress");
+            m_GetProcAddress = (GetProcAddress_t) GetProcAddress(kernel32, "GetProcAddress");
     }
     else
     {
+        if (kernelBase)
+            m_GetProcAddress = (GetProcAddress_t)GetProcAddress(kernelBase, "GetProcAddress");
         assert(m_patchTable[0].patchTable == m_kernelbasePatch);
         m_patchTable[0].exportModuleName = "kernelbase.dll";
-        if (kernelBase)
-            m_GetProcAddress = (GetProcAddress_t) GetProcAddress(kernelBase,"GetProcAddress");
     }
 
     // Initialize global variables.
@@ -141,14 +142,14 @@ VisualLeakDetector::VisualLeakDetector ()
     HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (ntdll)
     {
-        if (!IsWin8OrBetter())
+        if (!IsWindows8OrGreater())
         {
             LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
         }
         else
         {
             LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
-            ldrLoadDllPatch[0].replacement = VisualLeakDetector::_LdrLoadDllWin8;
+            ldrLoadDllPatch[0].replacement = _LdrLoadDllWin8;
         }
         RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
         RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
@@ -1832,7 +1833,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
     return g_vld._RGetProcAddress(module, procname);
 }
 
-FARPROC VisualLeakDetector::_RGetProcAddress (HMODULE module, LPCSTR procname)
+FARPROC VisualLeakDetector::_RGetProcAddress(HMODULE module, LPCSTR procname)
 {
     return m_GetProcAddress(module, procname);
 }

@@ -184,10 +184,10 @@ VOID DumpMemoryW (LPCVOID address, SIZE_T size)
 }
 
 // FilterFunction - Used in structured exception handling
-DWORD FilterFunction(long) 
-{ 
+DWORD FilterFunction(long)
+{
     return EXCEPTION_CONTINUE_SEARCH;
-} 
+}
 
 // FindOriginalImportDescriptor - Determines if the specified module imports the named import
 //   from the named exporting module.
@@ -274,7 +274,7 @@ BOOL FindImport (HMODULE importmodule, HMODULE exportmodule, LPCSTR exportmodule
     idte = FindOriginalImportDescriptor(importmodule, exportmodulename);
     if (idte == NULL)
         return FALSE;
-    
+
     // Get the *real* address of the import. If we find this address in the IAT,
     // then we've found that the module does import the named import.
     import = GetProcAddress(exportmodule, importname);
@@ -425,6 +425,36 @@ BOOL IsModulePatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     return FALSE;
 }
 
+LPVOID FindRealCode(LPVOID pCode)
+{
+    LPVOID result = pCode;
+    if (pCode != NULL)
+    {
+        if (*(WORD *)pCode == 0x25ff) // jmp
+        {
+            DWORD addr = *((DWORD *)((ULONG_PTR)pCode + 2));
+#ifdef _WIN64
+            // RIP relative addressing
+            PBYTE pNextInst = (PBYTE)((ULONG_PTR)pCode + 6);
+            pCode = *(LPVOID*)(pNextInst + addr);
+            return pCode;
+#else
+            pCode = *(LPVOID*)(addr);
+            return FindRealCode(pCode);
+#endif
+        }
+        if (*(BYTE *)pCode == 0xE9)
+        {
+            // Relative next instruction
+            PBYTE	pNextInst = (PBYTE)((ULONG_PTR)pCode + 5);
+            LONG	offset = *((LONG *)((ULONG_PTR)pCode + 1));
+            pCode = (LPVOID*)(pNextInst + offset);
+            return FindRealCode(pCode);
+        }
+    }
+    return result;
+}
+
 // PatchImport - Patches all future calls to an imported function, or references
 //   to an imported variable, through to a replacement function or variable.
 //   Patching is done by replacing the import's address in the specified target
@@ -487,8 +517,8 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 
     int result = 0;
     while (idte->FirstThunk != 0x0) {
-        PCHAR name = (PCHAR)R2VA(importmodule, idte->Name);
-        UNREFERENCED_PARAMETER(name);
+        PCHAR importdllname = (PCHAR)R2VA(importmodule, idte->Name);
+        UNREFERENCED_PARAMETER(importdllname);
 
         patchentry_t *entry = module->patchTable;
         int i = 0;
@@ -499,8 +529,8 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 
             // Get the *real* address of the import. If we find this address in the IAT,
             // then we've found the entry that needs to be patched.
-            FARPROC import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
-            FARPROC import = GetProcAddress(exportmodule, importname);
+            LPVOID import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
+            LPVOID import = GetProcAddress(exportmodule, importname);
             if ( import2 )
                 import = import2;
 
@@ -511,32 +541,42 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
             }
 
             // Locate the import's IAT entry.
-            IMAGE_THUNK_DATA *iate = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
-            while (iate->u1.Function != 0x0)
+            IMAGE_THUNK_DATA *thunk = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->FirstThunk);
+            IMAGE_THUNK_DATA *origThunk = (IMAGE_THUNK_DATA*)R2VA(importmodule, idte->OriginalFirstThunk);
+            for (; origThunk->u1.Function != NULL;
+                origThunk++, thunk++)
             {
-                if (iate->u1.Function != (DWORD_PTR)import) 
+                if (origThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG)
                 {
-                    iate++;
+                    // Ordinal import - we can handle named imports
+                    // only, so skip it.
                     continue;
                 }
 
-                // Found the IAT entry. Overwrite the address stored in the IAT
-                // entry with the address of the replacement. Note that the IAT
-                // entry may be write-protected, so we must first ensure that it is
-                // writable.
-                if ( import != replacement )
+                LPVOID func = FindRealCode((LPVOID)thunk->u1.Function);
+                //PIMAGE_IMPORT_BY_NAME funcEntry = (PIMAGE_IMPORT_BY_NAME)
+                //    R2VA(importmodule, origThunk->u1.AddressOfData);
+                if (((DWORD_PTR)func == (DWORD_PTR)import) /*||
+                    (0 == strcmp(static_cast<const char*>(funcEntry->Name), importname))*/)
                 {
-                    if (entry->original != NULL)
-                        *entry->original = (LPVOID)iate->u1.Function;
+                    // Found the IAT entry. Overwrite the address stored in the IAT
+                    // entry with the address of the replacement. Note that the IAT
+                    // entry may be write-protected, so we must first ensure that it is
+                    // writable.
+                    if (import != replacement)
+                    {
+                        if (entry->original != NULL)
+                            *entry->original = func;
 
-                    DWORD protect;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                    iate->u1.Function = (DWORD_PTR)replacement;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+                        DWORD protect;
+                        VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
+                        thunk->u1.Function = (DWORD_PTR)replacement;
+                        VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), protect, &protect);
+                    }
+                    // The patch has been installed in the import module.
+                    result++;
+                    break;
                 }
-                // The patch has been installed in the import module.
-                result++;
-                iate++;
             }
             entry++; i++;
         }
@@ -887,7 +927,7 @@ VOID SetReportFile (FILE *file, BOOL copydebugger, BOOL tostdout)
 //
 //  Return Value:
 //
-//    The new concatenated string. 
+//    The new concatenated string.
 //
 LPWSTR AppendString (LPWSTR dest, LPCWSTR source)
 {
@@ -1032,7 +1072,7 @@ static const DWORD crctab[256] = {
 };
 
 DWORD CalculateCRC32(UINT_PTR p, UINT startValue)
-{      
+{
     register DWORD hash = startValue;
     hash = (hash >> 8) ^ crctab[(hash & 0xff) ^ ((p >>  0) & 0xff)];
     hash = (hash >> 8) ^ crctab[(hash & 0xff) ^ ((p >>  8) & 0xff)];
@@ -1080,7 +1120,7 @@ HMODULE GetCallingModule( UINT_PTR pCaller )
     MEMORY_BASIC_INFORMATION mbi;
     if ( VirtualQuery((LPCVOID)pCaller, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == sizeof(MEMORY_BASIC_INFORMATION) )
     {
-        // the allocation base is the beginning of a PE file 
+        // the allocation base is the beginning of a PE file
         hModule = (HMODULE) mbi.AllocationBase;
     }
     return hModule;

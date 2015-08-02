@@ -179,8 +179,19 @@ static void alloc(LeakOption type, bool bFree)
         leaked_memory = (int*)HeapAlloc(heap, 0x0, 15);
         if (bFree)
         {
-            HeapFree(leaked_memory, 0, NULL);
+            HeapFree(heap, 0, leaked_memory);
             HeapDestroy(heap);
+        }
+    }
+    else if (type == eIMalloc)
+    {
+        IMalloc *imalloc = NULL;
+        HRESULT hr = CoGetMalloc(1, &imalloc);
+        assert(SUCCEEDED(hr));
+        leaked_memory = (int*)imalloc->Alloc(34);
+        if (bFree)
+        {
+            imalloc->Free(leaked_memory);
         }
     }
     else if (type == eGetProcMalloc)
@@ -197,17 +208,6 @@ static void alloc(LeakOption type, bool bFree)
             pfree = (free_t)GetProcAddress(crt, "free");
             pfree(leaked_memory);
             FreeLibrary(crt);
-        }
-    }
-    else if (type == eIMalloc)
-    {
-        IMalloc *imalloc = NULL;
-        HRESULT hr = CoGetMalloc(1, &imalloc);
-        assert(SUCCEEDED(hr));
-        leaked_memory = (int*)imalloc->Alloc(34);
-        if (bFree)
-        {
-            imalloc->Free(leaked_memory);
         }
     }
 }
