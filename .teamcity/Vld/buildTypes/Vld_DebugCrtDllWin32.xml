@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<build-type xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" uuid="8f1f4d24-8230-4fae-b557-d39e73fff15d" xsi:noNamespaceSchemaLocation="http://www.jetbrains.com/teamcity/schemas/9.0/project-config.xsd">
+  <name>Debug CrtDll Win32</name>
+  <description />
+  <settings>
+    <options>
+      <option name="executionTimeoutMin" value="10" />
+    </options>
+    <parameters>
+      <param name="Configuration" value="Debug(Release)" />
+      <param name="Platform" value="Win32" />
+    </parameters>
+    <build-runners>
+      <runner id="RUNNER_8" name="" type="VS.Solution">
+        <parameters>
+          <param name="build-file-path" value="vld_vs14.sln" />
+          <param name="msbuild.prop.Configuration" value="%Configuration%" />
+          <param name="msbuild.prop.Platform" value="%Platform%" />
+          <param name="msbuild_version" value="14.0" />
+          <param name="run-platform" value="x86" />
+          <param name="targets" value="Rebuild" />
+          <param name="teamcity.step.mode" value="default" />
+          <param name="toolsVersion" value="14.0" />
+          <param name="vs.version" value="vs2015" />
+        </parameters>
+      </runner>
+      <runner id="RUNNER_9" name="Run tests" type="simpleRunner">
+        <parameters>
+          <param name="script.content" value="runtests.bat %Platform% &quot;%Configuration%&quot;" />
+          <param name="teamcity.build.workingDir" value="src" />
+          <param name="teamcity.step.mode" value="default" />
+          <param name="use.custom.script" value="true" />
+        </parameters>
+      </runner>
+    </build-runners>
+    <vcs-settings>
+      <vcs-entry-ref root-id="Vld_HttpsGithubComKindDragonVldGitRefsHeadsMaster" />
+    </vcs-settings>
+    <requirements />
+    <build-triggers>
+      <build-trigger id="TRIGGER_1" type="buildDependencyTrigger">
+        <parameters>
+          <param name="afterSuccessfulBuildOnly" value="true" />
+          <param name="dependsOn" value="Vld_CompileAll" />
+        </parameters>
+      </build-trigger>
+    </build-triggers>
+    <build-extensions>
+      <extension id="BUILD_EXT_1" type="xml-report-plugin">
+        <parameters>
+          <param name="xmlReportParsing.reportDirs" value="+:src/bin/%Platform%/%Configuration%/*.exe.xml" />
+          <param name="xmlReportParsing.reportType" value="gtest" />
+          <param name="xmlReportParsing.verboseOutput" value="true" />
+        </parameters>
+      </extension>
+    </build-extensions>
+    <cleanup />
+  </settings>
+</build-type>
+
