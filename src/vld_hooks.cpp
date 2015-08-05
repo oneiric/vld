@@ -1497,38 +1497,6 @@ HANDLE VisualLeakDetector::_GetProcessHeap()
         heapit = g_vld.m_heapMap->find(heap);
     }
 
-    // GetProcessHeap was called by _heap_init (VS2012 and VS2013) or __acrt_initialize_heap (VS2015 and upper).
-    // This is a static CRT heap (msvcr*.dll and ucrtbase*.dll).
-    if ((*heapit).second->flags == 0)
-    {
-        // Get the return address within the calling function.
-        UINT_PTR ra = (UINT_PTR)_ReturnAddress();
-
-        HMODULE hCallingModule = NULL;
-        if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCTSTR)ra, &hCallingModule))
-        {
-            HMODULE hCurrentModule = GetModuleHandleW(NULL);
-            UINT32 flags = VLD_HEAP_CRT_UNKNOWN;
-            if (hCallingModule != hCurrentModule)
-            {
-                // CRT dynamic linking
-                WCHAR callingmodulename[MAX_PATH] = L"";
-                if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
-                {
-                    _wcslwr_s(callingmodulename);
-                    if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
-                        flags = VLD_HEAP_CRT_DBG;
-                }
-            }
-            else
-            {
-                // CRT static linking
-            }
-            (*heapit).second->flags = flags;
-        }
-    }
-
     return heap;
 }
 
@@ -1560,37 +1528,6 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     CriticalSectionLocker cs(g_vld.m_heapMapLock);
     HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
     assert(heapit != g_vld.m_heapMap->end());
-
-    // HeapCreate was called by _heap_init (VS2010 and before). This is a static CRT heap (msvcr*.dll).
-    if ((*heapit).second->flags == 0)
-    {
-        // Get the return address within the calling function.
-        UINT_PTR ra = (UINT_PTR)_ReturnAddress();
-
-        HMODULE hCallingModule = NULL;
-        if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCTSTR)ra, &hCallingModule))
-        {
-            HMODULE hCurrentModule = GetModuleHandleW(NULL);
-            UINT32 flags = VLD_HEAP_CRT_UNKNOWN;
-            if (hCallingModule != hCurrentModule)
-            {
-                // CRT dynamic linking
-                WCHAR callingmodulename[MAX_PATH] = L"";
-                if (GetModuleFileName(hCallingModule, callingmodulename, _countof(callingmodulename)) > 0)
-                {
-                    _wcslwr_s(callingmodulename);
-                    if (wcsstr(callingmodulename, L"d.dll") != 0) // debug runtime
-                        (*heapit).second->flags = VLD_HEAP_CRT_DBG;
-                }
-            }
-            else
-            {
-                // CRT static linking
-            }
-            (*heapit).second->flags = flags;
-        }
-    }
 
     return heap;
 }
@@ -1731,7 +1668,7 @@ void VisualLeakDetector::AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SI
 
     // The module that initiated this allocation is included in leak
     // detection. Map this block to the specified heap.
-    g_vld.mapBlock(heap, block, size, debugcrtalloc, tls->threadId, tls->pblockInfo, tls->context.fp[1]);
+    g_vld.mapBlock(heap, block, size, debugcrtalloc, tls->threadId, tls->pblockInfo);
 }
 
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
