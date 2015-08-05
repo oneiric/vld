@@ -1058,7 +1058,7 @@ tls_t* VisualLeakDetector::getTls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, UINT_PTR ra)
+VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo, UINT_PTR ra)
 {
     // Record the block's information.
     blockinfo_t* blockinfo = new blockinfo_t();
@@ -1068,6 +1068,7 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool c
     blockinfo->serialNumber = m_requestCurr++;
     blockinfo->size = size;
     blockinfo->reported = false;
+    blockinfo->debugCrtAlloc = debugcrtalloc;
 
     if (SIZE_MAX - m_totalAlloc > size)
         m_totalAlloc += size;
@@ -1087,7 +1088,7 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool c
         heapit = m_heapMap->find(heap);
         assert(heapit != m_heapMap->end());
     }
-    if (crtalloc) {
+    if (debugcrtalloc) {
         // The heap that this block was allocated from is a CRT heap.
         (*heapit).second->flags = VLD_HEAP_CRT_DBG;
     }
@@ -1297,13 +1298,13 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-    bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
+    bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
 {
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
         unmapBlock(heap, mem, context);
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
+        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1316,7 +1317,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // block has also not been mapped to a blockinfo_t entry yet either,
         // so treat this reallocation as a brand-new allocation (this will
         // also map the heap to a new block map).
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
+        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1326,7 +1327,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     if (blockit == blockmap->end()) {
         // The block hasn't been mapped to a blockinfo_t entry yet.
         // Treat this reallocation as a new allocation.
-        mapBlock(heap, newmem, size, crtalloc, threadId, pblockInfo, 0);
+        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo, 0);
         return;
     }
 
@@ -1338,7 +1339,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         info->callStack.reset();
     }
 
-    if (crtalloc) {
+    if (debugcrtalloc) {
         // The heap that this block was allocated from is a CRT heap.
         (*heapit).second->flags = VLD_HEAP_CRT_DBG;
     }
@@ -1445,7 +1446,7 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
         if (threadId != ((DWORD)-1) && info->threadId != threadId)
             continue;
 
-        if (heapinfo->flags & VLD_HEAP_CRT_DBG) {
+        if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;

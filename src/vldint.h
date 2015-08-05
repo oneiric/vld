@@ -109,6 +109,7 @@ struct blockinfo_t {
     SIZE_T     serialNumber;
     SIZE_T     size;
     bool       reported;
+    bool       debugCrtAlloc;
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -163,7 +164,7 @@ typedef Set<VLD_REPORT_HOOK> ReportHookSet;
 struct tls_t {
     context_t	context;       	  // Address of return address at the first call that entered VLD's code for the current allocation.
     UINT32	    flags;            // Thread-local status flags:
-#define VLD_TLS_CRTALLOC 0x1 	  //   If set, the current allocation is a CRT allocation.
+#define VLD_TLS_DEBUGCRTALLOC 0x1 	  //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 	  //   If set, memory leak detection is disabled for the current thread.
 #define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
     UINT32	    oldFlags;         // Thread-local status old flags
