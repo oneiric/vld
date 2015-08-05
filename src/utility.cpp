@@ -30,6 +30,11 @@
 
 //#define PRINTHOOKINFO
 
+#ifdef PRINTHOOKINFO
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+#endif
+
 // Imported Global Variables
 extern CriticalSection  g_imageLock;
 extern ReportHookSet*   g_pReportHooks;
@@ -516,6 +521,13 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
     }
+#ifdef PRINTHOOKINFO
+	bool dllNamePrinted = false;
+	CHAR  cwBuffer[2048] = { 0 };
+	LPSTR pszBuffer = cwBuffer;
+	DWORD dwMaxChars = _countof(cwBuffer);
+	DWORD dwLength = ::GetModuleFileNameA(importmodule, pszBuffer, dwMaxChars);
+#endif
 
     int result = 0;
     while (idte->FirstThunk != 0x0) {
@@ -556,8 +568,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                 }
 
                 LPVOID func = FindRealCode((LPVOID)thunk->u1.Function);
-                if (((DWORD_PTR)func == (DWORD_PTR)import) /*||
-                    (0 == strcmp(static_cast<const char*>(funcEntry->Name), importname))*/)
+                if (((DWORD_PTR)func == (DWORD_PTR)import))
                 {
                     // Found the IAT entry. Overwrite the address stored in the IAT
                     // entry with the address of the replacement. Note that the IAT
@@ -566,8 +577,14 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                     if (import != replacement)
                     {
 #ifdef PRINTHOOKINFO
-                        DbgReport(L"Hook func by address. Patch dll %S. Found dll %S. Function %S.\n",
-                            module->exportModuleName, importdllname, importname);
+						if (!dllNamePrinted)
+						{
+							dllNamePrinted = true;
+							DbgReport(L"Hook dll \"%S\":\n",
+								StrRChrA(pszBuffer, pszBuffer + dwLength, '\\') + 1);
+						}
+                        DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
+							importname, module->exportModuleName, importdllname);
 #endif
                         if (entry->original != NULL)
                             *entry->original = func;
@@ -587,8 +604,14 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
                 if (stricmp(importdllname, module->exportModuleName) == 0 &&
                     strcmp(static_cast<const char*>(funcEntry->Name), importname) == 0)
                 {
-                    DbgReport(L"Hook func by name. Patch dll %S. Found dll %S. Function %S.\n",
-                        module->exportModuleName, importdllname, importname);
+					if (!dllNamePrinted)
+					{
+						dllNamePrinted = true;
+						DbgReport(L"Hook dll \"%S\":\n",
+							StrRChrA(pszBuffer, pszBuffer + dwLength, '\\') + 1);
+					}
+					DbgReport(L"Import found %S(\"%S\") for dll \"%S\".\n",
+						importname, module->exportModuleName, importdllname);
                     break;
                 }
 #endif
