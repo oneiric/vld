@@ -57,7 +57,8 @@ const char    vector_new_name[] = "??_U@YAPEAX_K@Z";
 // makes it more convenient to add additional IAT patches.
 patchentry_t VisualLeakDetector::m_kernelbasePatch [] = {
     "GetProcAddress",     NULL,                     _GetProcAddress, // Not heap related, but can be used to obtain pointers to heap functions.
-    "GetProcessHeap",     (LPVOID*)&m_GetProcessHeap, _GetProcessHeap,
+	"GetProcAddressForCaller", NULL,                _GetProcAddressForCaller, // Not heap related, but can be used to obtain pointers to heap functions.
+	"GetProcessHeap",     (LPVOID*)&m_GetProcessHeap, _GetProcessHeap,
     NULL,                 NULL, NULL
 };
 
@@ -79,6 +80,7 @@ patchentry_t VisualLeakDetector::m_kernel32Patch [] = {
 #endif
 
 GetProcAddress_t VisualLeakDetector::m_GetProcAddress = NULL;
+GetProcAddressForCaller_t VisualLeakDetector::m_GetProcAddressForCaller = NULL;
 GetProcessHeap_t VisualLeakDetector::m_GetProcessHeap = NULL;
 HeapCreate_t VisualLeakDetector::m_HeapCreate = NULL;
 HeapFree_t VisualLeakDetector::m_HeapFree = NULL;

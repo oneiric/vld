@@ -66,6 +66,7 @@ typedef HANDLE(__stdcall *GetProcessHeap_t) ();
 typedef HANDLE(__stdcall *HeapCreate_t) (DWORD, SIZE_T, SIZE_T);
 typedef BOOL(__stdcall *HeapFree_t) (HANDLE, DWORD, LPVOID);
 typedef FARPROC(__stdcall *GetProcAddress_t) (HMODULE, LPCSTR);
+typedef FARPROC(__stdcall *GetProcAddressForCaller_t) (HMODULE, LPCSTR, LPVOID);
 
 typedef void* (__cdecl *_calloc_dbg_t) (size_t, size_t, int, const char*, int);
 typedef void* (__cdecl *_malloc_dbg_t) (size_t, int, const char *, int);
@@ -291,7 +292,9 @@ public:
         PHANDLE modulehandle);
     static NTSTATUS __stdcall _LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, unicodestring_t *modulename,
         PHANDLE modulehandle);
-    static FARPROC __stdcall _RGetProcAddress (HMODULE module, LPCSTR procname);
+    static FARPROC __stdcall _RGetProcAddress(HMODULE module, LPCSTR procname);
+    static FARPROC __stdcall _RGetProcAddressForCaller(HMODULE module, LPCSTR procname, LPVOID caller);
+
 private:
     ////////////////////////////////////////////////////////////////////////////////
     // Private leak detection functions - see each function definition for details.
@@ -338,6 +341,8 @@ private:
     ////////////////////////////////////////////////////////////////////////////////
     // Win32 IAT replacement functions
     static FARPROC  __stdcall _GetProcAddress(HMODULE module, LPCSTR procname);
+    static FARPROC  __stdcall _GetProcAddressForCaller(HMODULE module, LPCSTR procname, LPVOID caller);
+
     static HANDLE   __stdcall _GetProcessHeap();
 
     static HANDLE   __stdcall _HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize);
@@ -398,6 +403,7 @@ private:
 
     VOID __stdcall ChangeModuleState(HMODULE module, bool on);
     static GetProcAddress_t m_GetProcAddress;
+    static GetProcAddressForCaller_t m_GetProcAddressForCaller;
     static GetProcessHeap_t m_GetProcessHeap;
     static HeapCreate_t m_HeapCreate;
     static HeapFree_t m_HeapFree;

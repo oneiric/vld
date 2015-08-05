@@ -41,7 +41,7 @@ struct crtdbgblockheader_t
 {
     struct crtdbgblockheader_t *next;       // Pointer to the next block in the list of blocks allocated from the CRT heap.
     struct crtdbgblockheader_t *prev;       // Pointer to the previous block in the list of blocks allocated from the CRT heap.
-    char                    *file;          // Source file where this block was allocated.
+    char const                 *file;          // Source file where this block was allocated.
     int                      line;          // Line of code, within the above file, where this block was allocated.
 #ifdef _WIN64
     int                      use;           // This block's "use type": see below.
@@ -58,6 +58,9 @@ struct crtdbgblockheader_t
     long                     request;       // This block's "request" number. Basically a serial number.
     unsigned char            gap [GAPSIZE]; // No-man's land buffer zone, for buffer overrun/underrun checking.
 };
+
+typedef char checkDebugHeapBlockAlignment[
+	(sizeof(crtdbgblockheader_t) % MEMORY_ALLOCATION_ALIGNMENT == 0) ? 1 : -1];
 
 // Macro to strip off any sub-type information stored in a block's "use type".
 #define CRT_USE_TYPE(use) (use & 0xFFFF)
