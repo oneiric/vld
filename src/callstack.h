@@ -55,8 +55,8 @@
 //    way, the CallStack can grow dynamically as needed. New frames are always
 //    pushed onto the chunk at the end of the list known as the "top" chunk.
 //
-//    IMPORTANT NOTE: This class as originally written makes two fatal assumptions: 
-//    First: That the application will never load modules (call LoadLibrary) during the 
+//    IMPORTANT NOTE: This class as originally written makes two fatal assumptions:
+//    First: That the application will never load modules (call LoadLibrary) during the
 //           lifetime of the app.
 //    Second: That modules will never get unloaded (call to FreeLibrary)
 //            during the lifetime of the app.
@@ -64,17 +64,17 @@
 //    memory allocations whose call stacks goes through dynamically loaded modules
 //    will be incomplete. This is manifested by stack frames that cannot be resolved
 //    when the stack is 'dumped' because the binaries have been unloaded from the
-//    process. 
+//    process.
 //    To rectify this situation, it is up to the caller to resolve or format the call stacks
 //    into human readable form, BEFORE the callers process unloads any modules. That is
-//    done by calling VisualLeakDetector::ResolveCallstacks, which can be called from 
+//    done by calling VisualLeakDetector::ResolveCallstacks, which can be called from
 //    external code by the exported VLDResolveCallstacks function.
 //    When this happens, the call stacks are formatted, and then cached for later dumping.
 //    This has performance penalties, as the current implementation saves all info to heap memory,
 //    and it is wasteful, as some of the 'converted' memory is not a true leak, but will get
 //    properly de-allocated at a later time. However there is no other way to work around the
 //    fact that the call stacks can only get formatted when the binary is loaded in the process.
-// 
+//
 class CallStack
 {
 public:
@@ -83,14 +83,14 @@ public:
 	static CallStack* Create();
 	// Public APIs - see each function definition for details.
 	VOID clear ();
-	// Prints the call stack to one of either / or the debug output window and or 
+	// Prints the call stack to one of either / or the debug output window and or
 	// a log file.
 	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	VOID resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
 	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
-	
+
 	BOOL operator == (const CallStack &other) const;
 	UINT_PTR operator [] (UINT32 index) const;
 	VOID push_back (const UINT_PTR programcounter);
@@ -102,7 +102,7 @@ protected:
 
 private:
 	// Don't allow this!!
-	CallStack (const CallStack &other); 
+	CallStack (const CallStack &other);
 	// Don't allow this!!
 	CallStack& operator = (const CallStack &other);
 

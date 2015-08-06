@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='utf-8'?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+<Type Name="Pair&lt;*,*&gt;">
+    <DisplayString IncludeView="noparens">{first}, {second,na}</DisplayString>
+    <DisplayString ExcludeView="noparens">({first}, {second,na})</DisplayString>
+    <Expand>
+        <Item Name="first">first</Item>
+        <Item Name="second">second</Item>
+    </Expand>
+</Type>
+
+<Type Name="Map&lt;*,*&gt;">
+    <DisplayString>{m_tree}</DisplayString>
+    <Expand>
+        <ExpandedItem>m_tree</ExpandedItem>
+    </Expand>
+</Type>
+
+<Type Name="Tree&lt;*&gt;">
+    <DisplayString>{{ reserve={m_reserve} }}}</DisplayString>
+    <Expand>
+      <CustomListItems MaxItemsPerView="5000">
+        <Variable Name="cur" InitialValue="m_root" />
+        <Loop>
+          <Break Condition="cur == &amp;m_nil" />
+          <Item>*cur</Item>
+          <Exec>cur = cur->left</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+</Type>
+
+<Type Name="Tree&lt;*&gt;::node_t">
+    <DisplayString>{key}</DisplayString>
+    <Expand>
+        <ExpandedItem>key</ExpandedItem>
+    </Expand>
+</Type>
+
+<Type Name="Map&lt;*,*&gt;::Iterator">
+    <DisplayString>{m_node}</DisplayString>
+    <Expand>
+        <ExpandedItem>m_node</ExpandedItem>
+    </Expand>
+</Type>
+
+<Type Name="CallStack">
+    <DisplayString>{{ size={m_size} }}}</DisplayString>
+    <Expand>
+        <Item Name="size">m_size</Item>
+        <Item Name="capacity">m_capacity</Item>
+        <CustomListItems MaxItemsPerView="5000">
+            <Variable Name="CALLSTACK_CHUNK_SIZE" InitialValue="32" />
+            <Variable Name="i" InitialValue="0" />
+            <Variable Name="chunk" InitialValue="&amp;m_store" />
+            <Size>m_size</Size>
+            <Loop>
+                <Exec>i = 0</Exec>
+                <Loop>
+                    <Item>(void*)chunk->frames[i]</Item>
+                    <Exec>i++</Exec>
+                </Loop>
+                <Exec>chunk = chunk->next</Exec>
+                <Break Condition="chunk == m_topChunk" />
+            </Loop>
+        </CustomListItems>
+    </Expand>
+</Type>
+
+<Type Name="unicodestring_t">
+    <DisplayString>{buffer,[length/2]su}</DisplayString>
+    <StringView>buffer,[length/2]su</StringView>
+    <Expand>
+        <Item Name="[length]" ExcludeView="simple">length</Item>
+        <Item Name="[maxlength]" ExcludeView="simple">maxlength</Item>
+        <ArrayItems>
+            <Size>length/2</Size>
+            <ValuePointer>buffer</ValuePointer>
+        </ArrayItems>
+    </Expand>
+</Type>
+
+</AutoVisualizer>
