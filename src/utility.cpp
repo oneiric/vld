@@ -27,13 +27,9 @@
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"
 #include <tchar.h>
+#include <string.h>
 
 //#define PRINTHOOKINFO
-
-#ifdef PRINTHOOKINFO
-#include <shlwapi.h>
-#pragma comment(lib, "shlwapi.lib")
-#endif
 
 // Imported Global Variables
 extern CriticalSection  g_imageLock;
@@ -450,7 +446,7 @@ LPVOID FindRealCode(LPVOID pCode)
             return FindRealCode(pCode);
 #endif
         }
-        if (*(BYTE *)pCode == 0xE9)
+        if (*(BYTE *)pCode == 0xE9) // jmp
         {
             // Relative next instruction
             PBYTE	pNextInst = (PBYTE)((ULONG_PTR)pCode + 5);
@@ -543,10 +539,10 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 
             // Get the *real* address of the import. If we find this address in the IAT,
             // then we've found the entry that needs to be patched.
-            LPVOID import2 = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
-            LPVOID import = GetProcAddress(exportmodule, importname);
-            if ( import2 )
-                import = import2;
+            LPVOID import = VisualLeakDetector::_RGetProcAddress(exportmodule, importname);
+            if ( !import)
+                import = GetProcAddress(exportmodule, importname);
+            import = FindRealCode(import);
 
             if (import == NULL) // Perhaps the named export module does not actually export the named import?
             {
@@ -581,7 +577,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 						{
 							dllNamePrinted = true;
 							DbgReport(L"Hook dll \"%S\":\n",
-								StrRChrA(pszBuffer, pszBuffer + dwLength, '\\') + 1);
+								strrchr(pszBuffer, '\\') + 1);
 						}
                         DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
 							importname, module->exportModuleName, importdllname);
@@ -608,7 +604,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 					{
 						dllNamePrinted = true;
 						DbgReport(L"Hook dll \"%S\":\n",
-							StrRChrA(pszBuffer, pszBuffer + dwLength, '\\') + 1);
+                            strrchr(pszBuffer, '\\') + 1);
 					}
 					DbgReport(L"Import found %S(\"%S\") for dll \"%S\".\n",
 						importname, module->exportModuleName, importdllname);
