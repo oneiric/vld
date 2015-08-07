@@ -110,6 +110,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>vld.dll.dependency.x86.manifest</AdditionalManifestFiles>
@@ -130,6 +131,7 @@
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>vld.dll.dependency.x64.manifest</AdditionalManifestFiles>
@@ -157,6 +159,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>vld.dll.dependency.x86.manifest</AdditionalManifestFiles>
@@ -184,6 +187,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <Profile>true</Profile>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>vld.dll.dependency.x64.manifest</AdditionalManifestFiles>

@@ -729,11 +729,21 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
         delete [] env;
     }
 
-    // Append Visual Studio 2010/2008 symbols cache directory.
+#if _MSC_VER > 1900
+#error Not supported VS
+#endif
+    // Append Visual Studio symbols cache directory.
     HKEY debuggerkey;
     WCHAR symbolCacheDir [MAX_PATH] = {0};
-    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS)
+    // VS2015
+    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\14.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    if (regstatus != ERROR_SUCCESS) // VS2013
+        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\12.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    if (regstatus != ERROR_SUCCESS) // VS2012
+        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\11.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    if (regstatus != ERROR_SUCCESS) // VS2010
+        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    if (regstatus != ERROR_SUCCESS) // VS2008
         regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
 
     if (regstatus == ERROR_SUCCESS)
@@ -743,9 +753,9 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
         regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
         if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
         {
-            path = AppendString(path, L";srv*");
+            path = AppendString(path, L";");
             path = AppendString(path, symbolCacheDir);
-            path = AppendString(path, L"\\MicrosoftPublicSymbols;srv*");
+            path = AppendString(path, L"\\MicrosoftPublicSymbols;");
             path = AppendString(path, symbolCacheDir);
         }
         RegCloseKey(debuggerkey);

@@ -705,14 +705,15 @@ VOID Print (LPWSTR messagew)
                 fputws(messagew, stdout);
         }
         else {
+            const size_t MAXMESSAGELENGTH = 5119;
             size_t  count = 0;
-            CHAR    messagea [MAXREPORTLENGTH + 1];
-            if (wcstombs_s(&count, messagea, MAXREPORTLENGTH + 1, messagew, _TRUNCATE) != 0) {
+            CHAR    messagea [MAXMESSAGELENGTH + 1];
+            if (wcstombs_s(&count, messagea, MAXMESSAGELENGTH + 1, messagew, _TRUNCATE) != 0) {
                 // Failed to convert the Unicode message to ASCII.
                 assert(FALSE);
                 return;
             }
-            messagea[MAXREPORTLENGTH] = '\0';
+            messagea[MAXMESSAGELENGTH] = '\0';
 
             if (s_reportFile != NULL) {
                 // Send the report to the previously specified file.
