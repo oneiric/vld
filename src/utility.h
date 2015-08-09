@@ -62,7 +62,10 @@ struct context_t
 {
     UINT_PTR* fp;
     UINT_PTR func;
-#if defined(_M_X64)
+#if defined(_M_IX86)
+    DWORD Esp;
+    DWORD Eip;
+#elif defined(_M_X64)
     DWORD64 Rsp;
     DWORD64 Rip;
 #endif // _M_IX86
@@ -70,8 +73,14 @@ struct context_t
 
 #if defined(_M_IX86)
 // Copies the current frame pointer to the supplied variable.
-#define CAPTURE_CONTEXT(context, function)                                  \
+/*#define CAPTURE_CONTEXT(context, function)                                  \
     context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;                \
+    context.func = (UINT_PTR)(function)*/
+#define CAPTURE_CONTEXT(context, function)                                  \
+    CONTEXT _ctx;															\
+    RtlCaptureContext(&_ctx);                                               \
+    context.Esp = _ctx.Esp; context.Eip = _ctx.Eip;							\
+    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;		    	\
     context.func = (UINT_PTR)(function)
 #define GET_RETURN_ADDRESS(context)  *(context.fp + 1)
 #elif defined(_M_X64)

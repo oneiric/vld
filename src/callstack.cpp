@@ -271,7 +271,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 
         HMODULE hCallingModule = GetCallingModule(programCounter);
         LPWSTR moduleName = L"(Module name unavailable)";
-        if (hCallingModule && 
+        if (hCallingModule &&
             GetModuleFileName(hCallingModule, callingModuleName, _countof(callingModuleName)) > 0)
         {
             moduleName = wcsrchr(callingModuleName, L'\\');
@@ -291,19 +291,19 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         // Display the current stack frame's information.
         if (foundline) {
             if (displacement == 0)
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s\n", 
+                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s\n",
                 sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
             else
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n", 
+                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n",
                 sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
         }
         else {
             if (displacement64 == 0)
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n", 
+                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n",
                 programCounter, moduleName, functionName);
             else
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n", 
-                programCounter, moduleName, functionName, (DWORD)displacement64);	
+                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n",
+                programCounter, moduleName, functionName, (DWORD)displacement64);
         }
 
         if (!isFrameInternal)
@@ -312,7 +312,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 }
 
 // Resolve - Creates a nicely formatted rendition of the CallStack, including
-//   symbolic information (function names and line numbers) if available. and 
+//   symbolic information (function names and line numbers) if available. and
 //   saves it for later retrieval. This is almost identical to Callstack::dump above.
 //
 //   Note: The symbol handler must be initialized prior to calling this
@@ -346,7 +346,7 @@ void CallStack::resolve(BOOL showInternalFrames)
     sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
     BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
-    
+
     WCHAR callingModuleName [MAX_PATH] = L"";
     WCHAR lowerCaseName [MAX_PATH];
 
@@ -355,7 +355,7 @@ void CallStack::resolve(BOOL showInternalFrames)
     m_resolved = new WCHAR[m_resolvedCapacity];
     const size_t allocedBytes = m_resolvedCapacity * sizeof(WCHAR);
     ZeroMemory(m_resolved, allocedBytes);
-    
+
     // Iterate through each frame in the call stack.
     for (UINT32 frame = 0; frame < m_size; frame++)
     {
@@ -367,7 +367,7 @@ void CallStack::resolve(BOOL showInternalFrames)
         DWORD            displacement = 0;
 
         // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
-        // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns. 
+        // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
         // When that happens there is nothing we can do except crash.
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
@@ -405,7 +405,7 @@ void CallStack::resolve(BOOL showInternalFrames)
 
         HMODULE hCallingModule = GetCallingModule(programCounter);
         LPWSTR moduleName = L"(Module name unavailable)";
-        if (hCallingModule && 
+        if (hCallingModule &&
             GetModuleFileName(hCallingModule, callingModuleName, _countof(callingModuleName)) > 0)
         {
             moduleName = wcsrchr(callingModuleName, L'\\');
@@ -425,18 +425,18 @@ void CallStack::resolve(BOOL showInternalFrames)
         if (foundline) {
             // Just truncate anything that is too long.
             if (displacement == 0)
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s\n", 
+                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s\n",
                 sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
             else
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n", 
+                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n",
                 sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
         }
         else {
             if (displacement64 == 0)
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n", 
+                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n",
                 programCounter, moduleName, functionName);
             else
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n", 
+                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n",
                 programCounter, moduleName, functionName, (DWORD)displacement64);
         }
 
@@ -561,7 +561,7 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     }
     UINT_PTR* framePointer = context.fp;
 
-#if defined(_M_IX86)
+/*#if defined(_M_IX86)
     while (count < maxdepth) {
         if (*framePointer < (UINT_PTR)framePointer) {
             if (*framePointer == NULL) {
@@ -593,15 +593,15 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         push_back(*(framePointer + 1));
         framePointer = (UINT_PTR*)*framePointer;
     }
-#elif defined(_M_X64)
+#elif defined(_M_X64)*/
     UINT32 maxframes = min(62, maxdepth + 10);
-    static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;  
-    if (s_pfnCaptureStackBackTrace == 0)  
-    {  
-        const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");  
+    static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;
+    if (s_pfnCaptureStackBackTrace == 0)
+    {
+        const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");
         reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
             = ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
-        if (s_pfnCaptureStackBackTrace == 0)  
+        if (s_pfnCaptureStackBackTrace == 0)
             return;
     }
     UINT_PTR* myFrames = new UINT_PTR[maxframes];
@@ -623,7 +623,7 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         count++;
     }
     delete [] myFrames;
-#endif
+//#endif
 }
 
 // getStackTrace - Traces the stack as far back as possible, or until 'maxdepth'
@@ -663,11 +663,14 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     // Get the required values for initialization of the STACKFRAME64 structure
     // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
 #if defined(_M_IX86)
-    UINT_PTR programcounter = *(framePointer + 1);
+    /*UINT_PTR programcounter = *(framePointer + 1);
     UINT_PTR stackpointer   = (*framePointer) - maxdepth * 10 * sizeof(void*);  // An approximation.
     currentContext.SPREG  = stackpointer;
     currentContext.BPREG  = (DWORD64)framePointer;
-    currentContext.IPREG  = programcounter;
+    currentContext.IPREG  = programcounter;*/
+    currentContext.SPREG = context.Esp;
+    currentContext.BPREG = (DWORD64)framePointer;
+    currentContext.IPREG = context.Eip;
 #elif defined(_M_X64)
     currentContext.SPREG  = context.Rsp;
     currentContext.BPREG  = (DWORD64)framePointer;
