@@ -87,7 +87,7 @@ public:
 	// a log file.
 	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
-	VOID resolve(BOOL showinternalframes);
+	int resolve(BOOL showinternalframes);
 	DWORD getHashValue () const;
 	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
 

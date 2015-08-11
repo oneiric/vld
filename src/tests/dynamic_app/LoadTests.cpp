@@ -14,14 +14,14 @@ void CallVLDExportedMethod(const CHAR* function)
 {
     HMODULE vld_module =  GetModuleHandle(sVld_dll);
     assert(vld_module);
-    typedef void (*VLDAPI_func)();
+    typedef int (*VLDAPI_func)();
     if (vld_module != NULL)
     {
         VLDAPI_func func = (VLDAPI_func)GetProcAddress(vld_module, function);
         assert(func);
         if (func)
         {
-            func();
+            int result = func();
         }
     }
 }

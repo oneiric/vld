@@ -285,7 +285,7 @@ public:
     int  SetReportHook(int mode, VLD_REPORT_HOOK pfnNewHook);
     VOID SetModulesList(CONST WCHAR *modules, BOOL includeModules);
     bool GetModulesList(WCHAR *modules, UINT size);
-    VOID ResolveCallstacks();
+    int ResolveCallstacks();
 
     static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
         PHANDLE modulehandle);
@@ -316,7 +316,7 @@ private:
     VOID   markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
     VOID   unmapBlock (HANDLE heap, LPCVOID mem, const context_t &context);
     VOID   unmapHeap (HANDLE heap);
-    void   resolveStacks(heapinfo_t* heapinfo);
+    int    resolveStacks(heapinfo_t* heapinfo);
 
     // Static functions (callbacks)
     static BOOL __stdcall addLoadedModule (PCWSTR modulepath, DWORD64 modulebase, ULONG modulesize, PVOID context);

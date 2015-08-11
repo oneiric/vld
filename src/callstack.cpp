@@ -325,14 +325,14 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 //
 //    None.
 //
-void CallStack::resolve(BOOL showInternalFrames)
+int CallStack::resolve(BOOL showInternalFrames)
 {
     if (m_resolved)
     {
         // already resolved, no need to do it again
         // resolving twice may report an incorrect module for the stack frames
         // if the memory was leaked in a dynamic library that was already unloaded.
-        return;
+        return 0;
     }
     if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
         // This call stack appears to be incomplete. Using StackWalk64 may be
@@ -342,6 +342,7 @@ void CallStack::resolve(BOOL showInternalFrames)
             L"      complete stack trace.\n");
     }
 
+    int unresolvedFunctionsCount = 0;
     IMAGEHLP_LINE64  sourceInfo = { 0 };
     sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
@@ -397,6 +398,7 @@ void CallStack::resolve(BOOL showInternalFrames)
             functionName = functionInfo->Name;
         }
         else {
+            unresolvedFunctionsCount++;
             // GetFormattedMessage( GetLastError() );
             functionName = L"(Function name unavailable)";
             displacement64 = 0;
@@ -446,6 +448,7 @@ void CallStack::resolve(BOOL showInternalFrames)
             wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
         }
     } // end for loop
+    return unresolvedFunctionsCount;
 }
 
 // DumpResolve
@@ -595,18 +598,9 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     }
 #elif defined(_M_X64)*/
     UINT32 maxframes = min(62, maxdepth + 10);
-    static USHORT (WINAPI *s_pfnCaptureStackBackTrace)(ULONG FramesToSkip, ULONG FramesToCapture, PVOID* BackTrace, PULONG BackTraceHash) = 0;
-    if (s_pfnCaptureStackBackTrace == 0)
-    {
-        const HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");
-        reinterpret_cast<void*&>(s_pfnCaptureStackBackTrace)
-            = ::GetProcAddress(hNtDll, "RtlCaptureStackBackTrace");
-        if (s_pfnCaptureStackBackTrace == 0)
-            return;
-    }
     UINT_PTR* myFrames = new UINT_PTR[maxframes];
     ZeroMemory(myFrames, sizeof(UINT_PTR) * maxframes);
-    s_pfnCaptureStackBackTrace(0, maxframes, (PVOID*)myFrames, NULL);
+    RtlCaptureStackBackTrace(0, maxframes, reinterpret_cast<PVOID*>(myFrames), NULL);
     UINT32  startIndex = 0;
     while (count < maxframes) {
         if (myFrames[count] == 0)

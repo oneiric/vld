@@ -26,6 +26,15 @@ void LeakDuplicateLeaks()
 }
 
 class DynamicLoader : public ::testing::TestWithParam<bool> {
+    virtual void SetUp()
+    {
+        VLDMarkAllLeaksAsReported();
+    }
+    virtual void TearDown()
+    {
+        // Check that callstack resolved without unresolved functions (required symbols for all dll's)
+        //EXPECT_EQ(0, VLDResolveCallstacks());
+    }
 };
 
 

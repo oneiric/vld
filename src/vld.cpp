@@ -1527,6 +1527,14 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         }
         SIZE_T blockLeaksCount = 1;
         Report(L"---------- Block %Iu at " ADDRESSFORMAT L": %Iu bytes ----------\n", info->serialNumber, address, size);
+#ifdef _DEBUG
+        if (info->debugCrtAlloc)
+        {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            Report(L"  CRT Alloc ID: %Iu\n", crtheader->request);
+            assert(size == crtheader->size);
+        }
+#endif
         assert(info->callStack);
         if (m_options & VLD_OPT_AGGREGATE_DUPLICATES) {
             // Aggregate all other leaks which are duplicates of this one
@@ -2428,8 +2436,9 @@ void VisualLeakDetector::setupReporting()
     }
 }
 
-void VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
+int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
 {
+    int unresolvedFunctionsCount = 0;
     BlockMap& blockmap = heapinfo->blockMap;
 
     for (BlockMap::Iterator blockit = blockmap.begin(); blockit != blockmap.end(); ++blockit) {
@@ -2466,16 +2475,18 @@ void VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         // Dump the call stack.
         if (info->callStack)
         {
-            info->callStack->resolve(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+            unresolvedFunctionsCount += info->callStack->resolve(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
         }
     }
+    return unresolvedFunctionsCount;
 }
 
-void VisualLeakDetector::ResolveCallstacks()
+int VisualLeakDetector::ResolveCallstacks()
 {
     if (m_options & VLD_OPT_VLDOFF)
-        return;
+        return 0;
 
+    int unresolvedFunctionsCount = 0;
     // Generate the Callstacks early
     CriticalSectionLocker cs(m_heapMapLock);
     for (HeapMap::Iterator heapiter = m_heapMap->begin(); heapiter != m_heapMap->end(); ++heapiter)
@@ -2483,6 +2494,7 @@ void VisualLeakDetector::ResolveCallstacks()
         HANDLE heap = (*heapiter).first;
         UNREFERENCED_PARAMETER(heap);
         heapinfo_t* heapinfo = (*heapiter).second;
-        resolveStacks(heapinfo);
+        unresolvedFunctionsCount += resolveStacks(heapinfo);
     }
+    return unresolvedFunctionsCount;
 }

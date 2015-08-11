@@ -142,9 +142,9 @@ __declspec(dllexport) void VLDSetReportOptions(UINT option_mask, CONST WCHAR *fi
     g_vld.SetReportOptions(option_mask,filename);
 }
 
-__declspec(dllexport) void VLDResolveCallstacks()
+__declspec(dllexport) int VLDResolveCallstacks()
 {
-    g_vld.ResolveCallstacks();
+    return g_vld.ResolveCallstacks();
 }
 
 }
