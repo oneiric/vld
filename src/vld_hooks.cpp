@@ -49,14 +49,15 @@ void VisualLeakDetector::firstAllocCall(tls_t * tls)
     if (tls->pblockInfo)
     {
         tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
+        blockinfo_t* pblockInfo = tls->pblockInfo;
+        tls->pblockInfo = NULL;
         CallStack* callstack;
         getCallStack(callstack, tls->context);
-        tls->pblockInfo->callStack.reset(callstack);
-        tls->pblockInfo = NULL;
+        pblockInfo->callStack.reset(callstack);
     }
 
     // Reset thread local flags and variables for the next allocation.
-    tls->context.fp = 0x0;
+    tls->context.fp = NULL;
     tls->context.func = 0x0;
     tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
 }
@@ -186,7 +187,7 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, bool debugRuntim
     if (debugRuntime)
         tls->flags |= VLD_TLS_DEBUGCRTALLOC;
 
-    bool firstcall = (tls->context.fp == 0x0);
+    bool firstcall = (tls->context.fp == NULL);
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.

@@ -1987,15 +1987,8 @@ VOID VisualLeakDetector::RefreshModules()
 void VisualLeakDetector::getCallStack( CallStack *&pcallstack, context_t &context_ )
 {
     CallStack* callstack = CallStack::Create();
-
-    // Reset thread local flags and variables, in case any libraries called
-    // into while mapping the block allocate some memory.
-    context_t context = context_;
     pcallstack = callstack;
-    context_.fp = 0x0;
-    context_.func = 0x0;
-
-    callstack->getStackTrace(g_vld.m_maxTraceFrames, context);
+    callstack->getStackTrace(g_vld.m_maxTraceFrames, context_);
 }
 
 // Find the information for the module that initiated this reallocation.
