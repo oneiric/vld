@@ -81,4 +81,14 @@
     </Expand>
 </Type>
 
+<Type Name="vldblockheader_t">
+    <Expand>
+        <LinkedListItems>
+            <HeadPointer>this</HeadPointer>
+            <NextPointer>next</NextPointer>
+            <ValueNode>*this,!</ValueNode>
+        </LinkedListItems>
+    </Expand>
+</Type>
+
 </AutoVisualizer>

@@ -48,18 +48,26 @@ void VisualLeakDetector::firstAllocCall(tls_t * tls)
 {
     if (tls->pblockInfo)
     {
-        tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
+        context_t context = tls->context;
         blockinfo_t* pblockInfo = tls->pblockInfo;
+
+        // Reset thread local flags and variables in case dbghelp.dll try allocate some data.
+        tls->context.fp = NULL;
+        tls->context.func = 0x0;
+        tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
         tls->pblockInfo = NULL;
+
         CallStack* callstack;
-        getCallStack(callstack, tls->context);
+        getCallStack(callstack, context);
         pblockInfo->callStack.reset(callstack);
+        return;
     }
 
     // Reset thread local flags and variables for the next allocation.
     tls->context.fp = NULL;
     tls->context.func = 0x0;
     tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
+    tls->pblockInfo = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +116,6 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -150,7 +157,6 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, bool de
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -192,7 +198,6 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, bool debugRuntim
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
 	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -240,7 +245,6 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -289,7 +293,6 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -317,7 +320,6 @@ char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool 
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -345,7 +347,6 @@ wchar_t* VisualLeakDetector::__wcsdup( _wcsdup_t pwcsdup, context_t& context, bo
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -388,7 +389,6 @@ void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -431,7 +431,6 @@ void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmal
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -480,7 +479,6 @@ void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -530,7 +528,6 @@ void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  p
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -582,7 +579,6 @@ void* VisualLeakDetector::__aligned_recalloc (_aligned_recalloc_t  precalloc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -635,7 +631,6 @@ void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t 
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -692,7 +687,6 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -750,7 +744,6 @@ void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_db
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -810,7 +803,6 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -871,7 +863,6 @@ void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -934,7 +925,6 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -998,7 +988,6 @@ void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recallo
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -1065,7 +1054,6 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1121,7 +1109,6 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1155,7 +1142,6 @@ char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1189,7 +1175,6 @@ wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1245,7 +1230,6 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1296,7 +1280,6 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1344,7 +1327,6 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -1403,7 +1385,6 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -1463,7 +1444,6 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -1588,7 +1568,6 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         return block;
 
     tls_t* tls = g_vld.getTls();
-    tls->blockProcessed = TRUE;
     bool firstcall = (tls->context.fp == 0x0);
     context_t context;
     if (firstcall) {
@@ -1600,7 +1579,10 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         context = tls->context;
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
+    {
+        assert(tls->pblockInfo == NULL);
         return block;
+    }
 
     if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
         // Begin the stack trace with the current frame. Obtain the current
@@ -1632,7 +1614,6 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
         return block;
 
     tls_t* tls = g_vld.getTls();
-    tls->blockProcessed = TRUE;
     bool firstcall = (tls->context.fp == 0x0);
     context_t context;
     if (firstcall) {
@@ -1644,7 +1625,10 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
         context = tls->context;
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
+    {
+        assert(tls->pblockInfo == NULL);
         return block;
+    }
 
     if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
         // Begin the stack trace with the current frame. Obtain the current
@@ -1765,7 +1749,6 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         return newmem;
 
     tls_t *tls = g_vld.getTls();
-    tls->blockProcessed = TRUE;
     bool firstcall = (tls->context.fp == 0x0);
     context_t context;
     if (firstcall) {
@@ -1777,7 +1760,10 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         context = tls->context;
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
+    {
+        assert(tls->pblockInfo == NULL);
         return newmem;
+    }
 
     if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
         // Begin the stack trace with the current frame. Obtain the current
@@ -1811,7 +1797,6 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
         return newmem;
 
     tls_t *tls = g_vld.getTls();
-    tls->blockProcessed = TRUE;
     bool firstcall = (tls->context.fp == 0x0);
     context_t context;
     if (firstcall) {
@@ -1823,7 +1808,10 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
         context = tls->context;
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
+    {
+        assert(tls->pblockInfo == NULL);
         return newmem;
+    }
 
     if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
         // Begin the stack trace with the current frame. Obtain the current
@@ -1965,7 +1953,6 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
         // Record the current frame pointer.
         CAPTURE_CONTEXT(context, pCoTaskMemAlloc);
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -2015,7 +2002,6 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
         // Record the current frame pointer.
         CAPTURE_CONTEXT(context, pCoTaskMemRealloc);
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
@@ -2075,7 +2061,6 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
         // Record the current frame pointer.
         CAPTURE_CONTEXT(context, NULL);
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
@@ -2212,7 +2197,6 @@ LPVOID VisualLeakDetector::Realloc (LPVOID mem, SIZE_T size)
         // Record the current frame pointer.
         CAPTURE_CONTEXT(context, NULL);
         tls->context = context;
-        tls->blockProcessed = FALSE;
     }
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.

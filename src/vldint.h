@@ -166,10 +166,14 @@ struct tls_t {
 #define VLD_TLS_DISABLED 0x2 	  //   If set, memory leak detection is disabled for the current thread.
 #define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
     UINT32	    oldFlags;         // Thread-local status old flags
-    BOOL	    blockProcessed;   // Internal diagnostic feature
     DWORD 	    threadId;         // Thread ID of the thread that owns this TLS structure.
     blockinfo_t* pblockInfo; 	  // Store pointer to callstack.
 };
+
+// Allocation state:
+// 1. Allocation function set tls->context and tls->pblockInfo = NULL
+// 2. HeapAlloc set tls->pblockInfo and map block
+// 3. Allocation function reset tls data and capture callstack to tls->pblockInfo
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
 // allocated in the process.
@@ -220,7 +224,7 @@ public:
     // Standard CRT and MFC common handlers
     void* _calloc (calloc_t pcalloc, context_t& context, bool debugRuntime, size_t num, size_t size);
     void* _malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size);
-    void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size); 
+    void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size);
     void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
     void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
     char* __strdup(_strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src);

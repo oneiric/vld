@@ -84,14 +84,21 @@ enum action_e {
 #endif
 #endif
 
+#define FASTSTACKWALK
+
+#ifdef FASTSTACKWALK
 #define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
+static const int NUMTHREADS = 63;            // Number of threads to run simultaneously
+#else
+#define MAXALLOC     10                      // Maximum number of allocations of each type to perform, per thread
+static const int NUMTHREADS = 15;            // Number of threads to run simultaneously
+#endif
 #define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
 #define MAXDEPTH     32                      // Maximum depth of the allocation call stack
 #define MAXSIZE      64                      // Maximum block size to allocate
 #define MINDEPTH     0                       // Minimum depth of the allocation call stack
 #define MINSIZE      16                      // Minimum block size to allocate
 static const int NUMDUPLEAKS = 3;            // Number of times to duplicate each leak
-static const int NUMTHREADS = 63;            // Number of threads to run simultaneously
 #define ONCEINAWHILE 10                      // Free a random block approx. once every...
 
 struct blockholder_t {

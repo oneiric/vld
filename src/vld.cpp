@@ -1042,7 +1042,6 @@ tls_t* VisualLeakDetector::getTls ()
         tls->oldFlags = 0x0;
         tls->threadId = threadId;
         tls->pblockInfo = NULL;
-        tls->blockProcessed = FALSE;
     }
 
     return tls;
@@ -1984,11 +1983,11 @@ VOID VisualLeakDetector::RefreshModules()
     delete oldmodules;
 }
 
-void VisualLeakDetector::getCallStack( CallStack *&pcallstack, context_t &context_ )
+void VisualLeakDetector::getCallStack( CallStack *&pcallstack, context_t &context )
 {
     CallStack* callstack = CallStack::Create();
     pcallstack = callstack;
-    callstack->getStackTrace(g_vld.m_maxTraceFrames, context_);
+    callstack->getStackTrace(g_vld.m_maxTraceFrames, context);
 }
 
 // Find the information for the module that initiated this reallocation.
