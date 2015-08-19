@@ -13,3 +13,4 @@ setup/vld-*-setup.exe
 setup/Output/
 lib/gtest/msvc/bin/
 _ReSharper.Caches/
+lib/cppformat/bin/

@@ -27,6 +27,7 @@
 #include "utility.h"    // Provides various utility functions.
 #include "vldheap.h"    // Provides internal new and delete operators.
 #include "vldint.h"     // Provides access to VLD internals.
+#include "cppformat\format.h"
 
 // Imported global variables.
 extern HANDLE             g_currentProcess;
@@ -287,23 +288,33 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
             Print(stack_line);
         isPrevFrameInternal = isFrameInternal;
 
-        int NumChars = -1;
+        fmt::WArrayWriter w(stack_line);
         // Display the current stack frame's information.
-        if (foundline) {
+        if (foundline)
+        {
             if (displacement == 0)
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s\n",
-                sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
+            {
+                w.write(L"    {} ({}): {}!{}\n",
+                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
+            }
             else
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n",
-                sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
+            {
+                w.write(L"    {} ({}): {}!{} + 0x{:X} bytes\n",
+                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
+            }
         }
-        else {
+        else
+        {
             if (displacement64 == 0)
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n",
-                programCounter, moduleName, functionName);
+            {
+                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{}\n",
+                    programCounter, moduleName, functionName);
+            }
             else
-                NumChars = _snwprintf_s(stack_line, max_size, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n",
-                programCounter, moduleName, functionName, (DWORD)displacement64);
+            {
+                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{} + 0x{:X} bytes\n",
+                    programCounter, moduleName, functionName, (DWORD)displacement64);
+            }
         }
 
         if (!isFrameInternal)
@@ -419,28 +430,39 @@ int CallStack::resolve(BOOL showInternalFrames)
                 moduleName = callingModuleName;
         }
 
-        // Use static here to increase performance, and avoid heap allocs. Hopefully this won't
-        // prove to be an issue in thread safety. If it does, it will have to be simply non-static.
+        // Use static here to increase performance, and avoid heap allocs.
+        // It's thread safe because of g_heapMapLock lock.
         static WCHAR stack_line[max_line_length] = L"";
-        int NumChars = -1;
+        fmt::WArrayWriter w(stack_line);
         // Display the current stack frame's information.
-        if (foundline) {
+        if (foundline)
+        {
             // Just truncate anything that is too long.
             if (displacement == 0)
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s\n",
-                sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
+            {
+                w.write(L"    {} ({}): {}!{}\n",
+                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
+            }
             else
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    %s (%d): %s!%s + 0x%X bytes\n",
-                sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
+            {
+                w.write(L"    {} ({}): {}!{} + 0x{:X} bytes\n",
+                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
+            }
         }
-        else {
+        else
+        {
             if (displacement64 == 0)
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s\n",
-                programCounter, moduleName, functionName);
+            {
+                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{}\n",
+                    programCounter, moduleName, functionName);
+            }
             else
-                NumChars = _snwprintf_s(stack_line, max_line_length, _TRUNCATE, L"    " ADDRESSFORMAT L" (File and line number not available): %s!%s + 0x%X bytes\n",
-                programCounter, moduleName, functionName, (DWORD)displacement64);
+            {
+                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{} + 0x{:X} bytes\n",
+                    programCounter, moduleName, functionName, (DWORD)displacement64);
+            }
         }
+        int NumChars = w.size();
 
         if (NumChars >= 0) {
             assert(m_resolved != NULL);

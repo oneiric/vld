@@ -84,22 +84,18 @@ enum action_e {
 #endif
 #endif
 
-#define FASTSTACKWALK
+//#define FASTSTACKWALK
 
-#ifdef FASTSTACKWALK
-#define MAXALLOC     1000                    // Maximum number of allocations of each type to perform, per thread
-static const int NUMTHREADS = 63;            // Number of threads to run simultaneously
-#else
-#define MAXALLOC     10                      // Maximum number of allocations of each type to perform, per thread
-static const int NUMTHREADS = 15;            // Number of threads to run simultaneously
-#endif
-#define MAXBLOCKS    (MAXALLOC * numactions) // Total maximum number of allocations, per thread
-#define MAXDEPTH     32                      // Maximum depth of the allocation call stack
-#define MAXSIZE      64                      // Maximum block size to allocate
-#define MINDEPTH     0                       // Minimum depth of the allocation call stack
-#define MINSIZE      16                      // Minimum block size to allocate
+static int MAXALLOC = 0;                     // Maximum number of allocations of each type to perform, per thread
+static int NUMTHREADS = 0;                   // Number of threads to run simultaneously
+static int MAXBLOCKS = 0;                    // Total maximum number of allocations, per thread
+
+static const int MAXDEPTH = 32;              // Maximum depth of the allocation call stack
+static const int MAXSIZE = 64;               // Maximum block size to allocate
+static const int MINDEPTH = 0;               // Minimum depth of the allocation call stack
+static const int MINSIZE = 16;               // Minimum block size to allocate
 static const int NUMDUPLEAKS = 3;            // Number of times to duplicate each leak
-#define ONCEINAWHILE 10                      // Free a random block approx. once every...
+static const int ONCEINAWHILE = 10;          // Free a random block approx. once every...
 
 struct blockholder_t {
     PVOID    block;
@@ -117,7 +113,7 @@ struct threadcontext_t {
     unsigned threadid;
 };
 
-__declspec(thread) blockholder_t  blocks [MAXBLOCKS];
+__declspec(thread) blockholder_t *blocks = NULL;
 __declspec(thread) ULONG          freeBlock = (ULONG)0;
 __declspec(thread) ULONG          counts [numactions] = { 0 };
 __declspec(thread) IMalloc       *imalloc = NULL;
@@ -303,12 +299,13 @@ unsigned __stdcall threadproc_test (LPVOID param)
     threadcontext_t* context = (threadcontext_t*)param;
     assert(context);
 
-    srand(context->seed);
-
+    blocks = new blockholder_t[MAXBLOCKS];
     for (ULONG index = 0; index < MAXBLOCKS; index++) {
         blocks[index].block = NULL;
         blocks[index].leak = FALSE;
     }
+
+    srand(context->seed);
 
     BOOL   allocate_more = TRUE;
     while (allocate_more == TRUE) {
@@ -381,16 +378,29 @@ unsigned __stdcall threadproc_test (LPVOID param)
         assert(total_allocs == 0);
     }
 
+    delete[] blocks;
     return 0;
 }
 
 void RunTestSuite()
 {
-    threadcontext_t contexts [NUMTHREADS];
+    if (!(VLDGetOptions() & VLD_OPT_SAFE_STACK_WALK))
+    {
+        MAXALLOC = 1000;
+        NUMTHREADS = 63;
+    }
+    else
+    {
+        MAXALLOC = 10;
+        NUMTHREADS = 15;
+    }
+    MAXBLOCKS = (MAXALLOC * numactions);
+
+    threadcontext_t* contexts = new threadcontext_t[NUMTHREADS];
 
     // Select a random thread to be the leaker.
     UINT leakythread = random(NUMTHREADS - 1);
-    HANDLE threads[NUMTHREADS] = {0};
+    HANDLE* threads = new HANDLE[NUMTHREADS];
 
     for (UINT index = 0; index < NUMTHREADS; ++index) {
         contexts[index].index = index;
@@ -439,6 +449,8 @@ void RunTestSuite()
         _tprintf(_T("Some other return value\n"));
         break;
     }
+    delete[] contexts;
+    delete[] threads;
 }
 
 TEST(TestSuit, MultiThread)

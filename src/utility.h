@@ -34,9 +34,11 @@ Applications should never include this header."
 #include <intrin.h>
 
 #ifdef _WIN64
-#define ADDRESSFORMAT   L"0x%.16X" // Format string for 64-bit addresses
+#define ADDRESSFORMAT       L"0x%.16X"   // Format string for 64-bit addresses
+#define ADDRESSCPPFORMAT    L"0x{:016X}" // Format string for 64-bit addresses
 #else
-#define ADDRESSFORMAT   L"0x%.8X"  // Format string for 32-bit addresses
+#define ADDRESSFORMAT       L"0x%.8X"    // Format string for 32-bit addresses
+#define ADDRESSCPPFORMAT    L"0x{:08X}"  // Format string for 32-bit addresses
 #endif // _WIN64
 #define BOM             0xFEFF     // Unicode byte-order mark.
 #define MAXREPORTLENGTH 511        // Maximum length, in characters, of "report" messages.
