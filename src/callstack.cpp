@@ -32,7 +32,7 @@
 // Imported global variables.
 extern HANDLE             g_currentProcess;
 extern HANDLE             g_currentThread;
-extern CriticalSection    g_stackWalkLock;
+extern CriticalSection    g_heapMapLock;
 extern CriticalSection    g_symbolLock;
 extern VisualLeakDetector g_vld;
 
@@ -710,7 +710,7 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     frame.Virtual             = TRUE;
 
     // Walk the stack.
-    CriticalSectionLocker cs(g_stackWalkLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());

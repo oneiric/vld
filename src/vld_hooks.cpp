@@ -42,20 +42,25 @@
 #include <tchar.h>
 
 extern HANDLE           g_currentProcess;
+extern CriticalSection  g_heapMapLock;
 extern CriticalSection  g_symbolLock;
 
 void VisualLeakDetector::firstAllocCall(tls_t * tls)
 {
-    if (tls->pblockInfo)
+    if (tls->blockWithoutGuard)
     {
         context_t context = tls->context;
-        blockinfo_t* pblockInfo = tls->pblockInfo;
+        blockinfo_t* pblockInfo = NULL;
+        if (tls->newBlockWithoutGuard == NULL)
+            AllocateHeap(tls, pblockInfo);
+        else
+            ReAllocateHeap(tls, pblockInfo);
 
         // Reset thread local flags and variables in case dbghelp.dll try allocate some data.
         tls->context.fp = NULL;
         tls->context.func = 0x0;
+        tls->blockWithoutGuard = NULL;
         tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
-        tls->pblockInfo = NULL;
 
         CallStack* callstack;
         getCallStack(callstack, context);
@@ -66,8 +71,8 @@ void VisualLeakDetector::firstAllocCall(tls_t * tls)
     // Reset thread local flags and variables for the next allocation.
     tls->context.fp = NULL;
     tls->context.func = 0x0;
+    tls->blockWithoutGuard = NULL;
     tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
-    tls->pblockInfo = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1470,7 +1475,7 @@ HANDLE VisualLeakDetector::_GetProcessHeap()
     // Get the process heap.
     HANDLE heap = m_GetProcessHeap();
 
-    CriticalSectionLocker cs(g_vld.m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
     if (heapit == g_vld.m_heapMap->end())
     {
@@ -1506,7 +1511,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
     // Map the created heap handle to a new block map.
     g_vld.mapHeap(heap);
 
-    CriticalSectionLocker cs(g_vld.m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = g_vld.m_heapMap->find(heap);
     assert(heapit != g_vld.m_heapMap->end());
 
@@ -1580,7 +1585,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
     {
-        assert(tls->pblockInfo == NULL);
+        assert(tls->blockWithoutGuard == NULL);
         return block;
     }
 
@@ -1592,8 +1597,10 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     }
 
     tls->context = context;
-
-    AllocateHeap(tls, heap, block, size);
+    tls->heap = heap;
+    tls->blockWithoutGuard = block;
+    tls->newBlockWithoutGuard = NULL;
+    tls->size = size;
 
     if (firstcall)
         firstAllocCall(tls);
@@ -1626,7 +1633,7 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
     {
-        assert(tls->pblockInfo == NULL);
+        assert(tls->blockWithoutGuard == NULL);
         return block;
     }
 
@@ -1638,8 +1645,10 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
     }
 
     tls->context = context;
-
-    AllocateHeap(tls, heap, block, size);
+    tls->heap = heap;
+    tls->blockWithoutGuard = block;
+    tls->newBlockWithoutGuard = NULL;
+    tls->size = size;
 
     if (firstcall)
         firstAllocCall(tls);
@@ -1647,13 +1656,13 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
     return block;
 }
 
-void VisualLeakDetector::AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size)
+void VisualLeakDetector::AllocateHeap (tls_t* tls, blockinfo_t* &pblockInfo)
 {
     bool debugcrtalloc = (tls->flags & VLD_TLS_DEBUGCRTALLOC) ? true : false;
 
     // The module that initiated this allocation is included in leak
     // detection. Map this block to the specified heap.
-    g_vld.mapBlock(heap, block, size, debugcrtalloc, tls->threadId, tls->pblockInfo);
+    g_vld.mapBlock(tls->heap, tls->blockWithoutGuard, tls->size, debugcrtalloc, tls->threadId, pblockInfo);
 }
 
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
@@ -1761,7 +1770,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
     {
-        assert(tls->pblockInfo == NULL);
+        assert(tls->blockWithoutGuard == NULL);
         return newmem;
     }
 
@@ -1772,12 +1781,16 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         CAPTURE_CONTEXT(context, RtlReAllocateHeap);
     }
 
-    ReAllocateHeap(tls, heap, mem, newmem, size, context);
+    tls->context = context;
+    tls->heap = heap;
+    tls->blockWithoutGuard = mem;
+    tls->newBlockWithoutGuard = newmem;
+    tls->size = size;
 
     if (firstcall)
     {
         firstAllocCall(tls);
-        tls->pblockInfo = NULL;
+        tls->blockWithoutGuard = NULL;
     }
 
     return newmem;
@@ -1809,7 +1822,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 
     if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
     {
-        assert(tls->pblockInfo == NULL);
+        assert(tls->blockWithoutGuard == NULL);
         return newmem;
     }
 
@@ -1820,33 +1833,43 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
         CAPTURE_CONTEXT(context, HeapReAlloc);
     }
 
-    ReAllocateHeap(tls, heap, mem, newmem, size, context);
+    tls->context = context;
+    tls->heap = heap;
+    tls->blockWithoutGuard = mem;
+    tls->newBlockWithoutGuard = newmem;
+    tls->size = size;
 
     if (firstcall)
     {
         firstAllocCall(tls);
-        tls->pblockInfo = NULL;
+        tls->blockWithoutGuard = NULL;
     }
 
     return newmem;
 }
 
-void VisualLeakDetector::ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context)
+void VisualLeakDetector::ReAllocateHeap (tls_t *tls, blockinfo_t* &pblockInfo)
 {
 #ifdef PRINTHOOKCALLS
 	DbgReport(_T(__FUNCTION__ "\n"));
 #endif
     bool crtalloc = (tls->flags & VLD_TLS_DEBUGCRTALLOC) ? true : false;
 
+    context_t context = tls->context;
+    HANDLE heap = tls->heap;
+    LPVOID mem = tls->blockWithoutGuard;
+    LPVOID newmem = tls->newBlockWithoutGuard;
+    SIZE_T size = tls->size;
+
     // Reset thread local flags and variables, in case any libraries called
     // into while remapping the block allocate some memory.
-    tls->context.fp = 0x0;
+    tls->context.fp = NULL;
     tls->context.func = 0x0;
     tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
 
     // The module that initiated this allocation is included in leak
     // detection. Remap the block.
-    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, tls->pblockInfo, context);
+    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, pblockInfo, context);
 
 #ifdef _DEBUG
     if(tls->context.fp != 0)

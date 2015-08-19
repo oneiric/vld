@@ -50,7 +50,7 @@ HANDLE           g_currentProcess; // Pseudo-handle for the current process.
 HANDLE           g_currentThread;  // Pseudo-handle for the current thread.
 CriticalSection  g_imageLock;      // Serializes calls to the Debug Help Library PE image access APIs.
 HANDLE           g_processHeap;    // Handle to the process's heap (COM allocations come from here).
-CriticalSection  g_stackWalkLock;  // Serializes calls to StackWalk64 from the Debug Help Library.
+CriticalSection  g_heapMapLock;    // Serializes access to the heap and block maps.
 CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
 CriticalSection  g_loaderLock;     // Serializes calls to LdrLoadDll, GetProcAddress and EnumerateLoadedModulesW64().
 ReportHookSet*   g_pReportHooks;
@@ -159,7 +159,7 @@ VisualLeakDetector::VisualLeakDetector ()
         RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
         RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
     }
-    g_stackWalkLock.Initialize();
+    g_heapMapLock.Initialize();
     g_symbolLock.Initialize();
     g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
@@ -176,7 +176,6 @@ VisualLeakDetector::VisualLeakDetector ()
     m_maxAlloc        = 0;
     m_loadedModules   = new ModuleSet();
     m_optionsLock.Initialize();
-    m_heapMapLock.Initialize();
     m_modulesLock.Initialize();
     m_selfTestFile    = __FILE__;
     m_selfTestLine    = 0;
@@ -454,12 +453,11 @@ VisualLeakDetector::~VisualLeakDetector ()
     HeapDestroy(g_vldHeap);
 
     m_optionsLock.Delete();
-    m_heapMapLock.Delete();
     m_modulesLock.Delete();
     m_tlsLock.Delete();
     g_loaderLock.Delete();
     g_imageLock.Delete();
-    g_stackWalkLock.Delete();
+    g_heapMapLock.Delete();
     g_symbolLock.Delete();
     g_vldHeapLock.Delete();
 
@@ -574,7 +572,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 
         if (!SymbolsLoaded)
         {
-            CriticalSectionLocker cs(g_vld.m_heapMapLock); // fix GetModuleFileName thread lock
+            CriticalSectionLocker cs(g_heapMapLock); // fix GetModuleFileName thread lock
             CriticalSectionLocker csSL(g_symbolLock);
             DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
             DWORD64 module = SymLoadModuleEx(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
@@ -1041,7 +1039,7 @@ tls_t* VisualLeakDetector::getTls ()
         tls->flags = 0x0;
         tls->oldFlags = 0x0;
         tls->threadId = threadId;
-        tls->pblockInfo = NULL;
+        tls->blockWithoutGuard = NULL;
     }
 
     return tls;
@@ -1089,7 +1087,7 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
         m_maxAlloc = m_curAlloc;
 
     // Insert the block's information into the block map.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Do it now.
@@ -1129,7 +1127,7 @@ VOID VisualLeakDetector::mapHeap (HANDLE heap)
     heapinfo_t* heapinfo = new heapinfo_t;
     heapinfo->blockMap.reserve(BLOCK_MAP_RESERVE);
     heapinfo->flags = 0x0;
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->insert(heap, heapinfo);
     if (heapit == m_heapMap->end()) {
         // Somehow this heap has been created twice without being destroyed,
@@ -1159,7 +1157,7 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
         return;
 
     // Find this heap's block map.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We don't have a block map for this heap. We must not have monitored
@@ -1229,7 +1227,7 @@ VOID VisualLeakDetector::unmapBlock (HANDLE heap, LPCVOID mem, const context_t &
 VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 {
     // Find this heap's block map.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // This heap hasn't been mapped. We must not have monitored this heap's
@@ -1290,7 +1288,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     // The block was reallocated in-place. Find the existing blockinfo_t
     // entry in the block map and update it with the new callstack and size.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Obviously the
@@ -1454,7 +1452,7 @@ SIZE_T VisualLeakDetector::reportHeapLeaks (HANDLE heap)
     assert(heap != NULL);
 
     // Find the heap's information (blockmap, etc).
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // Nothing is allocated from this heap. No leaks.
@@ -2015,7 +2013,7 @@ SIZE_T VisualLeakDetector::GetLeaksCount()
 
     SIZE_T leaksCount = 0;
     // Generate a memory leak report for each heap in the process.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
@@ -2034,7 +2032,7 @@ SIZE_T VisualLeakDetector::GetThreadLeaksCount(DWORD threadId)
 
     SIZE_T leaksCount = 0;
     // Generate a memory leak report for each heap in the process.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
@@ -2053,7 +2051,7 @@ SIZE_T VisualLeakDetector::ReportLeaks( )
 
     // Generate a memory leak report for each heap in the process.
     SIZE_T leaksCount = 0;
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     bool firstLeak = true;
     Set<blockinfo_t*> aggregatedLeaks;
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
@@ -2074,7 +2072,7 @@ SIZE_T VisualLeakDetector::ReportThreadLeaks( DWORD threadId )
 
     // Generate a memory leak report for each heap in the process.
     SIZE_T leaksCount = 0;
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     bool firstLeak = true;
     Set<blockinfo_t*> aggregatedLeaks;
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
@@ -2094,7 +2092,7 @@ VOID VisualLeakDetector::MarkAllLeaksAsReported( )
     }
 
     // Generate a memory leak report for each heap in the process.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
@@ -2111,7 +2109,7 @@ VOID VisualLeakDetector::MarkThreadLeaksAsReported( DWORD threadId )
     }
 
     // Generate a memory leak report for each heap in the process.
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         HANDLE heap = (*heapit).first;
         UNREFERENCED_PARAMETER(heap);
@@ -2480,7 +2478,7 @@ int VisualLeakDetector::ResolveCallstacks()
 
     int unresolvedFunctionsCount = 0;
     // Generate the Callstacks early
-    CriticalSectionLocker cs(m_heapMapLock);
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapiter = m_heapMap->begin(); heapiter != m_heapMap->end(); ++heapiter)
     {
         HANDLE heap = (*heapiter).first;

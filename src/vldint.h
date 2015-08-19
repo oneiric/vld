@@ -167,13 +167,16 @@ struct tls_t {
 #define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
     UINT32	    oldFlags;         // Thread-local status old flags
     DWORD 	    threadId;         // Thread ID of the thread that owns this TLS structure.
-    blockinfo_t* pblockInfo; 	  // Store pointer to callstack.
+    HANDLE      heap;
+    LPVOID      blockWithoutGuard; // Store pointer to block.
+    LPVOID      newBlockWithoutGuard;
+    SIZE_T      size;
 };
 
 // Allocation state:
-// 1. Allocation function set tls->context and tls->pblockInfo = NULL
-// 2. HeapAlloc set tls->pblockInfo and map block
-// 3. Allocation function reset tls data and capture callstack to tls->pblockInfo
+// 1. Allocation function set tls->context and tls->blockWithoutGuard = NULL
+// 2. HeapAlloc set tls->heap, tls->blockWithoutGuard, tls->newBlockWithoutGuard and tls->size
+// 3. Allocation function reset tls data, map block and capture callstack to tls->blockWithoutGuard
 
 // The TlsSet allows VLD to keep track of all thread local storage structures
 // allocated in the process.
@@ -330,7 +333,7 @@ private:
     static bool isModuleExcluded (UINT_PTR returnaddress);
     blockinfo_t* findAllocedBlock(LPCVOID, __out HANDLE& heap);
     static void getCallStack( CallStack *&pcallstack, context_t &context );
-    static inline void firstAllocCall(tls_t * tls);
+    static void firstAllocCall(tls_t * tls);
     void setupReporting();
     void checkInternalMemoryLeaks();
     bool waitForAllVLDThreads();
@@ -363,8 +366,8 @@ private:
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
 
-    static void AllocateHeap (tls_t* tls, HANDLE heap, LPVOID block, SIZE_T size);
-    static void ReAllocateHeap (tls_t *tls, HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size, const context_t &context);
+    static void AllocateHeap (tls_t* tls, blockinfo_t* &pblockInfo);
+    static void ReAllocateHeap (tls_t *tls, blockinfo_t* &pblockInfo);
 
     ////////////////////////////////////////////////////////////////////////////////
     // Private data
@@ -378,7 +381,6 @@ private:
     SIZE_T               m_curAlloc;          // Total amount currently allocated.
     SIZE_T               m_maxAlloc;          // Largest ever allocated at once.
     ModuleSet           *m_loadedModules;     // Contains information about all modules loaded in the process.
-    CriticalSection      m_heapMapLock;       // Serializes access to the heap and block maps.
     SIZE_T               m_maxDataDump;       // Maximum number of user-data bytes to dump for each leaked block.
     UINT32               m_maxTraceFrames;    // Maximum number of frames per stack trace for each leaked block.
     CriticalSection      m_modulesLock;       // Protects accesses to the "loaded modules" ModuleSet.
