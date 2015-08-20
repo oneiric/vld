@@ -480,26 +480,6 @@ void CallStack::dumpResolved() const
         Print(m_resolved);
 }
 
-
-
-// getHashValue - Generate callstack hash value.
-//
-//  Return Value:
-//
-//    None.
-//
-DWORD CallStack::getHashValue () const
-{
-    DWORD       hashcode = 0xD202EF8D;
-
-    // Iterate through each frame in the call stack.
-    for (UINT32 frame = 0; frame < m_size; frame++) {
-        UINT_PTR programcounter = (*this)[frame];
-        hashcode = CalculateCRC32(programcounter, hashcode);
-    }
-    return hashcode;
-}
-
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
 //   always appended to the back of the chunk list (aka the "top" chunk).
 //
@@ -622,7 +602,9 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     UINT32 maxframes = min(62, maxdepth + 10);
     UINT_PTR* myFrames = new UINT_PTR[maxframes];
     ZeroMemory(myFrames, sizeof(UINT_PTR) * maxframes);
-    RtlCaptureStackBackTrace(0, maxframes, reinterpret_cast<PVOID*>(myFrames), NULL);
+    ULONG BackTraceHash;
+    maxframes = RtlCaptureStackBackTrace(0, maxframes, reinterpret_cast<PVOID*>(myFrames), &BackTraceHash);
+    m_hashValue = BackTraceHash;
     UINT32  startIndex = 0;
     while (count < maxframes) {
         if (myFrames[count] == 0)
@@ -727,4 +709,22 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         // Push this frame's program counter onto the CallStack.
         push_back((UINT_PTR)frame.AddrPC.Offset);
     }
+}
+
+// getHashValue - Generate callstack hash value.
+//
+//  Return Value:
+//
+//    None.
+//
+DWORD SafeCallStack::getHashValue() const
+{
+    DWORD       hashcode = 0xD202EF8D;
+
+    // Iterate through each frame in the call stack.
+    for (UINT32 frame = 0; frame < m_size; frame++) {
+        UINT_PTR programcounter = (*this)[frame];
+        hashcode = CalculateCRC32(programcounter, hashcode);
+    }
+    return hashcode;
 }

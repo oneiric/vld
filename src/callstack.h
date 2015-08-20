@@ -88,7 +88,7 @@ public:
 	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
 	// Formats the stack frame into a human readable format, and saves it for later retrieval.
 	int resolve(BOOL showinternalframes);
-	DWORD getHashValue () const;
+    virtual DWORD getHashValue() const = 0;
 	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
 
 	BOOL operator == (const CallStack &other) const;
@@ -99,12 +99,6 @@ protected:
 	// Protected data.
 	UINT32 m_status;                    // Status flags:
 #define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
-
-private:
-	// Don't allow this!!
-	CallStack (const CallStack &other);
-	// Don't allow this!!
-	CallStack& operator = (const CallStack &other);
 
 	// The chunk list is made of a linked list of Chunks.
 	struct chunk_t {
@@ -128,6 +122,12 @@ private:
 	// human readable form. Currently this is only called by the dump method.
 	void dumpResolved() const;
 	bool isInternalModule( const PWSTR filename ) const;
+
+private:
+    // Don't allow this!!
+    CallStack(const CallStack &other);
+    // Don't allow this!!
+    CallStack& operator = (const CallStack &other);
 };
 
 
@@ -141,7 +141,18 @@ private:
 class FastCallStack : public CallStack
 {
 public:
-	VOID getStackTrace (UINT32 maxdepth, const context_t& context);
+    FastCallStack()
+        : m_hashValue(0)
+    {
+    }
+    virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context);
+    virtual DWORD getHashValue() const
+    {
+        return m_hashValue;
+    }
+
+private:
+    UINT32 m_hashValue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -154,5 +165,6 @@ public:
 class SafeCallStack : public CallStack
 {
 public:
-	VOID getStackTrace (UINT32 maxdepth, const context_t& context);
+    virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context);
+    virtual DWORD getHashValue() const;
 };
