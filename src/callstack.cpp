@@ -181,6 +181,84 @@ VOID CallStack::clear ()
     m_resolvedLength = 0;
 }
 
+LPCWSTR CallStack::getFunctionName(SIZE_T programCounter, DWORD64& displacement64,
+    SYMBOL_INFO* functionInfo) const
+{
+    // Initialize structures passed to the symbol handler.
+    functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+    functionInfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+
+    // Try to get the name of the function containing this program
+    // counter address.
+    displacement64 = 0;
+    LPCWSTR functionName;
+    DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
+    if (SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
+        functionName = functionInfo->Name;
+    }
+    else {
+        // GetFormattedMessage( GetLastError() );
+        fmt::WArrayWriter wf(functionInfo->Name, MAX_SYMBOL_NAME_LENGTH);
+        wf.write(L"" ADDRESSCPPFORMAT, programCounter);
+        functionName = wf.c_str();
+        displacement64 = 0;
+    }
+    return functionName;
+}
+
+DWORD CallStack::resolveFunction(SIZE_T programCounter, IMAGEHLP_LINEW64* sourceInfo, DWORD displacement,
+    LPCWSTR functionName, LPWSTR stack_line, DWORD stackLineSize) const
+{
+    WCHAR callingModuleName[260];
+    HMODULE hCallingModule = GetCallingModule(programCounter);
+    LPWSTR moduleName = L"(Module name unavailable)";
+    if (hCallingModule &&
+        GetModuleFileName(hCallingModule, callingModuleName, _countof(callingModuleName)) > 0)
+    {
+        moduleName = wcsrchr(callingModuleName, L'\\');
+        if (moduleName == NULL)
+            moduleName = wcsrchr(callingModuleName, L'/');
+        if (moduleName != NULL)
+            moduleName++;
+        else
+            moduleName = callingModuleName;
+    }
+
+    fmt::WArrayWriter w(stack_line, stackLineSize);
+    // Display the current stack frame's information.
+    if (sourceInfo)
+    {
+        if (displacement == 0)
+        {
+            w.write(L"    {} ({}): {}!{}()\n",
+                sourceInfo->FileName, sourceInfo->LineNumber, moduleName,
+                functionName);
+        }
+        else
+        {
+            w.write(L"    {} ({}): {}!{}() + 0x{:X} bytes\n",
+                sourceInfo->FileName, sourceInfo->LineNumber, moduleName,
+                functionName, displacement);
+        }
+    }
+    else
+    {
+        if (displacement == 0)
+        {
+            w.write(L"    {}!{}()\n",
+                moduleName, functionName);
+        }
+        else
+        {
+            w.write(L"    {}!{}() + 0x{:X} bytes\n",
+                moduleName, functionName, displacement);
+        }
+    }
+    DWORD NumChars = w.size();
+    stack_line[NumChars] = '\0';
+    return NumChars;
+}
+
 
 // dump - Dumps a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available.
@@ -215,17 +293,11 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
     IMAGEHLP_LINE64  sourceInfo = { 0 };
     sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-    BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
-
     WCHAR lowerCaseName [MAX_PATH];
-    WCHAR callingModuleName [MAX_PATH];
 
-    const size_t max_size = MAXREPORTLENGTH + 1;
-
-    // Use static here to increase performance, and avoid heap allocs. Hopefully this won't
-    // prove to be an issue in thread safety. If it does, it will have to be simply non-static.
+    // Use static here to increase performance, and avoid heap allocs.
+    // It's thread safe because of g_heapMapLock lock.
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
-    bool isPrevFrameInternal = false;
 
     // Iterate through each frame in the call stack.
     for (UINT32 frame = start_frame; frame < m_size; frame++)
@@ -238,87 +310,29 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
-        bool isFrameInternal = false;
-        if (foundline && !showInternalFrames) {
+        if (foundline) {
             wcscpy_s(lowerCaseName, sourceInfo.FileName);
             _wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
             if (isInternalModule(lowerCaseName))
             {
-                isFrameInternal = true;
                 // Don't show frames in files internal to the heap.
                 g_symbolLock.Leave();
+                continue;
             }
         }
 
-        // Initialize structures passed to the symbol handler.
-        SYMBOL_INFO* functionInfo = (SYMBOL_INFO*)&symbolBuffer;
-        functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-        functionInfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+        DWORD64 displacement64;
+        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
 
-        // Try to get the name of the function containing this program
-        // counter address.
-        DWORD64          displacement64 = 0;
-        LPWSTR           functionName;
-        DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-        if (SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
-            functionName = functionInfo->Name;
-        }
-        else {
-            // GetFormattedMessage( GetLastError() );
-            functionName = L"(Function name unavailable)";
-            displacement64 = 0;
-        }
         g_symbolLock.Leave();
 
-        HMODULE hCallingModule = GetCallingModule(programCounter);
-        LPWSTR moduleName = L"(Module name unavailable)";
-        if (hCallingModule &&
-            GetModuleFileName(hCallingModule, callingModuleName, _countof(callingModuleName)) > 0)
-        {
-            moduleName = wcsrchr(callingModuleName, L'\\');
-            if (moduleName == NULL)
-                moduleName = wcsrchr(callingModuleName, L'/');
-            if (moduleName != NULL)
-                moduleName++;
-            else
-                moduleName = callingModuleName;
-        }
+        if (!foundline)
+            displacement = (DWORD)displacement64;
+        DWORD NumChars = resolveFunction(programCounter, foundline ? &sourceInfo : NULL,
+            displacement, functionName, stack_line, _countof(stack_line));
 
-        if (!isFrameInternal && isPrevFrameInternal)
-            Print(stack_line);
-        isPrevFrameInternal = isFrameInternal;
-
-        fmt::WArrayWriter w(stack_line);
-        // Display the current stack frame's information.
-        if (foundline)
-        {
-            if (displacement == 0)
-            {
-                w.write(L"    {} ({}): {}!{}\n",
-                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
-            }
-            else
-            {
-                w.write(L"    {} ({}): {}!{} + 0x{:X} bytes\n",
-                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
-            }
-        }
-        else
-        {
-            if (displacement64 == 0)
-            {
-                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{}\n",
-                    programCounter, moduleName, functionName);
-            }
-            else
-            {
-                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{} + 0x{:X} bytes\n",
-                    programCounter, moduleName, functionName, (DWORD)displacement64);
-            }
-        }
-
-        if (!isFrameInternal)
-            Print(stack_line);
+        Print(stack_line);
     }
 }
 
@@ -359,7 +373,10 @@ int CallStack::resolve(BOOL showInternalFrames)
 
     BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 
-    WCHAR callingModuleName [MAX_PATH] = L"";
+    // Use static here to increase performance, and avoid heap allocs.
+    // It's thread safe because of g_heapMapLock lock.
+    static WCHAR function_generated_name[MAX_PATH] = L"";
+    static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
     WCHAR lowerCaseName [MAX_PATH];
 
     const size_t max_line_length = MAXREPORTLENGTH + 1;
@@ -375,14 +392,13 @@ int CallStack::resolve(BOOL showInternalFrames)
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
         g_symbolLock.Enter();
-        BOOL             foundline = FALSE;
         DWORD            displacement = 0;
 
         // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
         // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
         // When that happens there is nothing we can do except crash.
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        BOOL foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
         assert(m_resolved != NULL);
 
         if (foundline && !showInternalFrames) {
@@ -395,74 +411,16 @@ int CallStack::resolve(BOOL showInternalFrames)
             }
         }
 
-        // Initialize structures passed to the symbol handler.
-        SYMBOL_INFO* functionInfo = (SYMBOL_INFO*)&symbolBuffer;
-        functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
-        functionInfo->MaxNameLen = MAX_SYMBOL_NAME_LENGTH;
+        DWORD64 displacement64;
+        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
 
-        // Try to get the name of the function containing this program
-        // counter address.
-        DWORD64          displacement64 = 0;
-        LPWSTR           functionName;
-        DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-        if (SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
-            functionName = functionInfo->Name;
-        }
-        else {
-            unresolvedFunctionsCount++;
-            // GetFormattedMessage( GetLastError() );
-            functionName = L"(Function name unavailable)";
-            displacement64 = 0;
-        }
         g_symbolLock.Leave();
 
-        HMODULE hCallingModule = GetCallingModule(programCounter);
-        LPWSTR moduleName = L"(Module name unavailable)";
-        if (hCallingModule &&
-            GetModuleFileName(hCallingModule, callingModuleName, _countof(callingModuleName)) > 0)
-        {
-            moduleName = wcsrchr(callingModuleName, L'\\');
-            if (moduleName == NULL)
-                moduleName = wcsrchr(callingModuleName, L'/');
-            if (moduleName != NULL)
-                moduleName++;
-            else
-                moduleName = callingModuleName;
-        }
-
-        // Use static here to increase performance, and avoid heap allocs.
-        // It's thread safe because of g_heapMapLock lock.
-        static WCHAR stack_line[max_line_length] = L"";
-        fmt::WArrayWriter w(stack_line);
-        // Display the current stack frame's information.
-        if (foundline)
-        {
-            // Just truncate anything that is too long.
-            if (displacement == 0)
-            {
-                w.write(L"    {} ({}): {}!{}\n",
-                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName);
-            }
-            else
-            {
-                w.write(L"    {} ({}): {}!{} + 0x{:X} bytes\n",
-                    sourceInfo.FileName, sourceInfo.LineNumber, moduleName, functionName, displacement);
-            }
-        }
-        else
-        {
-            if (displacement64 == 0)
-            {
-                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{}\n",
-                    programCounter, moduleName, functionName);
-            }
-            else
-            {
-                w.write(L"    " ADDRESSCPPFORMAT L" (File and line number not available): {}!{} + 0x{:X} bytes\n",
-                    programCounter, moduleName, functionName, (DWORD)displacement64);
-            }
-        }
-        int NumChars = w.size();
+        if (!foundline)
+            displacement = (DWORD)displacement64;
+        DWORD NumChars = resolveFunction( programCounter, foundline ? &sourceInfo : NULL,
+            displacement, functionName, stack_line, _countof( stack_line ));
 
         if (NumChars >= 0) {
             assert(m_resolved != NULL);

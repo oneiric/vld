@@ -86,7 +86,7 @@ public:
 	// Prints the call stack to one of either / or the debug output window and or
 	// a log file.
 	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
-	// Formats the stack frame into a human readable format, and saves it for later retrieval.
+    // Formats the stack frame into a human readable format, and saves it for later retrieval.
 	int resolve(BOOL showinternalframes);
     virtual DWORD getHashValue() const = 0;
 	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
@@ -122,6 +122,10 @@ protected:
 	// human readable form. Currently this is only called by the dump method.
 	void dumpResolved() const;
 	bool isInternalModule( const PWSTR filename ) const;
+    LPCWSTR getFunctionName(SIZE_T programCounter, DWORD64& displacement64,
+        SYMBOL_INFO* functionInfo) const;
+    DWORD resolveFunction(SIZE_T programCounter, IMAGEHLP_LINEW64* sourceInfo, DWORD displacement,
+        LPCWSTR functionName, LPWSTR stack_line, DWORD stackLineSize) const;
 
 private:
     // Don't allow this!!
