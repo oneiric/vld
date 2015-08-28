@@ -674,7 +674,7 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     // to the search path since that is often where the PDB will be located.
     WCHAR   directory [_MAX_DIR] = {0};
     WCHAR   drive [_MAX_DRIVE] = {0};
-    LPWSTR  path = new WCHAR [MAX_PATH];
+    LPWSTR  path = new WCHAR [MAX_PATH * 4];
     path[0] = L'\0';
 
     HMODULE module = GetModuleHandleW(NULL);
@@ -682,36 +682,23 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     _wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
     wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
     path = AppendString(path, directory);
+    path = AppendString(path, L";");
 
     // When the symbol handler is given a custom symbol search path, it will no
-    // longer search the default directories (working directory, system root,
-    // etc). But we'd like it to still search those directories, so we'll add
+    // longer search the default directories (working directory, _NT_SYMBOL_PATH,
+    // etc...). But we'd like it to still search those directories, so we'll add
     // them to our custom search path.
-    //
+
     // Append the working directory.
-    path = AppendString(path, L";.\\");
-
-    // Append the Windows directory.
-    WCHAR   windows [MAX_PATH] = {0};
-    if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
-        path = AppendString(path, L";");
-        path = AppendString(path, windows);
-    }
-
-    // Append the system directory.
-    WCHAR   system [MAX_PATH] = {0};
-    if (GetSystemDirectory(system, MAX_PATH) != 0) {
-        path = AppendString(path, L";");
-        path = AppendString(path, system);
-    }
+    path = AppendString(path, L".\\;");
 
     // Append %_NT_SYMBOL_PATH%.
     DWORD   envlen = GetEnvironmentVariable(L"_NT_SYMBOL_PATH", NULL, 0);
     if (envlen != 0) {
         LPWSTR env = new WCHAR [envlen];
         if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
-            path = AppendString(path, L";");
             path = AppendString(path, env);
+            path = AppendString(path, L";");
         }
         delete [] env;
     }
@@ -721,8 +708,19 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     if (envlen != 0) {
         LPWSTR env = new WCHAR [envlen];
         if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
-            path = AppendString(path, L";");
             path = AppendString(path, env);
+            path = AppendString(path, L";");
+        }
+        delete [] env;
+    }
+
+    // Append %_NT_ALTERNATE_SYMBOL_PATH%.
+    envlen = GetEnvironmentVariable(L"_NT_ALTERNATE_SYMBOL_PATH", NULL, 0);
+    if (envlen != 0) {
+        LPWSTR env = new WCHAR [envlen];
+        if (GetEnvironmentVariable(L"_NT_ALTERNATE_SYMBOL_PATH", env, envlen) != 0) {
+            path = AppendString(path, env);
+            path = AppendString(path, L";");
         }
         delete [] env;
     }
@@ -730,33 +728,26 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
 #if _MSC_VER > 1900
 #error Not supported VS
 #endif
-    // Append Visual Studio symbols cache directory.
-    HKEY debuggerkey;
-    WCHAR symbolCacheDir [MAX_PATH] = {0};
-    // VS2015
-    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\14.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2013
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\12.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2012
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\11.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2010
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2008
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    // Append Visual Studio 2015/2013/2012/2010/2008 symbols cache directory.
+    for (UINT n = 9; n <= 14; ++n) {
+        WCHAR debuggerpath[MAX_PATH] = { 0 };
+        swprintf(debuggerpath, _countof(debuggerpath), L"Software\\Microsoft\\VisualStudio\\%u.0\\Debugger", n);
+        HKEY debuggerkey;
+        WCHAR symbolCacheDir[MAX_PATH] = { 0 };
+        LSTATUS regstatus = RegOpenKeyExW(HKEY_CURRENT_USER, debuggerpath, 0, KEY_QUERY_VALUE, &debuggerkey);
 
-    if (regstatus == ERROR_SUCCESS)
-    {
-        DWORD valuetype;
-        DWORD dirLength = MAX_PATH * sizeof(WCHAR);
-        regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
-        if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
-        {
-            path = AppendString(path, L";");
-            path = AppendString(path, symbolCacheDir);
-            path = AppendString(path, L"\\MicrosoftPublicSymbols;");
-            path = AppendString(path, symbolCacheDir);
+        if (regstatus == ERROR_SUCCESS) {
+            DWORD valuetype;
+            DWORD dirLength = MAX_PATH * sizeof(WCHAR);
+            regstatus = RegQueryValueExW(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
+            if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ && symbolCacheDir[0] != NULL && !wcsstr(path, symbolCacheDir)) {
+                path = AppendString(path, symbolCacheDir);
+                path = AppendString(path, L"\\MicrosoftPublicSymbols;");
+                path = AppendString(path, symbolCacheDir);
+                path = AppendString(path, L";");
+            }
+            RegCloseKey(debuggerkey);
         }
-        RegCloseKey(debuggerkey);
     }
 
     // Remove any quotes from the path. The symbol handler doesn't like them.
