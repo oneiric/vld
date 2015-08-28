@@ -35,6 +35,7 @@
 #include "set.h"         // Provides a lightweight STL-like set template.
 #include "utility.h"     // Provides various utility functions.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
+#include "loaderlock.h"
 #include "tchar.h"
 
 #define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
@@ -53,7 +54,6 @@ CriticalSection  g_imageLock;      // Serializes calls to the Debug Help Library
 HANDLE           g_processHeap;    // Handle to the process's heap (COM allocations come from here).
 CriticalSection  g_heapMapLock;    // Serializes access to the heap and block maps.
 CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
-CriticalSection  g_loaderLock;     // Serializes calls to LdrLoadDll, GetProcAddress and EnumerateLoadedModulesW64().
 ReportHookSet*   g_pReportHooks;
 
 // The one and only VisualLeakDetector object instance.
@@ -61,8 +61,12 @@ __declspec(dllexport) VisualLeakDetector g_vld;
 
 // Patch only this entries in Kernel32.dll and KernelBase.dll
 patchentry_t ldrLoadDllPatch [] = {
-    "LdrLoadDll",   NULL,    VisualLeakDetector::_LdrLoadDll,
-    NULL,           NULL,    NULL
+    "LdrLoadDll",             NULL, VisualLeakDetector::_LdrLoadDll,
+    "LdrGetDllHandle",        NULL, VisualLeakDetector::_LdrGetDllHandle,
+    "LdrGetProcedureAddress", NULL, VisualLeakDetector::_LdrGetProcedureAddress,
+    "LdrLockLoaderLock",      NULL, VisualLeakDetector::_LdrLockLoaderLock,
+    "LdrUnlockLoaderLock",    NULL, VisualLeakDetector::_LdrUnlockLoaderLock,
+    NULL,                     NULL, NULL
 };
 moduleentry_t ntdllPatch [] = {
     "ntdll.dll",    FALSE,  NULL,   ldrLoadDllPatch,
@@ -373,12 +377,20 @@ VisualLeakDetector::VisualLeakDetector ()
         RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
         RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
         RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+
+        LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
+        LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
+        LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
+        LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
+        LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
     }
+
+    LoaderLock ll;
+
     g_heapMapLock.Initialize();
     g_symbolLock.Initialize();
     g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
-    g_loaderLock.Initialize();
     g_pReportHooks    = new ReportHookSet;
 
     // Initialize remaining private data.
@@ -583,6 +595,8 @@ void VisualLeakDetector::checkInternalMemoryLeaks()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
         return;
@@ -670,7 +684,6 @@ VisualLeakDetector::~VisualLeakDetector ()
     m_optionsLock.Delete();
     m_modulesLock.Delete();
     m_tlsLock.Delete();
-    g_loaderLock.Delete();
     g_imageLock.Delete();
     g_heapMapLock.Delete();
     g_symbolLock.Delete();
@@ -755,6 +768,8 @@ static char dbghelp32_assert[sizeof(IMAGEHLP_MODULE64) == 3256 ? 1 : -1];
 //
 VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 {
+    LoaderLock ll;
+
     // Iterate through the supplied set, until all modules have been attached.
     for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit)
     {
@@ -2153,7 +2168,7 @@ FARPROC VisualLeakDetector::_RGetProcAddressForCaller(HMODULE module, LPCSTR pro
 //
 //    Returns the value returned by LdrLoadDll.
 //
-NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
+NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PULONG flags, unicodestring_t *modulename,
     PHANDLE modulehandle)
 {
     // Load the DLL
@@ -2169,15 +2184,46 @@ NTSTATUS VisualLeakDetector::_LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, 
     return status;
 }
 
+NTSTATUS VisualLeakDetector::_LdrGetDllHandle(IN PWSTR DllPath OPTIONAL, IN PULONG DllCharacteristics OPTIONAL, IN PUNICODE_STRING DllName, OUT PVOID *DllHandle OPTIONAL)
+{
+    LoaderLock ll;
+
+    NTSTATUS status = LdrGetDllHandle(DllPath, DllCharacteristics, DllName, DllHandle);
+    return status;
+}
+NTSTATUS VisualLeakDetector::_LdrGetProcedureAddress(IN PVOID BaseAddress, IN PANSI_STRING Name, IN ULONG Ordinal, OUT PVOID * ProcedureAddress)
+{
+    LoaderLock ll;
+
+    NTSTATUS status = LdrGetProcedureAddress(BaseAddress, Name, Ordinal, ProcedureAddress);
+    return status;
+}
+
+NTSTATUS VisualLeakDetector::_LdrLockLoaderLock(IN ULONG Flags, OUT PULONG Disposition OPTIONAL, OUT PULONG_PTR Cookie OPTIONAL)
+{
+    return LdrLockLoaderLock(Flags, Disposition, Cookie);
+}
+
+NTSTATUS VisualLeakDetector::_LdrUnlockLoaderLock(IN ULONG Flags, IN ULONG_PTR Cookie OPTIONAL)
+{
+    return LdrUnlockLoaderLock(Flags, Cookie);
+}
+
+NTSTATUS VisualLeakDetector::_LdrUnloadDll(IN PVOID BaseAddress)
+{
+    return LdrUnloadDll(BaseAddress);
+}
+
 VOID VisualLeakDetector::RefreshModules()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF)
         return;
 
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
     {
-        CriticalSectionLocker cs(g_loaderLock);
         // Duplicate code here in this method. Consider refactoring out to another method.
         // Create a new set of all loaded modules, including any newly loaded
         // modules.
@@ -2693,6 +2739,8 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
 
 int VisualLeakDetector::ResolveCallstacks()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF)
         return 0;
 
