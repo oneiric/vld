@@ -213,5 +213,5 @@ void vlddelete (void *block)
 
     // Free the block.
     freed = RtlFreeHeap(g_vldHeap, 0x0, header);
-    assert(freed != FALSE);
+    assert(freed);
 }
