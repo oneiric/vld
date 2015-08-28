@@ -65,10 +65,7 @@ CallStack::~CallStack ()
         delete temp;
     }
 
-    if (m_resolved)
-    {
-        delete [] m_resolved;
-    }
+    delete [] m_resolved;
 
     m_resolved = NULL;
     m_resolvedCapacity = 0;
@@ -389,9 +386,11 @@ int CallStack::resolve(BOOL showInternalFrames)
 
     const size_t max_line_length = MAXREPORTLENGTH + 1;
     m_resolvedCapacity = m_size * max_line_length;
-    m_resolved = new WCHAR[m_resolvedCapacity];
     const size_t allocedBytes = m_resolvedCapacity * sizeof(WCHAR);
-    ZeroMemory(m_resolved, allocedBytes);
+    m_resolved = new WCHAR[m_resolvedCapacity];
+    if (m_resolved) {
+        ZeroMemory(m_resolved, allocedBytes);
+    }
 
     // Iterate through each frame in the call stack.
     for (UINT32 frame = 0; frame < m_size; frame++)
@@ -407,7 +406,6 @@ int CallStack::resolve(BOOL showInternalFrames)
         // When that happens there is nothing we can do except crash.
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         BOOL foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
-        assert(m_resolved != NULL);
 
         bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
@@ -421,9 +419,10 @@ int CallStack::resolve(BOOL showInternalFrames)
 
         // show one allocation function for context
         if (NumChars >= 0 && !isFrameInternal && isPrevFrameInternal) {
-            assert(m_resolved != NULL);
             m_resolvedLength += NumChars;
-            wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
+            if (m_resolved) {
+                wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
+            }
         }
         isPrevFrameInternal = isFrameInternal;
 
@@ -439,9 +438,10 @@ int CallStack::resolve(BOOL showInternalFrames)
             displacement, functionName, stack_line, _countof( stack_line ));
 
         if (NumChars >= 0 && !isFrameInternal) {
-            assert(m_resolved != NULL);
             m_resolvedLength += NumChars;
-            wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
+            if (m_resolved) {
+                wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
+            }
         }
     } // end for loop
     return unresolvedFunctionsCount;
