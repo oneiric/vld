@@ -45,16 +45,12 @@ Applications should never include this header."
 
 // Architecture-specific definitions for x86 and x64
 #if defined(_M_IX86)
-#define SIZEOFPTR 4
 #define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_I386
-#define AXREG Eax
 #define BPREG Ebp
 #define IPREG Eip
 #define SPREG Esp
 #elif defined(_M_X64)
-#define SIZEOFPTR 8
 #define X86X64ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
-#define AXREG Rax
 #define BPREG Rbp
 #define IPREG Rip
 #define SPREG Rsp
@@ -62,38 +58,36 @@ Applications should never include this header."
 
 struct context_t
 {
-    UINT_PTR* fp;
+    UINT_PTR fp;
     UINT_PTR func;
 #if defined(_M_IX86)
+    DWORD Ebp;
     DWORD Esp;
     DWORD Eip;
 #elif defined(_M_X64)
+    DWORD64 Rbp;
     DWORD64 Rsp;
     DWORD64 Rip;
 #endif // _M_IX86
 };
 
+// Capture current context
 #if defined(_M_IX86)
-// Copies the current frame pointer to the supplied variable.
-/*#define CAPTURE_CONTEXT(context, function)                                  \
-    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;                \
-    context.func = (UINT_PTR)(function)*/
 #define CAPTURE_CONTEXT(context, function)                                  \
     CONTEXT _ctx;															\
     RtlCaptureContext(&_ctx);                                               \
-    context.Esp = _ctx.Esp; context.Eip = _ctx.Eip;							\
-    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;		    	\
+    context.Ebp = _ctx.Ebp; context.Esp = _ctx.Esp;	context.Eip = _ctx.Eip; \
+    context.fp = (UINT_PTR)_ReturnAddress();		    	                \
     context.func = (UINT_PTR)(function)
-#define GET_RETURN_ADDRESS(context)  *(context.fp + 1)
+#define GET_RETURN_ADDRESS(context)  (context.fp)
 #elif defined(_M_X64)
-// Capture current context
 #define CAPTURE_CONTEXT(context, function)									\
     CONTEXT _ctx;															\
     RtlCaptureContext(&_ctx);                                               \
-    context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;							\
-    context.fp = ((UINT_PTR*)_AddressOfReturnAddress()) - 1;		    	\
+    context.Rbp = _ctx.Rbp; context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;	\
+    context.fp = (UINT_PTR)_ReturnAddress();		    	                \
     context.func = (UINT_PTR)(function)
-#define GET_RETURN_ADDRESS(context)  *(context.fp + 1)
+#define GET_RETURN_ADDRESS(context)  (context.fp)
 #else
 // If you want to retarget Visual Leak Detector to another processor
 // architecture then you'll need to provide an architecture-specific macro to

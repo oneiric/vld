@@ -522,9 +522,9 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         count++;
         push_back(function);
     }
-    UINT_PTR* framePointer = context.fp;
 
 /*#if defined(_M_IX86)
+    UINT_PTR* framePointer = (UINT_PTR*)context.BPREG;
     while (count < maxdepth) {
         if (*framePointer < (UINT_PTR)framePointer) {
             if (*framePointer == NULL) {
@@ -567,7 +567,7 @@ VOID FastCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     while (count < maxframes) {
         if (myFrames[count] == 0)
             break;
-        if (myFrames[count] == *(framePointer + 1))
+        if (myFrames[count] == context.fp)
             startIndex = count;
         count++;
     }
@@ -611,32 +611,15 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         push_back(function);
     }
 
-    UINT_PTR* framePointer = context.fp;
     DWORD   architecture   = X86X64ARCHITECTURE;
-    CONTEXT currentContext;
-    memset(&currentContext, 0, sizeof(currentContext));
 
     // Get the required values for initialization of the STACKFRAME64 structure
     // to be passed to StackWalk64(). Required fields are AddrPC and AddrFrame.
-#if defined(_M_IX86)
-    /*UINT_PTR programcounter = *(framePointer + 1);
-    UINT_PTR stackpointer   = (*framePointer) - maxdepth * 10 * sizeof(void*);  // An approximation.
-    currentContext.SPREG  = stackpointer;
-    currentContext.BPREG  = (DWORD64)framePointer;
-    currentContext.IPREG  = programcounter;*/
-    currentContext.SPREG = context.Esp;
-    currentContext.BPREG = (DWORD64)framePointer;
-    currentContext.IPREG = context.Eip;
-#elif defined(_M_X64)
-    currentContext.SPREG  = context.Rsp;
-    currentContext.BPREG  = (DWORD64)framePointer;
-    currentContext.IPREG  = context.Rip;
-#else
-    // If you want to retarget Visual Leak Detector to another processor
-    // architecture then you'll need to provide architecture-specific code to
-    // obtain the program counter and stack pointer from the given frame pointer.
-#error "Visual Leak Detector is not supported on this architecture."
-#endif // _M_IX86 || _M_X64
+    CONTEXT currentContext;
+    memset(&currentContext, 0, sizeof(currentContext));
+    currentContext.SPREG = context.SPREG;
+    currentContext.BPREG = context.BPREG;
+    currentContext.IPREG = context.IPREG;
 
     // Initialize the STACKFRAME64 structure.
     STACKFRAME64 frame;
