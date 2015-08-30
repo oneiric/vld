@@ -2082,7 +2082,9 @@ LPVOID VisualLeakDetector::Alloc (SIZE_T size)
     if (firstcall) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, NULL);
+        UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
+        UINT_PTR allocFunc = cVtablePtr[3];
+        CAPTURE_CONTEXT(context, allocFunc);
         tls->context = context;
     }
 

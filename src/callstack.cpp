@@ -298,6 +298,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
     // Use static here to increase performance, and avoid heap allocs.
     // It's thread safe because of g_heapMapLock lock.
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
+    bool isPrevFrameInternal = false;
 
     // Iterate through each frame in the call stack.
     for (UINT32 frame = start_frame; frame < m_size; frame++)
@@ -310,16 +311,22 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
-        if (foundline) {
+
+        bool isFrameInternal = false;
+        if (foundline && !showInternalFrames) {
             wcscpy_s(lowerCaseName, sourceInfo.FileName);
             _wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
             if (isInternalModule(lowerCaseName))
             {
                 // Don't show frames in files internal to the heap.
-                g_symbolLock.Leave();
-                continue;
+                isFrameInternal = true;
             }
         }
+
+        // show one allocation function for context
+        if (!isFrameInternal && isPrevFrameInternal)
+            Print(stack_line);
+        isPrevFrameInternal = isFrameInternal;
 
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
@@ -332,7 +339,8 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         DWORD NumChars = resolveFunction(programCounter, foundline ? &sourceInfo : NULL,
             displacement, functionName, stack_line, _countof(stack_line));
 
-        Print(stack_line);
+        if (!isFrameInternal)
+            Print(stack_line);
     }
 }
 
@@ -371,13 +379,13 @@ int CallStack::resolve(BOOL showInternalFrames)
     IMAGEHLP_LINE64  sourceInfo = { 0 };
     sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-    BYTE symbolBuffer [sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
+    WCHAR lowerCaseName[MAX_PATH];
 
     // Use static here to increase performance, and avoid heap allocs.
     // It's thread safe because of g_heapMapLock lock.
-    static WCHAR function_generated_name[MAX_PATH] = L"";
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
-    WCHAR lowerCaseName [MAX_PATH];
+    bool isPrevFrameInternal = false;
+    DWORD NumChars = 0;
 
     const size_t max_line_length = MAXREPORTLENGTH + 1;
     m_resolvedCapacity = m_size * max_line_length;
@@ -401,15 +409,23 @@ int CallStack::resolve(BOOL showInternalFrames)
         BOOL foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
         assert(m_resolved != NULL);
 
+        bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
             wcscpy_s(lowerCaseName, sourceInfo.FileName);
             _wcslwr_s(lowerCaseName, wcslen(lowerCaseName) + 1);
             if (isInternalModule(lowerCaseName)) {
                 // Don't show frames in files internal to the heap.
-                g_symbolLock.Leave();
-                continue;
+                isFrameInternal = true;
             }
         }
+
+        // show one allocation function for context
+        if (NumChars >= 0 && !isFrameInternal && isPrevFrameInternal) {
+            assert(m_resolved != NULL);
+            m_resolvedLength += NumChars;
+            wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
+        }
+        isPrevFrameInternal = isFrameInternal;
 
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
@@ -419,10 +435,10 @@ int CallStack::resolve(BOOL showInternalFrames)
 
         if (!foundline)
             displacement = (DWORD)displacement64;
-        DWORD NumChars = resolveFunction( programCounter, foundline ? &sourceInfo : NULL,
+        NumChars = resolveFunction( programCounter, foundline ? &sourceInfo : NULL,
             displacement, functionName, stack_line, _countof( stack_line ));
 
-        if (NumChars >= 0) {
+        if (NumChars >= 0 && !isFrameInternal) {
             assert(m_resolved != NULL);
             m_resolvedLength += NumChars;
             wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
@@ -491,7 +507,18 @@ bool CallStack::isInternalModule( const PWSTR filename ) const
         wcsstr(filename, L"\\crt\\src\\free.c") ||
         wcsstr(filename, L"\\crt\\src\\strdup.c") ||
         wcsstr(filename, L"\\crt\\src\\wcsdup.c") ||
-        wcsstr(filename, L"\\vc\\include\\xmemory0");
+        wcsstr(filename, L"\\vc\\include\\xmemory0") ||
+        // VS2015
+        wcsstr(filename, L"\\atlmfc\\include\\atlsimpstr.h") ||
+        wcsstr(filename, L"\\atlmfc\\include\\cstringt.h") ||
+        wcsstr(filename, L"\\atlmfc\\src\\mfc\\afxmem.cpp") ||
+        wcsstr(filename, L"\\atlmfc\\src\\mfc\\strcore.cpp") ||
+        wcsstr(filename, L"\\vcstartup\\src\\heap\\new_scalar.cpp") ||
+        wcsstr(filename, L"\\vcstartup\\src\\heap\\new_array.cpp") ||
+        wcsstr(filename, L"\\vcstartup\\src\\heap\\new_debug.cpp") ||
+        wcsstr(filename, L"\\ucrt\\src\\appcrt\\heap\\align.cpp") ||
+        wcsstr(filename, L"\\ucrt\\src\\appcrt\\heap\\malloc.cpp") ||
+        wcsstr(filename, L"\\ucrt\\src\\appcrt\\heap\\debug_heap.cpp");
 }
 
 // getStackTrace - Traces the stack as far back as possible, or until 'maxdepth'
