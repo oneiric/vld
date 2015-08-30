@@ -42,6 +42,8 @@ static BOOL         s_reportToDebugger = TRUE; // If TRUE, a copy of the memory 
 static BOOL         s_reportToStdOut = TRUE;   // If TRUE, a copy of the memory leak report will be sent to standard output.
 static encoding_e   s_reportEncoding = ascii;  // Output encoding of the memory leak report.
 
+#define IS_ORDINAL(name) (((UINT_PTR)name & 0xFFFF) == ((UINT_PTR)name))
+
 // DumpMemoryA - Dumps a nicely formatted rendition of a region of memory.
 //   Includes both the hex value of each byte and its ASCII equivalent (if
 //   printable).
@@ -488,9 +490,9 @@ LPVOID FindRealCode(LPVOID pCode)
 //    import module does not import the specified export, so nothing changed,
 //    then FALSE will be returned.
 //
-BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
+BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
 {
-    HMODULE exportmodule = (HMODULE)module->moduleBase;
+    HMODULE exportmodule = (HMODULE)patchModule->moduleBase;
     if (exportmodule == NULL)
         return FALSE;
 
@@ -530,12 +532,12 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
         PCHAR importdllname = (PCHAR)R2VA(importmodule, idte->Name);
         UNREFERENCED_PARAMETER(importdllname);
 
-        patchentry_t *entry = module->patchTable;
+        patchentry_t *patchEntry = patchModule->patchTable;
         int i = 0;
-        while(entry->importName)
+        while(patchEntry->importName)
         {
-            LPCSTR importname   = entry->importName;
-            LPCVOID replacement = entry->replacement;
+            LPCSTR importname   = patchEntry->importName;
+            LPCVOID replacement = patchEntry->replacement;
 
             // Get the *real* address of the import. If we find this address in the IAT,
             // then we've found the entry that needs to be patched.
@@ -546,7 +548,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 
             if (import == NULL) // Perhaps the named export module does not actually export the named import?
             {
-                entry++; i++;
+                patchEntry++; i++;
                 continue;
             }
 
@@ -556,13 +558,6 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
             for (; origThunk->u1.Function != NULL;
                 origThunk++, thunk++)
             {
-                if (origThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG)
-                {
-                    // Ordinal import - we can handle named imports
-                    // only, so skip it.
-                    continue;
-                }
-
                 LPVOID func = FindRealCode((LPVOID)thunk->u1.Function);
                 if (((DWORD_PTR)func == (DWORD_PTR)import))
                 {
@@ -579,11 +574,19 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 							DbgReport(L"Hook dll \"%S\":\n",
 								strrchr(pszBuffer, '\\') + 1);
 						}
-                        DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
-							importname, module->exportModuleName, importdllname);
+                        if (!IS_ORDINAL(importname))
+                        {
+                            DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
+                                importname, patchModule->exportModuleName, importdllname);
+                        }
+                        else
+                        {
+                            DbgReport(L"Hook import %zu(\"%S\") for dll \"%S\".\n",
+                                importname, patchModule->exportModuleName, importdllname);
+                        }
 #endif
-                        if (entry->original != NULL)
-                            *entry->original = func;
+                        if (patchEntry->original != NULL)
+                            *patchEntry->original = func;
 
                         DWORD protect;
                         VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
@@ -597,22 +600,38 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *module)
 #ifdef PRINTHOOKINFO
                 PIMAGE_IMPORT_BY_NAME funcEntry = (PIMAGE_IMPORT_BY_NAME)
                     R2VA(importmodule, origThunk->u1.AddressOfData);
-                if (stricmp(importdllname, module->exportModuleName) == 0 &&
-                    strcmp(static_cast<const char*>(funcEntry->Name), importname) == 0)
+                if (stricmp(importdllname, patchModule->exportModuleName) == 0)
                 {
-					if (!dllNamePrinted)
-					{
-						dllNamePrinted = true;
-						DbgReport(L"Hook dll \"%S\":\n",
-                            strrchr(pszBuffer, '\\') + 1);
-					}
-					DbgReport(L"Import found %S(\"%S\") for dll \"%S\".\n",
-						importname, module->exportModuleName, importdllname);
-                    break;
+                    if (!(origThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) && !IS_ORDINAL(importname) &&
+                        strcmp(reinterpret_cast<const char*>(funcEntry->Name), importname) == 0)
+                    {
+                        if (!dllNamePrinted)
+                        {
+                            dllNamePrinted = true;
+                            DbgReport(L"Hook dll \"%S\":\n",
+                                strrchr(pszBuffer, '\\') + 1);
+                        }
+                        DbgReport(L"Import found %S(\"%S\") for dll \"%S\".\n",
+                            importname, patchModule->exportModuleName, importdllname);
+                        break;
+                    }
+                    if ((origThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) && IS_ORDINAL(importname) &&
+                        (IMAGE_ORDINAL(origThunk->u1.Ordinal) == (UINT_PTR)importname))
+                    {
+                        if (!dllNamePrinted)
+                        {
+                            dllNamePrinted = true;
+                            DbgReport(L"Hook dll \"%S\":\n",
+                                strrchr(pszBuffer, '\\') + 1);
+                        }
+                        DbgReport(L"Import found %zu(\"%S\") for dll \"%S\".\n",
+                            importname, patchModule->exportModuleName, importdllname);
+                        break;
+                    }
                 }
 #endif
             }
-            entry++; i++;
+            patchEntry++; i++;
         }
 
         idte++;
@@ -648,6 +667,13 @@ BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
     moduleentry_t *entry;
     UINT          index;
     BOOL          patched = FALSE;
+
+#ifdef PRINTHOOKINFO
+    CHAR  cwBuffer[2048] = { 0 };
+    LPSTR pszBuffer = cwBuffer;
+    DWORD dwMaxChars = _countof(cwBuffer);
+    DWORD dwLength = ::GetModuleFileNameA(importmodule, pszBuffer, dwMaxChars);
+#endif
 
     // Loop through the import patch table, individually patching each import
     // listed in the table.
