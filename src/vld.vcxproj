@@ -54,8 +54,8 @@
   <!-- Global properties -->
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30128.1</_ProjectFileVersion>
-    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\</IntDir>
     <CodeAnalysisRuleSet Condition="'$(Platform)'=='Win32'">NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <TargetName>$(ProjectName)_$(NumericPlatform)</TargetName>
     <TargetExt>.dll</TargetExt>

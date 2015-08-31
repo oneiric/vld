@@ -127,6 +127,7 @@ TEST_P(TestBasics, IMalloc)
 	int total = static_cast<int>(VLDGetLeaksCount());
 	int leaks = total - prev;
 	int correctLeaks = GetParam() ? 0 : repeats * 1;
+    VLDReportLeaks();
 	ASSERT_EQ(correctLeaks, leaks);
 }
 

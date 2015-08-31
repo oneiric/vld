@@ -208,10 +208,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|Win32'">
     <Midl>
@@ -252,10 +249,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -294,10 +288,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|x64'">
     <Midl>
@@ -336,10 +327,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Release/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -382,10 +370,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|Win32'">
     <Midl>
@@ -428,10 +413,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Midl>
@@ -471,10 +453,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|x64'">
     <Midl>
@@ -514,10 +493,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/vldmfc.bsc</OutputFile>
     </Bscmake>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="StdAfx.cpp">

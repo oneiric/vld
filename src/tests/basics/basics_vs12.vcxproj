@@ -240,10 +240,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|Win32'">
     <ClCompile>
@@ -260,10 +257,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)|Win32'">
     <ClCompile>
@@ -279,10 +273,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)_StaticCrt|Win32'">
     <ClCompile>
@@ -299,10 +290,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -318,10 +306,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StaticCrt|x64'">
     <ClCompile>
@@ -338,10 +323,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)|x64'">
     <ClCompile>
@@ -357,10 +339,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug(Release)_StaticCrt|x64'">
     <ClCompile>
@@ -377,10 +356,7 @@
       <ShowProgress>NotSet</ShowProgress>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -397,10 +373,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|Win32'">
     <ClCompile>
@@ -418,10 +391,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -438,10 +408,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_StaticCrt|x64'">
     <ClCompile>
@@ -459,10 +426,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration) $(NumericPlatform) $(Outdir)</Command>
-      <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Allocs.h" />
@@ -490,7 +454,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\lib\gtest\msvc\gtest.vcxproj">
+    <ProjectReference Include="..\..\..\lib\gtest\msvc\gtest_vs12.vcxproj">
       <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\vld.vcxproj">
