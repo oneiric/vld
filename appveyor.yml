@@ -5,6 +5,15 @@ branches:
   except:
     - gh-pages
 
+os: Visual Studio 2015
+
+environment:
+  GTEST_REPEAT: 1
+
+  matrix:
+  - VldStackWalkMethod: safe
+  - VldStackWalkMethod: fast
+
 platform:
   - Win32
   - x64
@@ -19,15 +28,13 @@ matrix:
   fast_finish: false
 
 build_script:
-- ps: >-
+- ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
-
     Write-Output "Platform: $env:PLATFORM"
-
     msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "vld_vs14.sln" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 test_script:
-- ps: >-
+- ps: |
     cd src\
 
     function Add-GTest-Result($testResult)
@@ -52,27 +59,29 @@ test_script:
                 }
             }
         }
-
-        if ($anyFailures -eq $TRUE){
-            Write-Output "Failing build as there are broken tests"
-            $host.SetShouldExit(1)
-        }
+        return $anyFailures
     }
 
 
     function Run-Tests($platform, $configuration)
     {
+        $anyFailures = $FALSE
         $tests_path = ".\bin\$platform\$configuration\"
-        $tests_path
 
-        # Run tests and ipload results to AppVeyor one by one
+        # Run tests and upload results to AppVeyor one by one
         Get-ChildItem "$tests_path\*.exe" | foreach {
             $testfile = "$($_.FullName).xml"
             & $_.FullName "--gtest_output=`"xml:$testfile`""
             if (Test-Path $testfile)
             {
-                Add-GTest-Result($testfile)
+                $testsResult = Add-GTest-Result $testfile
+                $anyFailures = $anyFailures -or $testsResult
             }
+        }
+
+        if ($anyFailures -eq $TRUE){
+            Write-Output "Failing build as there are broken tests"
+            $host.SetShouldExit(1)
         }
     }
 
