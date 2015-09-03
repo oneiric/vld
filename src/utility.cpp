@@ -217,17 +217,12 @@ IMAGE_IMPORT_DESCRIPTOR* FindOriginalImportDescriptor (HMODULE importmodule, LPC
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
+        CriticalSectionLocker cs(g_imageLock);
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return NULL;
@@ -496,25 +491,20 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
     if (exportmodule == NULL)
         return FALSE;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+    IMAGE_IMPORT_DESCRIPTOR *idte = NULL;
+    IMAGE_SECTION_HEADER    *section = NULL;
+    ULONG                    size = 0;
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
+        CriticalSectionLocker cs(g_imageLock);
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -822,25 +812,20 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
     if (exportmodule == NULL)
         return;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+    IMAGE_IMPORT_DESCRIPTOR *idte = NULL;
+    IMAGE_SECTION_HEADER    *section = NULL;
+    ULONG                    size = 0;
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
+        CriticalSectionLocker cs(g_imageLock);
         idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;

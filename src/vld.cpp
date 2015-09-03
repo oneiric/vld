@@ -643,24 +643,28 @@ VisualLeakDetector::~VisualLeakDetector ()
                 GetLastError());
         }
 
-        // Free internally allocated resources used by the heapmap and blockmap.
-        for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-            BlockMap *blockmap = &(*heapit).second->blockMap;
-            for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-                delete (*blockit).second;
+        {
+            // Free internally allocated resources used by the heapmap and blockmap.
+            CriticalSectionLocker cs(g_heapMapLock);
+            for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+                BlockMap *blockmap = &(*heapit).second->blockMap;
+                for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+                    delete (*blockit).second;
+                }
+                delete blockmap;
             }
-            delete blockmap;
+            delete m_heapMap;
         }
-        delete m_heapMap;
-
         delete m_loadedModules;
 
-        // Free internally allocated resources used for thread local storage.
-        for (TlsMap::Iterator tlsit = m_tlsMap->begin(); tlsit != m_tlsMap->end(); ++tlsit) {
-            delete (*tlsit).second;
+        {
+            // Free internally allocated resources used for thread local storage.
+            CriticalSectionLocker cs(m_tlsLock);
+            for (TlsMap::Iterator tlsit = m_tlsMap->begin(); tlsit != m_tlsMap->end(); ++tlsit) {
+                delete (*tlsit).second;
+            }
+            delete m_tlsMap;
         }
-        delete m_tlsMap;
-
         if (threadsactive) {
             Report(L"WARNING: Visual Leak Detector: Some threads appear to have not terminated normally.\n"
                 L"  This could cause inaccurate leak detection results, including false positives.\n");
@@ -718,14 +722,13 @@ UINT32 VisualLeakDetector::getModuleState(ModuleSet::Iterator& it, UINT32& modul
         return 0;
 
     bool isNewModule = false;
-    m_modulesLock.Enter();
+    CriticalSectionLocker cs(m_modulesLock);
     ModuleSet* oldmodules = m_loadedModules;
     ModuleSet::Iterator oldit = oldmodules->find(moduleinfo);
     if (oldit != oldmodules->end()) // We've seen this "new" module loaded in the process before.
         moduleFlags = (*oldit).flags;
     else // This is new loaded module
         isNewModule = true;
-    m_modulesLock.Leave();
 
     if (isNewModule)
         return 1;
@@ -771,6 +774,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
     LoaderLock ll;
 
     // Iterate through the supplied set, until all modules have been attached.
+    CriticalSectionLocker cs(g_symbolLock);
     for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit)
     {
         UINT32 moduleFlags = 0x0;
@@ -784,7 +788,6 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         LPCWSTR modulepath = (*newit).path.c_str();
         DWORD modulesize   = (DWORD)((*newit).addrHigh - (*newit).addrLow) + 1;
 
-        g_symbolLock.Enter();
         if ((state == 3) && (moduleFlags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
             DbgTrace(L"dbghelp32.dll %i: SymUnloadModule64\n", GetCurrentThreadId());
@@ -801,11 +804,9 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         IMAGEHLP_MODULE64     moduleimageinfo;
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         BOOL SymbolsLoaded = SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
-        g_symbolLock.Leave();
 
         if (!SymbolsLoaded)
         {
-            CriticalSectionLocker cs(g_heapMapLock); // fix GetModuleFileName thread lock
             CriticalSectionLocker csSL(g_symbolLock);
             DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
             DWORD64 module = SymLoadModuleEx(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
@@ -1240,6 +1241,7 @@ SIZE_T VisualLeakDetector::eraseDuplicates (const BlockMap::Iterator &element, S
     SIZE_T       erased = 0;
     // Iterate through all block maps, looking for blocks with the same size
     // and callstack as the specified element.
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         BlockMap *blockmap = &(*heapit).second->blockMap;
         for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
@@ -1281,28 +1283,25 @@ tls_t* VisualLeakDetector::getTls ()
     if (tls == NULL) {
         DWORD threadId = GetCurrentThreadId();
 
-        {
-            CriticalSectionLocker cs(m_tlsLock);
-            TlsMap::Iterator it = m_tlsMap->find(threadId);
-            if(it == m_tlsMap->end()) {
-                // This thread's thread local storage structure has not been allocated.
-                tls = new tls_t;
+        CriticalSectionLocker cs(m_tlsLock);
+        TlsMap::Iterator it = m_tlsMap->find(threadId);
+        if (it == m_tlsMap->end()) {
+            // This thread's thread local storage structure has not been allocated.
+            tls = new tls_t;
 
-                // Add this thread's TLS to the TlsSet.
-                m_tlsMap->insert(threadId,tls);
-            }
-            else {
-                // Already had a thread with this ID
-                tls = (*it).second;
-            }
+            // Add this thread's TLS to the TlsSet.
+            m_tlsMap->insert(threadId, tls);
+        } else {
+            // Already had a thread with this ID
+            tls = (*it).second;
         }
 
-        TlsSetValue(m_tlsIndex, tls);
         ZeroMemory(&tls->context, sizeof(tls->context));
         tls->flags = 0x0;
         tls->oldFlags = 0x0;
         tls->threadId = threadId;
         tls->blockWithoutGuard = NULL;
+        TlsSetValue(m_tlsIndex, tls);
     }
 
     return tls;
@@ -1330,6 +1329,8 @@ tls_t* VisualLeakDetector::getTls ()
 //
 VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     // Record the block's information.
     blockinfo_t* blockinfo = new blockinfo_t();
     blockinfo->callStack = NULL;
@@ -1350,7 +1351,6 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
         m_maxAlloc = m_curAlloc;
 
     // Insert the block's information into the block map.
-    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Do it now.
@@ -1366,11 +1366,12 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
         // mechanism unknown to VLD), or the heap wouldn't have allocated it
         // again. Replace the previously allocated info with the new info.
         blockit = blockmap->find(mem);
-        m_curAlloc -= (*blockit).second->size;
-        delete (*blockit).second;
+        blockinfo_t* info = (*blockit).second;
+        m_curAlloc -= info->size;
+        Report(L"VLD: New allocation at already allocated address: 0x%p with size: %u and new size: %u\n", mem, info->size, size);
+        delete info;
         blockmap->erase(blockit);
         blockmap->insert(mem, blockinfo);
-        pblockInfo = NULL;
     }
 }
 
@@ -1386,11 +1387,13 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
 //
 VOID VisualLeakDetector::mapHeap (HANDLE heap)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     // Create a new block map for this heap and insert it into the heap map.
     heapinfo_t* heapinfo = new heapinfo_t;
     heapinfo->blockMap.reserve(BLOCK_MAP_RESERVE);
     heapinfo->flags = 0x0;
-    CriticalSectionLocker cs(g_heapMapLock);
+
     HeapMap::Iterator heapit = m_heapMap->insert(heap, heapinfo);
     if (heapit == m_heapMap->end()) {
         // Somehow this heap has been created twice without being destroyed,
@@ -1541,6 +1544,8 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
     bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
@@ -1551,7 +1556,6 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     // The block was reallocated in-place. Find the existing blockinfo_t
     // entry in the block map and update it with the new callstack and size.
-    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Obviously the
@@ -1866,6 +1870,7 @@ blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& hea
     heap = NULL;
     blockinfo_t* result = NULL;
     // Iterate through all heaps
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator it = m_heapMap->begin();
         it != m_heapMap->end();
         ++it)
@@ -2235,10 +2240,9 @@ VOID VisualLeakDetector::RefreshModules()
     }
 
     // Start using the new set of loaded modules.
-    m_modulesLock.Enter();
+    CriticalSectionLocker cs(m_modulesLock);
     ModuleSet* oldmodules = m_loadedModules;
     m_loadedModules = newmodules;
-    m_modulesLock.Leave();
 
     // Free resources used by the old module list.
     delete oldmodules;
@@ -2481,9 +2485,8 @@ void VisualLeakDetector::GlobalDisableLeakDetection ()
         return;
     }
 
-    m_optionsLock.Enter();
+    CriticalSectionLocker cs(m_optionsLock);
     m_options |= VLD_OPT_START_DISABLED;
-    m_optionsLock.Leave();
 
     // Disable memory leak detection for all threads.
     CriticalSectionLocker cstls(m_tlsLock);
@@ -2502,10 +2505,9 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
         return;
     }
 
-    m_optionsLock.Enter();
+    CriticalSectionLocker cs(m_optionsLock);
     m_options &= ~VLD_OPT_START_DISABLED;
     m_status &= ~VLD_STATUS_NEVER_ENABLED;
-    m_optionsLock.Leave();
 
     // Enable memory leak detection for all threads.
     CriticalSectionLocker cstls(m_tlsLock);

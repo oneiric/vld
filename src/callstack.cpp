@@ -251,7 +251,7 @@ DWORD CallStack::resolveFunction(SIZE_T programCounter, IMAGEHLP_LINEW64* source
                 moduleName, functionName, displacement);
         }
     }
-    DWORD NumChars = w.size();
+    DWORD NumChars = (DWORD)w.size();
     stack_line[NumChars] = '\0';
     return NumChars;
 }
@@ -298,12 +298,12 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
     bool isPrevFrameInternal = false;
 
     // Iterate through each frame in the call stack.
+    CriticalSectionLocker cs(g_symbolLock);
     for (UINT32 frame = start_frame; frame < m_size; frame++)
     {
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
-        g_symbolLock.Enter();
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
@@ -329,12 +329,11 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
 
-        g_symbolLock.Leave();
-
         if (!foundline)
             displacement = (DWORD)displacement64;
         DWORD NumChars = resolveFunction(programCounter, foundline ? &sourceInfo : NULL,
             displacement, functionName, stack_line, _countof(stack_line));
+        UNREFERENCED_PARAMETER(NumChars);
 
         if (!isFrameInternal)
             Print(stack_line);
@@ -393,12 +392,12 @@ int CallStack::resolve(BOOL showInternalFrames)
     }
 
     // Iterate through each frame in the call stack.
+    CriticalSectionLocker cs(g_symbolLock);
     for (UINT32 frame = 0; frame < m_size; frame++)
     {
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
-        g_symbolLock.Enter();
         DWORD            displacement = 0;
 
         // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
@@ -429,8 +428,6 @@ int CallStack::resolve(BOOL showInternalFrames)
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
-
-        g_symbolLock.Leave();
 
         if (!foundline)
             displacement = (DWORD)displacement64;
@@ -661,6 +658,8 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
 
     // Walk the stack.
     CriticalSectionLocker cs(g_heapMapLock);
+    CriticalSectionLocker cs1(g_symbolLock);
+
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());
