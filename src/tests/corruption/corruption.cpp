@@ -43,11 +43,11 @@ TEST(Corruption, AllocMismatch)
 
 TEST(CorruptionDeathTest, HeapMismatch)
 {
-    EXPECT_EXIT({
+    EXPECT_DEATH({
         VLDSetReportHook(VLD_RPTHOOK_INSTALL, ReportHook);
         TestCorruption(eHeapMismatch);
         VLDSetReportHook(VLD_RPTHOOK_REMOVE, ReportHook);
-    }, ::testing::ExitedWithCode(0xC0000374), "CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.");
+    }, "CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.");
 }
 
 int main(int argc, char **argv) {
