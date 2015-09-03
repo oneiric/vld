@@ -10,8 +10,8 @@ platform:
   - x64
 
 configuration:
-  - Debug(Release)
-  - Debug(Release)_StaticCrt
+  - Debug_VldRelease
+  - Debug_VldRelease_StaticCrt
   - Release
   - Release_StaticCrt
 
@@ -76,4 +76,6 @@ test_script:
         }
     }
 
-    Run-Tests "$env:PLATFORM" "$env:CONFIGURATION-v140"
+    $folders = @{"Debug_VldRelease" = "Debug(Release)-v140"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-v140";
+        "Release" = "Release-v140"; "Release_StaticCrt" = "Release_StaticCrt-v140"}
+    Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])"
