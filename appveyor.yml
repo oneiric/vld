@@ -1,0 +1,79 @@
+version: '{build}'
+
+branches:
+  # blacklist
+  except:
+    - gh-pages
+
+platform:
+  - Win32
+  - x64
+
+configuration:
+  - Debug(Release)
+  - Debug(Release)_StaticCrt
+  - Release
+  - Release_StaticCrt
+
+matrix:
+  fast_finish: false
+
+build_script:
+- ps: >-
+    Write-Output "Configuration: $env:CONFIGURATION"
+
+    Write-Output "Platform: $env:PLATFORM"
+
+    msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "vld_vs14.sln" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
+test_script:
+- ps: >-
+    cd src\
+
+    function Add-GTest-Result($testResult)
+    {
+        $testsuites = ([xml](get-content $testResult)).testsuites
+        $anyFailures = $FALSE
+
+        foreach ($testsuite in $testsuites.testsuite) {
+            foreach ($testcase in $testsuite.testcase) {
+                if ($testcase.failure) {
+                    $time = ([double]$testcase.time * 1000)
+                    Add-AppveyorTest $testcase.name -Outcome Failed -FileName $testsuite.name -Duration $time -ErrorMessage $testcase.failure.message
+                    Add-AppveyorMessage "$($testcase.name) failed" -Category Error
+                    $anyFailures = $TRUE
+                }
+                elseif ($testcase.skipped) {
+                    Add-AppveyorTest $testcase.name -Outcome Ignored -Filename $testsuite.name
+                }
+                else {
+                    $time = ([double]$testcase.time * 1000)
+                    Add-AppveyorTest $testcase.name -Outcome Passed -FileName $testsuite.name -Duration $time
+                }
+            }
+        }
+
+        if ($anyFailures -eq $TRUE){
+            Write-Output "Failing build as there are broken tests"
+            $host.SetShouldExit(1)
+        }
+    }
+
+
+    function Run-Tests($platform, $configuration)
+    {
+        $tests_path = ".\bin\$platform\$configuration\"
+        $tests_path
+
+        # Run tests and ipload results to AppVeyor one by one
+        Get-ChildItem "$tests_path\*.exe" | foreach {
+            $testfile = "$($_.FullName).xml"
+            & $_.FullName "--gtest_output=`"xml:$testfile`""
+            if (Test-Path $testfile)
+            {
+                Add-GTest-Result($testfile)
+            }
+        }
+    }
+
+    Run-Tests "$env:PLATFORM" "$env:CONFIGURATION-v140"
