@@ -455,11 +455,10 @@ void RunTestSuite()
 
 TEST(TestSuit, MultiThread)
 {
-    int prevleaks = static_cast<int>(VLDGetLeaksCount());
+    VLDMarkAllLeaksAsReported();
     RunTestSuite();
-    int totalleaks = static_cast<int>(VLDGetLeaksCount());
-    int leaks = totalleaks - prevleaks;
-    ASSERT_EQ(leaks, leaks_count);
+    int leaks = static_cast<int>(VLDGetLeaksCount());
+    ASSERT_EQ(leaks_count, leaks);
 }
 
 int main(int argc, char **argv) {

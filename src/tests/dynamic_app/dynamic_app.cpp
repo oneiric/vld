@@ -40,38 +40,36 @@ class DynamicLoader : public ::testing::TestWithParam<bool> {
 
 TEST_P(DynamicLoader, LoaderTests)
 {
-    int prevleaks = (int)VLDGetLeaksCount();
     HMODULE hmfcLib = RunLoaderTests(GetParam());    // leaks 18
     ASSERT_NE(0u, (UINT_PTR)hmfcLib);
-    int totalleaks = (int)VLDGetLeaksCount();
-    int leaks = totalleaks - prevleaks;
+    int leaks = (int)VLDGetLeaksCount();
+    if (18 != leaks) VLDReportLeaks();
     ASSERT_EQ(18, leaks);
 }
 
 TEST_P(DynamicLoader, MFCLoaderTests)
 {
-    int prevleaks = (int)VLDGetLeaksCount();
     HMODULE hmfcLib = RunMFCLoaderTests(GetParam()); // leaks 11
     ASSERT_NE(0u, (UINT_PTR)hmfcLib);
-#ifndef STATIC_CRT
     FreeLibrary(hmfcLib);
-#endif
-    int totalleaks = (int)VLDGetLeaksCount();
-    int leaks = totalleaks - prevleaks;
+    int leaks = (int)VLDGetLeaksCount();
+    if (11 != leaks) VLDReportLeaks();
     ASSERT_EQ(11, leaks);
-#ifdef STATIC_CRT
-    FreeLibrary(hmfcLib);
-#endif
 }
 
 TEST_P(DynamicLoader, Thread)
 {
     // Creates 64 threads that each leaks 11 allocations
-    int prevleaks = (int)VLDGetLeaksCount();
+    DWORD start = GetTickCount();
     RunLoaderLockTests(GetParam());
-    int totalleaks = (int)VLDGetLeaksCount();
-    int leaks = totalleaks - prevleaks;
-    ASSERT_EQ(leaks, 64 * 11);
+    DWORD duration = GetTickCount() - start;
+    _tprintf(_T("Thread Test took: %u ms\n"), duration);
+    start = GetTickCount();
+    int leaks = (int)VLDGetLeaksCount();
+    duration = GetTickCount() - start;
+    _tprintf(_T("VLDGetLeaksCount took: %u ms\n"), duration);
+    if (64 * 11 != leaks) VLDReportLeaks();
+    ASSERT_EQ(64 * 11, leaks);
 }
 
 INSTANTIATE_TEST_CASE_P(ResolveVal,
@@ -80,10 +78,9 @@ INSTANTIATE_TEST_CASE_P(ResolveVal,
 
 TEST(Dynamic, DuplicateLeaks)
 {
-    int prevleaks = (int)VLDGetLeaksCount();
+    VLDMarkAllLeaksAsReported();
     LeakDuplicateLeaks();       // leaks 6
-    int totalleaks = (int)VLDGetLeaksCount();
-    int leaks = totalleaks - prevleaks;
+    int leaks = (int)VLDGetLeaksCount();
     ASSERT_EQ(6, leaks);
 }
 

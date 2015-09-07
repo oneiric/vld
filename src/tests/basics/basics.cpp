@@ -122,13 +122,12 @@ TEST_P(TestBasics, HeapAlloc)
 
 TEST_P(TestBasics, IMalloc)
 {
-	int prev = static_cast<int>(VLDGetLeaksCount());
-	LeakMemory(eIMalloc, repeats, GetParam());
-	int total = static_cast<int>(VLDGetLeaksCount());
-	int leaks = total - prev;
-	int correctLeaks = GetParam() ? 0 : repeats * 1;
-    VLDReportLeaks();
-	ASSERT_EQ(correctLeaks, leaks);
+    int prev = static_cast<int>(VLDGetLeaksCount());
+    LeakMemory(eIMalloc, repeats, GetParam());
+    int total = static_cast<int>(VLDGetLeaksCount());
+    int leaks = total - prev;
+    int correctLeaks = GetParam() ? 0 : repeats * 1;
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(TestBasics, GetProcMalloc)
