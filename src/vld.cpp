@@ -35,6 +35,7 @@
 #include "set.h"         // Provides a lightweight STL-like set template.
 #include "utility.h"     // Provides various utility functions.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
+#include "tchar.h"
 
 #define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
 #define HEAP_MAP_RESERVE    2   // Usually there won't be more than a few heaps in the process, so this should be small.
@@ -765,6 +766,85 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     return path;
 }
 
+// GetIniFilePath - Obtains vld.ini file path.
+//
+//  Return Value:
+//
+//    Returns true if an actual vld.ini file was found
+//    Otherwise, returns false.
+//
+BOOL VisualLeakDetector::GetIniFilePath(LPTSTR lpPath, SIZE_T cchPath)
+{
+    TCHAR  path[MAX_PATH] = {0};
+    struct _stat s;
+    DWORD written = 0;
+
+    // Get the location of the vld.ini file from current directory path.
+    if (0 < (written = GetCurrentDirectory(MAX_PATH, path))) {
+        _tcsncpy_s(&path[written], MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE);
+        if (_tstat(path, &s) == 0) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    // Get the location of the vld.ini file from VLDDLL file path.
+    HMODULE hModule = GetCallingModule((UINT_PTR)this);
+    if (0 < (written = GetModuleFileName(hModule, path, MAX_PATH))) {
+        LPTSTR p = _tcsrchr(path, TEXT('\\'));
+        written = (DWORD)(p - path);
+        if (p && 0 == _tcsncpy_s(p, MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE)) {
+            if (_tstat(path, &s) == 0) {
+                _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+                return TRUE;
+            }
+        }
+    }
+
+    // Get the location of the vld.ini file from executable file path.
+    if (0 < (written = GetModuleFileName(NULL, path, MAX_PATH))) {
+        LPTSTR p = _tcsrchr(path, TEXT('\\'));
+        written = (DWORD)(p - path);
+        if (p && 0 == _tcsncpy_s(p, MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE)) {
+            if (_tstat(path, &s) == 0) {
+                _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+                return TRUE;
+            }
+        }
+    }
+
+    HKEY         productkey = 0;
+    DWORD        length = 0;
+    DWORD        valuetype = 0;
+
+    // Get the location of the vld.ini file from the registry.
+    LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+    if (regstatus == ERROR_SUCCESS) {
+        length = MAX_PATH * sizeof(TCHAR);
+        regstatus = RegQueryValueEx(productkey, TEXT("IniFile"), NULL, &valuetype, (LPBYTE)&path, &length);
+        RegCloseKey(productkey);
+        if (regstatus == ERROR_SUCCESS && (_tstat(path, &s) == 0)) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    // Get the location of the vld.ini file from the registry.
+    regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+    if (regstatus == ERROR_SUCCESS) {
+        length = MAX_PATH * sizeof(TCHAR);
+        regstatus = RegQueryValueEx(productkey, TEXT("IniFile"), NULL, &valuetype, (LPBYTE)&path, &length);
+        RegCloseKey(productkey);
+        if (regstatus == ERROR_SUCCESS && (_tstat(path, &s) == 0)) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    _tcsncpy_s(lpPath, cchPath, TEXT("vld.ini"), _TRUNCATE);
+    return FALSE;
+}
+
 // configure - Configures VLD using values read from the vld.ini file.
 //
 //  Return Value:
@@ -773,50 +853,10 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
 //
 VOID VisualLeakDetector::configure ()
 {
-    WCHAR  inipath [MAX_PATH] = {0};
-    struct _stat s;
-    if (_wstat(L".\\vld.ini", &s) == 0) {
-        // Found a copy of vld.ini in the working directory. Use it.
-        wcsncpy_s(inipath, MAX_PATH, L".\\vld.ini", _TRUNCATE);
-    }
-    else {
-        BOOL         keyopen = FALSE;
-        HKEY         productkey = 0;
-        DWORD        length = 0;
-        DWORD        valuetype = 0;
+    TCHAR  inipath [MAX_PATH] = {0};
+    BOOL found = GetIniFilePath(inipath, _countof(inipath));
 
-        // Get the location of the vld.ini file from the registry.
-        LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-        if (regstatus == ERROR_SUCCESS) {
-            keyopen = TRUE;
-            length = MAX_PATH * sizeof(WCHAR);
-            regstatus = RegQueryValueExW(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-        }
-        if (keyopen) {
-            RegCloseKey(productkey);
-        }
-
-        if (!keyopen)
-        {
-            // Get the location of the vld.ini file from the registry.
-            regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-            if (regstatus == ERROR_SUCCESS) {
-                keyopen = TRUE;
-                length = MAX_PATH * sizeof(WCHAR);
-                regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-            }
-            if (keyopen) {
-                RegCloseKey(productkey);
-            }
-        }
-
-        if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
-            // The location of vld.ini could not be read from the registry. As a
-            // last resort, look in the Windows directory.
-            wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
-        }
-    }
-    DbgReport(L"Visual Leak Detector read settings from file: %s\n", inipath);
+    Report(L"Visual Leak Detector read settings from: %s\n", found ? inipath : L"(default settings)");
 
     // Read the boolean options.
     const UINT buffersize = 64;

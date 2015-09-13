@@ -92,10 +92,15 @@ Name: "modifyVS2010Props"; Description: "Add VLD directory to VS 2010 - VS 2013"
 UseRelativePaths=True
 
 [Registry]
-Root: "HKLM"; Subkey: "{#MyAppRegKey}"; Flags: uninsdeletekeyifempty
-Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstalledVersion"; ValueData: "{#MyAppVersion}"
-Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"
-Root: "HKLM"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "IniFile"; ValueData: "{app}\vld.ini"
+Root: "HKLM32"; Subkey: "{#MyAppRegKey}"; Flags: uninsdeletekeyifempty
+Root: "HKLM32"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstalledVersion"; ValueData: "{#MyAppVersion}"
+Root: "HKLM32"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"
+Root: "HKLM32"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "IniFile"; ValueData: "{app}\vld.ini"
+
+Root: "HKLM64"; Subkey: "{#MyAppRegKey}"; Flags: uninsdeletekeyifempty
+Root: "HKLM64"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstalledVersion"; ValueData: "{#MyAppVersion}"
+Root: "HKLM64"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"
+Root: "HKLM64"; Subkey: "{#MyAppRegKey}"; ValueType: string; ValueName: "IniFile"; ValueData: "{app}\vld.ini"
 
 [Code]
 type

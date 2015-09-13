@@ -308,6 +308,7 @@ private:
     VOID   attachToLoadedModules (ModuleSet *newmodules);
     UINT32 getModuleState(ModuleSet::Iterator& it, UINT32 &moduleFlags);
     LPWSTR buildSymbolSearchPath();
+    BOOL GetIniFilePath(LPTSTR lpPath, SIZE_T cchPath);
     VOID   configure ();
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
