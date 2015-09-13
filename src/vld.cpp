@@ -469,6 +469,9 @@ VisualLeakDetector::~VisualLeakDetector ()
     if (m_reportFile != NULL) {
         fclose(m_reportFile);
     }
+
+    // Decrement the library reference count.
+    FreeLibrary(m_vldBase);
 }
 
 
