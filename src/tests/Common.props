@@ -19,7 +19,7 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
     <OutDir>$(SolutionDir)src\bin\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\</IntDir>
+    <IntDir>$(SolutionDir)src\obj\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <PostBuildEvent>
