@@ -22,10 +22,10 @@
     <IntDir>$(SolutionDir)src\obj\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <PostBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration)-v$(PlatformToolsetVersion) $(NumericPlatform) $(Outdir)</Command>
+    <PreBuildEvent>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration)-v$(PlatformToolsetVersion) $(NumericPlatform) "$(Outdir)"</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
-    </PostBuildEvent>
+    </PreBuildEvent>
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)\src\;$(SolutionDir)\lib\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
