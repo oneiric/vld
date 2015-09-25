@@ -1686,6 +1686,15 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
         if (threadId != ((DWORD)-1) && info->threadId != threadId)
             continue;
 
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
+
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
@@ -1764,6 +1773,15 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
 
         LPCVOID address = block;
         SIZE_T size = info->size;
+
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
 
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
@@ -2711,6 +2729,15 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         // The actual memory address
         const void* address = block;
         assert(address != NULL);
+
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
 
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT

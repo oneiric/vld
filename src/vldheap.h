@@ -64,6 +64,7 @@ typedef char checkDebugHeapBlockAlignment[
 
 // Macro to strip off any sub-type information stored in a block's "use type".
 #define CRT_USE_TYPE(use) (use & 0xFFFF)
+#define _BLOCK_TYPE_IS_VALID(use) (_BLOCK_TYPE(use) == _CLIENT_BLOCK || (use) == _NORMAL_BLOCK || _BLOCK_TYPE(use) == _CRT_BLOCK || (use) == _IGNORE_BLOCK)
 
 // Memory block header structure used internally by VLD. All internally
 // allocated blocks are allocated from VLD's private heap and have this header
