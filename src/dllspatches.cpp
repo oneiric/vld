@@ -370,6 +370,9 @@ static patchentry_t mfc140udPatch[] = {
 };
 
 static patchentry_t msvcrtPatch [] = {
+    "_calloc_dbg",        &VS60::data.pcrtd__calloc_dbg,       VS60::crtd__calloc_dbg,
+    "_malloc_dbg",        &VS60::data.pcrtd__malloc_dbg,       VS60::crtd__malloc_dbg,
+    "_realloc_dbg",       &VS60::data.pcrtd__realloc_dbg,      VS60::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS60::data.pcrtd__scalar_new_dbg,    VS60::crtd__scalar_new_dbg,
     //vector_new_dbg_name,  &VS60::data.pcrtd__vector_new_dbg,    VS60::crtd__vector_new_dbg,
     "calloc",             &VS60::data.pcrtd_calloc,             VS60::crtd_calloc,
