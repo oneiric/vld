@@ -496,7 +496,7 @@ int CallStack::resolve(BOOL showInternalFrames)
         }
 
         // show one allocation function for context
-        if (NumChars >= 0 && !isFrameInternal && isPrevFrameInternal) {
+        if (NumChars > 0 && !isFrameInternal && isPrevFrameInternal) {
             m_resolvedLength += NumChars;
             if (m_resolved) {
                 wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
@@ -517,7 +517,7 @@ int CallStack::resolve(BOOL showInternalFrames)
         NumChars = resolveFunction( programCounter, foundline ? &sourceInfo : NULL,
             displacement, functionName, stack_line, _countof( stack_line ));
 
-        if (NumChars >= 0 && !isFrameInternal) {
+        if (NumChars > 0 && !isFrameInternal) {
             m_resolvedLength += NumChars;
             if (m_resolved) {
                 wcsncat_s(m_resolved, m_resolvedCapacity, stack_line, NumChars);
