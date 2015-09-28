@@ -1128,6 +1128,10 @@ VOID VisualLeakDetector::configure ()
         m_options |= VLD_OPT_SKIP_HEAPFREE_LEAKS;
     }
 
+    if (LoadBoolOption(L"SkipCrtStartupLeaks", L"yes", inipath)) {
+        m_options |= VLD_OPT_SKIP_CRTSTARTUP_LEAKS;
+    }
+
     // Read the integer configuration options.
     m_maxDataDump = LoadIntOption(L"MaxDataDump", VLD_DEFAULT_MAX_DATA_DUMP, inipath);
     m_maxTraceFrames = LoadIntOption(L"MaxTraceFrames", VLD_DEFAULT_MAX_TRACE_FRAMES, inipath);
@@ -1709,6 +1713,14 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
             }
         }
 
+        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+            // Check for crt startup allocations
+            if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
+                continue;
+            }
+        }
+
         memoryleaks ++;
     }
 
@@ -1802,6 +1814,14 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             // we'll include in the report.
             address = CRTDBGBLOCKDATA(block);
             size = crtheader->size;
+        }
+
+        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+            // Check for crt startup allocations
+            if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
+                continue;
+            }
         }
 
         // It looks like a real memory leak.
@@ -2539,7 +2559,8 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE |
     VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED |
-    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE;
+    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE |
+    VLD_OPT_SKIP_CRTSTARTUP_LEAKS;
 
 UINT32 VisualLeakDetector::GetOptions()
 {
@@ -2726,6 +2747,11 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         {
             continue;
         }
+
+        if (info->reported) {
+            continue;
+        }
+
         // The actual memory address
         const void* address = block;
         assert(address != NULL);
@@ -2761,6 +2787,10 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         if (info->callStack)
         {
             unresolvedFunctionsCount += info->callStack->resolve(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+            if ((m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
+                continue;
+            }
         }
     }
     return unresolvedFunctionsCount;

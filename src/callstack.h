@@ -25,8 +25,8 @@
 
 #ifndef VLDBUILD
 #error \
-	"This header should only be included by Visual Leak Detector when building it from source. \
-	Applications should never include this header."
+    "This header should only be included by Visual Leak Detector when building it from source. \
+    Applications should never include this header."
 #endif
 
 #include <windows.h>
@@ -78,50 +78,54 @@
 class CallStack
 {
 public:
-	CallStack ();
-	virtual ~CallStack ();
-	static CallStack* Create();
-	// Public APIs - see each function definition for details.
-	VOID clear ();
-	// Prints the call stack to one of either / or the debug output window and or
-	// a log file.
-	VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
+    CallStack ();
+    virtual ~CallStack ();
+    static CallStack* Create();
+    // Public APIs - see each function definition for details.
+    VOID clear ();
+    // Prints the call stack to one of either / or the debug output window and or
+    // a log file.
+    VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
     // Formats the stack frame into a human readable format, and saves it for later retrieval.
-	int resolve(BOOL showinternalframes);
+    int resolve(BOOL showinternalframes);
     virtual DWORD getHashValue() const = 0;
-	virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
+    virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
+    bool isCrtStartupAlloc();
 
-	BOOL operator == (const CallStack &other) const;
-	UINT_PTR operator [] (UINT32 index) const;
-	VOID push_back (const UINT_PTR programcounter);
+    BOOL operator == (const CallStack &other) const;
+    UINT_PTR operator [] (UINT32 index) const;
+    VOID push_back (const UINT_PTR programcounter);
 
 protected:
-	// Protected data.
-	UINT32 m_status;                    // Status flags:
-#define CALLSTACK_STATUS_INCOMPLETE 0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
+    // Protected data.
+    UINT32 m_status;                       // Status flags:
+#define CALLSTACK_STATUS_INCOMPLETE    0x1 //   If set, the stack trace stored in this CallStack appears to be incomplete.
+#define CALLSTACK_STATUS_STARTUPCRT    0x2 //   If set, the stack trace is startup CRT.
+#define CALLSTACK_STATUS_NOTSTARTUPCRT 0x4 //   If set, the stack trace is not startup CRT.
 
-	// The chunk list is made of a linked list of Chunks.
-	struct chunk_t {
-		chunk_t*    next;					    // Pointer to the next chunk in the chunk list.
-		UINT_PTR    frames[CALLSTACK_CHUNK_SIZE]; // Pushed frames (program counter addresses) are stored in this array.
-	};
+    // The chunk list is made of a linked list of Chunks.
+    struct chunk_t {
+        chunk_t*    next;					    // Pointer to the next chunk in the chunk list.
+        UINT_PTR    frames[CALLSTACK_CHUNK_SIZE]; // Pushed frames (program counter addresses) are stored in this array.
+    };
 
-	// Private data.
-	UINT32              m_capacity; // Current capacity limit (in frames)
-	UINT32              m_size;     // Current size (in frames)
-	CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
-	CallStack::chunk_t* m_topChunk; // Pointer to the chunk at the top of the stack
-	UINT32              m_topIndex; // Index, within the top chunk, of the top of the stack
+    // Private data.
+    UINT32              m_capacity; // Current capacity limit (in frames)
+    UINT32              m_size;     // Current size (in frames)
+    CallStack::chunk_t  m_store;    // Pointer to the underlying data store (i.e. head of the chunk list)
+    CallStack::chunk_t* m_topChunk; // Pointer to the chunk at the top of the stack
+    UINT32              m_topIndex; // Index, within the top chunk, of the top of the stack
 
-	// The string that contains the stack converted into a human readable format.
-	// This is always NULL if the callstack has not been 'converted'.
-	WCHAR*              m_resolved;
-	int                 m_resolvedCapacity;
-	int                 m_resolvedLength;
-	// Prints out the strings in m_Resolved when the time comes to report the callstack in
-	// human readable form. Currently this is only called by the dump method.
-	void dumpResolved() const;
-	bool isInternalModule( const PWSTR filename ) const;
+    // The string that contains the stack converted into a human readable format.
+    // This is always NULL if the callstack has not been 'converted'.
+    WCHAR*              m_resolved;
+    int                 m_resolvedCapacity;
+    int                 m_resolvedLength;
+    // Prints out the strings in m_Resolved when the time comes to report the callstack in
+    // human readable form. Currently this is only called by the dump method.
+    void dumpResolved() const;
+    bool isInternalModule( const PWSTR filename ) const;
+    bool isCrtStartupModule( const PWSTR filename ) const;
     LPCWSTR getFunctionName(SIZE_T programCounter, DWORD64& displacement64,
         SYMBOL_INFO* functionInfo) const;
     DWORD resolveFunction(SIZE_T programCounter, IMAGEHLP_LINEW64* sourceInfo, DWORD displacement,
