@@ -219,7 +219,7 @@ IMAGE_IMPORT_DESCRIPTOR* FindOriginalImportDescriptor (HMODULE importmodule, LPC
     // gives us the offset of the IAT for the module we are interested in.
     {
         CriticalSectionLocker cs(g_imageLock);
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 
@@ -501,7 +501,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
     // gives us the offset of the IAT for the module we are interested in.
     {
         CriticalSectionLocker cs(g_imageLock);
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 
@@ -822,7 +822,7 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
     // gives us the offset of the IAT for the module we are interested in.
     {
         CriticalSectionLocker cs(g_imageLock);
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 
