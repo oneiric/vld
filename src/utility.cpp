@@ -34,6 +34,7 @@
 // Imported Global Variables
 extern CriticalSection  g_imageLock;
 extern ReportHookSet*   g_pReportHooks;
+extern VisualLeakDetector g_vld;
 
 // Global variables.
 static BOOL         s_reportDelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
@@ -557,31 +558,23 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
                     // writable.
                     if (import != replacement)
                     {
-#ifdef PRINTHOOKINFO
-						if (!dllNamePrinted)
-						{
-							dllNamePrinted = true;
-							DbgReport(L"Hook dll \"%S\":\n",
-								strrchr(pszBuffer, '\\') + 1);
-						}
-                        if (!IS_ORDINAL(importname))
-                        {
-                            DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
-                                importname, patchModule->exportModuleName, importdllname);
-                        }
-                        else
-                        {
-                            DbgReport(L"Hook import %zu(\"%S\") for dll \"%S\".\n",
-                                importname, patchModule->exportModuleName, importdllname);
-                        }
-#endif
                         if (patchEntry->original != NULL)
                             *patchEntry->original = func;
 
                         DWORD protect;
                         if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_EXECUTE_READWRITE, &protect)) {
                             thunk->u1.Function = (DWORD_PTR)replacement;
-                            VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), protect, &protect);
+                            if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), protect, &protect)) {
+#ifdef PRINTHOOKINFO
+                                if (!IS_ORDINAL(importname)) {
+                                    DbgReport(L"Hook dll \"%S\" import %S!%S()\n",
+                                        strrchr(pszBuffer, '\\') + 1, patchModule->exportModuleName, importname);
+                                } else {
+                                    DbgReport(L"Hook dll \"%S\" import %S!%zu()\n",
+                                        strrchr(pszBuffer, '\\') + 1, patchModule->exportModuleName, importname);
+                                }
+#endif
+                            }
                         }
                     }
                     // The patch has been installed in the import module.
@@ -831,6 +824,14 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
         return;
     }
 
+#ifdef PRINTHOOKINFO
+    bool dllNamePrinted = false;
+    CHAR  cwBuffer[2048] = { 0 };
+    LPSTR pszBuffer = cwBuffer;
+    DWORD dwMaxChars = _countof(cwBuffer);
+    DWORD dwLength = ::GetModuleFileNameA(importmodule, pszBuffer, dwMaxChars);
+#endif
+
     int result = 0;
     while (idte->OriginalFirstThunk != 0x0)
     {
@@ -847,7 +848,7 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
 
             // Get the *real* address of the import.
             //LPCVOID original = entry->original;
-            LPCVOID original = GetProcAddress(exportmodule, importname);
+            LPCVOID original = g_vld._RGetProcAddress(exportmodule, importname);
             if (original == NULL) // Perhaps the named export module does not actually export the named import?
             {
                 entry++; i++;
@@ -873,7 +874,17 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
                     DWORD protect;
                     if (VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect)) {
                         iate->u1.Function = (DWORD_PTR)original;
-                        VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+                        if (VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect)) {
+#ifdef PRINTHOOKINFO
+                            if (!IS_ORDINAL(importname)) {
+                                DbgReport(L"UnHook dll \"%S\" import %S!%S()\n",
+                                    strrchr(pszBuffer, '\\') + 1, module->exportModuleName, importname);
+                            } else {
+                                DbgReport(L"UnHook dll \"%S\" import %S!%zu()\n",
+                                    strrchr(pszBuffer, '\\') + 1, module->exportModuleName, importname);
+                            }
+#endif
+                        }
                     }
                 }
                 result++;
