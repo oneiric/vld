@@ -67,7 +67,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ReadMe.txt" />
     <None Include="ComTest.rgs">
       <Filter>Resource Files</Filter>
     </None>
