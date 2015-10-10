@@ -126,6 +126,9 @@
     <ClCompile Include="vld_unload.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\lib\gtest\msvc\gtest_vs12.vcxproj">
+      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\vld_dll1\vld_dll1_vs12.vcxproj">
       <Project>{50c94b05-8c3e-49ed-b2b9-5715eb624d14}</Project>
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
