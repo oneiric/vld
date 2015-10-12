@@ -901,13 +901,13 @@ void* CrtPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 {
-    new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_vector_new;
-    assert(pcrtxxd_scalar_new);
+    new_t pcrtxxd_vector_new = (new_t)data.pcrtd_vector_new;
+    assert(pcrtxxd_vector_new);
 
     context_t context;
-    CAPTURE_CONTEXT(context, pcrtxxd_scalar_new);
+    CAPTURE_CONTEXT(context, pcrtxxd_vector_new);
 
-    return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
+    return g_vld._new(pcrtxxd_vector_new, context, debug, size);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -997,7 +997,7 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
@@ -1157,7 +1157,7 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
-    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__scalar_new_dbg_4p;
+    new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;

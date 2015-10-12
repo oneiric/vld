@@ -19,12 +19,14 @@ void Call_LoaderLocks(bool resolve)
     HMODULE hmfcLib = RunMFCLoaderTests(resolve); // Leaks 11 allocs
 #ifndef STATIC_CRT
     FreeLibrary(hmfcLib);
+#else
+    UNREFERENCED_PARAMETER(hmfcLib);
 #endif
 
-    //HMODULE this_app = NULL;
-    //WCHAR path_name[MAX_PATH] = {0};
+    HMODULE this_app = NULL;
+    WCHAR path_name[MAX_PATH] = {0};
     // This also acquires the loader lock
-    //GetModuleFileName(this_app, path_name, MAX_PATH);
+    GetModuleFileName(this_app, path_name, MAX_PATH);
 }
 
 void Call_Three(bool resolve)

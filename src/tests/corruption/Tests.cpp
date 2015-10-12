@@ -37,7 +37,9 @@ void TestHeapMismatch()
 	HANDLE test_heap = HeapCreate(HEAP_GENERATE_EXCEPTIONS | HEAP_CREATE_ENABLE_EXECUTE, 
 									0, // initialize reserved size;
 									0); // maximum size can grow
+	HeapSetInformation(test_heap, HeapEnableTerminationOnCorruption, NULL, 0);
 	HANDLE default_heap = GetProcessHeap();
+	HeapSetInformation(default_heap, HeapEnableTerminationOnCorruption, NULL, 0);
 	// Have to initialize vld with something, so it doesn't dismiss
 	// the default heap as having no memory allocs in it.
 	void* aptr = HeapAlloc(default_heap, 0, 42);

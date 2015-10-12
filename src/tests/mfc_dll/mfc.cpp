@@ -71,7 +71,7 @@ int CmfcApp::ExitInstance()
 	return 0;
 }
 
-// Leaks 4 memory allocations
+// Leaks 4 x 2 = 8 memory allocations (one by new operator and one by CString initialisation with string)
 extern "C" void __declspec(dllexport) MFC_LeakSimple()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -83,7 +83,7 @@ extern "C" void __declspec(dllexport) MFC_LeakSimple()
 	CString* str_d = new (_NORMAL_BLOCK, __FILE__, __LINE__) CString(_T("4 parameter new for mfc"));
 }
 
-// Leaks 3 memory allocations
+// Leaks 3 memory allocations, CString objects are initialised to empty state and do not allocate extra memory
 extern "C" void __declspec(dllexport) MFC_LeakArray()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());

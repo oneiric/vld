@@ -34,6 +34,7 @@
 // Imported Global Variables
 extern CriticalSection  g_imageLock;
 extern ReportHookSet*   g_pReportHooks;
+extern VisualLeakDetector g_vld;
 
 // Global variables.
 static BOOL         s_reportDelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
@@ -217,17 +218,12 @@ IMAGE_IMPORT_DESCRIPTOR* FindOriginalImportDescriptor (HMODULE importmodule, LPC
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        CriticalSectionLocker cs(g_imageLock);
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return NULL;
@@ -420,7 +416,7 @@ BOOL IsModulePatched (HMODULE importmodule, moduleentry_t patchtable [], UINT ta
     for (UINT index = 0; index < tablesize; index++) {
         moduleentry_t *entry = &patchtable[index];
         found = FindPatch(importmodule, entry);
-        if (found == TRUE) {
+        if (found) {
             // Found one of the listed patches installed in the import module.
             return TRUE;
         }
@@ -496,25 +492,20 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
     if (exportmodule == NULL)
         return FALSE;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+    IMAGE_IMPORT_DESCRIPTOR *idte = NULL;
+    IMAGE_SECTION_HEADER    *section = NULL;
+    ULONG                    size = 0;
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        CriticalSectionLocker cs(g_imageLock);
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return FALSE;
@@ -567,31 +558,24 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
                     // writable.
                     if (import != replacement)
                     {
-#ifdef PRINTHOOKINFO
-						if (!dllNamePrinted)
-						{
-							dllNamePrinted = true;
-							DbgReport(L"Hook dll \"%S\":\n",
-								strrchr(pszBuffer, '\\') + 1);
-						}
-                        if (!IS_ORDINAL(importname))
-                        {
-                            DbgReport(L"Hook import %S(\"%S\") for dll \"%S\".\n",
-                                importname, patchModule->exportModuleName, importdllname);
-                        }
-                        else
-                        {
-                            DbgReport(L"Hook import %zu(\"%S\") for dll \"%S\".\n",
-                                importname, patchModule->exportModuleName, importdllname);
-                        }
-#endif
                         if (patchEntry->original != NULL)
                             *patchEntry->original = func;
 
                         DWORD protect;
-                        VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                        thunk->u1.Function = (DWORD_PTR)replacement;
-                        VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), protect, &protect);
+                        if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_EXECUTE_READWRITE, &protect)) {
+                            thunk->u1.Function = (DWORD_PTR)replacement;
+                            if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), protect, &protect)) {
+#ifdef PRINTHOOKINFO
+                                if (!IS_ORDINAL(importname)) {
+                                    DbgReport(L"Hook dll \"%S\" import %S!%S()\n",
+                                        strrchr(pszBuffer, '\\') + 1, patchModule->exportModuleName, importname);
+                                } else {
+                                    DbgReport(L"Hook dll \"%S\" import %S!%zu()\n",
+                                        strrchr(pszBuffer, '\\') + 1, patchModule->exportModuleName, importname);
+                                }
+#endif
+                            }
+                        }
                     }
                     // The patch has been installed in the import module.
                     result++;
@@ -680,7 +664,7 @@ BOOL PatchModule (HMODULE importmodule, moduleentry_t patchtable [], UINT tables
     DbgTrace(L"dbghelp32.dll %i: PatchModule - ImageDirectoryEntryToDataEx\n", GetCurrentThreadId());
     for (index = 0; index < tablesize; index++) {
         entry = &patchtable[index];
-        if (PatchImport(importmodule, entry) == TRUE) {
+        if (PatchImport(importmodule, entry)) {
             patched = TRUE;
         }
     }
@@ -756,7 +740,7 @@ VOID Print (LPWSTR messagew)
     else if (hook_retval == 1)
         __debugbreak();
 
-    if (s_reportToDebugger && (s_reportDelay == TRUE)) {
+    if (s_reportToDebugger && (s_reportDelay)) {
         Sleep(10); // Workaround the Visual Studio 6 bug where debug strings are sometimes lost if they're sent too fast.
     }
 }
@@ -821,29 +805,32 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
     if (exportmodule == NULL)
         return;
 
-    IMAGE_IMPORT_DESCRIPTOR *idte;
-    IMAGE_SECTION_HEADER    *section;
-    ULONG                    size;
+    IMAGE_IMPORT_DESCRIPTOR *idte = NULL;
+    IMAGE_SECTION_HEADER    *section = NULL;
+    ULONG                    size = 0;
 
     // Locate the importing module's Import Directory Table (IDT) entry for the
     // exporting module. The importing module actually can have several IATs --
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
-    g_imageLock.Enter();
-    __try
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)importmodule, TRUE,
+        CriticalSectionLocker cs(g_imageLock);
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
-    __except(FilterFunction(GetExceptionCode()))
-    {
-        idte = NULL;
-    }
-    g_imageLock.Leave();
+
     if (idte == NULL) {
         // This module has no IDT (i.e. it imports nothing).
         return;
     }
+
+#ifdef PRINTHOOKINFO
+    bool dllNamePrinted = false;
+    CHAR  cwBuffer[2048] = { 0 };
+    LPSTR pszBuffer = cwBuffer;
+    DWORD dwMaxChars = _countof(cwBuffer);
+    DWORD dwLength = ::GetModuleFileNameA(importmodule, pszBuffer, dwMaxChars);
+#endif
 
     int result = 0;
     while (idte->OriginalFirstThunk != 0x0)
@@ -861,7 +848,7 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
 
             // Get the *real* address of the import.
             //LPCVOID original = entry->original;
-            LPCVOID original = GetProcAddress(exportmodule, importname);
+            LPCVOID original = g_vld._RGetProcAddress(exportmodule, importname);
             if (original == NULL) // Perhaps the named export module does not actually export the named import?
             {
                 entry++; i++;
@@ -885,9 +872,20 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
                     // entry with the import's real address. Note that the IAT entry may
                     // be write-protected, so we must first ensure that it is writable.
                     DWORD protect;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect);
-                    iate->u1.Function = (DWORD_PTR)original;
-                    VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect);
+                    if (VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), PAGE_EXECUTE_READWRITE, &protect)) {
+                        iate->u1.Function = (DWORD_PTR)original;
+                        if (VirtualProtect(&iate->u1.Function, sizeof(iate->u1.Function), protect, &protect)) {
+#ifdef PRINTHOOKINFO
+                            if (!IS_ORDINAL(importname)) {
+                                DbgReport(L"UnHook dll \"%S\" import %S!%S()\n",
+                                    strrchr(pszBuffer, '\\') + 1, module->exportModuleName, importname);
+                            } else {
+                                DbgReport(L"UnHook dll \"%S\" import %S!%zu()\n",
+                                    strrchr(pszBuffer, '\\') + 1, module->exportModuleName, importname);
+                            }
+#endif
+                        }
+                    }
                 }
                 result++;
                 iate++;

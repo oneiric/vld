@@ -167,14 +167,13 @@ void* vldnew (size_t size, const char *file, int line)
     header->size         = size;
 
     // Link the block into the block list.
-    g_vldHeapLock.Enter();
+    CriticalSectionLocker cs(g_vldHeapLock);
     header->next         = g_vldBlockList;
     if (header->next != NULL) {
         header->next->prev = header;
     }
     header->prev         = NULL;
     g_vldBlockList       = header;
-    g_vldHeapLock.Leave();
 
     // Return a pointer to the beginning of the data section of the block.
     return (void*)VLDBLOCKDATA(header);
@@ -198,7 +197,7 @@ void vlddelete (void *block)
     vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
-    g_vldHeapLock.Enter();
+    CriticalSectionLocker cs(g_vldHeapLock);
     if (header->prev) {
         header->prev->next = header->next;
     }
@@ -209,9 +208,8 @@ void vlddelete (void *block)
     if (header->next) {
         header->next->prev = header->prev;
     }
-    g_vldHeapLock.Leave();
 
     // Free the block.
     freed = RtlFreeHeap(g_vldHeap, 0x0, header);
-    assert(freed != FALSE);
+    assert(freed);
 }

@@ -21,8 +21,17 @@ int __cdecl ReportHook(int /*reportHook*/, wchar_t *message, int* /*returnValue*
     return 1;
 }
 
+bool IgnoreExitCode(int exit_status)
+{
+    UNREFERENCED_PARAMETER(exit_status);
+    return true;
+}
+
 void TestCorruption( CorruptionType check )
 {
+    // Mark all previous memory leaks as reported which are not part of the current test.
+    VLDMarkAllLeaksAsReported();
+
 	if (check == eAllocMismatch)
 	{
 		TestAllocationMismatch_malloc_delete();
@@ -43,11 +52,11 @@ TEST(Corruption, AllocMismatch)
 
 TEST(CorruptionDeathTest, HeapMismatch)
 {
-    EXPECT_DEATH({
+    EXPECT_EXIT({
         VLDSetReportHook(VLD_RPTHOOK_INSTALL, ReportHook);
         TestCorruption(eHeapMismatch);
         VLDSetReportHook(VLD_RPTHOOK_REMOVE, ReportHook);
-    }, "CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.");
+    }, IgnoreExitCode, "CRITICAL ERROR!: VLD reports that memory was allocated in one heap and freed in another.");
 }
 
 int main(int argc, char **argv) {

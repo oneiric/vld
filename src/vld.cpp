@@ -35,6 +35,8 @@
 #include "set.h"         // Provides a lightweight STL-like set template.
 #include "utility.h"     // Provides various utility functions.
 #include "vldint.h"      // Provides access to the Visual Leak Detector internals.
+#include "loaderlock.h"
+#include "tchar.h"
 
 #define BLOCK_MAP_RESERVE   64  // This should strike a balance between memory use and a desire to minimize heap hits.
 #define HEAP_MAP_RESERVE    2   // Usually there won't be more than a few heaps in the process, so this should be small.
@@ -52,7 +54,6 @@ CriticalSection  g_imageLock;      // Serializes calls to the Debug Help Library
 HANDLE           g_processHeap;    // Handle to the process's heap (COM allocations come from here).
 CriticalSection  g_heapMapLock;    // Serializes access to the heap and block maps.
 CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
-CriticalSection  g_loaderLock;     // Serializes calls to LdrLoadDll, GetProcAddress and EnumerateLoadedModulesW64().
 ReportHookSet*   g_pReportHooks;
 
 // The one and only VisualLeakDetector object instance.
@@ -60,12 +61,230 @@ __declspec(dllexport) VisualLeakDetector g_vld;
 
 // Patch only this entries in Kernel32.dll and KernelBase.dll
 patchentry_t ldrLoadDllPatch [] = {
-    "LdrLoadDll",   NULL,    VisualLeakDetector::_LdrLoadDll,
-    NULL,           NULL,    NULL
+    "LdrLoadDll",             NULL, VisualLeakDetector::_LdrLoadDll,
+    "LdrGetDllHandle",        NULL, VisualLeakDetector::_LdrGetDllHandle,
+    "LdrGetProcedureAddress", NULL, VisualLeakDetector::_LdrGetProcedureAddress,
+    "LdrLockLoaderLock",      NULL, VisualLeakDetector::_LdrLockLoaderLock,
+    "LdrUnlockLoaderLock",    NULL, VisualLeakDetector::_LdrUnlockLoaderLock,
+    NULL,                     NULL, NULL
 };
 moduleentry_t ntdllPatch [] = {
     "ntdll.dll",    FALSE,  NULL,   ldrLoadDllPatch,
 };
+
+/////////////////////////////////////////////////////////
+
+// We provide our own DllEntryPoint in order to capture the ReturnAddress of the function calling our DllEntryPoint.
+// Then we patch this function namely ntdll.dll!LdrpCallInitRoutine or any equivalent NT loader function by calling
+// our LdrpCallInitRoutine where we RefreshModules before calling the EntryPoint in order to hook all functions required
+// to properly capture all _CRT_INIT memory allocations which include internal CRT startup memory allocations and all
+// global and static initializers.
+//
+// In getLeaksCount(), reportLeaks() and resolveStacks(), we take extra measures to identify and exclude debug and release
+// internal CRT allocations from reporting as real memory leaks.
+//
+// Global and static initializers *might* be reported as memory leaks based on the order being unintialised by _CRT_INIT.
+
+typedef BOOLEAN(NTAPI *PDLL_INIT_ROUTINE)(IN PVOID DllHandle, IN ULONG Reason, IN PCONTEXT Context OPTIONAL);
+BOOLEAN WINAPI LdrpCallInitRoutine(IN PVOID BaseAddress, IN ULONG Reason, IN PVOID Context, IN PDLL_INIT_ROUTINE EntryPoint)
+{
+    if (Reason == DLL_PROCESS_ATTACH) {
+        g_vld.RefreshModules();
+    }
+
+    return EntryPoint(BaseAddress, Reason, (PCONTEXT)Context);
+}
+
+PBYTE NtDllFindDetourAddress(const PBYTE pAddress, SIZE_T dwSize)
+{
+    MEMORY_BASIC_INFORMATION meminfo = { 0 };
+    if (VirtualQuery(pAddress, &meminfo, sizeof(meminfo))) {
+        // Find spare bytes at the end of the memory region that are unused
+        // so we can jump to this address and set up the detour.
+        PBYTE end = (PBYTE)meminfo.BaseAddress + meminfo.RegionSize;
+        PBYTE begin = end;
+
+        while (((SIZE_T)(end - begin) < dwSize) && (begin != pAddress)) {
+            if (*(--begin) != 0x00)
+                end = begin;
+        }
+        if (begin != pAddress)
+            return begin;
+    }
+    return NULL;
+}
+
+PBYTE NtDllFindParamAddress(const PBYTE pAddress)
+{
+    PBYTE ptr = pAddress;
+    // Test previous 32 bytes to find the begining address we need to patch
+    // for 32bit find => push [ebp][14h] => parameters are pushed to stack
+    // for 64bit find => mov r8,... => parameters are moved to registers r8, rdx, rcx
+    while (pAddress - --ptr < 0x20) {
+#ifdef _WIN64
+        if (((ptr[0] & 0x4D) == ptr[0]) && (ptr[1] == 0x8B) && ((ptr[2] & 0xC7) == ptr[2])) {
+#else
+        if ((ptr[0] == 0xFF) && (ptr[1] == 0x75) && (ptr[2] == 0x14)) {
+#endif
+            return ptr;
+        }
+        }
+    return NULL;
+    }
+
+PBYTE NtDllFindCallAddress(const PBYTE pAddress)
+{
+    PBYTE ptr = pAddress;
+    // Test previous 32 bytes to find the begining address we need to patch
+    // for 32bit find => call [ebp][08h]
+    // for 64bit find => call <register>
+    while (pAddress - --ptr < 0x20) {
+#ifdef _WIN64
+        if ((ptr[0] == 0xFF) && ((ptr[1] & 0xD7) == ptr[1])) {
+            if ((*(ptr - 1) & 0x41) == *(ptr - 1)) {
+                --ptr;
+            }
+#else
+        if ((ptr[0] == 0xFF) && (ptr[1] == 0x55) && (ptr[2] == 0x08)) {
+#endif
+            return ptr;
+        }
+        }
+    return NULL;
+    }
+
+typedef struct _NTDLL_LDR_PATCH {
+    PBYTE pPatchAddress;
+    SIZE_T nPatchSize;
+    BYTE pBackup[0x20];
+    PBYTE pDetourAddress;
+    SIZE_T nDetourSize;
+    BOOL bState;
+} NTDLL_LDR_PATCH, *PNTDLL_LDR_PATCH;
+
+NTDLL_LDR_PATCH patch;
+
+
+BOOL NtDllPatch(const PBYTE pReturnAddress, NTDLL_LDR_PATCH &NtDllPatch)
+{
+    if (NtDllPatch.bState == FALSE) {
+#ifdef _WIN64
+        BYTE ptr[] = { '?', 0x8B, '?' };                                     // mov r9, r..
+        BYTE mov[] = { 0x48, 0xB8, '?', '?', '?', '?', '?', '?', '?', '?' }; // mov rax, 0x0000000000000000
+        BYTE call[] = { 0xFF, 0xD0 };                                        // call rax
+#else
+        BYTE ptr[] = { 0xFF, 0x75, 0x08 };                                   // push [ebp][08h]
+        BYTE mov[] = { 0x90, 0xB8, '?', '?', '?', '?' };                     // mov eax, 0x00000000
+        BYTE call[] = { 0xFF, 0xD0 };                                        // call eax
+#endif
+        BYTE jmp[] = { 0xE9, '?', '?', '?', '?' };                           // jmp 0x00000000
+
+        NtDllPatch.pPatchAddress = NtDllFindParamAddress(pReturnAddress);
+        PBYTE pCallAddress = NtDllFindCallAddress(pReturnAddress);
+        NtDllPatch.nPatchSize = pReturnAddress - NtDllPatch.pPatchAddress;
+        SIZE_T nParamSize = pCallAddress - NtDllPatch.pPatchAddress;
+
+        NtDllPatch.nDetourSize = _countof(ptr) + nParamSize + _countof(mov) + _countof(jmp);
+        NtDllPatch.pDetourAddress = NtDllFindDetourAddress(pReturnAddress, NtDllPatch.nDetourSize);
+
+        if (NtDllPatch.pPatchAddress && NtDllPatch.pDetourAddress && ((_countof(jmp) + _countof(call)) <= NtDllPatch.nPatchSize)) {
+            memcpy(NtDllPatch.pBackup, NtDllPatch.pPatchAddress, NtDllPatch.nPatchSize);
+
+            DWORD dwProtect = 0;
+            if (VirtualProtect(NtDllPatch.pDetourAddress, NtDllPatch.nDetourSize, PAGE_EXECUTE_READWRITE, &dwProtect)) {
+                memset(NtDllPatch.pDetourAddress, 0x90, NtDllPatch.nDetourSize);
+#ifdef _WIN64
+                // Copy original param instructions
+                memcpy(&NtDllPatch.pDetourAddress[0], NtDllPatch.pPatchAddress, nParamSize);
+                // Copy the register that holds the EntryPoint to r9
+                BYTE reg = ((pCallAddress[0] & 0xF1) == 0x41 ? 0x08 : 0x00) + (pCallAddress[pReturnAddress - pCallAddress - 1] & 0x07);
+                ptr[0] = 0x4C + ((reg & 0x08) ? 0x01 : 0x00);
+                ptr[2] = 0xC8 + (reg & 0x07);
+                memcpy(&NtDllPatch.pDetourAddress[nParamSize], &ptr, _countof(ptr));
+#else
+                // Push EntryPoint as last parameter
+                memcpy(&NtDllPatch.pDetourAddress[0], &ptr, _countof(ptr));
+                // Copy original param instructions
+                memcpy(&NtDllPatch.pDetourAddress[_countof(ptr)], NtDllPatch.pPatchAddress, nParamSize);
+#endif
+                // Move LdrpCallInitRoutine to eax/rax
+                *(PSIZE_T)(&mov[2]) = (SIZE_T)LdrpCallInitRoutine;
+                memcpy(&NtDllPatch.pDetourAddress[_countof(ptr) + nParamSize], &mov, _countof(mov));
+
+                // Jump to original function
+                *(DWORD*)(&jmp[1]) = (DWORD)(pReturnAddress - _countof(call) - (NtDllPatch.pDetourAddress + NtDllPatch.nDetourSize));
+                memcpy(&NtDllPatch.pDetourAddress[_countof(ptr) + nParamSize + _countof(mov)], &jmp, _countof(jmp));
+
+                VirtualProtect(NtDllPatch.pDetourAddress, NtDllPatch.nDetourSize, dwProtect, &dwProtect);
+
+                if (VirtualProtect(NtDllPatch.pPatchAddress, NtDllPatch.nPatchSize, PAGE_EXECUTE_READWRITE, &dwProtect)) {
+                    memset(NtDllPatch.pPatchAddress, 0x90, NtDllPatch.nPatchSize);
+
+                    // Jump to detour address
+                    *(DWORD*)(&jmp[1]) = (DWORD)(NtDllPatch.pDetourAddress - (pReturnAddress - _countof(call)));
+                    memcpy(pReturnAddress - _countof(call) - _countof(jmp), &jmp, _countof(jmp));
+
+                    // Call LdrpCallInitRoutine from eax/rax
+                    memcpy(pReturnAddress - _countof(call), &call, _countof(call));
+
+                    VirtualProtect(NtDllPatch.pPatchAddress, NtDllPatch.nPatchSize, dwProtect, &dwProtect);
+
+                    NtDllPatch.bState = TRUE;
+                }
+            }
+        }
+    }
+    return NtDllPatch.bState;
+}
+
+
+BOOL NtDllRestore(NTDLL_LDR_PATCH &NtDllPatch)
+{
+    // Restore patched bytes
+    BOOL bResult = FALSE;
+    if (NtDllPatch.bState && NtDllPatch.nPatchSize && &NtDllPatch.pBackup[0]) {
+        DWORD dwProtect = 0;
+        if (VirtualProtect(NtDllPatch.pPatchAddress, NtDllPatch.nPatchSize, PAGE_EXECUTE_READWRITE, &dwProtect)) {
+            memcpy(NtDllPatch.pPatchAddress, NtDllPatch.pBackup, NtDllPatch.nPatchSize);
+            VirtualProtect(NtDllPatch.pPatchAddress, NtDllPatch.nPatchSize, dwProtect, &dwProtect);
+
+            if (VirtualProtect(NtDllPatch.pDetourAddress, NtDllPatch.nDetourSize, PAGE_EXECUTE_READWRITE, &dwProtect)) {
+                memset(NtDllPatch.pDetourAddress, 0x00, NtDllPatch.nDetourSize);
+                VirtualProtect(NtDllPatch.pDetourAddress, NtDllPatch.nDetourSize, dwProtect, &dwProtect);
+                bResult = TRUE;
+            }
+        }
+    }
+    return bResult;
+}
+
+#define _DECL_DLLMAIN  // for _CRT_INIT
+#include <process.h>   // for _CRT_INIT
+#pragma comment(linker, "/entry:DllEntryPoint")
+
+__declspec(noinline)
+BOOL WINAPI DllEntryPoint(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
+{
+    // Patch/Restore ntdll address that calls the dll entry point
+    if (fdwReason == DLL_PROCESS_ATTACH) {
+        NtDllPatch((PBYTE)_ReturnAddress(), patch);
+    }
+
+    if (fdwReason == DLL_PROCESS_ATTACH || fdwReason == DLL_THREAD_ATTACH)
+        if (!_CRT_INIT(hinstDLL, fdwReason, lpReserved))
+            return(FALSE);
+
+    if (fdwReason == DLL_PROCESS_DETACH || fdwReason == DLL_THREAD_DETACH)
+        if (!_CRT_INIT(hinstDLL, fdwReason, lpReserved))
+            return(FALSE);
+
+    if (fdwReason == DLL_PROCESS_DETACH) {
+        NtDllRestore(patch);
+    }
+    return(TRUE);
+}
+
+/////////////////////////////////////////////////////////
 
 bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
 {
@@ -81,7 +300,7 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
     osvi.dwMinorVersion = wMinorVersion;
     osvi.wServicePackMajor = wServicePackMajor;
 
-    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask) != FALSE;
+    return !!VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask);
 }
 
 bool IsWindows7OrGreater()
@@ -158,12 +377,20 @@ VisualLeakDetector::VisualLeakDetector ()
         RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
         RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
         RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+
+        LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
+        LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
+        LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
+        LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
+        LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
     }
+
+    LoaderLock ll;
+
     g_heapMapLock.Initialize();
     g_symbolLock.Initialize();
     g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
-    g_loaderLock.Initialize();
     g_pReportHooks    = new ReportHookSet;
 
     // Initialize remaining private data.
@@ -241,7 +468,7 @@ VisualLeakDetector::VisualLeakDetector ()
     }
     delete [] symbolpath;
 
-    ntdllPatch->moduleBase = (UINT_PTR)ntdll;
+    ntdllPatch[0].moduleBase = (UINT_PTR)ntdll;
     PatchImport(kernel32, ntdllPatch);
     if (kernelBase != NULL)
         PatchImport(kernelBase, ntdllPatch);
@@ -368,6 +595,8 @@ void VisualLeakDetector::checkInternalMemoryLeaks()
 //
 VisualLeakDetector::~VisualLeakDetector ()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF) {
         // VLD has been turned off.
         return;
@@ -414,25 +643,29 @@ VisualLeakDetector::~VisualLeakDetector ()
                 GetLastError());
         }
 
-        // Free internally allocated resources used by the heapmap and blockmap.
-        for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
-            BlockMap *blockmap = &(*heapit).second->blockMap;
-            for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
-                delete (*blockit).second;
+        {
+            // Free internally allocated resources used by the heapmap and blockmap.
+            CriticalSectionLocker cs(g_heapMapLock);
+            for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
+                BlockMap *blockmap = &(*heapit).second->blockMap;
+                for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
+                    delete (*blockit).second;
+                }
+                delete blockmap;
             }
-            delete blockmap;
+            delete m_heapMap;
         }
-        delete m_heapMap;
-
         delete m_loadedModules;
 
-        // Free internally allocated resources used for thread local storage.
-        for (TlsMap::Iterator tlsit = m_tlsMap->begin(); tlsit != m_tlsMap->end(); ++tlsit) {
-            delete (*tlsit).second;
+        {
+            // Free internally allocated resources used for thread local storage.
+            CriticalSectionLocker cs(m_tlsLock);
+            for (TlsMap::Iterator tlsit = m_tlsMap->begin(); tlsit != m_tlsMap->end(); ++tlsit) {
+                delete (*tlsit).second;
+            }
+            delete m_tlsMap;
         }
-        delete m_tlsMap;
-
-        if (threadsactive == TRUE) {
+        if (threadsactive) {
             Report(L"WARNING: Visual Leak Detector: Some threads appear to have not terminated normally.\n"
                 L"  This could cause inaccurate leak detection results, including false positives.\n");
         }
@@ -455,7 +688,6 @@ VisualLeakDetector::~VisualLeakDetector ()
     m_optionsLock.Delete();
     m_modulesLock.Delete();
     m_tlsLock.Delete();
-    g_loaderLock.Delete();
     g_imageLock.Delete();
     g_heapMapLock.Delete();
     g_symbolLock.Delete();
@@ -468,6 +700,9 @@ VisualLeakDetector::~VisualLeakDetector ()
     if (m_reportFile != NULL) {
         fclose(m_reportFile);
     }
+
+    // Decrement the library reference count.
+    FreeLibrary(m_vldBase);
 }
 
 
@@ -487,14 +722,13 @@ UINT32 VisualLeakDetector::getModuleState(ModuleSet::Iterator& it, UINT32& modul
         return 0;
 
     bool isNewModule = false;
-    m_modulesLock.Enter();
+    CriticalSectionLocker cs(m_modulesLock);
     ModuleSet* oldmodules = m_loadedModules;
     ModuleSet::Iterator oldit = oldmodules->find(moduleinfo);
     if (oldit != oldmodules->end()) // We've seen this "new" module loaded in the process before.
         moduleFlags = (*oldit).flags;
     else // This is new loaded module
         isNewModule = true;
-    m_modulesLock.Leave();
 
     if (isNewModule)
         return 1;
@@ -537,7 +771,10 @@ static char dbghelp32_assert[sizeof(IMAGEHLP_MODULE64) == 3256 ? 1 : -1];
 //
 VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
 {
+    LoaderLock ll;
+
     // Iterate through the supplied set, until all modules have been attached.
+    CriticalSectionLocker cs(g_symbolLock);
     for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit)
     {
         UINT32 moduleFlags = 0x0;
@@ -551,7 +788,6 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         LPCWSTR modulepath = (*newit).path.c_str();
         DWORD modulesize   = (DWORD)((*newit).addrHigh - (*newit).addrLow) + 1;
 
-        g_symbolLock.Enter();
         if ((state == 3) && (moduleFlags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
             DbgTrace(L"dbghelp32.dll %i: SymUnloadModule64\n", GetCurrentThreadId());
@@ -568,11 +804,9 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         IMAGEHLP_MODULE64     moduleimageinfo;
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         BOOL SymbolsLoaded = SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
-        g_symbolLock.Leave();
 
         if (!SymbolsLoaded)
         {
-            CriticalSectionLocker cs(g_heapMapLock); // fix GetModuleFileName thread lock
             CriticalSectionLocker csSL(g_symbolLock);
             DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
             DWORD64 module = SymLoadModuleEx(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
@@ -674,7 +908,7 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     // to the search path since that is often where the PDB will be located.
     WCHAR   directory [_MAX_DIR] = {0};
     WCHAR   drive [_MAX_DRIVE] = {0};
-    LPWSTR  path = new WCHAR [MAX_PATH];
+    LPWSTR  path = new WCHAR [MAX_PATH * 4];
     path[0] = L'\0';
 
     HMODULE module = GetModuleHandleW(NULL);
@@ -682,36 +916,23 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     _wsplitpath_s(path, drive, _MAX_DRIVE, directory, _MAX_DIR, NULL, 0, NULL, 0);
     wcsncpy_s(path, MAX_PATH, drive, _TRUNCATE);
     path = AppendString(path, directory);
+    path = AppendString(path, L";");
 
     // When the symbol handler is given a custom symbol search path, it will no
-    // longer search the default directories (working directory, system root,
-    // etc). But we'd like it to still search those directories, so we'll add
+    // longer search the default directories (working directory, _NT_SYMBOL_PATH,
+    // etc...). But we'd like it to still search those directories, so we'll add
     // them to our custom search path.
-    //
+
     // Append the working directory.
-    path = AppendString(path, L";.\\");
-
-    // Append the Windows directory.
-    WCHAR   windows [MAX_PATH] = {0};
-    if (GetWindowsDirectory(windows, MAX_PATH) != 0) {
-        path = AppendString(path, L";");
-        path = AppendString(path, windows);
-    }
-
-    // Append the system directory.
-    WCHAR   system [MAX_PATH] = {0};
-    if (GetSystemDirectory(system, MAX_PATH) != 0) {
-        path = AppendString(path, L";");
-        path = AppendString(path, system);
-    }
+    path = AppendString(path, L".\\;");
 
     // Append %_NT_SYMBOL_PATH%.
     DWORD   envlen = GetEnvironmentVariable(L"_NT_SYMBOL_PATH", NULL, 0);
     if (envlen != 0) {
         LPWSTR env = new WCHAR [envlen];
         if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", env, envlen) != 0) {
-            path = AppendString(path, L";");
             path = AppendString(path, env);
+            path = AppendString(path, L";");
         }
         delete [] env;
     }
@@ -721,8 +942,19 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     if (envlen != 0) {
         LPWSTR env = new WCHAR [envlen];
         if (GetEnvironmentVariable(L"_NT_ALT_SYMBOL_PATH", env, envlen) != 0) {
-            path = AppendString(path, L";");
             path = AppendString(path, env);
+            path = AppendString(path, L";");
+        }
+        delete [] env;
+    }
+
+    // Append %_NT_ALTERNATE_SYMBOL_PATH%.
+    envlen = GetEnvironmentVariable(L"_NT_ALTERNATE_SYMBOL_PATH", NULL, 0);
+    if (envlen != 0) {
+        LPWSTR env = new WCHAR [envlen];
+        if (GetEnvironmentVariable(L"_NT_ALTERNATE_SYMBOL_PATH", env, envlen) != 0) {
+            path = AppendString(path, env);
+            path = AppendString(path, L";");
         }
         delete [] env;
     }
@@ -730,33 +962,26 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
 #if _MSC_VER > 1900
 #error Not supported VS
 #endif
-    // Append Visual Studio symbols cache directory.
-    HKEY debuggerkey;
-    WCHAR symbolCacheDir [MAX_PATH] = {0};
-    // VS2015
-    LSTATUS regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\14.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2013
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\12.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2012
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\11.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2010
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\10.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
-    if (regstatus != ERROR_SUCCESS) // VS2008
-        regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, L"Software\\Microsoft\\VisualStudio\\9.0\\Debugger", 0, KEY_QUERY_VALUE, &debuggerkey);
+    // Append Visual Studio 2015/2013/2012/2010/2008 symbols cache directory.
+    for (UINT n = 9; n <= 14; ++n) {
+        WCHAR debuggerpath[MAX_PATH] = { 0 };
+        swprintf(debuggerpath, _countof(debuggerpath), L"Software\\Microsoft\\VisualStudio\\%u.0\\Debugger", n);
+        HKEY debuggerkey;
+        WCHAR symbolCacheDir[MAX_PATH] = { 0 };
+        LSTATUS regstatus = RegOpenKeyExW(HKEY_CURRENT_USER, debuggerpath, 0, KEY_QUERY_VALUE, &debuggerkey);
 
-    if (regstatus == ERROR_SUCCESS)
-    {
-        DWORD valuetype;
-        DWORD dirLength = MAX_PATH * sizeof(WCHAR);
-        regstatus = RegQueryValueEx(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
-        if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ)
-        {
-            path = AppendString(path, L";");
-            path = AppendString(path, symbolCacheDir);
-            path = AppendString(path, L"\\MicrosoftPublicSymbols;");
-            path = AppendString(path, symbolCacheDir);
+        if (regstatus == ERROR_SUCCESS) {
+            DWORD valuetype;
+            DWORD dirLength = MAX_PATH * sizeof(WCHAR);
+            regstatus = RegQueryValueExW(debuggerkey, L"SymbolCacheDir", NULL, &valuetype, (LPBYTE)&symbolCacheDir, &dirLength);
+            if (regstatus == ERROR_SUCCESS && valuetype == REG_SZ && symbolCacheDir[0] != NULL && !wcsstr(path, symbolCacheDir)) {
+                path = AppendString(path, symbolCacheDir);
+                path = AppendString(path, L"\\MicrosoftPublicSymbols;");
+                path = AppendString(path, symbolCacheDir);
+                path = AppendString(path, L";");
+            }
+            RegCloseKey(debuggerkey);
         }
-        RegCloseKey(debuggerkey);
     }
 
     // Remove any quotes from the path. The symbol handler doesn't like them.
@@ -774,6 +999,85 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
     return path;
 }
 
+// GetIniFilePath - Obtains vld.ini file path.
+//
+//  Return Value:
+//
+//    Returns true if an actual vld.ini file was found
+//    Otherwise, returns false.
+//
+BOOL VisualLeakDetector::GetIniFilePath(LPTSTR lpPath, SIZE_T cchPath)
+{
+    TCHAR  path[MAX_PATH] = {0};
+    struct _stat s;
+    DWORD written = 0;
+
+    // Get the location of the vld.ini file from current directory path.
+    if (0 < (written = GetCurrentDirectory(MAX_PATH, path))) {
+        _tcsncpy_s(&path[written], MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE);
+        if (_tstat(path, &s) == 0) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    // Get the location of the vld.ini file from VLDDLL file path.
+    HMODULE hModule = GetCallingModule((UINT_PTR)this);
+    if (0 < (written = GetModuleFileName(hModule, path, MAX_PATH))) {
+        LPTSTR p = _tcsrchr(path, TEXT('\\'));
+        written = (DWORD)(p - path);
+        if (p && 0 == _tcsncpy_s(p, MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE)) {
+            if (_tstat(path, &s) == 0) {
+                _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+                return TRUE;
+            }
+        }
+    }
+
+    // Get the location of the vld.ini file from executable file path.
+    if (0 < (written = GetModuleFileName(NULL, path, MAX_PATH))) {
+        LPTSTR p = _tcsrchr(path, TEXT('\\'));
+        written = (DWORD)(p - path);
+        if (p && 0 == _tcsncpy_s(p, MAX_PATH - written, TEXT("\\vld.ini"), _TRUNCATE)) {
+            if (_tstat(path, &s) == 0) {
+                _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+                return TRUE;
+            }
+        }
+    }
+
+    HKEY         productkey = 0;
+    DWORD        length = 0;
+    DWORD        valuetype = 0;
+
+    // Get the location of the vld.ini file from the registry.
+    LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+    if (regstatus == ERROR_SUCCESS) {
+        length = MAX_PATH * sizeof(TCHAR);
+        regstatus = RegQueryValueEx(productkey, TEXT("IniFile"), NULL, &valuetype, (LPBYTE)&path, &length);
+        RegCloseKey(productkey);
+        if (regstatus == ERROR_SUCCESS && (_tstat(path, &s) == 0)) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    // Get the location of the vld.ini file from the registry.
+    regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
+    if (regstatus == ERROR_SUCCESS) {
+        length = MAX_PATH * sizeof(TCHAR);
+        regstatus = RegQueryValueEx(productkey, TEXT("IniFile"), NULL, &valuetype, (LPBYTE)&path, &length);
+        RegCloseKey(productkey);
+        if (regstatus == ERROR_SUCCESS && (_tstat(path, &s) == 0)) {
+            _tcsncpy_s(lpPath, cchPath, path, _TRUNCATE);
+            return TRUE;
+        }
+    }
+
+    _tcsncpy_s(lpPath, cchPath, TEXT("vld.ini"), _TRUNCATE);
+    return FALSE;
+}
+
 // configure - Configures VLD using values read from the vld.ini file.
 //
 //  Return Value:
@@ -782,50 +1086,10 @@ LPWSTR VisualLeakDetector::buildSymbolSearchPath ()
 //
 VOID VisualLeakDetector::configure ()
 {
-    WCHAR  inipath [MAX_PATH] = {0};
-    struct _stat s;
-    if (_wstat(L".\\vld.ini", &s) == 0) {
-        // Found a copy of vld.ini in the working directory. Use it.
-        wcsncpy_s(inipath, MAX_PATH, L".\\vld.ini", _TRUNCATE);
-    }
-    else {
-        BOOL         keyopen = FALSE;
-        HKEY         productkey = 0;
-        DWORD        length = 0;
-        DWORD        valuetype = 0;
+    TCHAR  inipath [MAX_PATH] = {0};
+    BOOL found = GetIniFilePath(inipath, _countof(inipath));
 
-        // Get the location of the vld.ini file from the registry.
-        LONG regstatus = RegOpenKeyEx(HKEY_CURRENT_USER, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-        if (regstatus == ERROR_SUCCESS) {
-            keyopen = TRUE;
-            length = MAX_PATH * sizeof(WCHAR);
-            regstatus = RegQueryValueExW(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-        }
-        if (keyopen) {
-            RegCloseKey(productkey);
-        }
-
-        if (!keyopen)
-        {
-            // Get the location of the vld.ini file from the registry.
-            regstatus = RegOpenKeyEx(HKEY_LOCAL_MACHINE, VLDREGKEYPRODUCT, 0, KEY_QUERY_VALUE, &productkey);
-            if (regstatus == ERROR_SUCCESS) {
-                keyopen = TRUE;
-                length = MAX_PATH * sizeof(WCHAR);
-                regstatus = RegQueryValueEx(productkey, L"IniFile", NULL, &valuetype, (LPBYTE)&inipath, &length);
-            }
-            if (keyopen) {
-                RegCloseKey(productkey);
-            }
-        }
-
-        if ((regstatus != ERROR_SUCCESS) || (_wstat(inipath, &s) != 0)) {
-            // The location of vld.ini could not be read from the registry. As a
-            // last resort, look in the Windows directory.
-            wcsncpy_s(inipath, MAX_PATH, L"vld.ini", _TRUNCATE);
-        }
-    }
-    DbgReport(L"Visual Leak Detector read settings from file: %s\n", inipath);
+    Report(L"Visual Leak Detector read settings from: %s\n", found ? inipath : L"(default settings)");
 
     // Read the boolean options.
     const UINT buffersize = 64;
@@ -840,28 +1104,32 @@ VOID VisualLeakDetector::configure ()
         return;
     }
 
-    if (LoadBoolOption(L"AggregateDuplicates", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"AggregateDuplicates", L"", inipath)) {
         m_options |= VLD_OPT_AGGREGATE_DUPLICATES;
     }
 
-    if (LoadBoolOption(L"SelfTest", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"SelfTest", L"", inipath)) {
         m_options |= VLD_OPT_SELF_TEST;
     }
 
-    if (LoadBoolOption(L"SlowDebuggerDump", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"SlowDebuggerDump", L"", inipath)) {
         m_options |= VLD_OPT_SLOW_DEBUGGER_DUMP;
     }
 
-    if (LoadBoolOption(L"StartDisabled", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"StartDisabled", L"", inipath)) {
         m_options |= VLD_OPT_START_DISABLED;
     }
 
-    if (LoadBoolOption(L"TraceInternalFrames", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"TraceInternalFrames", L"", inipath)) {
         m_options |= VLD_OPT_TRACE_INTERNAL_FRAMES;
     }
 
-    if (LoadBoolOption(L"SkipHeapFreeLeaks", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"SkipHeapFreeLeaks", L"", inipath)) {
         m_options |= VLD_OPT_SKIP_HEAPFREE_LEAKS;
+    }
+
+    if (LoadBoolOption(L"SkipCrtStartupLeaks", L"yes", inipath)) {
+        m_options |= VLD_OPT_SKIP_CRTSTARTUP_LEAKS;
     }
 
     // Read the integer configuration options.
@@ -921,7 +1189,7 @@ VOID VisualLeakDetector::configure ()
         m_options |= VLD_OPT_SAFE_STACK_WALK;
     }
 
-    if (LoadBoolOption(L"ValidateHeapAllocs", L"", inipath) == TRUE) {
+    if (LoadBoolOption(L"ValidateHeapAllocs", L"", inipath)) {
         m_options |= VLD_OPT_VALIDATE_HEAPFREE;
     }
 }
@@ -977,6 +1245,7 @@ SIZE_T VisualLeakDetector::eraseDuplicates (const BlockMap::Iterator &element, S
     SIZE_T       erased = 0;
     // Iterate through all block maps, looking for blocks with the same size
     // and callstack as the specified element.
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator heapit = m_heapMap->begin(); heapit != m_heapMap->end(); ++heapit) {
         BlockMap *blockmap = &(*heapit).second->blockMap;
         for (BlockMap::Iterator blockit = blockmap->begin(); blockit != blockmap->end(); ++blockit) {
@@ -1018,28 +1287,25 @@ tls_t* VisualLeakDetector::getTls ()
     if (tls == NULL) {
         DWORD threadId = GetCurrentThreadId();
 
-        {
-            CriticalSectionLocker cs(m_tlsLock);
-            TlsMap::Iterator it = m_tlsMap->find(threadId);
-            if(it == m_tlsMap->end()) {
-                // This thread's thread local storage structure has not been allocated.
-                tls = new tls_t;
+        CriticalSectionLocker cs(m_tlsLock);
+        TlsMap::Iterator it = m_tlsMap->find(threadId);
+        if (it == m_tlsMap->end()) {
+            // This thread's thread local storage structure has not been allocated.
+            tls = new tls_t;
 
-                // Add this thread's TLS to the TlsSet.
-                m_tlsMap->insert(threadId,tls);
-            }
-            else {
-                // Already had a thread with this ID
-                tls = (*it).second;
-            }
+            // Add this thread's TLS to the TlsSet.
+            m_tlsMap->insert(threadId, tls);
+        } else {
+            // Already had a thread with this ID
+            tls = (*it).second;
         }
 
-        TlsSetValue(m_tlsIndex, tls);
         ZeroMemory(&tls->context, sizeof(tls->context));
         tls->flags = 0x0;
         tls->oldFlags = 0x0;
         tls->threadId = threadId;
         tls->blockWithoutGuard = NULL;
+        TlsSetValue(m_tlsIndex, tls);
     }
 
     return tls;
@@ -1067,6 +1333,8 @@ tls_t* VisualLeakDetector::getTls ()
 //
 VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     // Record the block's information.
     blockinfo_t* blockinfo = new blockinfo_t();
     blockinfo->callStack = NULL;
@@ -1087,7 +1355,6 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
         m_maxAlloc = m_curAlloc;
 
     // Insert the block's information into the block map.
-    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Do it now.
@@ -1103,11 +1370,12 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
         // mechanism unknown to VLD), or the heap wouldn't have allocated it
         // again. Replace the previously allocated info with the new info.
         blockit = blockmap->find(mem);
-        m_curAlloc -= (*blockit).second->size;
-        delete (*blockit).second;
+        blockinfo_t* info = (*blockit).second;
+        m_curAlloc -= info->size;
+        Report(L"VLD: New allocation at already allocated address: 0x%p with size: %u and new size: %u\n", mem, info->size, size);
+        delete info;
         blockmap->erase(blockit);
         blockmap->insert(mem, blockinfo);
-        pblockInfo = NULL;
     }
 }
 
@@ -1123,11 +1391,13 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
 //
 VOID VisualLeakDetector::mapHeap (HANDLE heap)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     // Create a new block map for this heap and insert it into the heap map.
     heapinfo_t* heapinfo = new heapinfo_t;
     heapinfo->blockMap.reserve(BLOCK_MAP_RESERVE);
     heapinfo->flags = 0x0;
-    CriticalSectionLocker cs(g_heapMapLock);
+
     HeapMap::Iterator heapit = m_heapMap->insert(heap, heapinfo);
     if (heapit == m_heapMap->end()) {
         // Somehow this heap has been created twice without being destroyed,
@@ -1278,6 +1548,8 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
     bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
 {
+    CriticalSectionLocker cs(g_heapMapLock);
+
     if (newmem != mem) {
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
@@ -1288,7 +1560,6 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
 
     // The block was reallocated in-place. Find the existing blockinfo_t
     // entry in the block map and update it with the new callstack and size.
-    CriticalSectionLocker cs(g_heapMapLock);
     HeapMap::Iterator heapit = m_heapMap->find(heap);
     if (heapit == m_heapMap->end()) {
         // We haven't mapped this heap to a block map yet. Obviously the
@@ -1419,15 +1690,33 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
         if (threadId != ((DWORD)-1) && info->threadId != threadId)
             continue;
 
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
+
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
-                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+            // Leaks identified as CRT_USE_IGNORE should not be ignored here otherwise
+            // DynamicLoader/Thread test will randomly fail with less leaks being reported.
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
                 CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
+                continue;
+            }
+        }
+
+        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+            // Check for crt startup allocations
+            if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
                 continue;
             }
         }
@@ -1497,12 +1786,22 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         LPCVOID address = block;
         SIZE_T size = info->size;
 
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
+
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
-                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+            // Leaks identified as CRT_USE_IGNORE should not be ignored here otherwise
+            // DynamicLoader/Thread test will randomly fail with less leaks being reported.
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
                 CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL)
             {
                 // This block is marked as being used internally by the CRT.
@@ -1515,6 +1814,14 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             // we'll include in the report.
             address = CRTDBGBLOCKDATA(block);
             size = crtheader->size;
+        }
+
+        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+            // Check for crt startup allocations
+            if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
+                continue;
+            }
         }
 
         // It looks like a real memory leak.
@@ -1601,6 +1908,7 @@ blockinfo_t* VisualLeakDetector::findAllocedBlock(LPCVOID mem, __out HANDLE& hea
     heap = NULL;
     blockinfo_t* result = NULL;
     // Iterate through all heaps
+    CriticalSectionLocker cs(g_heapMapLock);
     for (HeapMap::Iterator it = m_heapMap->begin();
         it != m_heapMap->end();
         ++it)
@@ -1765,57 +2073,46 @@ BOOL VisualLeakDetector::detachFromModule (PCWSTR /*modulepath*/, DWORD64 module
 //
 FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 {
-    // See if there is an entry in the patch table that matches the requested
-    // function.
-    UINT tablesize = _countof(g_vld.m_patchTable);
-    for (UINT index = 0; index < tablesize; index++) {
-        moduleentry_t *entry = &g_vld.m_patchTable[index];
-        if ((entry->moduleBase == 0x0) || ((HMODULE)entry->moduleBase != module)) {
-            // This patch table entry is for a different module.
-            continue;
-        }
-
-        patchentry_t *patchentry = entry->patchTable;
-        while(patchentry->importName)
-        {
-            // This patch table entry is for the specified module. If the requested
-            // imports name matches the entry's import name (or ordinal), then
-            // return the address of the replacement instead of the address of the
-            // actual import.
-            if ((SIZE_T)patchentry->importName < (SIZE_T)g_vld.m_vldBase) {
-                // This entry's import name is not a valid pointer to data in
-                // vld.dll. It must be an ordinal value.
-                if ((UINT_PTR)patchentry->importName == (UINT_PTR)procname) {
-                    if (patchentry->original != NULL)
-                        *patchentry->original = g_vld._RGetProcAddress(module, procname);
-                    return (FARPROC)patchentry->replacement;
-                }
+    FARPROC original = g_vld._RGetProcAddress(module, procname);
+    if (original) {
+        // See if there is an entry in the patch table that matches the requested
+        // function.
+        UINT tablesize = _countof(g_vld.m_patchTable);
+        for (UINT index = 0; index < tablesize; index++) {
+            moduleentry_t *entry = &g_vld.m_patchTable[index];
+            if ((entry->moduleBase == 0x0) || ((HMODULE)entry->moduleBase != module)) {
+                // This patch table entry is for a different module.
+                continue;
             }
-            else {
-                __try
-                {
-                    if (strcmp(patchentry->importName, procname) == 0) {
-                        if (patchentry->original != NULL)
-                            *patchentry->original = g_vld._RGetProcAddress(module, procname);
-                        return (FARPROC)patchentry->replacement;
-                    }
-                }
-                __except(FilterFunction(GetExceptionCode()))
-                {
+
+            patchentry_t *patchentry = entry->patchTable;
+            while (patchentry->importName) {
+                // This patch table entry is for the specified module. If the requested
+                // imports name matches the entry's import name (or ordinal), then
+                // return the address of the replacement instead of the address of the
+                // actual import.
+                if (HIWORD(patchentry->importName) == 0) {
+                    // Import name is a function ordinal value.
                     if ((UINT_PTR)patchentry->importName == (UINT_PTR)procname) {
                         if (patchentry->original != NULL)
-                            *patchentry->original = g_vld._RGetProcAddress(module, procname);
+                            *patchentry->original = original;
+                        return (FARPROC)patchentry->replacement;
+                    }
+                } else {
+                    // Import name is a function name value.
+                    if (strcmp(patchentry->importName, procname) == 0) {
+                        if (patchentry->original != NULL)
+                            *patchentry->original = original;
                         return (FARPROC)patchentry->replacement;
                     }
                 }
+                patchentry++;
             }
-            patchentry++;
         }
     }
-
     // The requested function is not a patched function. Just return the real
     // address of the requested function.
-    return g_vld._RGetProcAddress(module, procname);
+    return original;
 }
 
 FARPROC VisualLeakDetector::_RGetProcAddress(HMODULE module, LPCSTR procname)
@@ -1844,57 +2141,47 @@ FARPROC VisualLeakDetector::_RGetProcAddress(HMODULE module, LPCSTR procname)
 //
 FARPROC VisualLeakDetector::_GetProcAddressForCaller(HMODULE module, LPCSTR procname, LPVOID caller)
 {
-	// See if there is an entry in the patch table that matches the requested
-	// function.
-	UINT tablesize = _countof(g_vld.m_patchTable);
-	for (UINT index = 0; index < tablesize; index++) {
-		moduleentry_t *entry = &g_vld.m_patchTable[index];
-		if ((entry->moduleBase == 0x0) || ((HMODULE)entry->moduleBase != module)) {
-			// This patch table entry is for a different module.
-			continue;
-		}
+    FARPROC original = g_vld._RGetProcAddressForCaller(module, procname, caller);
+    if (original) {
+        // See if there is an entry in the patch table that matches the requested
+        // function.
+        UINT tablesize = _countof(g_vld.m_patchTable);
+        for (UINT index = 0; index < tablesize; index++) {
+            moduleentry_t *entry = &g_vld.m_patchTable[index];
+            if ((entry->moduleBase == 0x0) || ((HMODULE)entry->moduleBase != module)) {
+                // This patch table entry is for a different module.
+                continue;
+            }
 
-		patchentry_t *patchentry = entry->patchTable;
-		while (patchentry->importName)
-		{
-			// This patch table entry is for the specified module. If the requested
-			// imports name matches the entry's import name (or ordinal), then
-			// return the address of the replacement instead of the address of the
-			// actual import.
-			if ((SIZE_T)patchentry->importName < (SIZE_T)g_vld.m_vldBase) {
-				// This entry's import name is not a valid pointer to data in
-				// vld.dll. It must be an ordinal value.
-				if ((UINT_PTR)patchentry->importName == (UINT_PTR)procname) {
-					if (patchentry->original != NULL)
-						*patchentry->original = g_vld._RGetProcAddress(module, procname);
-					return (FARPROC)patchentry->replacement;
-				}
-			}
-			else {
-				__try
-				{
-					if (strcmp(patchentry->importName, procname) == 0) {
-						if (patchentry->original != NULL)
-							*patchentry->original = g_vld._RGetProcAddress(module, procname);
-						return (FARPROC)patchentry->replacement;
-					}
-				}
-				__except (FilterFunction(GetExceptionCode()))
-				{
-					if ((UINT_PTR)patchentry->importName == (UINT_PTR)procname) {
-						if (patchentry->original != NULL)
-							*patchentry->original = g_vld._RGetProcAddress(module, procname);
-						return (FARPROC)patchentry->replacement;
-					}
-				}
-			}
-			patchentry++;
-		}
-	}
+            patchentry_t *patchentry = entry->patchTable;
+            while (patchentry->importName) {
+                // This patch table entry is for the specified module. If the requested
+                // imports name matches the entry's import name (or ordinal), then
+                // return the address of the replacement instead of the address of the
+                // actual import.
+                if (HIWORD(patchentry->importName) == 0) {
+                    // Import name is a function ordinal value.
+                    if ((UINT_PTR)patchentry->importName == (UINT_PTR)procname) {
+                        if (patchentry->original != NULL)
+                            *patchentry->original = original;
+                        return (FARPROC)patchentry->replacement;
+                    }
+                } else {
+                    // Import name is a function name value.
+                    if (strcmp(patchentry->importName, procname) == 0) {
+                        if (patchentry->original != NULL)
+                            *patchentry->original = original;
+                        return (FARPROC)patchentry->replacement;
+                    }
+                }
+                patchentry++;
+            }
+        }
+    }
 
-	// The requested function is not a patched function. Just return the real
-	// address of the requested function.
-	return g_vld._RGetProcAddressForCaller(module, procname, caller);
+    // The requested function is not a patched function. Just return the real
+    // address of the requested function.
+    return original;
 }
 
 FARPROC VisualLeakDetector::_RGetProcAddressForCaller(HMODULE module, LPCSTR procname, LPVOID caller)
@@ -1924,17 +2211,11 @@ FARPROC VisualLeakDetector::_RGetProcAddressForCaller(HMODULE module, LPCSTR pro
 //
 //    Returns the value returned by LdrLoadDll.
 //
-NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, ULONG flags, unicodestring_t *modulename,
+NTSTATUS VisualLeakDetector::_LdrLoadDll (LPWSTR searchpath, PULONG flags, unicodestring_t *modulename,
     PHANDLE modulehandle)
 {
     // Load the DLL
-    g_loaderLock.Enter();
     NTSTATUS status = LdrLoadDll(searchpath, flags, modulename, modulehandle);
-    g_loaderLock.Leave();
-
-    if (STATUS_SUCCESS == status)
-        g_vld.RefreshModules();
-
     return status;
 }
 
@@ -1942,25 +2223,50 @@ NTSTATUS VisualLeakDetector::_LdrLoadDllWin8 (DWORD_PTR reserved, PULONG flags, 
                                           PHANDLE modulehandle)
 {
     // Load the DLL
-    g_loaderLock.Enter();
     NTSTATUS status = LdrLoadDllWin8(reserved, flags, modulename, modulehandle);
-    g_loaderLock.Leave();
-
-    if (STATUS_SUCCESS == status)
-        g_vld.RefreshModules();
-
     return status;
+}
+
+NTSTATUS VisualLeakDetector::_LdrGetDllHandle(IN PWSTR DllPath OPTIONAL, IN PULONG DllCharacteristics OPTIONAL, IN PUNICODE_STRING DllName, OUT PVOID *DllHandle OPTIONAL)
+{
+    LoaderLock ll;
+
+    NTSTATUS status = LdrGetDllHandle(DllPath, DllCharacteristics, DllName, DllHandle);
+    return status;
+}
+NTSTATUS VisualLeakDetector::_LdrGetProcedureAddress(IN PVOID BaseAddress, IN PANSI_STRING Name, IN ULONG Ordinal, OUT PVOID * ProcedureAddress)
+{
+    LoaderLock ll;
+
+    NTSTATUS status = LdrGetProcedureAddress(BaseAddress, Name, Ordinal, ProcedureAddress);
+    return status;
+}
+
+NTSTATUS VisualLeakDetector::_LdrLockLoaderLock(IN ULONG Flags, OUT PULONG Disposition OPTIONAL, OUT PULONG_PTR Cookie OPTIONAL)
+{
+    return LdrLockLoaderLock(Flags, Disposition, Cookie);
+}
+
+NTSTATUS VisualLeakDetector::_LdrUnlockLoaderLock(IN ULONG Flags, IN ULONG_PTR Cookie OPTIONAL)
+{
+    return LdrUnlockLoaderLock(Flags, Cookie);
+}
+
+NTSTATUS VisualLeakDetector::_LdrUnloadDll(IN PVOID BaseAddress)
+{
+    return LdrUnloadDll(BaseAddress);
 }
 
 VOID VisualLeakDetector::RefreshModules()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF)
         return;
 
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
     {
-        CriticalSectionLocker cs(g_loaderLock);
         // Duplicate code here in this method. Consider refactoring out to another method.
         // Create a new set of all loaded modules, including any newly loaded
         // modules.
@@ -1972,10 +2278,9 @@ VOID VisualLeakDetector::RefreshModules()
     }
 
     // Start using the new set of loaded modules.
-    m_modulesLock.Enter();
+    CriticalSectionLocker cs(m_modulesLock);
     ModuleSet* oldmodules = m_loadedModules;
     m_loadedModules = newmodules;
-    m_modulesLock.Leave();
 
     // Free resources used by the old module list.
     delete oldmodules;
@@ -2218,9 +2523,8 @@ void VisualLeakDetector::GlobalDisableLeakDetection ()
         return;
     }
 
-    m_optionsLock.Enter();
+    CriticalSectionLocker cs(m_optionsLock);
     m_options |= VLD_OPT_START_DISABLED;
-    m_optionsLock.Leave();
 
     // Disable memory leak detection for all threads.
     CriticalSectionLocker cstls(m_tlsLock);
@@ -2239,10 +2543,9 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
         return;
     }
 
-    m_optionsLock.Enter();
+    CriticalSectionLocker cs(m_optionsLock);
     m_options &= ~VLD_OPT_START_DISABLED;
     m_status &= ~VLD_STATUS_NEVER_ENABLED;
-    m_optionsLock.Leave();
 
     // Enable memory leak detection for all threads.
     CriticalSectionLocker cstls(m_tlsLock);
@@ -2256,7 +2559,8 @@ void VisualLeakDetector::GlobalEnableLeakDetection ()
 
 CONST UINT32 OptionsMask = VLD_OPT_AGGREGATE_DUPLICATES | VLD_OPT_MODULE_LIST_INCLUDE |
     VLD_OPT_SAFE_STACK_WALK | VLD_OPT_SLOW_DEBUGGER_DUMP | VLD_OPT_START_DISABLED |
-    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE;
+    VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_HEAPFREE_LEAKS | VLD_OPT_VALIDATE_HEAPFREE |
+    VLD_OPT_SKIP_CRTSTARTUP_LEAKS;
 
 UINT32 VisualLeakDetector::GetOptions()
 {
@@ -2389,8 +2693,10 @@ void VisualLeakDetector::setupReporting()
     WCHAR      bom = BOM; // Unicode byte-order mark.
 
     //Close the previous report file if needed.
-    if ( m_reportFile )
+    if (m_reportFile) {
         fclose(m_reportFile);
+        m_reportFile = NULL;
+    }
 
     // Reporting to file enabled.
     if (m_options & VLD_OPT_UNICODE_REPORT) {
@@ -2401,7 +2707,7 @@ void VisualLeakDetector::setupReporting()
             // Couldn't open the file.
             m_reportFile = NULL;
         }
-        else {
+        else if (m_reportFile) {
             fwrite(&bom, sizeof(WCHAR), 1, m_reportFile);
             SetReportEncoding(unicode);
         }
@@ -2412,7 +2718,7 @@ void VisualLeakDetector::setupReporting()
             // Couldn't open the file.
             m_reportFile = NULL;
         }
-        else {
+        else if (m_reportFile) {
             SetReportEncoding(ascii);
         }
     }
@@ -2441,9 +2747,23 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         {
             continue;
         }
+
+        if (info->reported) {
+            continue;
+        }
+
         // The actual memory address
         const void* address = block;
         assert(address != NULL);
+
+        if (!info->debugCrtAlloc) {
+            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+                info->debugCrtAlloc = true;
+            }
+        }
 
         if (info->debugCrtAlloc) {
             // This block is allocated to a CRT heap, so the block has a CRT
@@ -2452,8 +2772,9 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
             if (!crtheader)
                 continue;
 
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_IGNORE ||
-                CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
+            // Leaks identified as CRT_USE_IGNORE should not be ignored here otherwise
+            // DynamicLoader/Thread test will randomly fail with less leaks being reported.
+            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
                 CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL)
             {
                 // This block is marked as being used internally by the CRT.
@@ -2466,6 +2787,10 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         if (info->callStack)
         {
             unresolvedFunctionsCount += info->callStack->resolve(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
+            if ((m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) && info->callStack->isCrtStartupAlloc()) {
+                info->reported = true;
+                continue;
+            }
         }
     }
     return unresolvedFunctionsCount;
@@ -2473,6 +2798,8 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
 
 int VisualLeakDetector::ResolveCallstacks()
 {
+    LoaderLock ll;
+
     if (m_options & VLD_OPT_VLDOFF)
         return 0;
 

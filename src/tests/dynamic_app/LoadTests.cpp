@@ -22,6 +22,7 @@ void CallVLDExportedMethod(const CHAR* function)
         if (func)
         {
             int result = func();
+            UNREFERENCED_PARAMETER(result);
         }
     }
 }
@@ -86,9 +87,9 @@ HMODULE RunMFCLoaderTests(bool resolve)
     if (hmfcLib)
     {
         VLDEnableModule(hmfcLib);
-        // Should leak 7 memory allocations in total
+        // Should leak 11 memory allocations in total
         // This requires ansi, not Unicode strings
-        CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4
+        CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4 x 2 = 8
         CallLibraryMethods(hmfcLib, "MFC_LeakArray");  // leaks 3
 
         if (resolve)
