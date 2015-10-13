@@ -37,7 +37,7 @@ int _tmain(int argc, _TCHAR* argv[])
     // _tmain exits but before VLDReportLeaks() is called internally by VLD and
     // therefore correctly report 8 leaks.
     // VLDReportLeaks(); // at this point should report 9 leaks;
-    return VLDGetLeaksCount() == 9 ? 0 : -1;
+    return VLDGetLeaksCount();
 }
 
 
@@ -54,5 +54,5 @@ int WINAPI _tWinMain(__in HINSTANCE hInstance,
     // _tWinMain exits but before VLDReportLeaks() is called internally by VLD and
     // therefore correctly report 8 leaks.
     // VLDReportLeaks(); // at this point should report 9 leaks;
-    return VLDGetLeaksCount() == 9 ? 0 : -1;
+    return VLDGetLeaksCount();
 }
