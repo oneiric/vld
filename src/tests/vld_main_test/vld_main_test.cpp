@@ -34,7 +34,11 @@ TEST(TestWinMain, RunExe)
     // Close the handles.
     CloseHandle(processInformation.hProcess);
     CloseHandle(processInformation.hThread);
+#if !defined(_WIN64) || defined(_DEBUG)
     ASSERT_EQ(9, exitCode);
+#else
+    ASSERT_EQ(7, exitCode);
+#endif
 }
 
 int _tmain(int argc, _TCHAR* argv[])

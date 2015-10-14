@@ -11,26 +11,26 @@
 
 class MemoryLeak {
 public:
-    MemoryLeak(size_t n) { l = malloc(n); }
+    MemoryLeak(size_t n) { l = malloc(n); } // 4,5
     ~MemoryLeak() { free(l); }
 private:
     void* l;
 };
 
-static void* s_m = malloc(10);
-static char* s_n = new char[20];
+static void* s_m = malloc(10); // 1
+static char* s_n = new char[20]; // 2
 
-static MemoryLeak* pml = new MemoryLeak(70); // leaks a new pointer and malloc(70)
+static MemoryLeak* pml = new MemoryLeak(70); // 3: leaks a new pointer and malloc(70)
 static MemoryLeak ml{ 80 }; // *should* be freed and not report as a memory leak
 
-void* g_m = malloc(30);
-char* g_n = new char[40];
+void* g_m = malloc(30); // 6
+char* g_n = new char[40]; // 7
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-    void* m = malloc(50);
-    char* n = new char[60];
+    void* m = malloc(50); // 8
+    char* n = new char[60]; // 9
 
     // At this point VLDGetLeaksCount() and VLDReportLeaks() should report 9 leaks
     // including a leak for ml which has not been freed yet. ml will be freed after
