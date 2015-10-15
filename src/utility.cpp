@@ -431,20 +431,21 @@ LPVOID FindRealCode(LPVOID pCode)
     LPVOID result = pCode;
     if (pCode != NULL)
     {
-        if (*(WORD *)pCode == 0x25ff) // jmp
+        if (*(WORD *)pCode == 0x25ff) // JMP r/m32
         {
-            DWORD addr = *((DWORD *)((ULONG_PTR)pCode + 2));
 #ifdef _WIN64
+            LONG offset = *((LONG *)((ULONG_PTR)pCode + 2));
             // RIP relative addressing
             PBYTE pNextInst = (PBYTE)((ULONG_PTR)pCode + 6);
-            pCode = *(LPVOID*)(pNextInst + addr);
+            pCode = *(LPVOID*)(pNextInst + offset);
             return pCode;
 #else
+            DWORD addr = *((DWORD *)((ULONG_PTR)pCode + 2));
             pCode = *(LPVOID*)(addr);
             return FindRealCode(pCode);
 #endif
         }
-        if (*(BYTE *)pCode == 0xE9) // jmp
+        if (*(BYTE *)pCode == 0xE9) // JMP rel32
         {
             // Relative next instruction
             PBYTE	pNextInst = (PBYTE)((ULONG_PTR)pCode + 5);
