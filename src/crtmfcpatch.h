@@ -1277,9 +1277,9 @@ typedef CrtPatch<120>
 typedef CrtPatch<120, true>
     VS120d;
 // Visual Studio 2015 and higher
-typedef CrtPatch<130>
+typedef CrtPatch<140>
     UCRT;
-typedef CrtPatch<130, true>
+typedef CrtPatch<140, true>
     UCRTd;
 
 VS60    VS60::data;

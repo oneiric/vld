@@ -587,6 +587,7 @@ bool CallStack::isCrtStartupModule( const PWSTR filename ) const
         endWith(filename, len, L"\\crts\\ucrt\\src\\desktopcrt\\env\\environment_initialization.cpp") ||
         // VS2013
         endWith(filename, len, L"\\crt\\crtw32\\startup\\crt0dat.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\startup\\crt0.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdargv.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdenvp.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\lowio\\ioinit.c") ||
