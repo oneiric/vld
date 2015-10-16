@@ -11,8 +11,14 @@ environment:
   GTEST_REPEAT: 1
 
   matrix:
-  - VldStackWalkMethod: safe
   - VldStackWalkMethod: fast
+    Solution: vld_vs14.sln
+  - VldStackWalkMethod: safe
+    Solution: vld_vs14.sln
+  - VldStackWalkMethod: fast
+    Solution: vld_vs12.sln
+  - VldStackWalkMethod: safe
+    Solution: vld_vs12.sln
 
 platform:
   - Win32
@@ -31,7 +37,7 @@ build_script:
 - ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
     Write-Output "Platform: $env:PLATFORM"
-    msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "vld_vs14.sln" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 test_script:
 - ps: |
@@ -85,6 +91,7 @@ test_script:
         }
     }
 
-    $folders = @{"Debug_VldRelease" = "Debug(Release)-v140"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-v140";
-        "Release" = "Release-v140"; "Release_StaticCrt" = "Release_StaticCrt-v140"}
+    $suffix = if ($env:Solution -eq "vld_vs14.sln") { "v140" } else { "v120" }
+    $folders = @{"Debug_VldRelease" = "Debug(Release)-$suffix"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-$suffix";
+        "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
     Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])"
