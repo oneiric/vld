@@ -11,7 +11,7 @@
 
 class MemoryLeak {
 public:
-    MemoryLeak(size_t n) { l = malloc(n); } // 4,5
+    MemoryLeak(size_t n) { l = malloc(n); memset(l, 0x30 + (n / 10), n); } // 4,5
     ~MemoryLeak() { free(l); }
 private:
     void* l;
@@ -27,10 +27,20 @@ void* g_m = malloc(30); // 6
 char* g_n = new char[40]; // 7
 
 
-int _tmain(int argc, _TCHAR* argv[])
+int Test()
 {
+    VLDSetOptions(VLD_OPT_TRACE_INTERNAL_FRAMES | VLD_OPT_SKIP_CRTSTARTUP_LEAKS, 256, 64);
+
     void* m = malloc(50); // 8
     char* n = new char[60]; // 9
+
+    memset(s_m, '1', 10);
+    memset(s_n, '2', 20);
+    memset(g_m, '3', 30);
+    memset(g_n, '4', 40);
+    memset(m,   '5', 50);
+    memset(n,   '6', 60);
+
 
     // At this point VLDGetLeaksCount() and VLDReportLeaks() should report 9 leaks
     // including a leak for ml which has not been freed yet. ml will be freed after
@@ -40,19 +50,16 @@ int _tmain(int argc, _TCHAR* argv[])
     return VLDGetLeaksCount();
 }
 
+int _tmain(int argc, _TCHAR* argv[])
+{
+    return Test();
+}
+
 
 int WINAPI _tWinMain(__in HINSTANCE hInstance,
     __in_opt HINSTANCE hPrevInstance,
     __in LPWSTR lpCmdLine,
     __in int nShowCmd)
 {
-    void* m = malloc(50);
-    char* n = new char[60];
-
-    // At this point VLDGetLeaksCount() and VLDReportLeaks() should report 9 leaks
-    // including a leak for ml which has not been freed yet. ml will be freed after
-    // _tWinMain exits but before VLDReportLeaks() is called internally by VLD and
-    // therefore correctly report 8 leaks.
-    // VLDReportLeaks(); // at this point should report 9 leaks;
-    return VLDGetLeaksCount();
+    return Test();
 }

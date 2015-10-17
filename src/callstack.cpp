@@ -507,7 +507,7 @@ int CallStack::resolve(BOOL showInternalFrames)
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
-        
+
         if (skipStartupLeaks && foundline && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
             isDynamicInitializer = true;
         }
@@ -587,10 +587,11 @@ bool CallStack::isCrtStartupModule( const PWSTR filename ) const
         endWith(filename, len, L"\\crts\\ucrt\\src\\desktopcrt\\env\\environment_initialization.cpp") ||
         // VS2013
         endWith(filename, len, L"\\crt\\crtw32\\startup\\crt0dat.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\startup\\crt0.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdargv.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdenvp.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\lowio\\ioinit.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\startup\\tidtable.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\mbstring\\mbctype.c") ||
         // VS2010
         endWith(filename, len, L"\\crt\\src\\crt0dat.c") ||                 //_cinit()
         endWith(filename, len, L"\\crt\\src\\stdargv.c") ||                 //_wsetargv()
