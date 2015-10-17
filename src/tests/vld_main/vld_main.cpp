@@ -21,7 +21,9 @@ static void* s_m = malloc(10); // 1
 static char* s_n = new char[20]; // 2
 
 static MemoryLeak* pml = new MemoryLeak(70); // 3: leaks a new pointer and malloc(70)
+#if _MSC_VER > 1700
 static MemoryLeak ml{ 80 }; // *should* be freed and not report as a memory leak
+#endif
 
 void* g_m = malloc(30); // 6
 char* g_n = new char[40]; // 7
