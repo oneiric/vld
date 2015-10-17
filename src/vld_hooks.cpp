@@ -1470,8 +1470,6 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
 //
 HANDLE VisualLeakDetector::_GetProcessHeap()
 {
-    LoaderLock ll;
-
 #ifdef PRINTHOOKCALLS
 	DbgReport(_T(__FUNCTION__ "\n"));
 #endif
@@ -1505,8 +1503,6 @@ HANDLE VisualLeakDetector::_GetProcessHeap()
 //
 HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
 {
-    LoaderLock ll;
-
 #ifdef PRINTHOOKCALLS
 	DbgReport(_T(__FUNCTION__ "\n"));
 #endif

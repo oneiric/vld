@@ -88,6 +88,8 @@ moduleentry_t ntdllPatch [] = {
 typedef BOOLEAN(NTAPI *PDLL_INIT_ROUTINE)(IN PVOID DllHandle, IN ULONG Reason, IN PCONTEXT Context OPTIONAL);
 BOOLEAN WINAPI LdrpCallInitRoutine(IN PVOID BaseAddress, IN ULONG Reason, IN PVOID Context, IN PDLL_INIT_ROUTINE EntryPoint)
 {
+    LoaderLock ll;
+
     if (Reason == DLL_PROCESS_ATTACH) {
         g_vld.RefreshModules();
     }
