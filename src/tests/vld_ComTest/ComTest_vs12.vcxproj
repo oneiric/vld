@@ -54,6 +54,7 @@
     <ProjectGuid>{3719F504-3DF0-45F8-BC7A-4415804AC7C9}</ProjectGuid>
     <Keyword>AtlProj</Keyword>
     <ProjectName>ComTest</ProjectName>
+    <RootNamespace>ComTest</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">

@@ -53,7 +53,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{33F98E06-F44C-4E22-9E16-4C20F8238A95}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>vld_dll1</RootNamespace>
+    <RootNamespace>vld_dll2</RootNamespace>
     <ProjectName>vld_dll2</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

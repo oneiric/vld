@@ -51,9 +51,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{D6BB7E57-C9CA-4E99-AA3D-90294BDCCFD9}</ProjectGuid>
+    <ProjectGuid>{BB99EDE9-D039-4169-B26B-6BFD93C6AF8E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>vld_main</RootNamespace>
+    <RootNamespace>vld_main_test</RootNamespace>
     <ProjectName>vld_main_test</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -411,6 +411,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\gtest\msvc\gtest_vs12.vcxproj">
       <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vld_main\vld_main_vs12.vcxproj">
+      <Project>{8c732490-dc1a-40c0-923f-1555b9141b80}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
