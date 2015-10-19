@@ -50,11 +50,10 @@ extern CriticalSection   g_vldHeapLock;
 // Global variables.
 HANDLE           g_currentProcess; // Pseudo-handle for the current process.
 HANDLE           g_currentThread;  // Pseudo-handle for the current thread.
-CriticalSection  g_imageLock;      // Serializes calls to the Debug Help Library PE image access APIs.
 HANDLE           g_processHeap;    // Handle to the process's heap (COM allocations come from here).
 CriticalSection  g_heapMapLock;    // Serializes access to the heap and block maps.
-CriticalSection  g_symbolLock;     // Serializes calls to the Debug Help Library symbols handling APIs.
 ReportHookSet*   g_pReportHooks;
+DgbHelp g_DbgHelp;
 
 // The one and only VisualLeakDetector object instance.
 __declspec(dllexport) VisualLeakDetector g_vld;
@@ -362,7 +361,6 @@ VisualLeakDetector::VisualLeakDetector ()
     // Initialize global variables.
     g_currentProcess    = GetCurrentProcess();
     g_currentThread     = GetCurrentThread();
-    g_imageLock.Initialize();
     g_processHeap       = GetProcessHeap();
     HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (ntdll)
@@ -390,7 +388,6 @@ VisualLeakDetector::VisualLeakDetector ()
     LoaderLock ll;
 
     g_heapMapLock.Initialize();
-    g_symbolLock.Initialize();
     g_vldHeap         = HeapCreate(0x0, 0, 0);
     g_vldHeapLock.Initialize();
     g_pReportHooks    = new ReportHookSet;
@@ -459,12 +456,12 @@ VisualLeakDetector::VisualLeakDetector ()
     set the DBGHELP_DBGOUT environment variable to a non-NULL value before calling the SymInitialize function.
     To log the information to a file, set the DBGHELP_LOG environment variable to the name of the log file to be used.
     */
-    SymSetOptions(SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+    g_DbgHelp.SymSetOptions(SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
 #else
-    SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+    g_DbgHelp.SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
 #endif
     DbgTrace(L"dbghelp32.dll %i: SymInitializeW\n", GetCurrentThreadId());
-    if (!SymInitializeW(g_currentProcess, symbolpath, FALSE)) {
+    if (!g_DbgHelp.SymInitializeW(g_currentProcess, symbolpath, FALSE)) {
         Report(L"WARNING: Visual Leak Detector: The symbol handler failed to initialize (error=%lu).\n"
             L"    File and function names will probably not be available in call stacks.\n", GetLastError());
     }
@@ -479,7 +476,7 @@ VisualLeakDetector::VisualLeakDetector ()
     ModuleSet* newmodules = new ModuleSet();
     newmodules->reserve(MODULE_SET_RESERVE);
     DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
-    EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
+    g_DbgHelp.EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
     attachToLoadedModules(newmodules);
     ModuleSet* oldmodules = m_loadedModules;
     m_loadedModules = newmodules;
@@ -607,7 +604,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     if (m_status & VLD_STATUS_INSTALLED) {
         // Detach Visual Leak Detector from all previously attached modules.
         DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
-        EnumerateLoadedModulesW64(g_currentProcess, detachFromModule, NULL);
+        g_DbgHelp.EnumerateLoadedModulesW64(g_currentProcess, detachFromModule, NULL);
 
         HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
         HMODULE kernelBase = GetModuleHandleW(L"KernelBase.dll");
@@ -640,7 +637,7 @@ VisualLeakDetector::~VisualLeakDetector ()
 
         // Free resources used by the symbol handler.
         DbgTrace(L"dbghelp32.dll %i: SymCleanup\n", GetCurrentThreadId());
-        if (!SymCleanup(g_currentProcess)) {
+        if (!g_DbgHelp.SymCleanup(g_currentProcess)) {
             Report(L"WARNING: Visual Leak Detector: The symbol handler failed to deallocate resources (error=%lu).\n",
                 GetLastError());
         }
@@ -690,9 +687,7 @@ VisualLeakDetector::~VisualLeakDetector ()
     m_optionsLock.Delete();
     m_modulesLock.Delete();
     m_tlsLock.Delete();
-    g_imageLock.Delete();
     g_heapMapLock.Delete();
-    g_symbolLock.Delete();
     g_vldHeapLock.Delete();
 
     if (m_tlsIndex != TLS_OUT_OF_INDEXES) {
@@ -720,20 +715,18 @@ UINT32 VisualLeakDetector::getModuleState(ModuleSet::Iterator& it, UINT32& modul
     DWORD64 modulebase = (DWORD64) moduleinfo.addrLow;
     moduleFlags = 0;
 
-    if (IsBadReadPtr((UINT*) modulebase, sizeof(UINT*))) // module unloaded
+    if (!GetCallingModule((UINT_PTR)modulebase)) // module unloaded
         return 0;
 
-    bool isNewModule = false;
-    CriticalSectionLocker cs(m_modulesLock);
-    ModuleSet* oldmodules = m_loadedModules;
-    ModuleSet::Iterator oldit = oldmodules->find(moduleinfo);
-    if (oldit != oldmodules->end()) // We've seen this "new" module loaded in the process before.
-        moduleFlags = (*oldit).flags;
-    else // This is new loaded module
-        isNewModule = true;
-
-    if (isNewModule)
-        return 1;
+    {
+        CriticalSectionLocker cs(m_modulesLock);
+        ModuleSet* oldmodules = m_loadedModules;
+        ModuleSet::Iterator oldit = oldmodules->find(moduleinfo);
+        if (oldit != oldmodules->end()) // We've seen this "new" module loaded in the process before.
+            moduleFlags = (*oldit).flags;
+        else // This is new loaded module
+            return 1;
+    }
 
     if (IsModulePatched((HMODULE) modulebase, m_patchTable, _countof(m_patchTable)))
     {
@@ -776,7 +769,6 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
     LoaderLock ll;
 
     // Iterate through the supplied set, until all modules have been attached.
-    CriticalSectionLocker cs(g_symbolLock);
     for (ModuleSet::Iterator newit = newmodules->begin(); newit != newmodules->end(); ++newit)
     {
         UINT32 moduleFlags = 0x0;
@@ -793,7 +785,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         if ((state == 3) && (moduleFlags & VLD_MODULE_SYMBOLSLOADED)) {
             // Discard the previously loaded symbols, so we can refresh them.
             DbgTrace(L"dbghelp32.dll %i: SymUnloadModule64\n", GetCurrentThreadId());
-            if (SymUnloadModule64(g_currentProcess, modulebase) == false) {
+            if (g_DbgHelp.SymUnloadModule64(g_currentProcess, modulebase) == false) {
                 Report(L"WARNING: Visual Leak Detector: Failed to unload the symbols for %s. Function names and line"
                     L" numbers shown in the memory leak report for %s may be inaccurate.\n", modulename, modulename);
             }
@@ -805,17 +797,16 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         // leak report.
         IMAGEHLP_MODULE64     moduleimageinfo;
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        BOOL SymbolsLoaded = SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
+        BOOL SymbolsLoaded = g_DbgHelp.SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
 
         if (!SymbolsLoaded)
         {
-            CriticalSectionLocker csSL(g_symbolLock);
             DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
-            DWORD64 module = SymLoadModuleEx(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
+            DWORD64 module = g_DbgHelp.SymLoadModuleExW(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0);
             if (module == modulebase)
             {
                 DbgTrace(L"dbghelp32.dll %i: SymGetModuleInfoW64\n", GetCurrentThreadId());
-                SymbolsLoaded = SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
+                SymbolsLoaded = g_DbgHelp.SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo);
             }
         }
         if (SymbolsLoaded)
@@ -2273,7 +2264,7 @@ VOID VisualLeakDetector::RefreshModules()
         // Create a new set of all loaded modules, including any newly loaded
         // modules.
         DbgTrace(L"dbghelp32.dll %i: EnumerateLoadedModulesW64\n", GetCurrentThreadId());
-        EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
+        g_DbgHelp.EnumerateLoadedModulesW64(g_currentProcess, addLoadedModule, newmodules);
 
         // Attach to all modules included in the set.
         attachToLoadedModules(newmodules);

@@ -33,8 +33,8 @@
 extern HANDLE             g_currentProcess;
 extern HANDLE             g_currentThread;
 extern CriticalSection    g_heapMapLock;
-extern CriticalSection    g_symbolLock;
 extern VisualLeakDetector g_vld;
+extern DgbHelp g_DbgHelp;
 
 // Helper function to compare the begin of a string with a substring
 //
@@ -208,7 +208,7 @@ LPCWSTR CallStack::getFunctionName(SIZE_T programCounter, DWORD64& displacement6
     displacement64 = 0;
     LPCWSTR functionName;
     DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-    if (SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
+    if (g_DbgHelp.SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
         functionName = functionInfo->Name;
     }
     else {
@@ -296,7 +296,6 @@ bool CallStack::isCrtStartupAlloc()
     BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
 
     // Iterate through each frame in the call stack.
-    CriticalSectionLocker cs(g_symbolLock);
     for (UINT32 frame = 0; frame < m_size; frame++) {
         // Try to get the source file and line number associated with
         // this program counter address.
@@ -304,7 +303,7 @@ bool CallStack::isCrtStartupAlloc()
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 
         if (foundline) {
             DWORD64 displacement64;
@@ -364,7 +363,6 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
     bool isPrevFrameInternal = false;
 
     // Iterate through each frame in the call stack.
-    CriticalSectionLocker cs(g_symbolLock);
     for (UINT32 frame = start_frame; frame < m_size; frame++)
     {
         // Try to get the source file and line number associated with
@@ -373,7 +371,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 
         bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
@@ -463,7 +461,6 @@ int CallStack::resolve(BOOL showInternalFrames)
     }
 
     // Iterate through each frame in the call stack.
-    CriticalSectionLocker cs(g_symbolLock);
     for (UINT32 frame = 0; frame < m_size; frame++)
     {
         // Try to get the source file and line number associated with
@@ -475,7 +472,7 @@ int CallStack::resolve(BOOL showInternalFrames)
         // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
         // When that happens there is nothing we can do except crash.
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        BOOL foundline = SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 
         if (skipStartupLeaks && foundline && !isDynamicInitializer &&
             !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) && isCrtStartupModule(sourceInfo.FileName)) {
@@ -586,10 +583,11 @@ bool CallStack::isCrtStartupModule( const PWSTR filename ) const
         endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\internal\\shared_initialization.cpp") ||
         endWith(filename, len, L"\\crts\\ucrt\\src\\desktopcrt\\env\\environment_initialization.cpp") ||
         // VS2013
-        endWith(filename, len, L"\\crt\\crtw32\\startup\\crt0dat.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\lowio\\ioinit.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\misc\\onexit.c") ||
+        endWith(filename, len, L"\\crt\\crtw32\\stdio\\_file.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdargv.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdenvp.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\lowio\\ioinit.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\tidtable.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\mbstring\\mbctype.c") ||
         // VS2010
@@ -790,13 +788,10 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     frame.Virtual             = TRUE;
 
     // Walk the stack.
-    CriticalSectionLocker cs(g_heapMapLock);
-    CriticalSectionLocker cs1(g_symbolLock);
-
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());
-        if (!StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
+        if (!g_DbgHelp.StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
             SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
                 // Couldn't trace back through any more frames.
                 break;

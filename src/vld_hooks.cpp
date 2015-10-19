@@ -44,7 +44,7 @@
 
 extern HANDLE           g_currentProcess;
 extern CriticalSection  g_heapMapLock;
-extern CriticalSection  g_symbolLock;
+extern DgbHelp g_DbgHelp;
 
 void VisualLeakDetector::firstAllocCall(tls_t * tls)
 {
@@ -1689,7 +1689,7 @@ BYTE VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 #endif
     BYTE status;
 
-    if (!g_symbolLock.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
     {
         context_t context;
         // Record the current frame pointer.
@@ -1712,7 +1712,7 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 #endif
     BOOL status;
 
-    if (!g_symbolLock.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
     {
         context_t context;
         // Record the current frame pointer.

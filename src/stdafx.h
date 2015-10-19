@@ -11,4 +11,4 @@
 #define __out_xcount(x) // Workaround for the specstrings.h bug in the Platform SDK.
 #endif
 #define DBGHELP_TRANSLATE_TCHAR
-#include <dbghelp.h>    // Provides portable executable (PE) image access functions.
+#include "dbghelp.hpp"    // Provides portable executable (PE) image access functions.
