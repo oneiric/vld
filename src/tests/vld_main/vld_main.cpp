@@ -11,7 +11,7 @@
 
 class MemoryLeak {
 public:
-    MemoryLeak(size_t n) { l = malloc(n); memset(l, 0x30 + (n / 10), n); } // 4,5
+    MemoryLeak(size_t n) { l = malloc(n); memset(l, 0x30 + ((int)n / 10), n); } // 4,5
     ~MemoryLeak() { free(l); }
 private:
     void* l;
