@@ -34,7 +34,7 @@
 // Imported Global Variables
 extern ReportHookSet*   g_pReportHooks;
 extern VisualLeakDetector g_vld;
-extern DgbHelp g_DbgHelp;
+extern ImageDirectoryEntries g_Ide;
 
 // Global variables.
 static BOOL         s_reportDelay = FALSE;     // If TRUE, we sleep for a bit after calling OutputDebugString to give the debugger time to catch up.
@@ -219,7 +219,7 @@ IMAGE_IMPORT_DESCRIPTOR* FindOriginalImportDescriptor (HMODULE importmodule, LPC
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_DbgHelp.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_Ide.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 
@@ -501,7 +501,7 @@ BOOL PatchImport (HMODULE importmodule, moduleentry_t *patchModule)
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_DbgHelp.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_Ide.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 
@@ -813,7 +813,7 @@ VOID RestoreImport (HMODULE importmodule, moduleentry_t* module)
     // one for each export module that it imports something from. The IDT entry
     // gives us the offset of the IAT for the module we are interested in.
     {
-        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_DbgHelp.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
+        idte = (IMAGE_IMPORT_DESCRIPTOR*)g_Ide.ImageDirectoryEntryToDataEx((PVOID)GetCallingModule((UINT_PTR)importmodule), TRUE,
             IMAGE_DIRECTORY_ENTRY_IMPORT, &size, &section);
     }
 

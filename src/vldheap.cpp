@@ -167,7 +167,7 @@ void* vldnew (size_t size, const char *file, int line)
     header->size         = size;
 
     // Link the block into the block list.
-    CriticalSectionLocker cs(g_vldHeapLock);
+    CriticalSectionLocker<> cs(g_vldHeapLock);
     header->next         = g_vldBlockList;
     if (header->next != NULL) {
         header->next->prev = header;
@@ -197,7 +197,7 @@ void vlddelete (void *block)
     vldblockheader_t *header = VLDBLOCKHEADER((LPVOID)block);
 
     // Unlink the block from the block list.
-    CriticalSectionLocker cs(g_vldHeapLock);
+    CriticalSectionLocker<> cs(g_vldHeapLock);
     if (header->prev) {
         header->prev->next = header->next;
     }

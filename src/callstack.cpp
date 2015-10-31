@@ -34,7 +34,8 @@ extern HANDLE             g_currentProcess;
 extern HANDLE             g_currentThread;
 extern CriticalSection    g_heapMapLock;
 extern VisualLeakDetector g_vld;
-extern DgbHelp g_DbgHelp;
+extern DbgHelp g_DbgHelp;
+extern DHStackWalk g_StackWalk;
 
 // Helper function to compare the begin of a string with a substring
 //
@@ -197,7 +198,7 @@ VOID CallStack::clear ()
 }
 
 LPCWSTR CallStack::getFunctionName(SIZE_T programCounter, DWORD64& displacement64,
-    SYMBOL_INFO* functionInfo) const
+    SYMBOL_INFO* functionInfo, CriticalSectionLocker<DbgHelp>& locker) const
 {
     // Initialize structures passed to the symbol handler.
     functionInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -208,7 +209,7 @@ LPCWSTR CallStack::getFunctionName(SIZE_T programCounter, DWORD64& displacement6
     displacement64 = 0;
     LPCWSTR functionName;
     DbgTrace(L"dbghelp32.dll %i: SymFromAddrW\n", GetCurrentThreadId());
-    if (g_DbgHelp.SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo)) {
+    if (g_DbgHelp.SymFromAddrW(g_currentProcess, programCounter, &displacement64, functionInfo, locker)) {
         functionName = functionInfo->Name;
     }
     else {
@@ -294,6 +295,7 @@ bool CallStack::isCrtStartupAlloc()
     sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
     BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE] = { 0 };
+    CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
     // Iterate through each frame in the call stack.
     for (UINT32 frame = 0; frame < m_size; frame++) {
@@ -307,7 +309,7 @@ bool CallStack::isCrtStartupAlloc()
 
         if (foundline) {
             DWORD64 displacement64;
-            LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
+            LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
             if (beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
                 break;
             }
@@ -361,6 +363,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
     // It's thread safe because of g_heapMapLock lock.
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
     bool isPrevFrameInternal = false;
+    CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
     // Iterate through each frame in the call stack.
     for (UINT32 frame = start_frame; frame < m_size; frame++)
@@ -371,7 +374,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
         bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
@@ -389,7 +392,7 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
 
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
-        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
         if (!foundline)
             displacement = (DWORD)displacement64;
@@ -451,6 +454,7 @@ int CallStack::resolve(BOOL showInternalFrames)
     bool isPrevFrameInternal = false;
     bool isDynamicInitializer = false;
     DWORD NumChars = 0;
+    CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
     const size_t max_line_length = MAXREPORTLENGTH + 1;
     m_resolvedCapacity = m_size * max_line_length;
@@ -472,7 +476,7 @@ int CallStack::resolve(BOOL showInternalFrames)
         // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
         // When that happens there is nothing we can do except crash.
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
         if (skipStartupLeaks && foundline && !isDynamicInitializer &&
             !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) && isCrtStartupModule(sourceInfo.FileName)) {
@@ -503,7 +507,7 @@ int CallStack::resolve(BOOL showInternalFrames)
 
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
-        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer);
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
         if (skipStartupLeaks && foundline && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
             isDynamicInitializer = true;
@@ -787,12 +791,15 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     frame.AddrFrame.Mode      = AddrModeFlat;
     frame.Virtual             = TRUE;
 
+    CriticalSectionLocker<> cs(g_heapMapLock);
+    CriticalSectionLocker<DHStackWalk> locker(g_StackWalk);
+
     // Walk the stack.
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());
-        if (!g_DbgHelp.StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
-            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+        if (!g_StackWalk.StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL, locker)) {
                 // Couldn't trace back through any more frames.
                 break;
         }

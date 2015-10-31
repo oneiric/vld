@@ -127,7 +127,7 @@ protected:
     bool isInternalModule( const PWSTR filename ) const;
     bool isCrtStartupModule( const PWSTR filename ) const;
     LPCWSTR getFunctionName(SIZE_T programCounter, DWORD64& displacement64,
-        SYMBOL_INFO* functionInfo) const;
+        SYMBOL_INFO* functionInfo, CriticalSectionLocker<DbgHelp>& locker) const;
     DWORD resolveFunction(SIZE_T programCounter, IMAGEHLP_LINEW64* sourceInfo, DWORD displacement,
         LPCWSTR functionName, LPWSTR stack_line, DWORD stackLineSize) const;
 

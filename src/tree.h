@@ -141,12 +141,12 @@ public:
     //  Return Value:
     //
     //    Returns a pointer to the first node in the tree.
-    //    
+    //
     typename Tree::node_t* begin () const
     {
         node_t *cur;
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         if (m_root == &m_nil) {
             return NULL;
         }
@@ -177,7 +177,7 @@ public:
         node_t *erasure;
         node_t *sibling;
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
 
         if ((node->left == &m_nil) || (node->right == &m_nil)) {
             // The node to be erased has less than two children. It can be directly
@@ -317,7 +317,7 @@ public:
         node_t *node;
 
         // Find the node to erase.
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         node = m_root;
         while (node != &m_nil) {
             if (node->key < key) {
@@ -353,7 +353,7 @@ public:
     {
         node_t *cur;
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         cur = m_root;
         while (cur != &m_nil) {
             if (cur->key < key) {
@@ -388,7 +388,7 @@ public:
     //
     typename Tree::node_t* insert (const T &key)
     {
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
 
         // Find the location where the new node should be inserted..
         node_t  *cur = m_root;
@@ -489,7 +489,7 @@ public:
 
         // The root node is always colored black.
         m_root->color = black;
-        return node;        
+        return node;
     }
 
     // next - Obtains a pointer to the in-order successor of the specified
@@ -508,7 +508,7 @@ public:
         if (node == NULL)
             return NULL;
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         node_t* cur;
         if (node->right != &m_nil) {
             // 'node' has a right child. Successor is the far left node in
@@ -567,7 +567,7 @@ public:
             return NULL;
         }
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         node_t* cur;
         if (node->left != &m_nil) {
             // 'node' has left child. Predecessor is the far right node in the
@@ -642,7 +642,7 @@ public:
             }
         }
 
-        CriticalSectionLocker cs(m_lock);
+        CriticalSectionLocker<> cs(m_lock);
         if (m_freelist == NULL) {
             // Allocate additional storage.
             // Link a new chunk into the chunk list.

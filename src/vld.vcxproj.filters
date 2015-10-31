@@ -92,6 +92,9 @@
     <ClInclude Include="vldallocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dbghelp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vld.rc">

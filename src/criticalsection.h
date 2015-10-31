@@ -4,7 +4,7 @@
 #define NOMINMAX
 #include <windows.h>
 
-// you should consider CriticalSectionLocker whenever possible instead of
+// you should consider CriticalSectionLocker<> whenever possible instead of
 // directly working with CriticalSection class - it is safer
 class CriticalSection
 {
@@ -51,10 +51,11 @@ private:
 	CRITICAL_SECTION m_critRegion;
 };
 
+template<typename T = CriticalSection>
 class CriticalSectionLocker
 {
 public:
-	CriticalSectionLocker(CriticalSection& cs)
+	CriticalSectionLocker(T& cs)
 		: m_leave(false)
 		, m_critSect(cs)
 	{
@@ -84,5 +85,5 @@ private:
 	CriticalSectionLocker( const CriticalSectionLocker & ); // not allowed
 	CriticalSectionLocker & operator=( const CriticalSectionLocker & ); // not allowed
 	bool m_leave;
-	CriticalSection& m_critSect;
+    T& m_critSect;
 };
