@@ -1,4 +1,4 @@
 #pragma once
 
-void RunLoaderLockTests(bool);
+void RunLoaderLockTests(bool, bool);
 

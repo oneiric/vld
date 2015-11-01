@@ -3,6 +3,12 @@
 #include "LoadTests.h"
 #include <process.h>
 
+struct ThreadData
+{
+	bool resolve;
+	bool mfc;
+};
+
 void RunPSApiLoaderTests()
 {
     HMODULE hModule = ::LoadLibrary(_T("psapi.dll"));
@@ -13,10 +19,14 @@ void RunPSApiLoaderTests()
     }
 }
 
-void Call_LoaderLocks(bool resolve)
+void Call_LoaderLocks(const ThreadData& threadData)
 {
-    RunPSApiLoaderTests(); // will not crash
-    HMODULE hmfcLib = RunMFCLoaderTests(resolve); // Leaks 11 allocs
+	RunPSApiLoaderTests(); // will not crash
+	HMODULE hmfcLib;
+	if (threadData.mfc)
+		hmfcLib = RunMFCLoaderTests(threadData.resolve); // Leaks 11 allocs
+	else
+		hmfcLib = RunLoaderTests(threadData.resolve); // Leaks 18 allocs
 #ifndef STATIC_CRT
     FreeLibrary(hmfcLib);
 #else
@@ -29,40 +39,43 @@ void Call_LoaderLocks(bool resolve)
     GetModuleFileName(this_app, path_name, MAX_PATH);
 }
 
-void Call_Three(bool resolve)
+void Call_Three(const ThreadData& threadData)
 {
-    Call_LoaderLocks(resolve);
+    Call_LoaderLocks(threadData);
 }
 
-void Call_Two(bool resolve)
+void Call_Two(const ThreadData& threadData)
 {
-    Call_Three(resolve);
+    Call_Three(threadData);
 }
 
-void Call_One(bool resolve)
+void Call_One(const ThreadData& threadData)
 {
-    Call_Two(resolve);
+    Call_Two(threadData);
 }
 
 unsigned __stdcall Dynamic_Thread_Procedure(LPVOID foo)
 {
-    bool* resolve = (bool*)(foo);
-    Call_One(*resolve);
+	ThreadData& threadData = *(ThreadData*)(foo);
+	Call_One(threadData);
     return 0;
 }
 
-void RunLoaderLockTests(bool resolve)
+void RunLoaderLockTests(bool resolve, bool mfc)
 {
     static const int NUMTHREADS = 64;
     HANDLE threads[NUMTHREADS] = {0};
     unsigned thread_id = NULL;
+	ThreadData threadData;
+	threadData.resolve = resolve;
+	threadData.mfc = mfc;
 
     for (UINT i = 0; i < NUMTHREADS; ++i)
     {
         threads[i] = (HANDLE)_beginthreadex(NULL, // security attribute
             0,                          // stack size
-            Dynamic_Thread_Procedure,           // start function
-            &resolve,                   // thread parameters
+            Dynamic_Thread_Procedure,   // start function
+            &threadData,                // thread parameters
             0,                          // creation flags
             &thread_id);                // thread id
     }

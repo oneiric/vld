@@ -12,9 +12,15 @@ environment:
 
   matrix:
   - VldStackWalkMethod: safe
+    Solution: vld_vs11_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: safe
     Solution: vld_vs12.sln
   - VldStackWalkMethod: safe
     Solution: vld_vs14.sln
+  - VldStackWalkMethod: fast
+    Solution: vld_vs11_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
   - VldStackWalkMethod: fast
     Solution: vld_vs12.sln
   - VldStackWalkMethod: fast
@@ -96,6 +102,7 @@ test_script:
         vld_vs14.sln { "v140" }
         vld_vs12.sln { "v120" }
         vld_vs11.sln { "v110" }
+        vld_vs11_wo_mfc.sln { "v110" }
         default {
             throw "No matching environment for $env:Solution"
         }

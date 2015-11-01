@@ -47,7 +47,22 @@ TEST_P(DynamicLoader, LoaderTests)
     ASSERT_EQ(18, leaks);
 }
 
-TEST_P(DynamicLoader, MFCLoaderTests)
+TEST_P(DynamicLoader, MultithreadLoadingTests)
+{
+    // Creates 64 threads that each leaks 18 allocations
+    DWORD start = GetTickCount();
+    RunLoaderLockTests(GetParam(), false);
+    DWORD duration = GetTickCount() - start;
+    _tprintf(_T("Thread Test took: %u ms\n"), duration);
+    start = GetTickCount();
+    int leaks = (int)VLDGetLeaksCount();
+    duration = GetTickCount() - start;
+    _tprintf(_T("VLDGetLeaksCount took: %u ms\n"), duration);
+    if (64 * 18 != leaks) VLDReportLeaks();
+    ASSERT_EQ(64 * 18, leaks);
+}
+
+TEST_P(DynamicLoader, MfcLoaderTests)
 {
     HMODULE hmfcLib = RunMFCLoaderTests(GetParam()); // leaks 11
     ASSERT_NE(0u, (UINT_PTR)hmfcLib);
@@ -57,11 +72,11 @@ TEST_P(DynamicLoader, MFCLoaderTests)
     ASSERT_EQ(11, leaks);
 }
 
-TEST_P(DynamicLoader, Thread)
+TEST_P(DynamicLoader, MfcMultithreadLoadingTests)
 {
     // Creates 64 threads that each leaks 11 allocations
     DWORD start = GetTickCount();
-    RunLoaderLockTests(GetParam());
+    RunLoaderLockTests(GetParam(), true);
     DWORD duration = GetTickCount() - start;
     _tprintf(_T("Thread Test took: %u ms\n"), duration);
     start = GetTickCount();
