@@ -15,6 +15,7 @@
     <VldConfiguration Condition="'$(Configuration)' == 'Debug(Release)_StaticCrt'">Release</VldConfiguration>
     <VldConfiguration Condition="'$(Configuration)' == 'Release'">Release</VldConfiguration>
     <VldConfiguration Condition="'$(Configuration)' == 'Release_StaticCrt'">Release</VldConfiguration>
+    <VldToolset>v140</VldToolset>
   </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
@@ -23,7 +24,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <PreBuildEvent>
-      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration)-v$(PlatformToolsetVersion) $(NumericPlatform) "$(Outdir)"</Command>
+      <Command>call ..\copydlls.bat $(Platform)\$(VldConfiguration)-$(VldToolset) $(NumericPlatform) "$(Outdir)"</Command>
       <Message>Copying over Visual Leak Detector Dependencies</Message>
     </PreBuildEvent>
     <ClCompile>
@@ -31,7 +32,7 @@
       <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(VldConfiguration)-v$(PlatformToolsetVersion);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\bin\$(Platform)\$(VldConfiguration)-$(VldToolset);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
 </Project>

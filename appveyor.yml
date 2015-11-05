@@ -12,18 +12,41 @@ environment:
 
   matrix:
   - VldStackWalkMethod: safe
-    Solution: vld_vs11_wo_mfc.sln
+    Toolset: v90
+    Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
   - VldStackWalkMethod: safe
-    Solution: vld_vs12.sln
+    Toolset: v100
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
   - VldStackWalkMethod: safe
+    Toolset: v110
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: safe
+    Toolset: v120_xp
+    Solution: vld_vs14.sln
+  - VldStackWalkMethod: safe
+    Toolset: v140_xp
+    Solution: vld_vs14.sln
+
+  - VldStackWalkMethod: fast
+    Toolset: v90
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v100
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v110
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v120_xp
     Solution: vld_vs14.sln
   - VldStackWalkMethod: fast
-    Solution: vld_vs11_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Solution: vld_vs12.sln
-  - VldStackWalkMethod: fast
+    Toolset: v140_xp
     Solution: vld_vs14.sln
 
 platform:
@@ -43,6 +66,7 @@ build_script:
 - ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
     Write-Output "Platform: $env:PLATFORM"
+    & .\change_toolset.ps1 $env:Toolset
     msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 test_script:
@@ -74,7 +98,6 @@ test_script:
         return $anyFailures
     }
 
-
     function Run-Tests($platform, $configuration)
     {
         $anyFailures = $FALSE
@@ -97,16 +120,9 @@ test_script:
         }
     }
 
-    $suffix= switch ($env:Solution) 
-    { 
-        vld_vs14.sln { "v140" }
-        vld_vs12.sln { "v120" }
-        vld_vs11.sln { "v110" }
-        vld_vs11_wo_mfc.sln { "v110" }
-        default {
-            throw "No matching environment for $env:Solution"
-        }
-    }
+    $pos = $env:Toolset.IndexOf("_")
+    if ($pos -eq -1) { $pos = $env:Toolset.length }
+    $suffix = $env:Toolset.Substring(0, $pos )
     $folders = @{"Debug_VldRelease" = "Debug(Release)-$suffix"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-$suffix";
         "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
     Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])"

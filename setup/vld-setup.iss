@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Visual Leak Detector"
-#define MyAppVersion "2.4rc2"
+#define MyAppVersion "2.5rc"
 #define MyAppPublisher "VLD Team"
 #define MyAppURL "http://vld.codeplex.com/"
 #define MyAppRegKey "Software\Visual Leak Detector"
