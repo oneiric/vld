@@ -594,12 +594,14 @@ bool CallStack::isCrtStartupModule( const PWSTR filename ) const
         endWith(filename, len, L"\\crt\\crtw32\\startup\\stdenvp.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\startup\\tidtable.c") ||
         endWith(filename, len, L"\\crt\\crtw32\\mbstring\\mbctype.c") ||
-        // VS2010
+        // VS2012 and bellow
         endWith(filename, len, L"\\crt\\src\\crt0dat.c") ||                 //_cinit()
+        endWith(filename, len, L"\\crt\\src\\onexit.c") ||                  //__onexitinit()
         endWith(filename, len, L"\\crt\\src\\stdargv.c") ||                 //_wsetargv()
         endWith(filename, len, L"\\crt\\src\\stdenvp.c") ||                 //_wsetenvp()
         endWith(filename, len, L"\\crt\\src\\ioinit.c") ||                  //_ioinit()
         endWith(filename, len, L"\\crt\\src\\tidtable.c") ||                //_mtinit()
+        endWith(filename, len, L"\\crt\\src\\mbctype.c") ||                 //__initmbctable()
         // default
         (false);
 }

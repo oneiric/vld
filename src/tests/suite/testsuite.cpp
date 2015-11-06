@@ -52,9 +52,17 @@ enum action_e {
 // Name of the debug C Runtime Library DLL on this system
 #ifdef _DEBUG
 #if _MSC_VER == 1400	// VS 2005
+#ifdef _DLL
 #define CRTDLLNAME   _T("msvcr80d.dll")
+#else
+#define CRTDLLNAME   _T("msvcrt.dll")
+#endif
 #elif _MSC_VER == 1500	// VS 2008
+#ifdef _DLL
 #define CRTDLLNAME   _T("msvcr90d.dll")
+#else
+#define CRTDLLNAME   _T("msvcrt.dll")
+#endif
 #elif _MSC_VER == 1600	// VS 2010
 #define CRTDLLNAME   _T("msvcr100d.dll")
 #elif _MSC_VER == 1700	// VS 2012
@@ -68,9 +76,17 @@ enum action_e {
 #endif
 #else
 #if _MSC_VER == 1400	// VS 2005
+#ifdef _DLL
 #define CRTDLLNAME   _T("msvcr80.dll")
+#else
+#define CRTDLLNAME   _T("msvcrt.dll")
+#endif
 #elif _MSC_VER == 1500	// VS 2008
+#ifdef _DLL
 #define CRTDLLNAME   _T("msvcr90.dll")
+#else
+#define CRTDLLNAME   _T("msvcrt.dll")
+#endif
 #elif _MSC_VER == 1600	// VS 2010
 #define CRTDLLNAME   _T("msvcr100.dll")
 #elif _MSC_VER == 1700	// VS 2012

@@ -46,19 +46,17 @@ TEST(TestUnloadDlls, Sequence1)
     ASSERT_EQ(NULL, GetModuleHandle(sVld_dll));
     HMODULE hModule1 = ::LoadLibrary(_T("vld_dll1.dll"));
     int w = VLDGetLeaksCount(); // vld is loaded and counts 1 memory leak
+    EXPECT_EQ(1, w);
     ::FreeLibrary(hModule1);    // vld is unloaded here and reports the memory leak
     int x = VLDGetLeaksCount(); // vld is unloaded and cannot count any memory leaks
+    EXPECT_EQ(-1, x);
 
     HMODULE hModule2 = ::LoadLibrary(_T("vld_dll2.dll"));
     int y = VLDGetLeaksCount(); // vld is loaded and counts 1 memory leak
+    EXPECT_EQ(1, y);
     ::FreeLibrary(hModule2);    // vld is unloaded here and reports the memory leak
     int z = VLDGetLeaksCount(); // vld is unloaded and cannot count any memory leaks
-
-    assert(w == 1 && x == -1 && y == 1 && z == -1);
-    ASSERT_EQ(1, w);
-    ASSERT_EQ(-1, x);
-    ASSERT_EQ(1, y);
-    ASSERT_EQ(-1, z);
+    EXPECT_EQ(-1, z);
 }
 
 TEST(TestUnloadDlls, Sequence2)
@@ -66,18 +64,20 @@ TEST(TestUnloadDlls, Sequence2)
     ASSERT_EQ(NULL, GetModuleHandle(sVld_dll));
     HMODULE hModule3 = ::LoadLibrary(_T("vld_dll1.dll"));
     int w = VLDGetLeaksCount(); // vld is loaded and counts 1 memory leak
+    EXPECT_EQ(1, w);
     HMODULE hModule4 = ::LoadLibrary(_T("vld_dll2.dll"));
     int x = VLDGetLeaksCount(); // vld is still loaded and counts 2 memory leaks
+    EXPECT_EQ(2, x);
     ::FreeLibrary(hModule4);    // vld is *not* unloaded here
-    int y = VLDGetLeaksCount(); // vld is still loaded and counts 2 memory leaks
+    int y = VLDGetLeaksCount();
+#if _MSC_VER <= 1600 && !defined(_DLL) // VS 2010 and bellow
+    EXPECT_EQ(1, y); // vld is still loaded and counts 1 memory leaks
+#else
+    EXPECT_EQ(2, y); // vld is still loaded and counts 2 memory leaks
+#endif
     ::FreeLibrary(hModule3);    // vld is unloaded here and reports 2 memory leaks
     int z = VLDGetLeaksCount(); // vld is unloaded and cannot count any memory leaks
-
-    assert(w == 1 && x == 2 && y == 2 && z == -1);
-    ASSERT_EQ(1, w);
-    ASSERT_EQ(2, x);
-    ASSERT_EQ(2, y);
-    ASSERT_EQ(-1, z);
+    EXPECT_EQ(-1, z);
 }
 
 TEST(TestUnloadDlls, Sequence3)
@@ -85,18 +85,20 @@ TEST(TestUnloadDlls, Sequence3)
     ASSERT_EQ(NULL, GetModuleHandle(sVld_dll));
     HMODULE hModule5 = ::LoadLibrary(_T("vld_dll1.dll"));
     int w = VLDGetLeaksCount(); // vld is loaded and counts 1 memory leak
+    EXPECT_EQ(1, w);
     HMODULE hModule6 = ::LoadLibrary(_T("vld_dll2.dll"));
     int x = VLDGetLeaksCount(); // vld is still loaded and counts 2 memory leaks
+    EXPECT_EQ(2, x);
     ::FreeLibrary(hModule5);    // vld is *not* unloaded here
     int y = VLDGetLeaksCount(); // vld is still loaded and counts 2 memory leaks
+#if _MSC_VER <= 1600 && !defined(_DLL) // VS 2010 and bellow
+    EXPECT_EQ(1, y); // vld is still loaded and counts 1 memory leaks
+#else
+    EXPECT_EQ(2, y); // vld is still loaded and counts 2 memory leaks
+#endif
     ::FreeLibrary(hModule6);    // vld is unloaded here and reports 2 memory leaks
     int z = VLDGetLeaksCount(); // vld is unloaded and cannot count any memory leaks
-
-    assert(w == 1 && x == 2 && y == 2 && z == -1);
-    ASSERT_EQ(1, w);
-    ASSERT_EQ(2, x);
-    ASSERT_EQ(2, y);
-    ASSERT_EQ(-1, z);
+    EXPECT_EQ(-1, z);
 }
 
 TEST(TestUnloadDlls, Sequence4)
