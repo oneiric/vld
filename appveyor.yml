@@ -43,10 +43,10 @@ build_script:
 - ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
     Write-Output "Platform: $env:PLATFORM"
-    <#if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
+    if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
     {
         return
-    }#>
+    }
     & .\change_toolset.ps1 $env:Toolset
     msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
