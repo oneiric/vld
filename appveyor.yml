@@ -8,45 +8,22 @@ branches:
 os: Visual Studio 2015
 
 environment:
+  VldStackWalkMethod: safe
   GTEST_REPEAT: 1
 
   matrix:
-  - VldStackWalkMethod: safe
-    Toolset: v90
+  - Toolset: v90
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v100
+  - Toolset: v100
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v110
+  - Toolset: v110
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v120_xp
+  - Toolset: v120_xp
     Solution: vld_vs14.sln
-  - VldStackWalkMethod: safe
-    Toolset: v140_xp
-    Solution: vld_vs14.sln
-
-  - VldStackWalkMethod: fast
-    Toolset: v90
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v100
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v110
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v120_xp
-    Solution: vld_vs14.sln
-  - VldStackWalkMethod: fast
-    Toolset: v140_xp
+  - Toolset: v140_xp
     Solution: vld_vs14.sln
 
 platform:
@@ -66,6 +43,10 @@ build_script:
 - ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
     Write-Output "Platform: $env:PLATFORM"
+    <#if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
+    {
+        return
+    }#>
     & .\change_toolset.ps1 $env:Toolset
     msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
