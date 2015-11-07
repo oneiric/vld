@@ -43,7 +43,7 @@ template <size_t N>
 bool beginWith(const LPCWSTR filename, size_t len, wchar_t const (&substr)[N])
 {
     size_t count = N - 1;
-    return ((len > count) && wcsncmp(filename, substr, count) == 0);
+    return ((len >= count) && wcsncmp(filename, substr, count) == 0);
 }
 
 // Helper function to compare the end of a string with a substring
@@ -52,7 +52,7 @@ template <size_t N>
 bool endWith(const LPCWSTR filename, size_t len, wchar_t const (&substr)[N])
 {
     size_t count = N - 1;
-    return ((len > count) && wcsncmp(filename + len - count, substr, count) == 0);
+    return ((len >= count) && wcsncmp(filename + len - count, substr, count) == 0);
 }
 
 // Constructor - Initializes the CallStack with an initial size of zero and one
