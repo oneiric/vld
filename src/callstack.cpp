@@ -302,18 +302,25 @@ bool CallStack::isCrtStartupAlloc()
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
+        DWORD64 displacement64;
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
+        if (beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
+            m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
+            return false;
+        }
+
+        // We need to detect both "_CRT_INIT" for most x86 and x64 modules
+        // and "CRT_INIT" for some x64 modules
+        if (endWith(functionName, wcslen(functionName), L"CRT_INIT")) {
+            m_status |= CALLSTACK_STATUS_STARTUPCRT;
+            return true;
+        }
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 
         if (foundline) {
-            DWORD64 displacement64;
-            LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-            if (beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
-                break;
-            }
-
             if (isCrtStartupModule(sourceInfo.FileName)) {
                 m_status |= CALLSTACK_STATUS_STARTUPCRT;
                 return true;
@@ -371,6 +378,9 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
+        if (GetCallingModule(programCounter) == g_vld.m_vldBase)
+            continue;
+
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
@@ -452,7 +462,6 @@ int CallStack::resolve(BOOL showInternalFrames)
     // It's thread safe because of g_heapMapLock lock.
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
     bool isPrevFrameInternal = false;
-    bool isDynamicInitializer = false;
     DWORD NumChars = 0;
     CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
@@ -470,6 +479,9 @@ int CallStack::resolve(BOOL showInternalFrames)
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
+        if (GetCallingModule(programCounter) == g_vld.m_vldBase)
+            continue;
+
         DWORD            displacement = 0;
 
         // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
@@ -478,8 +490,8 @@ int CallStack::resolve(BOOL showInternalFrames)
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
-        if (skipStartupLeaks && foundline && !isDynamicInitializer &&
-            !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) && isCrtStartupModule(sourceInfo.FileName)) {
+        if (skipStartupLeaks && foundline && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) &&
+            isCrtStartupModule(sourceInfo.FileName)) {
             m_status |= CALLSTACK_STATUS_STARTUPCRT;
             delete[] m_resolved;
             m_resolved = NULL;
@@ -509,8 +521,18 @@ int CallStack::resolve(BOOL showInternalFrames)
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
-        if (skipStartupLeaks && foundline && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
-            isDynamicInitializer = true;
+        if (skipStartupLeaks && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
+            m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
+        }
+
+        if (skipStartupLeaks && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) &&
+            endWith(functionName, wcslen(functionName), L"CRT_INIT")) {
+            m_status |= CALLSTACK_STATUS_STARTUPCRT;
+            delete[] m_resolved;
+            m_resolved = NULL;
+            m_resolvedCapacity = 0;
+            m_resolvedLength = 0;
+            return 0;
         }
 
         if (!foundline)
