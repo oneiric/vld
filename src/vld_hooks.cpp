@@ -46,36 +46,6 @@ extern HANDLE           g_currentProcess;
 extern CriticalSection  g_heapMapLock;
 extern DbgHelp g_DbgHelp;
 
-void VisualLeakDetector::firstAllocCall(tls_t * tls)
-{
-    if (tls->blockWithoutGuard)
-    {
-        context_t context = tls->context;
-        blockinfo_t* pblockInfo = NULL;
-        if (tls->newBlockWithoutGuard == NULL)
-            AllocateHeap(tls, pblockInfo);
-        else
-            ReAllocateHeap(tls, pblockInfo);
-
-        // Reset thread local flags and variables in case dbghelp.dll try allocate some data.
-        tls->context.fp = NULL;
-        tls->context.func = 0x0;
-        tls->blockWithoutGuard = NULL;
-        tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
-
-        CallStack* callstack;
-        getCallStack(callstack, context);
-        pblockInfo->callStack.reset(callstack);
-        return;
-    }
-
-    // Reset thread local flags and variables for the next allocation.
-    tls->context.fp = NULL;
-    tls->context.func = 0x0;
-    tls->blockWithoutGuard = NULL;
-    tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Standard CRT and MFC IAT Replacement Functions
@@ -111,26 +81,10 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // malloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pcalloc(num, size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pcalloc(num, size);
 }
 
 // _malloc - This function is just a wrapper around the real malloc that sets
@@ -152,26 +106,10 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, bool de
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t   *tls = g_vld.getTls();
-
-    // malloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pmalloc(size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pmalloc(size);
 }
 
 // _new - This function is just a wrapper around the real CRT and MFC new
@@ -193,26 +131,10 @@ void* VisualLeakDetector::_new (new_t pnew, context_t& context, bool debugRuntim
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t* tls = g_vld.getTls();
+    CaptureContext cc(context, debugRuntime, NULL);
 
-    // The new operator is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == NULL);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
-
-	// Do the allocation. The block will be mapped by _RtlAllocateHeap.
-	void* block = pnew(size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    // Do the allocation. The block will be mapped by _RtlAllocateHeap.
+    return pnew(size);
 }
 
 // _realloc - This function is just a wrapper around the real realloc that sets
@@ -240,26 +162,10 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = prealloc(mem, size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return prealloc(mem, size);
 }
 
 // _recalloc - This function is just a wrapper around the real _recalloc that sets
@@ -288,26 +194,10 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = precalloc(mem, num, size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return precalloc(mem, num, size);
 }
 
 char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src )
@@ -315,26 +205,10 @@ char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool 
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    char* block = pstrdup(src);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pstrdup(src);
 }
 
 wchar_t* VisualLeakDetector::__wcsdup( _wcsdup_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src )
@@ -342,26 +216,10 @@ wchar_t* VisualLeakDetector::__wcsdup( _wcsdup_t pwcsdup, context_t& context, bo
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    wchar_t* block = pwcsdup(src);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pwcsdup(src);
 }
 
 // __aligned_malloc - This function is just a wrapper around the real malloc that sets
@@ -384,26 +242,10 @@ void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t   *tls = g_vld.getTls();
-
-    // malloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pmalloc(size, alignment);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pmalloc(size, alignment);
 }
 
 // __aligned_offset_malloc - This function is just a wrapper around the real malloc that sets
@@ -426,26 +268,10 @@ void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmal
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t   *tls = g_vld.getTls();
-
-    // malloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pmalloc(size, alignment, offset);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pmalloc(size, alignment, offset);
 }
 
 // __aligned_realloc - This function is just a wrapper around the real realloc that sets
@@ -474,26 +300,10 @@ void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = prealloc(mem, size, alignment);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return prealloc(mem, size, alignment);
 }
 
 // __aligned_offset_realloc - This function is just a wrapper around the real realloc that sets
@@ -523,26 +333,10 @@ void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  p
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = prealloc(mem, size, alignment, offset);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return prealloc(mem, size, alignment, offset);
 }
 
 // __aligned_recalloc - This function is just a wrapper around the real recalloc that sets
@@ -574,26 +368,10 @@ void* VisualLeakDetector::__aligned_recalloc (_aligned_recalloc_t  precalloc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = precalloc(mem, num, size, alignment);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return precalloc(mem, num, size, alignment);
 }
 
 // __aligned_offset_recalloc - This function is just a wrapper around the real recalloc that sets
@@ -626,26 +404,10 @@ void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t 
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // realloc is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = precalloc(mem, num, size, alignment, offset);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return precalloc(mem, num, size, alignment, offset);
 }
 
 // __aligned_malloc_dbg - This function is just a wrapper around the real _aligned_malloc_dbg
@@ -682,26 +444,10 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = p_malloc_dbg(size, alignment, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_malloc_dbg(size, alignment, type, file, line);
 }
 
 // __aligned_offset_malloc_dbg - This function is just a wrapper around the real
@@ -739,26 +485,10 @@ void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_db
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = p_malloc_dbg(size, alignment, offset, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_malloc_dbg(size, alignment, offset, type, file, line);
 }
 
 // _aligned_realloc_debug - This function is just a wrapper around the real
@@ -798,26 +528,10 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_realloc_dbg(mem, size, alignment, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_realloc_dbg(mem, size, alignment, type, file, line);
 }
 
 // _aligned_offset_realloc_debug - This function is just a wrapper around the real
@@ -858,26 +572,10 @@ void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_realloc_dbg(mem, size, alignment, offset, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_realloc_dbg(mem, size, alignment, offset, type, file, line);
 }
 
 // _aligned_recalloc_debug - This function is just a wrapper around the real
@@ -920,26 +618,10 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_recalloc_dbg(mem, num, size, alignment, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_recalloc_dbg(mem, num, size, alignment, type, file, line);
 }
 
 // _aligned_offset_recalloc_debug - This function is just a wrapper around the real
@@ -983,26 +665,10 @@ void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recallo
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_recalloc_dbg(mem, num, size, alignment, offset, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_recalloc_dbg(mem, num, size, alignment, offset, type, file, line);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1049,26 +715,10 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = p_calloc_dbg(num, size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_calloc_dbg(num, size, type, file, line);
 }
 
 // __malloc_dbg - This function is just a wrapper around the real _malloc_dbg
@@ -1104,26 +754,10 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = p_malloc_dbg(size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_malloc_dbg(size, type, file, line);
 }
 
 char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
@@ -1137,26 +771,10 @@ char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    char* block = p_strdup_dbg(src, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_strdup_dbg(src, type, file, line);
 }
 
 wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg,
@@ -1170,26 +788,10 @@ wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _malloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    wchar_t* block = p_wcsdup_dbg(src, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_wcsdup_dbg(src, type, file, line);
 }
 
 // new_dbg_crt - This function is just a wrapper around the real CRT debug new
@@ -1225,26 +827,10 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // The debug new operator is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pnew_dbg_crt(size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pnew_dbg_crt(size, type, file, line);
 }
 
 // new_dbg_mfc - This function is just a wrapper around the real MFC debug new
@@ -1279,22 +865,10 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, TRUE, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pnew_dbg(size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pnew_dbg(size, type, file, line);
 }
 
 // new_dbg_mfc - This function is just a wrapper around the real MFC debug new
@@ -1326,22 +900,10 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, TRUE, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    void* block = pnew_dbg_mfc(size, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pnew_dbg_mfc(size, file, line);
 }
 
 // __realloc_debug - This function is just a wrapper around the real
@@ -1380,26 +942,10 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_realloc_dbg(mem, size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_realloc_dbg(mem, size, type, file, line);
 }
 
 // __recalloc_debug - This function is just a wrapper around the real
@@ -1439,26 +985,10 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    tls_t *tls = g_vld.getTls();
-
-    // _realloc_dbg is a CRT function and allocates from the CRT heap.
-    if (debugRuntime)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        tls->context = context;
-    }
+    CaptureContext cc(context, debugRuntime, NULL);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    void* block = p_recalloc_dbg(mem, num, size, type, file, line);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return p_recalloc_dbg(mem, num, size, type, file, line);
 }
 
 // GetProcessHeap - Calls to GetProcessHeap are patched through to this function. This
@@ -1574,38 +1104,11 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
     if ((block == NULL) || !g_vld.enabled())
         return block;
 
-    tls_t* tls = g_vld.getTls();
-    bool firstcall = (tls->context.fp == 0x0);
-    context_t context;
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, RtlAllocateHeap);
+    if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
+        context_t context;
+        CaptureContext cc(context, FALSE, RtlAllocateHeap);
+        cc.Set(heap, block, NULL, size);
     }
-    else
-        context = tls->context;
-
-    if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
-    {
-        assert(tls->blockWithoutGuard == NULL);
-        return block;
-    }
-
-    if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        firstcall = true;
-        CAPTURE_CONTEXT(context, RtlAllocateHeap);
-    }
-
-    tls->context = context;
-    tls->heap = heap;
-    tls->blockWithoutGuard = block;
-    tls->newBlockWithoutGuard = NULL;
-    tls->size = size;
-
-    if (firstcall)
-        firstAllocCall(tls);
 
     return block;
 }
@@ -1622,49 +1125,13 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
     if ((block == NULL) || !g_vld.enabled())
         return block;
 
-    tls_t* tls = g_vld.getTls();
-    bool firstcall = (tls->context.fp == 0x0);
-    context_t context;
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, HeapAlloc);
+    if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
+        context_t context;
+        CaptureContext cc(context, FALSE, HeapAlloc);
+        cc.Set(heap, block, NULL, size);
     }
-    else
-        context = tls->context;
-
-    if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
-    {
-        assert(tls->blockWithoutGuard == NULL);
-        return block;
-    }
-
-    if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        firstcall = true;
-        CAPTURE_CONTEXT(context, HeapAlloc);
-    }
-
-    tls->context = context;
-    tls->heap = heap;
-    tls->blockWithoutGuard = block;
-    tls->newBlockWithoutGuard = NULL;
-    tls->size = size;
-
-    if (firstcall)
-        firstAllocCall(tls);
 
     return block;
-}
-
-void VisualLeakDetector::AllocateHeap (tls_t* tls, blockinfo_t* &pblockInfo)
-{
-    bool debugcrtalloc = (tls->flags & VLD_TLS_DEBUGCRTALLOC) ? true : false;
-
-    // The module that initiated this allocation is included in leak
-    // detection. Map this block to the specified heap.
-    g_vld.mapBlock(tls->heap, tls->blockWithoutGuard, tls->size, debugcrtalloc, tls->threadId, pblockInfo);
 }
 
 // _RtlFreeHeap - Calls to RtlFreeHeap are patched through to this function.
@@ -1758,40 +1225,10 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
     if ((newmem == NULL) || !g_vld.enabled())
         return newmem;
 
-    tls_t *tls = g_vld.getTls();
-    bool firstcall = (tls->context.fp == 0x0);
-    context_t context;
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, RtlReAllocateHeap);
-    }
-    else
-        context = tls->context;
-
-    if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
-    {
-        assert(tls->blockWithoutGuard == NULL);
-        return newmem;
-    }
-
-    if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        firstcall = true;
-        CAPTURE_CONTEXT(context, RtlReAllocateHeap);
-    }
-
-    tls->context = context;
-    tls->heap = heap;
-    tls->blockWithoutGuard = mem;
-    tls->newBlockWithoutGuard = newmem;
-    tls->size = size;
-
-    if (firstcall)
-    {
-        firstAllocCall(tls);
-        tls->blockWithoutGuard = NULL;
+    if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
+        context_t context;
+        CaptureContext cc(context, FALSE, RtlReAllocateHeap);
+        cc.Set(heap, mem, newmem, size);
     }
 
     return newmem;
@@ -1809,76 +1246,13 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     if ((newmem == NULL) || !g_vld.enabled())
         return newmem;
 
-    tls_t *tls = g_vld.getTls();
-    bool firstcall = (tls->context.fp == 0x0);
-    context_t context;
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, HeapReAlloc);
-    }
-    else
-        context = tls->context;
-
-    if (isModuleExcluded(GET_RETURN_ADDRESS(context)))
-    {
-        assert(tls->blockWithoutGuard == NULL);
-        return newmem;
-    }
-
-    if (!firstcall && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // Begin the stack trace with the current frame. Obtain the current
-        // frame pointer.
-        firstcall = true;
-        CAPTURE_CONTEXT(context, HeapReAlloc);
-    }
-
-    tls->context = context;
-    tls->heap = heap;
-    tls->blockWithoutGuard = mem;
-    tls->newBlockWithoutGuard = newmem;
-    tls->size = size;
-
-    if (firstcall)
-    {
-        firstAllocCall(tls);
-        tls->blockWithoutGuard = NULL;
+    if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
+        context_t context;
+        CaptureContext cc(context, FALSE, HeapReAlloc);
+        cc.Set(heap, mem, newmem, size);
     }
 
     return newmem;
-}
-
-void VisualLeakDetector::ReAllocateHeap (tls_t *tls, blockinfo_t* &pblockInfo)
-{
-#ifdef PRINTHOOKCALLS
-    DbgReport(_T(__FUNCTION__) _T( "\n"));
-#endif
-    bool crtalloc = (tls->flags & VLD_TLS_DEBUGCRTALLOC) ? true : false;
-
-    context_t context = tls->context;
-    HANDLE heap = tls->heap;
-    LPVOID mem = tls->blockWithoutGuard;
-    LPVOID newmem = tls->newBlockWithoutGuard;
-    SIZE_T size = tls->size;
-
-    // Reset thread local flags and variables, in case any libraries called
-    // into while remapping the block allocate some memory.
-    tls->context.fp = NULL;
-    tls->context.func = 0x0;
-    tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
-
-    // The module that initiated this allocation is included in leak
-    // detection. Remap the block.
-    g_vld.remapBlock(heap, mem, newmem, size, crtalloc, tls->threadId, pblockInfo, context);
-
-#ifdef _DEBUG
-    if(tls->context.fp != 0)
-        __debugbreak();
-#endif
-    if (crtalloc)
-        tls->flags |= VLD_TLS_DEBUGCRTALLOC;
-
-    tls->context = context;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1966,33 +1340,18 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 #endif
     static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
 
-    LPVOID   block;
-    context_t context;
-    HMODULE  ole32;
-    tls_t   *tls = g_vld.getTls();
-
     if (pCoTaskMemAlloc == NULL) {
         // This is the first call to this function. Link to the real
         // CoTaskMemAlloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
+        HMODULE ole32 = GetModuleHandleW(L"ole32.dll");
         pCoTaskMemAlloc = (CoTaskMemAlloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
     }
 
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, pCoTaskMemAlloc);
-        tls->context = context;
-    }
+    context_t context;
+    CaptureContext cc(context, FALSE, (void*)pCoTaskMemAlloc);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
-    block = pCoTaskMemAlloc(size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pCoTaskMemAlloc(size);
 }
 
 // _CoTaskMemRealloc - Calls to CoTaskMemRealloc are patched through to this
@@ -2015,33 +1374,18 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 #endif
     static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
 
-    LPVOID   block;
-    context_t context;
-    HMODULE  ole32;
-    tls_t   *tls = g_vld.getTls();
-
     if (pCoTaskMemRealloc == NULL) {
         // This is the first call to this function. Link to the real
         // CoTaskMemRealloc.
-        ole32 = GetModuleHandleW(L"ole32.dll");
+        HMODULE ole32 = GetModuleHandleW(L"ole32.dll");
         pCoTaskMemRealloc = (CoTaskMemRealloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
     }
 
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, pCoTaskMemRealloc);
-        tls->context = context;
-    }
+    context_t context;
+    CaptureContext cc(context, FALSE, (void*)pCoTaskMemRealloc);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
-    block = pCoTaskMemRealloc(mem, size);
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return pCoTaskMemRealloc(mem, size);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2089,28 +1433,14 @@ LPVOID VisualLeakDetector::Alloc (_In_ SIZE_T size)
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    LPVOID  block;
     context_t context;
-    tls_t  *tls = getTls();
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
-        UINT_PTR iMallocAlloc = cVtablePtr[3];
-        CAPTURE_CONTEXT(context, iMallocAlloc);
-        tls->context = context;
-    }
+    UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
+    UINT_PTR iMallocAlloc = cVtablePtr[3];
+    CaptureContext cc(context, FALSE, (void*)iMallocAlloc);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     assert(m_iMalloc != NULL);
-    block = (m_iMalloc) ? m_iMalloc->Alloc(size) : NULL;
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return (m_iMalloc) ? m_iMalloc->Alloc(size) : NULL;
 }
 
 // DidAlloc - Calls to IMalloc::DidAlloc will end up here. This function is just
@@ -2227,28 +1557,14 @@ LPVOID VisualLeakDetector::Realloc (_In_opt_ LPVOID mem, _In_ SIZE_T size)
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    LPVOID  block;
     context_t context;
-    tls_t  *tls = getTls();
-
-    bool firstcall = (tls->context.fp == 0x0);
-    if (firstcall) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
-        UINT_PTR iMallocRealloc = cVtablePtr[4];
-        CAPTURE_CONTEXT(context, iMallocRealloc);
-        tls->context = context;
-    }
+    UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
+    UINT_PTR iMallocRealloc = cVtablePtr[4];
+    CaptureContext cc(context, FALSE, (void*)iMallocRealloc);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     assert(m_iMalloc != NULL);
-    block = (m_iMalloc) ? m_iMalloc->Realloc(mem, size) : NULL;
-
-    if (firstcall)
-        firstAllocCall(tls);
-
-    return block;
+    return (m_iMalloc) ? m_iMalloc->Realloc(mem, size) : NULL;
 }
 
 // Release - Calls to IMalloc::Release will end up here. This function is just

@@ -2283,13 +2283,6 @@ VOID VisualLeakDetector::RefreshModules()
     delete oldmodules;
 }
 
-void VisualLeakDetector::getCallStack( CallStack *&pcallstack, context_t &context )
-{
-    CallStack* callstack = CallStack::Create();
-    pcallstack = callstack;
-    callstack->getStackTrace(g_vld.m_maxTraceFrames, context);
-}
-
 // Find the information for the module that initiated this reallocation.
 bool VisualLeakDetector::isModuleExcluded(UINT_PTR address)
 {
@@ -2811,4 +2804,93 @@ int VisualLeakDetector::ResolveCallstacks()
         unresolvedFunctionsCount += resolveStacks(heapinfo);
     }
     return unresolvedFunctionsCount;
+}
+
+
+CaptureContext::CaptureContext(context_t &context, BOOL debug, void* func, UINT_PTR fp) : m_func(func), m_fp(fp) {
+    m_tls = g_vld.getTls();
+
+    if (debug) {
+        m_tls->flags |= VLD_TLS_DEBUGCRTALLOC;
+    }
+
+    m_bFirst = (GET_RETURN_ADDRESS(m_tls->context) == NULL);
+    m_bExclude = g_vld.isModuleExcluded(fp);
+    if (m_bFirst) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        if (func) {
+            Capture(context);
+        }
+        m_tls->context = context;
+    }
+}
+
+CaptureContext::~CaptureContext() {
+    if (m_bFirst) {
+        if ((!m_bExclude) && (m_tls->blockWithoutGuard)) {
+            blockinfo_t* pblockInfo = NULL;
+            if (m_tls->newBlockWithoutGuard == NULL) {
+                g_vld.mapBlock(m_tls->heap,
+                    m_tls->blockWithoutGuard,
+                    m_tls->size,
+                    (m_tls->flags & VLD_TLS_DEBUGCRTALLOC),
+                    m_tls->threadId,
+                    pblockInfo);
+            } else {
+                g_vld.remapBlock(m_tls->heap,
+                    m_tls->blockWithoutGuard,
+                    m_tls->newBlockWithoutGuard,
+                    m_tls->size,
+                    (m_tls->flags & VLD_TLS_DEBUGCRTALLOC),
+                    m_tls->threadId,
+                    pblockInfo, m_tls->context);
+            }
+
+            CallStack* callstack = CallStack::Create();
+            callstack->getStackTrace(g_vld.m_maxTraceFrames, m_tls->context);
+            pblockInfo->callStack.reset(callstack);
+        }
+
+        // Reset thread local flags and variables for the next allocation.
+        Reset();
+    }
+}
+
+void CaptureContext::Capture(context_t &context) {
+    context.fp = m_fp;
+    context.func = (UINT_PTR)(m_func);
+
+    CONTEXT _ctx;
+    RtlCaptureContext(&_ctx);
+#if defined(_M_IX86)
+    context.Ebp = _ctx.Ebp; context.Esp = _ctx.Esp; context.Eip = _ctx.Eip;
+#elif defined(_M_X64)
+    context.Rbp = _ctx.Rbp; context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;
+#else
+    // If you want to retarget Visual Leak Detector to another processor
+    // architecture then you'll need to provide an architecture-specific macro to
+    // obtain the frame pointer (or other address) which can be used to obtain the
+    // return address and stack pointer of the calling frame.
+#error "Visual Leak Detector is not supported on this architecture."
+#endif // _M_IX86 || _M_X64
+}
+
+void CaptureContext::Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size) {
+    m_tls->heap = heap;
+    m_tls->blockWithoutGuard = mem;
+    m_tls->newBlockWithoutGuard = newmem;
+    m_tls->size = size;
+
+    if ((m_tls->blockWithoutGuard) && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
+        // If VLD_OPT_TRACE_INTERNAL_FRAMES is specified then we capture the frame pointer upto the function that acutally
+        // performs the allocation to the heap being: HeapAlloc, HeapReAlloc, RtlAllocateHeap, RtlReAllocateHeap.
+        Capture(m_tls->context);
+    }
+}
+
+void CaptureContext::Reset() {
+    m_tls->context = { NULL };
+    m_tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
+    Set(NULL, NULL, NULL, NULL);
 }
