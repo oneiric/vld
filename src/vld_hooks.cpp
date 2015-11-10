@@ -109,7 +109,7 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
     size_t      size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -150,7 +150,7 @@ void* VisualLeakDetector::_calloc (calloc_t pcalloc,
 void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t   *tls = g_vld.getTls();
 
@@ -191,7 +191,7 @@ void *VisualLeakDetector::_malloc (malloc_t pmalloc, context_t& context, bool de
 void* VisualLeakDetector::_new (new_t pnew, context_t& context, bool debugRuntime, size_t size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t* tls = g_vld.getTls();
 
@@ -238,7 +238,7 @@ void* VisualLeakDetector::_realloc (realloc_t  prealloc,
     size_t      size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -286,7 +286,7 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
     size_t      size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -313,7 +313,7 @@ void* VisualLeakDetector::__recalloc (_recalloc_t  precalloc,
 char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src )
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -340,7 +340,7 @@ char* VisualLeakDetector::__strdup( _strdup_t pstrdup, context_t& context, bool 
 wchar_t* VisualLeakDetector::__wcsdup( _wcsdup_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src )
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -382,7 +382,7 @@ void *VisualLeakDetector::__aligned_malloc (_aligned_malloc_t pmalloc, context_t
     size_t size, size_t alignment)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t   *tls = g_vld.getTls();
 
@@ -424,7 +424,7 @@ void *VisualLeakDetector::__aligned_offset_malloc (_aligned_offset_malloc_t pmal
     size_t size, size_t alignment, size_t offset)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t   *tls = g_vld.getTls();
 
@@ -472,7 +472,7 @@ void* VisualLeakDetector::__aligned_realloc (_aligned_realloc_t  prealloc,
     size_t      alignment)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -521,7 +521,7 @@ void* VisualLeakDetector::__aligned_offset_realloc (_aligned_offset_realloc_t  p
     size_t      offset)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -572,7 +572,7 @@ void* VisualLeakDetector::__aligned_recalloc (_aligned_recalloc_t  precalloc,
     size_t      alignment)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -624,7 +624,7 @@ void* VisualLeakDetector::__aligned_offset_recalloc (_aligned_offset_recalloc_t 
     size_t     offset)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -680,7 +680,7 @@ void* VisualLeakDetector::__aligned_malloc_dbg (_aligned_malloc_dbg_t  p_malloc_
     int            line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -737,7 +737,7 @@ void* VisualLeakDetector::__aligned_offset_malloc_dbg (_aligned_offset_malloc_db
     int            line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -796,7 +796,7 @@ void* VisualLeakDetector::__aligned_realloc_dbg (_aligned_realloc_dbg_t  p_reall
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -856,7 +856,7 @@ void* VisualLeakDetector::__aligned_offset_realloc_dbg (_aligned_offset_realloc_
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -918,7 +918,7 @@ void* VisualLeakDetector::__aligned_recalloc_dbg (_aligned_recalloc_dbg_t  p_rec
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -981,7 +981,7 @@ void* VisualLeakDetector::__aligned_offset_recalloc_dbg (_aligned_offset_recallo
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1047,7 +1047,7 @@ void* VisualLeakDetector::__calloc_dbg (_calloc_dbg_t  p_calloc_dbg,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1102,7 +1102,7 @@ void* VisualLeakDetector::__malloc_dbg (_malloc_dbg_t  p_malloc_dbg,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1135,7 +1135,7 @@ char* VisualLeakDetector::__strdup_dbg (_strdup_dbg_t p_strdup_dbg,
     int line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1168,7 +1168,7 @@ wchar_t* VisualLeakDetector::__wcsdup_dbg (_wcsdup_dbg_t p_wcsdup_dbg,
     int line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1223,7 +1223,7 @@ void* VisualLeakDetector::__new_dbg_crt (new_dbg_crt_t  pnew_dbg_crt,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1277,7 +1277,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1324,7 +1324,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1378,7 +1378,7 @@ void* VisualLeakDetector::__realloc_dbg (_realloc_dbg_t  p_realloc_dbg,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1437,7 +1437,7 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
     int             line)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     tls_t *tls = g_vld.getTls();
 
@@ -1471,7 +1471,7 @@ void* VisualLeakDetector::__recalloc_dbg (_recalloc_dbg_t  p_recalloc_dbg,
 HANDLE VisualLeakDetector::_GetProcessHeap()
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     // Get the process heap.
     HANDLE heap = m_GetProcessHeap();
@@ -1504,7 +1504,7 @@ HANDLE VisualLeakDetector::_GetProcessHeap()
 HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T maxsize)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     // Create the heap.
     HANDLE heap = m_HeapCreate(options, initsize, maxsize);
@@ -1533,7 +1533,7 @@ HANDLE VisualLeakDetector::_HeapCreate (DWORD options, SIZE_T initsize, SIZE_T m
 BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     // After this heap is destroyed, the heap's address space will be unmapped
     // from the process's address space. So, we'd better generate a leak report
@@ -1566,7 +1566,7 @@ BOOL VisualLeakDetector::_HeapDestroy (HANDLE heap)
 LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS2
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     // Allocate the block.
     LPVOID block = RtlAllocateHeap(heap, flags, size);
@@ -1614,7 +1614,7 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
 LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS2
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     // Allocate the block.
     LPVOID block = HeapAlloc(heap, flags, size);
@@ -1685,7 +1685,7 @@ void VisualLeakDetector::AllocateHeap (tls_t* tls, blockinfo_t* &pblockInfo)
 BYTE VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 {
 #ifdef PRINTHOOKCALLS2
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     BYTE status;
 
@@ -1708,7 +1708,7 @@ BYTE VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 {
 #ifdef PRINTHOOKCALLS2
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     BOOL status;
 
@@ -1750,7 +1750,7 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
 
     // Reallocate the block.
@@ -1801,7 +1801,7 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
 LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
 
     // Reallocate the block.
@@ -1851,7 +1851,7 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
 void VisualLeakDetector::ReAllocateHeap (tls_t *tls, blockinfo_t* &pblockInfo)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     bool crtalloc = (tls->flags & VLD_TLS_DEBUGCRTALLOC) ? true : false;
 
@@ -1906,7 +1906,7 @@ void VisualLeakDetector::ReAllocateHeap (tls_t *tls, blockinfo_t* &pblockInfo)
 HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     static CoGetMalloc_t pCoGetMalloc = NULL;
 
@@ -1962,7 +1962,7 @@ HRESULT VisualLeakDetector::_CoGetMalloc (DWORD context, LPMALLOC *imalloc)
 LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     static CoTaskMemAlloc_t pCoTaskMemAlloc = NULL;
 
@@ -2011,7 +2011,7 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
 LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     static CoTaskMemRealloc_t pCoTaskMemRealloc = NULL;
 
@@ -2061,7 +2061,7 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
 ULONG VisualLeakDetector::AddRef ()
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     if (m_iMalloc) {
@@ -2087,7 +2087,7 @@ ULONG VisualLeakDetector::AddRef ()
 LPVOID VisualLeakDetector::Alloc (_In_ SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     LPVOID  block;
     context_t context;
@@ -2126,7 +2126,7 @@ LPVOID VisualLeakDetector::Alloc (_In_ SIZE_T size)
 INT VisualLeakDetector::DidAlloc (_In_opt_ LPVOID mem)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     return (m_iMalloc) ? m_iMalloc->DidAlloc(mem) : 0;
@@ -2144,7 +2144,7 @@ INT VisualLeakDetector::DidAlloc (_In_opt_ LPVOID mem)
 VOID VisualLeakDetector::Free (_In_opt_ LPVOID mem)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     if (m_iMalloc) m_iMalloc->Free(mem);
@@ -2163,7 +2163,7 @@ VOID VisualLeakDetector::Free (_In_opt_ LPVOID mem)
 SIZE_T VisualLeakDetector::GetSize (_In_opt_ LPVOID mem)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     return (m_iMalloc) ? m_iMalloc->GetSize(mem) : 0;
@@ -2179,7 +2179,7 @@ SIZE_T VisualLeakDetector::GetSize (_In_opt_ LPVOID mem)
 VOID VisualLeakDetector::HeapMinimize ()
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     if (m_iMalloc) m_iMalloc->HeapMinimize();
@@ -2202,7 +2202,7 @@ VOID VisualLeakDetector::HeapMinimize ()
 HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     return (m_iMalloc) ? m_iMalloc->QueryInterface(iid, object) : E_UNEXPECTED;
@@ -2225,7 +2225,7 @@ HRESULT VisualLeakDetector::QueryInterface (REFIID iid, LPVOID *object)
 LPVOID VisualLeakDetector::Realloc (_In_opt_ LPVOID mem, _In_ SIZE_T size)
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     LPVOID  block;
     context_t context;
@@ -2262,7 +2262,7 @@ LPVOID VisualLeakDetector::Realloc (_In_opt_ LPVOID mem, _In_ SIZE_T size)
 ULONG VisualLeakDetector::Release ()
 {
 #ifdef PRINTHOOKCALLS
-	DbgReport(_T(__FUNCTION__ "\n"));
+    DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
     assert(m_iMalloc != NULL);
     ULONG nCount = 0;
