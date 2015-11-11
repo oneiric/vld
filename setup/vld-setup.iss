@@ -31,6 +31,8 @@ ChangesEnvironment=yes
 AllowNoIcons=yes
 DisableDirPage=auto
 DirExistsWarning=no
+WizardImageFile=compiler:WizModernImage-IS.bmp
+WizardSmallImageFile=WizSmallImage.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -43,10 +45,10 @@ Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\bin\Win64"; Flags: ignorevers
 Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
 Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\src\bin\Win32\Release\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
-Source: "..\src\bin\Win32\Release\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\src\bin\x64\Release\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
-Source: "..\src\bin\x64\Release\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release-v140\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release-v140\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release-v140\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release-v140\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "..\src\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\src\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld.ini"; DestDir: "{app}"; Flags: ignoreversion
@@ -86,7 +88,7 @@ Source: "..\src\vld.vcxproj.filters"; DestDir: "{app}\src"; Flags: ignoreversion
 [Tasks]
 Name: "modifypath"; Description: "Add VLD directory to your environmental path"
 Name: "modifyVS2008Props"; Description: "Add VLD directory to VS 2008"
-Name: "modifyVS2010Props"; Description: "Add VLD directory to VS 2010 - VS 2013"
+Name: "modifyVS2010Props"; Description: "Add VLD directory to VS 2010 - VS 2015"
 
 [ThirdParty]
 UseRelativePaths=True
