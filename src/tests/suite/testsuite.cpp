@@ -237,6 +237,7 @@ VOID allocateblock (action_e action, SIZE_T size)
     default:
         assert(FALSE);
     }
+    assert(*pblock != NULL);
     counts[action]++;
     total_allocs++;
 
@@ -475,6 +476,8 @@ TEST(TestSuit, MultiThread)
     VLDMarkAllLeaksAsReported();
     RunTestSuite();
     int leaks = static_cast<int>(VLDGetLeaksCount());
+    if (leaks_count != leaks)
+        VLDReportLeaks();
     ASSERT_EQ(leaks_count, leaks);
 }
 

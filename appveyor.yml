@@ -8,22 +8,45 @@ branches:
 os: Visual Studio 2015
 
 environment:
-  VldStackWalkMethod: safe
   GTEST_REPEAT: 1
 
   matrix:
-  - Toolset: v90
+  - VldStackWalkMethod: safe
+    Toolset: v90
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - Toolset: v100
+  - VldStackWalkMethod: safe
+    Toolset: v100
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - Toolset: v110
+  - VldStackWalkMethod: safe
+    Toolset: v110
     Solution: vld_vs14_wo_mfc.sln
     GTEST_FILTER: -*.Mfc*
-  - Toolset: v120_xp
+  - VldStackWalkMethod: safe
+    Toolset: v120_xp
     Solution: vld_vs14.sln
-  - Toolset: v140_xp
+  - VldStackWalkMethod: safe
+    Toolset: v140_xp
+    Solution: vld_vs14.sln
+
+  - VldStackWalkMethod: fast
+    Toolset: v90
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v100
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v110
+    Solution: vld_vs14_wo_mfc.sln
+    GTEST_FILTER: -*.Mfc*
+  - VldStackWalkMethod: fast
+    Toolset: v120_xp
+    Solution: vld_vs14.sln
+  - VldStackWalkMethod: fast
+    Toolset: v140_xp
     Solution: vld_vs14.sln
 
 platform:
