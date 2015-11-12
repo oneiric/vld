@@ -102,7 +102,7 @@ TEST(Dynamic, DuplicateLeaks)
 int __cdecl ReportHook(int /*reportHook*/, wchar_t *message, int* /*returnValue*/)
 {
     OutputDebugString(message);
-    return 1;
+    return 0;
 }
 
 int main(int argc, char **argv) {
