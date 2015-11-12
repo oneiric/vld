@@ -100,8 +100,6 @@ enum action_e {
 #endif
 #endif
 
-//#define FASTSTACKWALK
-
 static int MAXALLOC = 0;                     // Maximum number of allocations of each type to perform, per thread
 static int NUMTHREADS = 0;                   // Number of threads to run simultaneously
 static int MAXBLOCKS = 0;                    // Total maximum number of allocations, per thread
@@ -410,6 +408,7 @@ void RunTestSuite()
         MAXALLOC = 10;
         NUMTHREADS = 15;
     }
+    _ASSERT(NUMTHREADS <= MAXIMUM_WAIT_OBJECTS);
     MAXBLOCKS = (MAXALLOC * numactions);
 
     threadcontext_t* contexts = new threadcontext_t[NUMTHREADS];
@@ -471,6 +470,8 @@ void RunTestSuite()
 
 TEST(TestSuit, MultiThread)
 {
+    leaks_count = 0;
+
     VLDMarkAllLeaksAsReported();
     RunTestSuite();
     int leaks = static_cast<int>(VLDGetLeaksCount());

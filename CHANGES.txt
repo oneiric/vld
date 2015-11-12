@@ -1,7 +1,36 @@
-Visual Leak Detector (VLD) Version 2.4.0
+Visual Leak Detector (VLD) Version 2.5.0
 
-  
+
   Change Log / Release Notes
+
+2.5 (2015)
+----------------------------
+  Enhancements:
+  + VS2015 support added.
+  + Windows 10 support added.
+  + Support MFC 12 MBCS (thanks to mnissl).
+  + VLD config through env. vars (thanks to akaStiX).
+  + Support detection DllMain allocations (thanks to ioannis-e).
+  + Add option to skip reporting crt startup allocations as memory leaks (thanks to ioannis-e).
+  + Improve the vld.ini searching from additional locations (thanks to ioannis-e).
+  + Changed implementation of FastCallStack::getStackTrace for 32-bit code.
+
+  Bugs Fixed:
+  + Fix #9519, #9859, #10544, use LoaderLock to serialize any calls which load additional libraries or require access to the Loader Lock (thanks to ioannis-e).
+  + Fix #6359, #10553, fix crashes and failure to register COM dlls where Visual Leak Detector is unloaded before IMalloc interface is released (thanks to ioannis-e).
+  + Fix #10548, vld.ini search path (thanks to ioannis-e).
+  + Fix #10587, Visual Leak Detector reporting strange leaks in CRT module of VC++ (thanks to ioannis-e).
+  + Fix #10588, false positives from CRT in VS2013 with /MTd (thanks to ioannis-e).
+  + Deadlock fixed with StackWalkMethod=safe.
+
+2.4RC2 (07 April 2014)
+----------------------------
+  Enhancements:
+  + VLD will display last internal frame.
+  + Installer also add path for static library.
+
+  Bugs Fixed:
+  + Internal memory leak fixed.
 
 2.4RC (23 March 2014)
 ----------------------------
@@ -29,7 +58,7 @@ Visual Leak Detector (VLD) Version 2.4.0
 ----------------------------
   Enhancements:
   + New option VLD_OPT_RELEASE_CRT_RUNTIME added. Useful only with define VLD_FORCE_ENABLE.
-  
+
   Bugs Fixed:
   + Memory leaks with static linking fixed finally.
 
@@ -68,7 +97,7 @@ Visual Leak Detector (VLD) Version 2.4.0
   + Adding Heap Validation.
   + _aligned... functions and _recalloc support added.
   + Memory leaks additional statistic added.
-	
+
   Bugs Fixed:
   + Issue fixed with loading wrong version of dbghelp.dll on Windows XP and bellow.
   + VLDReportLeaks with aggregate duplicate links fixed.
@@ -84,13 +113,13 @@ Visual Leak Detector (VLD) Version 2.4.0
 2.1 (26 March 2011)
 ----------------------------
   Enhancements:
-  + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions, 
+  + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions,
     VLDGetReportFilename, VLDSetOptions, VLDSetModulesList,
     VLDGetModulesList, VLDResolveCallstacks (see vld.h).
   + Option VLD_OPT_SKIP_HEAPFREE_LEAKS added.
   + Hash for each leak added
   + Supported loading symbols from Visual Studio symbol cache directory
- 
+
   Bugs Fixed:
   + Improved LdrLoadDll, GetProcAddress hooking on Windows 7.
   + "HMODULE not founded" bug fixed.
@@ -101,13 +130,13 @@ Visual Leak Detector (VLD) Version 2.4.0
 2.1 (26 March 2011)
 ----------------------------
   Enhancements:
-  + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions, 
+  + New functions added: VLDGlobalDisable, VLDGlobalEnable, VLDGetOptions,
     VLDGetReportFilename, VLDSetOptions, VLDSetModulesList,
     VLDGetModulesList, VLDResolveCallstacks (see vld.h).
   + Option VLD_OPT_SKIP_HEAPFREE_LEAKS added.
   + Hash for each leak added
   + Supported loading symbols from Visual Studio symbol cache directory
- 
+
   Bugs Fixed:
   + Improved LdrLoadDll, GetProcAddress hooking on Windows 7.
   + "HMODULE not founded" bug fixed.
@@ -120,7 +149,7 @@ Visual Leak Detector (VLD) Version 2.4.0
   Enhancements:
   + Added new commands: VLDReportLeaks, VLDRefreshModules, VLDEnableModule,
     VLDDisableModule, VLDSetReportOptions (see vld.h).
-  
+
   Bugs Fixed:
   + Problems with MSVC 2008 SP1 fixed. Thanks to Laurent Lessieux for contributing this patch.
 
@@ -128,7 +157,7 @@ Visual Leak Detector (VLD) Version 2.4.0
 ----------------------------
   Enhancements:
   + Renamed vld dll files.
-  
+
   Bugs Fixed:
   + Problem with MSVC 2010 Unicode library fixed.
 
@@ -167,7 +196,7 @@ Visual Leak Detector (VLD) Version 2.4.0
   + In multithreaded programs, if the main thread terminates before other
     threads in the process, then Visual Leak Detector may cause an access
     violation while generating the memory leak report.
-    
+
   Known Bugs/Restrictions:
   + Memory allocations made through calls to functions loaded from a DLL using
     delayed loading may not be detected.
@@ -184,13 +213,13 @@ Visual Leak Detector (VLD) Version 2.4.0
     than one copy of the C Runtime DLL into a process at the same time is
     probably a bad idea to begin with).
 
-  
+
 1.9e beta (16 November 2006)
 ----------------------------
   New Features/Enhancements:
   + Added a master on/off switch configuration option to vld.ini that can be
     used to completely disable Visual Leak Detector.
-    
+
   Bugs Fixed:
   + Numerous deadlock situations. The multithread synchronization scheme has
     been completely re-written which should make deadlocks in VLD much less
@@ -207,7 +236,7 @@ Visual Leak Detector (VLD) Version 2.4.0
   + The copy of vld.ini installed in VLD's installation directory overrides any
     other copies of vld.ini that are created, even copies placed in the
     working directory of the program being debugged.
-    
+
   Known Bugs/Restrictions:
   + Memory allocations made through calls to functions loaded from a DLL using
     delayed loading may not be detected.
@@ -220,7 +249,7 @@ Visual Leak Detector (VLD) Version 2.4.0
     than one copy of the C Runtime DLL into a process at the same time is
     probably a bad idea to begin with).
 
-  
+
 1.9d beta (12 November 2006)
 ----------------------------
   Bugs Fixed:
@@ -255,7 +284,7 @@ Visual Leak Detector (VLD) Version 2.4.0
     Support has been added, through a new configuration option, to slow down
     the report output for older versions of Visual Studio that have trouble
     when it is written too quickly.
-  
+
   Bugs Fixed:
   + All known compatibilities with Visual Studio 2005 have been eliminated.
 
