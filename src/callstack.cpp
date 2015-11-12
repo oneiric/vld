@@ -304,27 +304,28 @@ bool CallStack::isCrtStartupAlloc()
         SIZE_T programCounter = (*this)[frame];
         DWORD64 displacement64;
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-        if (beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
+        size_t len = wcslen(functionName);
+
+        if (beginWith(functionName, len, L"`dynamic initializer for '")) {
             m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
             return false;
         }
 
         // We need to detect both "_CRT_INIT" for most x86 and x64 modules
         // and "CRT_INIT" for some x64 modules
-        if (endWith(functionName, wcslen(functionName), L"CRT_INIT")) {
+        if (endWith(functionName, len, L"CRT_INIT")) {
             m_status |= CALLSTACK_STATUS_STARTUPCRT;
             return true;
         }
+
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
 
-        if (foundline) {
-            if (isCrtStartupModule(sourceInfo.FileName)) {
-                m_status |= CALLSTACK_STATUS_STARTUPCRT;
-                return true;
-            }
+        if (foundline && isCrtStartupModule(sourceInfo.FileName)) {
+            m_status |= CALLSTACK_STATUS_STARTUPCRT;
+            return true;
         }
     }
 
@@ -490,14 +491,25 @@ int CallStack::resolve(BOOL showInternalFrames)
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
-        if (skipStartupLeaks && foundline && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) &&
-            isCrtStartupModule(sourceInfo.FileName)) {
-            m_status |= CALLSTACK_STATUS_STARTUPCRT;
-            delete[] m_resolved;
-            m_resolved = NULL;
-            m_resolvedCapacity = 0;
-            m_resolvedLength = 0;
-            return 0;
+        DWORD64 displacement64;
+        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
+
+        if (skipStartupLeaks && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT)) {
+            size_t len = wcslen(functionName);
+            if (beginWith(functionName, len, L"`dynamic initializer for '")) {
+                m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
+            } 
+            
+            if (!(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) && 
+                (endWith(functionName, len, L"CRT_INIT") || (foundline && isCrtStartupModule(sourceInfo.FileName)))) {
+                m_status |= CALLSTACK_STATUS_STARTUPCRT;
+                delete[] m_resolved;
+                m_resolved = NULL;
+                m_resolvedCapacity = 0;
+                m_resolvedLength = 0;
+                return 0;
+            }
         }
 
         bool isFrameInternal = false;
@@ -516,24 +528,6 @@ int CallStack::resolve(BOOL showInternalFrames)
             }
         }
         isPrevFrameInternal = isFrameInternal;
-
-        DWORD64 displacement64;
-        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
-        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-
-        if (skipStartupLeaks && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
-            m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
-        }
-
-        if (skipStartupLeaks && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) &&
-            endWith(functionName, wcslen(functionName), L"CRT_INIT")) {
-            m_status |= CALLSTACK_STATUS_STARTUPCRT;
-            delete[] m_resolved;
-            m_resolved = NULL;
-            m_resolvedCapacity = 0;
-            m_resolvedLength = 0;
-            return 0;
-        }
 
         if (!foundline)
             displacement = (DWORD)displacement64;

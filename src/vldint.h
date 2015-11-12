@@ -186,14 +186,15 @@ class CaptureContext {
 public:
     CaptureContext(context_t &context, BOOL debug, void* func, UINT_PTR fp = (UINT_PTR)_ReturnAddress());
     ~CaptureContext();
-    void Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
-    void Reset();
+    __forceinline void Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
 private:
     // Disallow certain operations
     CaptureContext();
     CaptureContext(const CaptureContext&);
     CaptureContext& operator=(const CaptureContext&);
-    inline void Capture(context_t &context);
+private:
+    __forceinline void Capture(context_t &context);
+    void Reset();
 private:
     tls_t *m_tls;
     BOOL m_bFirst;

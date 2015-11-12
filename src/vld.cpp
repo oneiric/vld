@@ -1707,10 +1707,14 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
+             } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
+                 // Check for crt startup allocations
+                 if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                     info->reported = true;
+                     continue;
+                 }
             }
-        }
-
-        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+        } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
             // Check for crt startup allocations
             if (info->callStack && info->callStack->isCrtStartupAlloc()) {
                 info->reported = true;
@@ -1804,16 +1808,21 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
+             } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
+                 // Check for crt startup allocations
+                 if (info->callStack && info->callStack->isCrtStartupAlloc()) {
+                     info->reported = true;
+                     continue;
+                 }
             }
+
             // The CRT header is more or less transparent to the user, so
             // the information about the contained block will probably be
             // more useful to the user. Accordingly, that's the information
             // we'll include in the report.
             address = CRTDBGBLOCKDATA(block);
             size = crtheader->size;
-        }
-
-        if (!info->debugCrtAlloc && (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS)) {
+        } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
             // Check for crt startup allocations
             if (info->callStack && info->callStack->isCrtStartupAlloc()) {
                 info->reported = true;
