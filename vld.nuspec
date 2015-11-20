@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <title>Visual Leak Detector</title>
+    <id>VisualLeakDetector</id>
+    <tags>vld memory leak detector</tags>
+    <version>2.5.0.0</version>
+    <authors>VLD Team</authors>
+    <projectUrl>https://vld.codeplex.com/</projectUrl>
+    <licenseUrl>https://vld.codeplex.com/wikipage?title=License</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Visual Leak Detector is a free, robust, open-source memory leak detection system for Visual C++.</description>
+  </metadata>
+  <files>
+	  <file src="nuget\VisualLeakDetector.targets" target="build\native" />
+	  <file src="src\vld.h" target="lib\native\include" />
+	  <file src="src\vld_def.h" target="lib\native\include" />
+
+	  <file src="src\bin\Win32\Release-v140\vld.lib" target="lib\native\address-model-32\lib" />
+	  <file src="src\bin\Win32\Release-v140\vld_x86.dll" target="lib\native\address-model-32\lib" />
+	  <file src="src\bin\Win32\Release-v140\dbghelp.dll" target="lib\native\address-model-32\lib" />
+	  <file src="src\bin\Win32\Release-v140\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-32\lib" />
+
+	  <file src="src\bin\x64\Release-v140\vld.lib" target="lib\native\address-model-64\lib" />
+	  <file src="src\bin\x64\Release-v140\vld_x64.dll" target="lib\native\address-model-64\lib" />
+	  <file src="src\bin\x64\Release-v140\dbghelp.dll" target="lib\native\address-model-64\lib" />
+	  <file src="src\bin\x64\Release-v140\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-64\lib" />
+  </files>
+</package>
+
