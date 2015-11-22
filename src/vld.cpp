@@ -486,9 +486,9 @@ VisualLeakDetector::VisualLeakDetector ()
     delete oldmodules;
     m_status |= VLD_STATUS_INSTALLED;
 
-    HMODULE dbghelp = GetModuleHandleW(L"dbghelp.dll");
-    if (dbghelp)
-        ChangeModuleState(dbghelp, false);
+    m_dbghlpBase = GetModuleHandleW(L"dbghelp.dll");
+    if (m_dbghlpBase)
+        ChangeModuleState(m_dbghlpBase, false);
 
     Report(L"Visual Leak Detector Version " VLDVERSION L" installed.\n");
     if (m_status & VLD_STATUS_FORCE_REPORT_TO_FILE) {
@@ -803,7 +803,7 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
         moduleimageinfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         BOOL SymbolsLoaded = g_DbgHelp.SymGetModuleInfoW64(g_currentProcess, modulebase, &moduleimageinfo, locker);
 
-        if (!SymbolsLoaded)
+        if (!SymbolsLoaded || moduleimageinfo.BaseOfImage != modulebase)
         {
             DbgTrace(L"dbghelp32.dll %i: SymLoadModuleEx\n", GetCurrentThreadId());
             DWORD64 module = g_DbgHelp.SymLoadModuleExW(g_currentProcess, NULL, modulepath, NULL, modulebase, modulesize, NULL, 0, locker);
@@ -1707,14 +1707,10 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
-             } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
-                 // Check for crt startup allocations
-                 if (info->callStack && info->callStack->isCrtStartupAlloc()) {
-                     info->reported = true;
-                     continue;
-                 }
             }
-        } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
+        }
+
+        if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
             // Check for crt startup allocations
             if (info->callStack && info->callStack->isCrtStartupAlloc()) {
                 info->reported = true;
@@ -1808,12 +1804,6 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
-             } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
-                 // Check for crt startup allocations
-                 if (info->callStack && info->callStack->isCrtStartupAlloc()) {
-                     info->reported = true;
-                     continue;
-                 }
             }
 
             // The CRT header is more or less transparent to the user, so
@@ -1822,7 +1812,9 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             // we'll include in the report.
             address = CRTDBGBLOCKDATA(block);
             size = crtheader->size;
-        } else if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
+        }
+
+        if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
             // Check for crt startup allocations
             if (info->callStack && info->callStack->isCrtStartupAlloc()) {
                 info->reported = true;
@@ -2824,7 +2816,6 @@ CaptureContext::CaptureContext(context_t &context, BOOL debug, void* func, UINT_
     }
 
     m_bFirst = (GET_RETURN_ADDRESS(m_tls->context) == NULL);
-    m_bExclude = g_vld.isModuleExcluded(fp);
     if (m_bFirst) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
@@ -2837,7 +2828,7 @@ CaptureContext::CaptureContext(context_t &context, BOOL debug, void* func, UINT_
 
 CaptureContext::~CaptureContext() {
     if (m_bFirst) {
-        if ((!m_bExclude) && (m_tls->blockWithoutGuard)) {
+        if ((m_tls->blockWithoutGuard) && (!IsExcludedModule())) {
             blockinfo_t* pblockInfo = NULL;
             if (m_tls->newBlockWithoutGuard == NULL) {
                 g_vld.mapBlock(m_tls->heap,
@@ -2899,7 +2890,28 @@ void CaptureContext::Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size) {
 }
 
 void CaptureContext::Reset() {
-    m_tls->context = { NULL };
+    m_tls->context.func = NULL;
+    m_tls->context.fp = NULL;
+#if defined(_M_IX86)
+    m_tls->context.Ebp = m_tls->context.Esp = m_tls->context.Eip = NULL;
+#elif defined(_M_X64)
+    m_tls->context.Rbp = m_tls->context.Rsp = m_tls->context.Rip = NULL;
+#endif
     m_tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
     Set(NULL, NULL, NULL, NULL);
+}
+
+BOOL CaptureContext::IsExcludedModule() {
+    HMODULE hModule = GetCallingModule(m_fp);
+    if (hModule == g_vld.m_dbghlpBase)
+        return TRUE;
+
+    UINT tablesize = _countof(g_vld.m_patchTable);
+    for (UINT index = 0; index < tablesize; index++) {
+        if (((HMODULE)g_vld.m_patchTable[index].moduleBase == hModule)) {
+            return !g_vld.m_patchTable[index].reportLeaks;
+        }
+    }
+
+    return g_vld.isModuleExcluded((UINT_PTR)hModule);
 }

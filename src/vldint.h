@@ -194,6 +194,7 @@ private:
     CaptureContext& operator=(const CaptureContext&);
 private:
     __forceinline void Capture(context_t &context);
+    BOOL IsExcludedModule();
     void Reset();
 private:
     tls_t *m_tls;
@@ -430,6 +431,7 @@ private:
     CriticalSection      m_tlsLock;           // Protects accesses to the Set of TLS structures.
     TlsMap              *m_tlsMap;            // Set of all thread-local storage structures for the process.
     HMODULE              m_vldBase;           // Visual Leak Detector's own module handle (base address).
+    HMODULE              m_dbghlpBase;
 
     VOID __stdcall ChangeModuleState(HMODULE module, bool on);
     static GetProcAddress_t m_GetProcAddress;

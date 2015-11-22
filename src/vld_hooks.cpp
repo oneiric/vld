@@ -865,7 +865,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_crt_t  pnew_dbg,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    CaptureContext cc(context, TRUE, NULL);
+    CaptureContext cc(context, FALSE, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     return pnew_dbg(size, type, file, line);
@@ -900,7 +900,7 @@ void* VisualLeakDetector::__new_dbg_mfc (new_dbg_mfc_t  pnew_dbg_mfc,
 #ifdef PRINTHOOKCALLS
     DbgReport(_T(__FUNCTION__) _T( "\n"));
 #endif
-    CaptureContext cc(context, TRUE, NULL);
+    CaptureContext cc(context, FALSE, NULL);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     return pnew_dbg_mfc(size, file, line);
