@@ -374,13 +374,13 @@ static patchentry_t msvcrtPatch [] = {
     "_malloc_dbg",        &VS60::data.pcrtd__malloc_dbg,       VS60::crtd__malloc_dbg,
     "_realloc_dbg",       &VS60::data.pcrtd__realloc_dbg,      VS60::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS60::data.pcrtd__scalar_new_dbg,    VS60::crtd__scalar_new_dbg,
-    //vector_new_dbg_name,  &VS60::data.pcrtd__vector_new_dbg,    VS60::crtd__vector_new_dbg,
+    vector_new_dbg_name,  &VS60::data.pcrtd__vector_new_dbg,    VS60::crtd__vector_new_dbg,
     "calloc",             &VS60::data.pcrtd_calloc,             VS60::crtd_calloc,
     "malloc",             &VS60::data.pcrtd_malloc,             VS60::crtd_malloc,
     "realloc",            &VS60::data.pcrtd_realloc,            VS60::crtd_realloc,
     "_strdup",            &VS60::data.pcrtd__strdup,            VS60::crtd__strdup,
     scalar_new_name,      &VS60::data.pcrtd_scalar_new,         VS60::crtd_scalar_new,
-    //vector_new_name,      &VS60::data.pcrtd_vector_new,         VS60::crtd_vector_new,
+    vector_new_name,      &VS60::data.pcrtd_vector_new,         VS60::crtd_vector_new,
     NULL,                 NULL,                                 NULL
 };
 
@@ -389,13 +389,13 @@ static patchentry_t msvcrtdPatch [] = {
     "_malloc_dbg",        &VS60d::data.pcrtd__malloc_dbg,       VS60d::crtd__malloc_dbg,
     "_realloc_dbg",       &VS60d::data.pcrtd__realloc_dbg,      VS60d::crtd__realloc_dbg,
     scalar_new_dbg_name,  &VS60d::data.pcrtd__scalar_new_dbg,   VS60d::crtd__scalar_new_dbg,
-    //vector_new_dbg_name,  &VS60d::data.pcrtd__vector_new_dbg,   VS60d::crtd__vector_new_dbg,
+    vector_new_dbg_name,  &VS60d::data.pcrtd__vector_new_dbg,   VS60d::crtd__vector_new_dbg,
     "calloc",             &VS60d::data.pcrtd_calloc,            VS60d::crtd_calloc,
     "malloc",             &VS60d::data.pcrtd_malloc,            VS60d::crtd_malloc,
     "realloc",            &VS60d::data.pcrtd_realloc,           VS60d::crtd_realloc,
     "_strdup",            &VS60d::data.pcrtd__strdup,           VS60d::crtd__strdup,
     scalar_new_name,      &VS60d::data.pcrtd_scalar_new,        VS60d::crtd_scalar_new,
-    //vector_new_name,      &VS60d::data.pcrtd_vector_new,        VS60d::crtd_vector_new,
+    vector_new_name,      &VS60d::data.pcrtd_vector_new,        VS60d::crtd_vector_new,
     NULL,                 NULL,                                 NULL
 };
 

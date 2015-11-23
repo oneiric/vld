@@ -302,22 +302,15 @@ bool CallStack::isCrtStartupAlloc()
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
-        BOOL             foundline = FALSE;
-        DWORD            displacement = 0;
-        DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo);
+        DWORD64 displacement64;
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
-        if (foundline) {
-            DWORD64 displacement64;
-            LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-            if (beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
-                break;
-            }
-
-            if (isCrtStartupModule(sourceInfo.FileName)) {
-                m_status |= CALLSTACK_STATUS_STARTUPCRT;
-                return true;
-            }
+        UINT status = isCrtStartupFunction(functionName);
+        if (status == CALLSTACK_STATUS_STARTUPCRT) {
+            m_status |= CALLSTACK_STATUS_STARTUPCRT;
+            return true;
+        } else if (status == CALLSTACK_STATUS_NOTSTARTUPCRT) { 
+            break;
         }
     }
 
@@ -371,6 +364,9 @@ void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
+        if (GetCallingModule(programCounter) == g_vld.m_vldBase)
+            continue;
+
         BOOL             foundline = FALSE;
         DWORD            displacement = 0;
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
@@ -452,7 +448,6 @@ int CallStack::resolve(BOOL showInternalFrames)
     // It's thread safe because of g_heapMapLock lock.
     static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
     bool isPrevFrameInternal = false;
-    bool isDynamicInitializer = false;
     DWORD NumChars = 0;
     CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
@@ -470,6 +465,9 @@ int CallStack::resolve(BOOL showInternalFrames)
         // Try to get the source file and line number associated with
         // this program counter address.
         SIZE_T programCounter = (*this)[frame];
+        if (GetCallingModule(programCounter) == g_vld.m_vldBase)
+            continue;
+
         DWORD            displacement = 0;
 
         // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
@@ -478,14 +476,22 @@ int CallStack::resolve(BOOL showInternalFrames)
         DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
         BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
-        if (skipStartupLeaks && foundline && !isDynamicInitializer &&
-            !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) && isCrtStartupModule(sourceInfo.FileName)) {
-            m_status |= CALLSTACK_STATUS_STARTUPCRT;
-            delete[] m_resolved;
-            m_resolved = NULL;
-            m_resolvedCapacity = 0;
-            m_resolvedLength = 0;
-            return 0;
+        DWORD64 displacement64;
+        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
+        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
+
+        if (skipStartupLeaks && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT)) {
+            UINT status = isCrtStartupFunction(functionName);
+            if (status == CALLSTACK_STATUS_STARTUPCRT) {
+                m_status |= CALLSTACK_STATUS_STARTUPCRT;
+                delete[] m_resolved;
+                m_resolved = NULL;
+                m_resolvedCapacity = 0;
+                m_resolvedLength = 0;
+                return 0;
+            } else if (status == CALLSTACK_STATUS_NOTSTARTUPCRT) {
+                m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
+            }
         }
 
         bool isFrameInternal = false;
@@ -504,14 +510,6 @@ int CallStack::resolve(BOOL showInternalFrames)
             }
         }
         isPrevFrameInternal = isFrameInternal;
-
-        DWORD64 displacement64;
-        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
-        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-
-        if (skipStartupLeaks && foundline && beginWith(functionName, wcslen(functionName), L"`dynamic initializer for '")) {
-            isDynamicInitializer = true;
-        }
 
         if (!foundline)
             displacement = (DWORD)displacement64;
@@ -574,36 +572,32 @@ VOID CallStack::push_back (const UINT_PTR programcounter)
     m_size++;
 }
 
-bool CallStack::isCrtStartupModule( const PWSTR filename ) const
+UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
 {
-    size_t len = wcslen(filename);
-    return
+    size_t len = wcslen(functionName);
+
+    if (beginWith(functionName, len, L"_malloc_crt")
+        || beginWith(functionName, len, L"_calloc_crt")
+        || endWith(functionName, len, L"CRT_INIT")
+        || endWith(functionName, len, L"initterm_e")
         // VS2015
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\stdio\\_file.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\startup\\onexit.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\startup\\initterm.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\startup\\argv_parsing.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\internal\\initialization.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\appcrt\\internal\\shared_initialization.cpp") ||
-        endWith(filename, len, L"\\crts\\ucrt\\src\\desktopcrt\\env\\environment_initialization.cpp") ||
-        // VS2013
-        endWith(filename, len, L"\\crt\\crtw32\\lowio\\ioinit.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\misc\\onexit.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\stdio\\_file.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\startup\\stdargv.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\startup\\stdenvp.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\startup\\tidtable.c") ||
-        endWith(filename, len, L"\\crt\\crtw32\\mbstring\\mbctype.c") ||
-        // VS2012 and bellow
-        endWith(filename, len, L"\\crt\\src\\crt0dat.c") ||                 //_cinit()
-        endWith(filename, len, L"\\crt\\src\\onexit.c") ||                  //__onexitinit()
-        endWith(filename, len, L"\\crt\\src\\stdargv.c") ||                 //_wsetargv()
-        endWith(filename, len, L"\\crt\\src\\stdenvp.c") ||                 //_wsetenvp()
-        endWith(filename, len, L"\\crt\\src\\ioinit.c") ||                  //_ioinit()
-        endWith(filename, len, L"\\crt\\src\\tidtable.c") ||                //_mtinit()
-        endWith(filename, len, L"\\crt\\src\\mbctype.c") ||                 //__initmbctable()
-        // default
-        (false);
+        || beginWith(functionName, len, L"common_initialize_environment_nolock<")
+        || beginWith(functionName, len, L"common_configure_argv<")
+        || beginWith(functionName, len, L"__acrt_initialize")
+        || beginWith(functionName, len, L"__acrt_allocate_buffer_for_argv")
+        || beginWith(functionName, len, L"_register_onexit_function")
+        ) {
+        return CALLSTACK_STATUS_STARTUPCRT;
+    }
+
+    if (endWith(functionName, len, L"DllMainCRTStartup")
+        || endWith(functionName, len, L"mainCRTStartup")
+        || beginWith(functionName, len, L"`dynamic initializer for '")) {
+        // When we reach this point there is no reason going furhter down the stack
+        return CALLSTACK_STATUS_NOTSTARTUPCRT;
+    }
+
+    return NULL;
 }
 
 bool CallStack::isInternalModule( const PWSTR filename ) const

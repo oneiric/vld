@@ -48,8 +48,9 @@ int Test()
     // including a leak for ml which has not been freed yet. ml will be freed after
     // _tmain exits but before VLDReportLeaks() is called internally by VLD and
     // therefore correctly report 8 leaks.
-    // VLDReportLeaks(); // at this point should report 9 leaks;
-    return VLDGetLeaksCount();
+    int leaks = VLDGetLeaksCount();
+    VLDReportLeaks(); // at this point should report 9 leaks;
+    return leaks;
 }
 
 int _tmain(int argc, _TCHAR* argv[])
