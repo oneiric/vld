@@ -179,13 +179,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
                                                     char const *file,
                                                     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _calloc_dbg_t pcrtxxd__calloc_dbg = (_calloc_dbg_t)data.pcrtd__calloc_dbg;
     assert(pcrtxxd__calloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__calloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__calloc_dbg);
 
-    return g_vld.__calloc_dbg(pcrtxxd__calloc_dbg, context, debug, num, size, type, file, line);
+    return pcrtxxd__calloc_dbg(num, size, type, file, line);
 }
 
 // crtd__malloc_dbg - Calls to _malloc_dbg from msvcrXXd.dll are patched
@@ -210,13 +213,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
                                                     char const *file,
                                                     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _malloc_dbg_t pcrtxxd__malloc_dbg = (_malloc_dbg_t)data.pcrtd__malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__malloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__malloc_dbg);
 
-    return g_vld.__malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, type, file, line);
+    return pcrtxxd__malloc_dbg(size, type, file, line);
 }
 
 // crtd__realloc_dbg - Calls to _realloc_dbg from msvcrXXd.dll are patched
@@ -244,13 +250,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     char const *file,
     int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _realloc_dbg_t pcrtxxd__realloc_dbg = (_realloc_dbg_t)data.pcrtd__realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__realloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__realloc_dbg);
 
-    return g_vld.__realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, type, file, line);
+    return pcrtxxd__realloc_dbg(mem, size, type, file, line);
 }
 
 // crtd__recalloc_dbg - Calls to _recalloc_dbg from msvcrXXd.dll are patched
@@ -279,13 +288,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
                                                       char const *file,
                                                       int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _recalloc_dbg_t pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)data.pcrtd__recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__recalloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__recalloc_dbg);
 
-    return g_vld.__recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, type, file, line);
+    return pcrtxxd__recalloc_dbg(mem, num, size, type, file, line);
 }
 
 
@@ -295,13 +307,16 @@ char* CrtPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
     char const *file,
     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _strdup_dbg_t pcrtxxd__strdup_dbg = (_strdup_dbg_t)data.pcrtd__strdup_dbg;
     assert(pcrtxxd__strdup_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__strdup_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__strdup_dbg);
 
-    return g_vld.__strdup_dbg(pcrtxxd__strdup_dbg, context, debug, src, type, file, line);
+    return pcrtxxd__strdup_dbg(src, type, file, line);
 }
 
 
@@ -311,13 +326,16 @@ wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
     char const *file,
     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _wcsdup_dbg_t pcrtxxd__wcsdup_dbg = (_wcsdup_dbg_t)data.pcrtd__wcsdup_dbg;
     assert(pcrtxxd__wcsdup_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__wcsdup_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__wcsdup_dbg);
 
-    return g_vld.__wcsdup_dbg(pcrtxxd__wcsdup_dbg, context, debug, src, type, file, line);
+    return pcrtxxd__wcsdup_dbg(src, type, file, line);
 }
 
 // crtd__scalar_new_dbg - Calls to the CRT's debug scalar new operator from
@@ -342,13 +360,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__scalar_new_dbg;
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_new_dbg);
 
-    return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
+    return pcrtxxd_new_dbg(size, type, file, line);
 }
 
 // crtd__vector_new_dbg - Calls to the CRT's debug vector new operator from
@@ -373,13 +394,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
                                                         char const *file,
                                                         int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__vector_new_dbg;
     assert(pcrtxxd_new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_new_dbg);
 
-    return g_vld.__new_dbg_crt(pcrtxxd_new_dbg, context, debug, size, type, file, line);
+    return pcrtxxd_new_dbg(size, type, file, line);
 }
 
 // crtd_calloc - Calls to calloc from msvcrXXd.dll are patched through to
@@ -398,13 +422,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     calloc_t pcrtxxd_calloc = (calloc_t)data.pcrtd_calloc;
     assert(pcrtxxd_calloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_calloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_calloc);
 
-    return g_vld._calloc(pcrtxxd_calloc, context, debug, num, size);
+    return pcrtxxd_calloc(num, size);
 }
 
 // crtd_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -421,13 +448,16 @@ void* CrtPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     malloc_t pcrtxxd_malloc = (malloc_t)data.pcrtd_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_malloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_malloc);
 
-    return g_vld._malloc(pcrtxxd_malloc, context, debug, size);
+    return pcrtxxd_malloc(size);
 }
 
 // crtd_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -446,13 +476,16 @@ void* CrtPatch<CRTVersion, debug>::crtd_malloc (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     realloc_t pcrtxxd_realloc = (realloc_t)data.pcrtd_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_realloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_realloc);
 
-    return g_vld._realloc(pcrtxxd_realloc, context, debug, mem, size);
+    return pcrtxxd_realloc(mem, size);
 }
 
 // crtd__recalloc - Calls to _recalloc from msvcrXXd.dll are patched through to
@@ -471,38 +504,47 @@ void* CrtPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _recalloc_t pcrtxxd_recalloc = (_recalloc_t)data.pcrtd_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_recalloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_recalloc);
 
-    return g_vld.__recalloc(pcrtxxd_recalloc, context, debug, mem, num, size);
+    return pcrtxxd_recalloc(mem, num, size);
 }
 
 
 template<int CRTVersion, bool debug>
 char* CrtPatch<CRTVersion, debug>::crtd__strdup (const char* src)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _strdup_t pcrtxxd_strdup = (_strdup_t)data.pcrtd__strdup;
     assert(pcrtxxd_strdup);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_strdup);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_strdup);
 
-    return g_vld.__strdup(pcrtxxd_strdup, context, debug, src);
+    return pcrtxxd_strdup(src);
 }
 
 template<int CRTVersion, bool debug>
 wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _wcsdup_t pcrtxxd_wcsdup = (_wcsdup_t)data.pcrtd__wcsdup;
     assert(pcrtxxd_wcsdup);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_wcsdup);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_wcsdup);
 
-    return g_vld.__wcsdup(pcrtxxd_wcsdup, context, debug, src);
+    return pcrtxxd_wcsdup(src);
 }
 
 // crtd__aligned_malloc_dbg - Calls to _aligned_malloc_dbg from msvcrXXd.dll are patched
@@ -528,13 +570,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size,
     char const *file,
     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_malloc_dbg_t pcrtxxd__aligned_malloc_dbg = (_aligned_malloc_dbg_t)data.pcrtd__aligned_malloc_dbg;
     assert(pcrtxxd__aligned_malloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__aligned_malloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__aligned_malloc_dbg);
 
-    return g_vld.__aligned_malloc_dbg(pcrtxxd__aligned_malloc_dbg, context, debug, size, alignment, type, file, line);
+    return pcrtxxd__aligned_malloc_dbg(size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_malloc_dbg - Calls to _aligned_offset_malloc_dbg from msvcrXXd.dll are patched
@@ -561,13 +606,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t      
     char const *file,
     int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)data.pcrtd__aligned_offset_malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__malloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__malloc_dbg);
 
-    return g_vld.__aligned_offset_malloc_dbg(pcrtxxd__malloc_dbg, context, debug, size, alignment, offset, type, file, line);
+    return pcrtxxd__malloc_dbg(size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_realloc_dbg - Calls to _aligned_realloc_dbg from msvcrXXd.dll are patched
@@ -596,13 +644,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem,
     char const *file,
     int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)data.pcrtd__aligned_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__realloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__realloc_dbg);
 
-    return g_vld.__aligned_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, type, file, line);
+    return pcrtxxd__realloc_dbg(mem, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_realloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -632,13 +683,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void       
     char const *file,
     int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)data.pcrtd__aligned_offset_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__realloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__realloc_dbg);
 
-    return g_vld.__aligned_offset_realloc_dbg(pcrtxxd__realloc_dbg, context, debug, mem, size, alignment, offset, type, file, line);
+    return pcrtxxd__realloc_dbg(mem, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_recalloc_dbg - Calls to _aligned_recalloc_dbg from msvcrXXd.dll are patched
@@ -670,13 +724,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *mem,
     char const *file,
     int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)data.pcrtd__aligned_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__recalloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__recalloc_dbg);
 
-    return g_vld.__aligned_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, type, file, line);
+    return pcrtxxd__recalloc_dbg(mem, num, size, alignment, type, file, line);
 }
 
 // crtd__aligned_offset_recalloc_dbg - Calls to _aligned_offset_realloc_dbg from msvcrXXd.dll are patched
@@ -709,13 +766,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void      
     char const *file,
     int        line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)data.pcrtd__aligned_offset_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd__recalloc_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd__recalloc_dbg);
 
-    return g_vld.__aligned_offset_recalloc_dbg(pcrtxxd__recalloc_dbg, context, debug, mem, num, size, alignment, offset, type, file, line);
+    return pcrtxxd__recalloc_dbg(mem, num, size, alignment, offset, type, file, line);
 }
 
 // crtd__aligned_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -732,13 +792,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void      
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t alignment)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)data.pcrtd_aligned_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_malloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_malloc);
 
-    return g_vld.__aligned_malloc(pcrtxxd_malloc, context, debug, size, alignment);
+    return pcrtxxd_malloc(size, alignment);
 }
 
 // crtd__aligned_offset_malloc - Calls to malloc from msvcrXXd.dll are patched through to
@@ -755,13 +818,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t ali
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, size_t alignment, size_t offset)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)data.pcrtd_aligned_offset_malloc;
     assert(pcrtxxd_malloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_malloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_malloc);
 
-    return g_vld.__aligned_offset_malloc(pcrtxxd_malloc, context, debug, size, alignment, offset);
+    return pcrtxxd_malloc(size, alignment, offset);
 }
 
 // crtd__aligned_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -780,13 +846,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, siz
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size, size_t alignment)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)data.pcrtd_aligned_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_realloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_realloc);
 
-    return g_vld.__aligned_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment);
+    return pcrtxxd_realloc(mem, size, alignment);
 }
 
 // crtd__aligned_offset_realloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -805,13 +874,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size_t size, size_t alignment, size_t offset)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)data.pcrtd_aligned_offset_realloc;
     assert(pcrtxxd_realloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_realloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_realloc);
 
-    return g_vld.__aligned_offset_realloc(pcrtxxd_realloc, context, debug, mem, size, alignment, offset);
+    return pcrtxxd_realloc(mem, size, alignment, offset);
 }
 
 // crtd__aligned_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -832,13 +904,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num, size_t size, size_t alignment)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)data.pcrtd_aligned_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_recalloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_recalloc);
 
-    return g_vld.__aligned_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment);
+    return pcrtxxd_recalloc(mem, num, size, alignment);
 }
 
 // crtd__aligned_offset_recalloc - Calls to realloc from msvcrXXd.dll are patched through to
@@ -859,13 +934,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, size_t num, size_t size, size_t alignment, size_t offset)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)data.pcrtd_aligned_offset_recalloc;
     assert(pcrtxxd_recalloc);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_recalloc);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_recalloc);
 
-    return g_vld.__aligned_offset_recalloc(pcrtxxd_recalloc, context, debug, mem, num, size, alignment, offset);
+    return pcrtxxd_recalloc(mem, num, size, alignment, offset);
 }
 
 // crtd_scalar_new - Calls to the CRT's scalar new operator from msvcrXXd.dll
@@ -880,13 +958,16 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, siz
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_scalar_new;
     assert(pcrtxxd_scalar_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_scalar_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_scalar_new);
 
-    return g_vld._new(pcrtxxd_scalar_new, context, debug, size);
+    return pcrtxxd_scalar_new(size);
 }
 
 // crtd_vector_new - Calls to the CRT's vector new operator from msvcrXXd.dll
@@ -901,13 +982,16 @@ void* CrtPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* CrtPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pcrtxxd_vector_new = (new_t)data.pcrtd_vector_new;
     assert(pcrtxxd_vector_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pcrtxxd_vector_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pcrtxxd_vector_new);
 
-    return g_vld._new(pcrtxxd_vector_new, context, debug, size);
+    return pcrtxxd_vector_new(size);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -938,13 +1022,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return pmfcxxd__new_dbg(size, type, file, line);
 }
 
 // mfcd__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -966,13 +1053,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return pmfcxxd__new_dbg(size, file, line);
 }
 
 // mfcd__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -997,13 +1087,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return pmfcxxd__new_dbg(size, type, file, line);
 }
 
 // mfcd__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -1025,13 +1118,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
                                                            char const  *file,
                                                            int          line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return pmfcxxd__new_dbg(size, file, line);
 }
 
 // mfcd_scalar_new - Calls to the MFC scalar new operator from mfcXXd.dll are
@@ -1046,13 +1142,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
 template<int CRTVersion, bool debug>
 void* MfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pmfcxxd_new = (new_t)data.pmfcd_scalar_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd_new);
 
-    return g_vld._new(pmfcxxd_new, context, debug, size);
+    return pmfcxxd_new(size);
 }
 
 // mfcd_vector_new - Calls to the MFC vector new operator from mfcXXd.dll are
@@ -1067,13 +1166,16 @@ void* MfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* MfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pmfcxxd_new = (new_t)data.pmfcd_vector_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd_new);
 
-    return g_vld._new(pmfcxxd_new, context, debug, size);
+    return pmfcxxd_new(size);
 }
 
 // mfcud__scalar_new_dbg_4p - Calls to the MFC debug scalar new operator from
@@ -1098,13 +1200,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return pmfcxxd__new_dbg(size, type, file, line);
 }
 
 // mfcud__scalar_new_dbg_3p - Calls to the MFC debug scalar new operator from
@@ -1126,13 +1231,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return pmfcxxd__new_dbg(size, file, line);
 }
 
 // mfcud__vector_new_dbg_4p - Calls to the MFC debug vector new operator from
@@ -1157,13 +1265,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, type, file, line);
+    return pmfcxxd__new_dbg(size, type, file, line);
 }
 
 // mfcud__vector_new_dbg_3p - Calls to the MFC debug vector new operator from
@@ -1185,13 +1296,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
                                                             char const *file,
                                                             int         line)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd__new_dbg);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd__new_dbg);
 
-    return g_vld.__new_dbg_mfc(pmfcxxd__new_dbg, context, size, file, line);
+    return pmfcxxd__new_dbg(size, file, line);
 }
 
 // mfcud_scalar_new - Calls to the MFC scalar new operator from mfcXXud.dll are
@@ -1206,13 +1320,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
 template<int CRTVersion, bool debug>
 void* MfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pmfcxxd_new = (new_t)data.pmfcud_scalar_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd_new);
 
-    return g_vld._new(pmfcxxd_new, context, debug, size);
+    return pmfcxxd_new(size);
 }
 
 // mfcud_vector_new - Calls to the MFC vector new operator from mfcXXud.dll are
@@ -1227,13 +1344,16 @@ void* MfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
 template<int CRTVersion, bool debug>
 void* MfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
 {
+#ifdef PRINTHOOKCALLS
+    DbgReport(_T(__FUNCTION__) _T("\n"));
+#endif
     new_t pmfcxxd_new = (new_t)data.pmfcud_vector_new;
     assert(pmfcxxd_new);
 
     context_t context;
-    CaptureContext cc(context, debug, (void*)pmfcxxd_new);
+    CaptureContext cc(context, debug, (CRTVersion >= 140), (void*)pmfcxxd_new);
 
-    return g_vld._new(pmfcxxd_new, context, debug, size);
+    return pmfcxxd_new(size);
 }
 
 // Visual Studio 6.0

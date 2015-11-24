@@ -62,6 +62,25 @@ struct crtdbgblockheader_t
 typedef char checkDebugHeapBlockAlignment[
 	(sizeof(crtdbgblockheader_t) % MEMORY_ALLOCATION_ALIGNMENT == 0) ? 1 : -1];
 
+// Same for UCRT.
+struct crtdbgblockheaderucrt_t
+{
+    struct crtdbgblockheaderucrt_t *next;       // Pointer to the next block in the list of blocks allocated from the CRT heap.
+    struct crtdbgblockheaderucrt_t *prev;       // Pointer to the previous block in the list of blocks allocated from the CRT heap.
+    char const              *file;          // Source file where this block was allocated.
+    int                      line;          // Line of code, within the above file, where this block was allocated.
+    int                      use;           // This block's "use type": see below.
+    size_t                   size;          // Size of the data portion of the block.
+    long                     request;       // This block's "request" number. Basically a serial number.
+    unsigned char            gap[GAPSIZE]; // No-man's land buffer zone, for buffer overrun/underrun checking.
+};
+
+typedef char checkDebugUcrtHeapBlockAlignment[
+    (sizeof(crtdbgblockheaderucrt_t) % MEMORY_ALLOCATION_ALIGNMENT == 0) ? 1 : -1];
+
+typedef char checkDebugHeapBlockSize[
+    (sizeof(crtdbgblockheader_t) == sizeof(crtdbgblockheaderucrt_t)) ? 1 : -1];
+
 // Macro to strip off any sub-type information stored in a block's "use type".
 #define CRT_USE_TYPE(use) (use & 0xFFFF)
 #define _BLOCK_TYPE_IS_VALID(use) (_BLOCK_TYPE(use) == _CLIENT_BLOCK || (use) == _NORMAL_BLOCK || _BLOCK_TYPE(use) == _CRT_BLOCK || (use) == _IGNORE_BLOCK)
@@ -80,10 +99,10 @@ struct vldblockheader_t
 };
 
 // Data-to-Header and Header-to-Data conversion
-#define CRTDBGBLOCKHEADER(d) (crtdbgblockheader_t*)(((PBYTE)d) - sizeof(crtdbgblockheader_t))
-#define CRTDBGBLOCKDATA(h) (LPVOID)(((PBYTE)h) + sizeof(crtdbgblockheader_t))
 #define VLDBLOCKHEADER(d) (vldblockheader_t*)(((PBYTE)d) - sizeof(vldblockheader_t))
 #define VLDBLOCKDATA(h) (LPVOID)(((PBYTE)h) + sizeof(vldblockheader_t))
+#define CRTDBGBLOCKHEADER(d) (crtdbgblockheader_t*)(((PBYTE)d) - sizeof(crtdbgblockheader_t))
+#define CRTDBGBLOCKDATA(h) (LPVOID)(((PBYTE)h) + sizeof(crtdbgblockheader_t))
 
 // new and delete operators for allocating from VLD's private heap.
 void operator delete (void *block);

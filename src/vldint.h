@@ -110,6 +110,7 @@ struct blockinfo_t {
     SIZE_T     size;
     bool       reported;
     bool       debugCrtAlloc;
+    bool       ucrt;
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -162,9 +163,10 @@ typedef Set<VLD_REPORT_HOOK> ReportHookSet;
 struct tls_t {
     context_t	context;       	  // Address of return address at the first call that entered VLD's code for the current allocation.
     UINT32	    flags;            // Thread-local status flags:
-#define VLD_TLS_DEBUGCRTALLOC 0x1 	  //   If set, the current allocation is a CRT allocation.
+#define VLD_TLS_DEBUGCRTALLOC 0x1 //   If set, the current allocation is a CRT allocation.
 #define VLD_TLS_DISABLED 0x2 	  //   If set, memory leak detection is disabled for the current thread.
 #define VLD_TLS_ENABLED  0x4 	  //   If set, memory leak detection is enabled for the current thread.
+#define VLD_TLS_UCRT     0x8      //   If set, the current allocation is a UCRT allocation.
     UINT32	    oldFlags;         // Thread-local status old flags
     DWORD 	    threadId;         // Thread ID of the thread that owns this TLS structure.
     HANDLE      heap;
@@ -184,7 +186,8 @@ typedef Map<DWORD,tls_t*> TlsMap;
 
 class CaptureContext {
 public:
-    CaptureContext(context_t &context, BOOL debug, void* func, UINT_PTR fp = (UINT_PTR)_ReturnAddress());
+    CaptureContext(context_t &context, BOOL debug, BOOL ucrt, void* func, UINT_PTR fp = (UINT_PTR)_ReturnAddress());
+    CaptureContext(context_t &context, void* func, UINT_PTR fp = (UINT_PTR)_ReturnAddress());
     ~CaptureContext();
     __forceinline void Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
 private:
@@ -239,47 +242,6 @@ class VisualLeakDetector : public IMalloc
 public:
     VisualLeakDetector();
     ~VisualLeakDetector();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // Public CRT and MFC Common Handlers
-    //
-    // Many heap functions are indirectly rerouted to these handlers. One common
-    // function exists for each heap function with a given signature. These
-    // handlers are not direct IAT replacements, but are called by the individual
-    // IAT replacement functions.
-    ////////////////////////////////////////////////////////////////////////////////
-    // Standard CRT and MFC common handlers
-    void* _calloc (calloc_t pcalloc, context_t& context, bool debugRuntime, size_t num, size_t size);
-    void* _malloc (malloc_t pmalloc, context_t& context, bool debugRuntime, size_t size);
-    void* _new (new_t pnew, context_t& context, bool debugRuntime, size_t size);
-    void* _realloc (realloc_t prealloc, context_t& context, bool debugRuntime, void *mem, size_t size);
-    void* __recalloc (_recalloc_t precalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size);
-    char* __strdup(_strdup_t pstrdup, context_t& context, bool debugRuntime, const char* src);
-    wchar_t* __wcsdup(_wcsdup_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src);
-
-    // Debug CRT and MFC common handlers
-    void* __calloc_dbg (_calloc_dbg_t p_calloc_dbg, context_t& context, bool debugRuntime, size_t num, size_t size, int type, char const *file, int line);
-    void* __malloc_dbg (_malloc_dbg_t p_malloc_dbg, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
-    void* __new_dbg_crt (new_dbg_crt_t pnew_dbg_crt, context_t& context, bool debugRuntime, size_t size, int type, char const *file, int line);
-    void* __new_dbg_mfc (new_dbg_crt_t pnew_dbg, context_t& context, size_t size, int type, char const *file, int line);
-    void* __new_dbg_mfc (new_dbg_mfc_t pnew_dbg_mfc, context_t& context, size_t size, char const *file, int line);
-    void* __realloc_dbg (_realloc_dbg_t p_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, int type, char const *file, int line);
-    void* __recalloc_dbg (_recalloc_dbg_t p_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, int type, char const *file, int line);
-    char* __strdup_dbg(_strdup_dbg_t pstrdup, context_t& context, bool debugRuntime, const char* src, int type, char const *file, int line);
-    wchar_t* __wcsdup_dbg(_wcsdup_dbg_t pwcsdup, context_t& context, bool debugRuntime, const wchar_t* src, int type, char const *file, int line);
-
-    void *__aligned_malloc (_aligned_malloc_t p_aligned_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment);
-    void *__aligned_offset_malloc (_aligned_offset_malloc_t p_aligned_offset_malloc, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset);
-    void *__aligned_realloc (_aligned_realloc_t p_aligned_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment);
-    void *__aligned_offset_realloc (_aligned_offset_realloc_t p_aligned_offset_realloc, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset);
-    void *__aligned_recalloc (_aligned_recalloc_t p_aligned_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment);
-    void *__aligned_offset_recalloc (_aligned_offset_recalloc_t p_aligned_offset_recalloc, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset);
-    void* __aligned_malloc_dbg (_aligned_malloc_dbg_t p_aligned_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, int type, char const *file, int line);
-    void* __aligned_offset_malloc_dbg (_aligned_offset_malloc_dbg_t p_aligned_offset_malloc_dbg, context_t& context, bool debugRuntime, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-    void* __aligned_realloc_dbg (_aligned_realloc_dbg_t p_aligned_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, int type, char const *file, int line);
-    void* __aligned_offset_realloc_dbg (_aligned_offset_realloc_dbg_t p_aligned_offset_realloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
-    void* __aligned_recalloc_dbg (_aligned_recalloc_dbg_t p_aligned_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, int type, char const *file, int line);
-    void* __aligned_offset_recalloc_dbg (_aligned_offset_recalloc_dbg_t p_aligned_offset_recalloc_dbg, context_t& context, bool debugRuntime, void *mem, size_t num, size_t size, size_t alignment, size_t offset, int type, char const *file, int line);
 
     ////////////////////////////////////////////////////////////////////////////////
     // Public IMalloc methods - for support of COM-based memory leak detection.
@@ -343,12 +305,15 @@ private:
     BOOL   enabled ();
     SIZE_T eraseDuplicates (const BlockMap::Iterator &element, Set<blockinfo_t*> &aggregatedLeak);
     tls_t* getTls ();
-    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo);
+    VOID   mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool crtalloc, bool ucrt, DWORD threadId, blockinfo_t* &pblockInfo);
     VOID   mapHeap (HANDLE heap);
     VOID   remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-        bool crtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context);
+        bool crtalloc, bool ucrt, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context);
     VOID   reportConfig ();
+    static bool   isDebugCrtAlloc(LPCVOID block, blockinfo_t* info);
     SIZE_T reportHeapLeaks (HANDLE heap);
+    static int    getCrtBlockUse (LPCVOID block, bool ucrt);
+    static size_t getCrtBlockSize(LPCVOID block, bool ucrt);
     SIZE_T getLeaksCount (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);
     SIZE_T reportLeaks(heapinfo_t* heapinfo, bool &firstLeak, Set<blockinfo_t*> &aggregatedLeaks, DWORD threadId = (DWORD)-1);
     VOID   markAllLeaksAsReported (heapinfo_t* heapinfo, DWORD threadId = (DWORD)-1);

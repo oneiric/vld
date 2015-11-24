@@ -1328,7 +1328,7 @@ tls_t* VisualLeakDetector::getTls ()
 //
 //    None.
 //
-VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo)
+VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool debugcrtalloc, bool ucrt, DWORD threadId, blockinfo_t* &pblockInfo)
 {
     CriticalSectionLocker<> cs(g_heapMapLock);
 
@@ -1341,6 +1341,7 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
     blockinfo->size = size;
     blockinfo->reported = false;
     blockinfo->debugCrtAlloc = debugcrtalloc;
+    blockinfo->ucrt = ucrt;
 
     if (SIZE_MAX - m_totalAlloc > size)
         m_totalAlloc += size;
@@ -1543,7 +1544,7 @@ VOID VisualLeakDetector::unmapHeap (HANDLE heap)
 //    None.
 //
 VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, SIZE_T size,
-    bool debugcrtalloc, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
+    bool debugcrtalloc, bool ucrt, DWORD threadId, blockinfo_t* &pblockInfo, const context_t &context)
 {
     CriticalSectionLocker<> cs(g_heapMapLock);
 
@@ -1551,7 +1552,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // The block was not reallocated in-place. Instead the old block was
         // freed and a new block allocated to satisfy the new size.
         unmapBlock(heap, mem, context);
-        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, debugcrtalloc, ucrt, threadId, pblockInfo);
         return;
     }
 
@@ -1563,7 +1564,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
         // block has also not been mapped to a blockinfo_t entry yet either,
         // so treat this reallocation as a brand-new allocation (this will
         // also map the heap to a new block map).
-        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, debugcrtalloc, ucrt, threadId, pblockInfo);
         return;
     }
 
@@ -1573,7 +1574,7 @@ VOID VisualLeakDetector::remapBlock (HANDLE heap, LPCVOID mem, LPCVOID newmem, S
     if (blockit == blockmap->end()) {
         // The block hasn't been mapped to a blockinfo_t entry yet.
         // Treat this reallocation as a new allocation.
-        mapBlock(heap, newmem, size, debugcrtalloc, threadId, pblockInfo);
+        mapBlock(heap, newmem, size, debugcrtalloc, ucrt, threadId, pblockInfo);
         return;
     }
 
@@ -1661,6 +1662,32 @@ VOID VisualLeakDetector::reportConfig ()
     }
 }
 
+bool VisualLeakDetector::isDebugCrtAlloc( LPCVOID block, blockinfo_t* info )
+{
+    // Autodetection allocations from statically linked CRT
+    if (!info->debugCrtAlloc) {
+        crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+        SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
+        int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+        if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+            info->debugCrtAlloc = true;
+            info->ucrt = false;
+        }
+    }
+
+    if (!info->debugCrtAlloc) {
+        crtdbgblockheaderucrt_t* crtheader = (crtdbgblockheaderucrt_t*)block;
+        SIZE_T nSize = sizeof(crtdbgblockheaderucrt_t) + crtheader->size + GAPSIZE;
+        int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
+        if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
+            info->debugCrtAlloc = true;
+            info->ucrt = true;
+        }
+    }
+
+    return info->debugCrtAlloc;
+}
+
 // getleakscount - Calculate number of memory leaks.
 //
 //  - heap (IN): Handle to the heap for which to generate a memory leak
@@ -1687,23 +1714,14 @@ SIZE_T VisualLeakDetector::getLeaksCount (heapinfo_t* heapinfo, DWORD threadId)
         if (threadId != ((DWORD)-1) && info->threadId != threadId)
             continue;
 
-        if (!info->debugCrtAlloc) {
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
-            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
-            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
-                info->debugCrtAlloc = true;
-            }
-        }
-
-        if (info->debugCrtAlloc) {
+        if (isDebugCrtAlloc(block, info)) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            int blockUse = getCrtBlockUse(block, info->ucrt);
             // Leaks identified as CRT_USE_IGNORE should not be ignored here otherwise
             // DynamicLoader/Thread test will randomly fail with less leaks being reported.
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
-                CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL) {
+            if (CRT_USE_TYPE(blockUse) == CRT_USE_FREE ||
+                CRT_USE_TYPE(blockUse) == CRT_USE_INTERNAL) {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
                 continue;
@@ -1759,6 +1777,34 @@ SIZE_T VisualLeakDetector::reportHeapLeaks (HANDLE heap)
     return leaks_count;
 }
 
+int VisualLeakDetector::getCrtBlockUse(LPCVOID block, bool ucrt)
+{
+    if (!ucrt)
+    {
+        crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+        return crtheader->use;
+    }
+    else
+    {
+        crtdbgblockheaderucrt_t* crtheader = (crtdbgblockheaderucrt_t*)block;
+        return crtheader->use;
+    }
+}
+
+size_t VisualLeakDetector::getCrtBlockSize(LPCVOID block, bool ucrt)
+{
+    if (!ucrt)
+    {
+        crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+        return crtheader->size;
+    }
+    else
+    {
+        crtdbgblockheaderucrt_t* crtheader = (crtdbgblockheaderucrt_t*)block;
+        return crtheader->size;
+    }
+}
+
 SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, Set<blockinfo_t*> &aggregatedLeaks, DWORD threadId)
 {
     BlockMap* blockmap   = &heapinfo->blockMap;
@@ -1783,23 +1829,14 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         LPCVOID address = block;
         SIZE_T size = info->size;
 
-        if (!info->debugCrtAlloc) {
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
-            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
-            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
-                info->debugCrtAlloc = true;
-            }
-        }
-
-        if (info->debugCrtAlloc) {
+        if (isDebugCrtAlloc( block, info )) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header pretended to it.
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
+            int blockUse = getCrtBlockUse( block, info->ucrt );
             // Leaks identified as CRT_USE_IGNORE should not be ignored here otherwise
             // DynamicLoader/Thread test will randomly fail with less leaks being reported.
-            if (CRT_USE_TYPE(crtheader->use) == CRT_USE_FREE ||
-                CRT_USE_TYPE(crtheader->use) == CRT_USE_INTERNAL)
+            if (CRT_USE_TYPE(blockUse) == CRT_USE_FREE ||
+                CRT_USE_TYPE(blockUse) == CRT_USE_INTERNAL)
             {
                 // This block is marked as being used internally by the CRT.
                 // The CRT will free the block after VLD is destroyed.
@@ -1811,7 +1848,7 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             // more useful to the user. Accordingly, that's the information
             // we'll include in the report.
             address = CRTDBGBLOCKDATA(block);
-            size = crtheader->size;
+            size = getCrtBlockSize(block, info->ucrt);
         }
 
         if (m_options & VLD_OPT_SKIP_CRTSTARTUP_LEAKS) {
@@ -1834,7 +1871,7 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
         {
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
             Report(L"  CRT Alloc ID: %Iu\n", crtheader->request);
-            assert(size == crtheader->size);
+            assert(size == getCrtBlockSize(block, info->ucrt));
         }
 #endif
         assert(info->callStack);
@@ -2747,16 +2784,7 @@ int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
         const void* address = block;
         assert(address != NULL);
 
-        if (!info->debugCrtAlloc) {
-            crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
-            SIZE_T nSize = sizeof(crtdbgblockheader_t) + crtheader->size + GAPSIZE;
-            int nValid = _CrtIsValidPointer(block, (unsigned int)info->size, TRUE);
-            if (_BLOCK_TYPE_IS_VALID(crtheader->use) && nValid && (nSize == info->size)) {
-                info->debugCrtAlloc = true;
-            }
-        }
-
-        if (info->debugCrtAlloc) {
+        if (isDebugCrtAlloc(block, info)) {
             // This block is allocated to a CRT heap, so the block has a CRT
             // memory block header prepended to it.
             crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
@@ -2807,12 +2835,15 @@ int VisualLeakDetector::ResolveCallstacks()
     return unresolvedFunctionsCount;
 }
 
-
-CaptureContext::CaptureContext(context_t &context, BOOL debug, void* func, UINT_PTR fp) : m_func(func), m_fp(fp) {
+CaptureContext::CaptureContext(context_t &context, BOOL debug, BOOL ucrt, void* func, UINT_PTR fp) : m_fp(fp), m_func(func) {
     m_tls = g_vld.getTls();
 
     if (debug) {
         m_tls->flags |= VLD_TLS_DEBUGCRTALLOC;
+    }
+
+    if (ucrt) {
+        m_tls->flags |= VLD_TLS_UCRT;
     }
 
     m_bFirst = (GET_RETURN_ADDRESS(m_tls->context) == NULL);
@@ -2826,35 +2857,53 @@ CaptureContext::CaptureContext(context_t &context, BOOL debug, void* func, UINT_
     }
 }
 
-CaptureContext::~CaptureContext() {
-    if (m_bFirst) {
-        if ((m_tls->blockWithoutGuard) && (!IsExcludedModule())) {
-            blockinfo_t* pblockInfo = NULL;
-            if (m_tls->newBlockWithoutGuard == NULL) {
-                g_vld.mapBlock(m_tls->heap,
-                    m_tls->blockWithoutGuard,
-                    m_tls->size,
-                    (m_tls->flags & VLD_TLS_DEBUGCRTALLOC),
-                    m_tls->threadId,
-                    pblockInfo);
-            } else {
-                g_vld.remapBlock(m_tls->heap,
-                    m_tls->blockWithoutGuard,
-                    m_tls->newBlockWithoutGuard,
-                    m_tls->size,
-                    (m_tls->flags & VLD_TLS_DEBUGCRTALLOC),
-                    m_tls->threadId,
-                    pblockInfo, m_tls->context);
-            }
+CaptureContext::CaptureContext(context_t &context, void* func, UINT_PTR fp) : m_fp(fp), m_func(func) {
+    m_tls = g_vld.getTls();
 
-            CallStack* callstack = CallStack::Create();
-            callstack->getStackTrace(g_vld.m_maxTraceFrames, m_tls->context);
-            pblockInfo->callStack.reset(callstack);
+    m_bFirst = (GET_RETURN_ADDRESS(m_tls->context) == NULL);
+    if (m_bFirst) {
+        // This is the first call to enter VLD for the current allocation.
+        // Record the current frame pointer.
+        if (func) {
+            Capture(context);
+        }
+        m_tls->context = context;
+    }
+}
+
+CaptureContext::~CaptureContext() {
+    if (!m_bFirst)
+        return;
+
+    if ((m_tls->blockWithoutGuard) && (!IsExcludedModule())) {
+        blockinfo_t* pblockInfo = NULL;
+        if (m_tls->newBlockWithoutGuard == NULL) {
+            g_vld.mapBlock(m_tls->heap,
+                m_tls->blockWithoutGuard,
+                m_tls->size,
+                (m_tls->flags & VLD_TLS_DEBUGCRTALLOC) != 0,
+                (m_tls->flags & VLD_TLS_UCRT) != 0,
+                m_tls->threadId,
+                pblockInfo);
+        }
+        else {
+            g_vld.remapBlock(m_tls->heap,
+                m_tls->blockWithoutGuard,
+                m_tls->newBlockWithoutGuard,
+                m_tls->size,
+                (m_tls->flags & VLD_TLS_DEBUGCRTALLOC) != 0,
+                (m_tls->flags & VLD_TLS_UCRT) != 0,
+                m_tls->threadId,
+                pblockInfo, m_tls->context);
         }
 
-        // Reset thread local flags and variables for the next allocation.
-        Reset();
+        CallStack* callstack = CallStack::Create();
+        callstack->getStackTrace(g_vld.m_maxTraceFrames, m_tls->context);
+        pblockInfo->callStack.reset(callstack);
     }
+
+    // Reset thread local flags and variables for the next allocation.
+    Reset();
 }
 
 void CaptureContext::Capture(context_t &context) {
@@ -2897,7 +2946,7 @@ void CaptureContext::Reset() {
 #elif defined(_M_X64)
     m_tls->context.Rbp = m_tls->context.Rsp = m_tls->context.Rip = NULL;
 #endif
-    m_tls->flags &= ~VLD_TLS_DEBUGCRTALLOC;
+    m_tls->flags &= ~(VLD_TLS_DEBUGCRTALLOC | VLD_TLS_UCRT);
     Set(NULL, NULL, NULL, NULL);
 }
 
