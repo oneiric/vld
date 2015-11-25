@@ -85,7 +85,7 @@ public:
     VOID clear ();
     // Prints the call stack to one of either / or the debug output window and or
     // a log file.
-    VOID dump (BOOL showinternalframes, UINT start_frame = 0) const;
+    VOID dump (BOOL showinternalframes);
     // Formats the stack frame into a human readable format, and saves it for later retrieval.
     int resolve(BOOL showinternalframes);
     virtual DWORD getHashValue() const = 0;
@@ -121,9 +121,7 @@ protected:
     WCHAR*              m_resolved;
     int                 m_resolvedCapacity;
     int                 m_resolvedLength;
-    // Prints out the strings in m_Resolved when the time comes to report the callstack in
-    // human readable form. Currently this is only called by the dump method.
-    void dumpResolved() const;
+
     bool isInternalModule( const PWSTR filename ) const;
     UINT isCrtStartupFunction( LPCWSTR functionName ) const;
     LPCWSTR getFunctionName(SIZE_T programCounter, DWORD64& displacement64,

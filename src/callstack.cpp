@@ -330,78 +330,21 @@ bool CallStack::isCrtStartupAlloc()
 //
 //    None.
 //
-void CallStack::dump(BOOL showInternalFrames, UINT start_frame) const
+void CallStack::dump(BOOL showInternalFrames)
 {
-    // The stack was dumped already
-    if (m_resolved)
-    {
-        dumpResolved();
-        return;
+    if (!m_resolved) {
+        resolve(showInternalFrames);
     }
 
-    if (m_status & CALLSTACK_STATUS_INCOMPLETE) {
-        // This call stack appears to be incomplete. Using StackWalk64 may be
-        // more reliable.
-        Report(L"    HINT: The following call stack may be incomplete. Setting \"StackWalkMethod\"\n"
-            L"      in the vld.ini file to \"safe\" instead of \"fast\" may result in a more\n"
-            L"      complete stack trace.\n");
-    }
-
-    IMAGEHLP_LINE64  sourceInfo = { 0 };
-    sourceInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-
-    // Use static here to increase performance, and avoid heap allocs.
-    // It's thread safe because of g_heapMapLock lock.
-    static WCHAR stack_line[MAXREPORTLENGTH + 1] = L"";
-    bool isPrevFrameInternal = false;
-    CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
-
-    // Iterate through each frame in the call stack.
-    for (UINT32 frame = start_frame; frame < m_size; frame++)
-    {
-        // Try to get the source file and line number associated with
-        // this program counter address.
-        SIZE_T programCounter = (*this)[frame];
-        if (GetCallingModule(programCounter) == g_vld.m_vldBase)
-            continue;
-
-        BOOL             foundline = FALSE;
-        DWORD            displacement = 0;
-        DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
-
-        bool isFrameInternal = false;
-        if (foundline && !showInternalFrames) {
-            if (isInternalModule(sourceInfo.FileName))
-            {
-                // Don't show frames in files internal to the heap.
-                isFrameInternal = true;
-            }
-        }
-
-        // show one allocation function for context
-        if (!isFrameInternal && isPrevFrameInternal)
-            Print(stack_line);
-        isPrevFrameInternal = isFrameInternal;
-
-        DWORD64 displacement64;
-        BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
-        LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
-
-        if (!foundline)
-            displacement = (DWORD)displacement64;
-        DWORD NumChars = resolveFunction(programCounter, foundline ? &sourceInfo : NULL,
-            displacement, functionName, stack_line, _countof(stack_line));
-        UNREFERENCED_PARAMETER(NumChars);
-
-        if (!isFrameInternal)
-            Print(stack_line);
+    // The stack was reoslved already
+    if (m_resolved) {
+        return Print(m_resolved);
     }
 }
 
 // Resolve - Creates a nicely formatted rendition of the CallStack, including
 //   symbolic information (function names and line numbers) if available. and
-//   saves it for later retrieval. This is almost identical to Callstack::dump above.
+//   saves it for later retrieval.
 //
 //   Note: The symbol handler must be initialized prior to calling this
 //     function.
@@ -522,13 +465,6 @@ int CallStack::resolve(BOOL showInternalFrames)
 
     m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
     return unresolvedFunctionsCount;
-}
-
-// DumpResolve
-void CallStack::dumpResolved() const
-{
-    if (m_resolved)
-        Print(m_resolved);
 }
 
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
