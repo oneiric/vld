@@ -358,6 +358,22 @@ private:
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
     static LPVOID  __stdcall _CoTaskMemRealloc (LPVOID mem, SIZE_T size);
 
+    // OLEAUT IAT replacement functions
+    static BSTR    __stdcall _SysAllocString(__in_z_opt const OLECHAR * psz);
+    static BSTR    __stdcall _SysAllocStringLen(__in_ecount_opt(ui) const OLECHAR * strIn, UINT ui);
+    static BSTR    __stdcall _SysAllocStringByteLen(__in_z_opt LPCSTR psz, __in UINT len);
+    static INT     __stdcall _SysReAllocString(__deref_inout_ecount_z(stringLength(psz) + 1) BSTR* pbstr, __in_z_opt const OLECHAR* psz);
+    static INT     __stdcall _SysReAllocStringLen(__deref_inout_ecount_z(len + 1) BSTR* pbstr, __in_z_opt const OLECHAR* psz, __in unsigned int len);
+
+    static HRESULT __stdcall _SafeArrayAllocData(__in SAFEARRAY * psa);
+    static HRESULT __stdcall _SafeArrayAllocDescriptor(__in UINT cDims, __deref_out SAFEARRAY ** ppsaOut);
+    static HRESULT __stdcall _SafeArrayAllocDescriptorEx(__in VARTYPE vt, __in UINT cDims, __deref_out SAFEARRAY ** ppsaOut);
+    static SAFEARRAY* __stdcall _SafeArrayCreate(__in VARTYPE vt, __in UINT cDims, __in SAFEARRAYBOUND * rgsabound);
+    static SAFEARRAY* __stdcall _SafeArrayCreateEx(__in VARTYPE vt, __in UINT cDims, __in SAFEARRAYBOUND * rgsabound, __in PVOID pvExtra);
+    static SAFEARRAY* __stdcall _SafeArrayCreateVector(__in VARTYPE vt, __in LONG lLbound, __in ULONG cElements);
+    static SAFEARRAY* __stdcall _SafeArrayCreateVectorEx(__in VARTYPE vt, __in LONG lLbound, __in ULONG cElements, __in PVOID pvExtra);
+    static HRESULT __stdcall _SafeArrayRedim(__inout SAFEARRAY * psa, __in SAFEARRAYBOUND * psaboundNew);
+
     ////////////////////////////////////////////////////////////////////////////////
     // Private data
     ////////////////////////////////////////////////////////////////////////////////
@@ -380,7 +396,8 @@ private:
     static patchentry_t  m_kernel32Patch [];
     static patchentry_t  m_ntdllPatch [];
     static patchentry_t  m_ole32Patch [];
-    static moduleentry_t m_patchTable [58];   // Table of imports patched for attaching VLD to other modules.
+    static patchentry_t  m_oleaut32Patch [];
+    static moduleentry_t m_patchTable [59];   // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportFile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportFilePath [MAX_PATH]; // Full path and name of file to send memory leak report to.
     const char          *m_selfTestFile;      // Filename where the memory leak self-test block is leaked.

@@ -127,3 +127,21 @@ TEST_F(TestBasicsDisabled, IMalloc)
     int leaks = total - prev;
     ASSERT_EQ(0, leaks);
 }
+
+TEST_F(TestBasicsDisabled, SysAllocString)
+{
+    int prev = static_cast<int>(VLDGetLeaksCount());
+    LeakMemorySysAllocString(repeats, false);
+    int total = static_cast<int>(VLDGetLeaksCount());
+    int leaks = total - prev;
+    ASSERT_EQ(0, leaks);
+}
+
+TEST_F(TestBasicsDisabled, SafeArray)
+{
+    int prev = static_cast<int>(VLDGetLeaksCount());
+    LeakMemorySafeArrayCreate(repeats, false);
+    int total = static_cast<int>(VLDGetLeaksCount());
+    int leaks = total - prev;
+    ASSERT_EQ(0, leaks);
+}

@@ -130,6 +130,28 @@ TEST_P(TestBasics, IMalloc)
     ASSERT_EQ(correctLeaks, leaks);
 }
 
+TEST_P(TestBasics, SysAllocString)
+{
+    int prev = static_cast<int>(VLDGetLeaksCount());
+    LeakMemorySysAllocString(repeats, GetParam());
+    int total = static_cast<int>(VLDGetLeaksCount());
+    int leaks = total - prev;
+    int correctLeaks = GetParam() ? 0 : repeats * 5;
+    if (correctLeaks != leaks) VLDReportLeaks();
+    ASSERT_EQ(correctLeaks, leaks);
+}
+
+TEST_P(TestBasics, SafeArray)
+{
+    int prev = static_cast<int>(VLDGetLeaksCount());
+    LeakMemorySafeArrayCreate(repeats, GetParam());
+    int total = static_cast<int>(VLDGetLeaksCount());
+    int leaks = total - prev;
+    int correctLeaks = GetParam() ? 0 : repeats * 4;
+    if (correctLeaks != leaks) VLDReportLeaks();
+    ASSERT_EQ(correctLeaks, leaks);
+}
+
 TEST_P(TestBasics, GetProcMalloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());

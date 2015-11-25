@@ -776,6 +776,24 @@ patchentry_t VisualLeakDetector::m_ole32Patch [] = {
     NULL,                 NULL, NULL
 };
 
+patchentry_t VisualLeakDetector::m_oleaut32Patch[] = {
+    "SysAllocString",        NULL, _SysAllocString,
+    "SysAllocStringLen",     NULL, _SysAllocStringLen,
+    "SysAllocStringByteLen", NULL, _SysAllocStringByteLen,
+    "SysReAllocString",      NULL, _SysReAllocString,
+    "SysReAllocStringLen",   NULL, _SysReAllocStringLen,
+
+    "SafeArrayAllocData",         NULL, _SafeArrayAllocData,
+    "SafeArrayAllocDescriptor",   NULL, _SafeArrayAllocDescriptor,
+    "SafeArrayAllocDescriptorEx", NULL, _SafeArrayAllocDescriptorEx,
+    "SafeArrayCreate",            NULL, _SafeArrayCreate,
+    "SafeArrayCreateEx",          NULL, _SafeArrayCreateEx,
+    "SafeArrayCreateVector",      NULL, _SafeArrayCreateVector,
+    "SafeArrayCreateVectorEx",    NULL, _SafeArrayCreateVectorEx,
+    "SafeArrayRedim",             NULL, _SafeArrayRedim,
+    NULL,                         NULL, NULL
+};
+
 moduleentry_t VisualLeakDetector::m_patchTable [] = {
     // Win32 heap APIs.
     "kernel32.dll", FALSE,  0x0, m_kernelbasePatch, // we patch this record on Win7 and higher
@@ -843,5 +861,6 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
     "ntdll.dll",    FALSE,  0x0, m_ntdllPatch,
 
     // COM heap APIs.
-    "ole32.dll",    FALSE,  0x0, m_ole32Patch
+    "ole32.dll",    FALSE,  0x0, m_ole32Patch,
+    "oleaut32.dll", TRUE,   0x0, m_oleaut32Patch,
 };

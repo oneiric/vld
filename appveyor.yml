@@ -154,5 +154,5 @@ test_script:
     $suffix = $env:Toolset.Substring(0, $pos )
     $folders = @{"Debug_VldRelease" = "Debug(Release)-$suffix"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-$suffix";
         "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
-    $correctTestCount =  if ($env:GTEST_FILTER -like '*Mfc*') { 49 } else { 53 }
+    $correctTestCount =  if ($env:GTEST_FILTER -like '*Mfc*') { 55 } else { 59 }
     Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])" $correctTestCount
