@@ -335,6 +335,28 @@ VisualLeakDetector::VisualLeakDetector ()
     wcsncpy_s(m_reportFilePath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
     m_status         = 0x0;
 
+	HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+	if (ntdll)
+	{
+		if (!IsWindows8OrGreater())
+		{
+			LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+		} else
+		{
+			LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
+			ldrLoadDllPatch[0].replacement = _LdrLoadDllWin8;
+		}
+		RtlAllocateHeap = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
+		RtlFreeHeap = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
+		RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+
+		LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
+		LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
+		LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
+		LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
+		LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
+	}
+
     // Load configuration options.
     configure();
     if (m_options & VLD_OPT_VLDOFF) {
@@ -365,28 +387,6 @@ VisualLeakDetector::VisualLeakDetector ()
     g_currentProcess    = GetCurrentProcess();
     g_currentThread     = GetCurrentThread();
     g_processHeap       = GetProcessHeap();
-    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-    if (ntdll)
-    {
-        if (!IsWindows8OrGreater())
-        {
-            LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
-        }
-        else
-        {
-            LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
-            ldrLoadDllPatch[0].replacement = _LdrLoadDllWin8;
-        }
-        RtlAllocateHeap   = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
-        RtlFreeHeap       = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
-        RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
-
-        LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
-        LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
-        LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
-        LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
-        LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
-    }
 
     LoaderLock ll;
 
