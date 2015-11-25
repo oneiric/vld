@@ -304,12 +304,11 @@ bool CallStack::isCrtStartupAlloc()
         DWORD64 displacement64;
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
-        UINT status = isCrtStartupFunction(functionName);
-        if (status == CALLSTACK_STATUS_STARTUPCRT) {
-            m_status |= CALLSTACK_STATUS_STARTUPCRT;
+        m_status |= isCrtStartupFunction(functionName);
+        if (m_status & CALLSTACK_STATUS_STARTUPCRT) {
             return true;
-        } else if (status == CALLSTACK_STATUS_NOTSTARTUPCRT) { 
-            break;
+        } else if (m_status & CALLSTACK_STATUS_NOTSTARTUPCRT) {
+            return false;
         }
     }
 
@@ -467,31 +466,29 @@ int CallStack::resolve(BOOL showInternalFrames)
         if (GetCallingModule(programCounter) == g_vld.m_vldBase)
             continue;
 
-        DWORD            displacement = 0;
-
-        // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
-        // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
-        // When that happens there is nothing we can do except crash.
-        DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
-        BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
-
         DWORD64 displacement64;
         BYTE symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_SIZE];
         LPCWSTR functionName = getFunctionName(programCounter, displacement64, (SYMBOL_INFO*)&symbolBuffer, locker);
 
-        if (skipStartupLeaks && !(m_status & CALLSTACK_STATUS_NOTSTARTUPCRT)) {
-            UINT status = isCrtStartupFunction(functionName);
-            if (status == CALLSTACK_STATUS_STARTUPCRT) {
-                m_status |= CALLSTACK_STATUS_STARTUPCRT;
+        if (skipStartupLeaks) {
+            if (!(m_status & (CALLSTACK_STATUS_STARTUPCRT | CALLSTACK_STATUS_NOTSTARTUPCRT))) {
+                m_status |= isCrtStartupFunction(functionName);
+            }
+            if (m_status & CALLSTACK_STATUS_STARTUPCRT) {
                 delete[] m_resolved;
                 m_resolved = NULL;
                 m_resolvedCapacity = 0;
                 m_resolvedLength = 0;
                 return 0;
-            } else if (status == CALLSTACK_STATUS_NOTSTARTUPCRT) {
-                m_status |= CALLSTACK_STATUS_NOTSTARTUPCRT;
             }
         }
+
+        // It turns out that calls to SymGetLineFromAddrW64 may free the very memory we are scrutinizing here
+        // in this method. If this is the case, m_Resolved will be null after SymGetLineFromAddrW64 returns.
+        // When that happens there is nothing we can do except crash.
+        DWORD            displacement = 0;
+        DbgTrace(L"dbghelp32.dll %i: SymGetLineFromAddrW64\n", GetCurrentThreadId());
+        BOOL foundline = g_DbgHelp.SymGetLineFromAddrW64(g_currentProcess, programCounter, &displacement, &sourceInfo, locker);
 
         bool isFrameInternal = false;
         if (foundline && !showInternalFrames) {
@@ -579,6 +576,8 @@ UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
         || beginWith(functionName, len, L"_calloc_crt")
         || endWith(functionName, len, L"CRT_INIT")
         || endWith(functionName, len, L"initterm_e")
+        || beginWith(functionName, len, L"_cinit")
+        || beginWith(functionName, len, L"std::`dynamic initializer for '")
         // VS2015
         || beginWith(functionName, len, L"common_initialize_environment_nolock<")
         || beginWith(functionName, len, L"common_configure_argv<")
@@ -592,7 +591,7 @@ UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
     if (endWith(functionName, len, L"DllMainCRTStartup")
         || endWith(functionName, len, L"mainCRTStartup")
         || beginWith(functionName, len, L"`dynamic initializer for '")) {
-        // When we reach this point there is no reason going furhter down the stack
+        // When we reach this point there is no reason going further down the stack
         return CALLSTACK_STATUS_NOTSTARTUPCRT;
     }
 
