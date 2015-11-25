@@ -2834,7 +2834,7 @@ int VisualLeakDetector::ResolveCallstacks()
     return unresolvedFunctionsCount;
 }
 
-CaptureContext::CaptureContext(context_t &context, BOOL debug, BOOL ucrt, void* func, UINT_PTR fp) : m_fp(fp), m_func(func) {
+CaptureContext::CaptureContext(void* func, BOOL debug, BOOL ucrt, UINT_PTR fp) : m_fp(fp), m_func(func) {
     m_tls = g_vld.getTls();
 
     if (debug) {
@@ -2849,24 +2849,7 @@ CaptureContext::CaptureContext(context_t &context, BOOL debug, BOOL ucrt, void* 
     if (m_bFirst) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        if (func) {
-            Capture(context);
-        }
-        m_tls->context = context;
-    }
-}
-
-CaptureContext::CaptureContext(context_t &context, void* func, UINT_PTR fp) : m_fp(fp), m_func(func) {
-    m_tls = g_vld.getTls();
-
-    m_bFirst = (GET_RETURN_ADDRESS(m_tls->context) == NULL);
-    if (m_bFirst) {
-        // This is the first call to enter VLD for the current allocation.
-        // Record the current frame pointer.
-        if (func) {
-            Capture(context);
-        }
-        m_tls->context = context;
+        Capture();
     }
 }
 
@@ -2905,16 +2888,16 @@ CaptureContext::~CaptureContext() {
     Reset();
 }
 
-void CaptureContext::Capture(context_t &context) {
-    context.fp = m_fp;
-    context.func = (UINT_PTR)(m_func);
+void CaptureContext::Capture() {
+    m_tls->context.fp = m_fp;
+    m_tls->context.func = (UINT_PTR)(m_func);
 
     CONTEXT _ctx;
     RtlCaptureContext(&_ctx);
 #if defined(_M_IX86)
-    context.Ebp = _ctx.Ebp; context.Esp = _ctx.Esp; context.Eip = _ctx.Eip;
+    m_tls->context.Ebp = _ctx.Ebp; m_tls->context.Esp = _ctx.Esp; m_tls->context.Eip = _ctx.Eip;
 #elif defined(_M_X64)
-    context.Rbp = _ctx.Rbp; context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;
+    m_tls->context.Rbp = _ctx.Rbp; m_tls->context.Rsp = _ctx.Rsp; m_tls->context.Rip = _ctx.Rip;
 #else
     // If you want to retarget Visual Leak Detector to another processor
     // architecture then you'll need to provide an architecture-specific macro to
@@ -2933,7 +2916,7 @@ void CaptureContext::Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size) {
     if ((m_tls->blockWithoutGuard) && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
         // If VLD_OPT_TRACE_INTERNAL_FRAMES is specified then we capture the frame pointer upto the function that acutally
         // performs the allocation to the heap being: HeapAlloc, HeapReAlloc, RtlAllocateHeap, RtlReAllocateHeap.
-        Capture(m_tls->context);
+        Capture();
     }
 }
 
