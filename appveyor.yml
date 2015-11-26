@@ -75,15 +75,21 @@ build_script:
 
 test_script:
 - ps: |
+    if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
+    {
+        return
+    }
     cd src\
 
     function Add-GTest-Result($testResult)
     {
         $testsuites = ([xml](get-content $testResult)).testsuites
+        $testsCount = 0
         $anyFailures = $FALSE
 
         foreach ($testsuite in $testsuites.testsuite) {
             foreach ($testcase in $testsuite.testcase) {
+                $testsCount++
                 if ($testcase.failure) {
                     $time = ([double]$testcase.time * 1000)
                     Add-AppveyorTest $testcase.name -Outcome Failed -FileName $testsuite.name -Duration $time -ErrorMessage $testcase.failure.message
@@ -99,11 +105,12 @@ test_script:
                 }
             }
         }
-        return $anyFailures
+        return $testsCount, $anyFailures
     }
 
-    function Run-Tests($platform, $configuration)
+    function Run-Tests($platform, $configuration, $correctTestCount)
     {
+        $testsCount = 0
         $anyFailures = $FALSE
         $tests_path = ".\bin\$platform\$configuration\"
 
@@ -113,7 +120,9 @@ test_script:
             & $_.FullName "--gtest_output=`"xml:$testfile`""
             if (Test-Path $testfile)
             {
-                $testsResult = Add-GTest-Result $testfile
+                $count, $testsResult = Add-GTest-Result $testfile
+                Write-Output "Found $testfile with $count tests"
+                $testsCount = $testsCount + $count
                 $anyFailures = $anyFailures -or $testsResult
             }
         }
@@ -122,6 +131,11 @@ test_script:
             Write-Output "Failing build as there are broken tests"
             $host.SetShouldExit(1)
         }
+
+        if ($testsCount -lt $correctTestCount){
+            Write-Output "Failing build as there the number of tests decreased from $correctTestCount"
+            $host.SetShouldExit(2)
+        }
     }
 
     $pos = $env:Toolset.IndexOf("_")
@@ -129,4 +143,5 @@ test_script:
     $suffix = $env:Toolset.Substring(0, $pos )
     $folders = @{"Debug_VldRelease" = "Debug(Release)-$suffix"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-$suffix";
         "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
-    Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])"
+    $correctTestCount =  if ($env:GTEST_FILTER -like '*Mfc*') { 49 } else { 53 }
+    Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])" $correctTestCount
