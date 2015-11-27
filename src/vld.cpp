@@ -54,7 +54,6 @@ HANDLE           g_processHeap;    // Handle to the process's heap (COM allocati
 CriticalSection  g_heapMapLock;    // Serializes access to the heap and block maps.
 ReportHookSet*   g_pReportHooks;
 DbgHelp g_DbgHelp;
-DHStackWalk g_StackWalk;
 ImageDirectoryEntries g_Ide;
 LoadedModules g_LoadedModules;
 

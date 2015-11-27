@@ -35,7 +35,6 @@ extern HANDLE             g_currentThread;
 extern CriticalSection    g_heapMapLock;
 extern VisualLeakDetector g_vld;
 extern DbgHelp g_DbgHelp;
-extern DHStackWalk g_StackWalk;
 
 // Helper function to compare the begin of a string with a substring
 //
@@ -788,13 +787,13 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
     frame.Virtual             = TRUE;
 
     CriticalSectionLocker<> cs(g_heapMapLock);
-    CriticalSectionLocker<DHStackWalk> locker(g_StackWalk);
+    CriticalSectionLocker<DbgHelp> locker(g_DbgHelp);
 
     // Walk the stack.
     while (count < maxdepth) {
         count++;
         DbgTrace(L"dbghelp32.dll %i: StackWalk64\n", GetCurrentThreadId());
-        if (!g_StackWalk.StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
+        if (!g_DbgHelp.StackWalk64(architecture, g_currentProcess, g_currentThread, &frame, &currentContext, NULL,
             SymFunctionTableAccess64, SymGetModuleBase64, NULL, locker)) {
                 // Couldn't trace back through any more frames.
                 break;

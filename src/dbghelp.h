@@ -82,42 +82,12 @@ public:
         CriticalSectionLocker<CriticalSection> cs(m_lock);
         return ::SymUnloadModule64(hProcess, BaseOfDll);
     }
-private:
-    // Disallow certain operations
-    DbgHelp(const DbgHelp&);
-    DbgHelp& operator=(const DbgHelp&);
-
-private:
-    CriticalSection m_lock;
-};
-
-class DHStackWalk
-{
-public:
-    DHStackWalk() {
-        m_lock.Initialize();
-    }
-    ~DHStackWalk() {
-        m_lock.Delete();
-    }
-    void Enter()
-    {
-        m_lock.Enter();
-    }
-    void Leave()
-    {
-        m_lock.Leave();
-    }
-    BOOL IsLockedByCurrentThread() {
-        return
-            m_lock.IsLockedByCurrentThread() ;
-    }
     BOOL StackWalk64(__in DWORD MachineType, __in HANDLE hProcess, __in HANDLE hThread,
         __inout LPSTACKFRAME64 StackFrame, __inout PVOID ContextRecord,
         __in_opt PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
         __in_opt PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
         __in_opt PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
-        __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress, CriticalSectionLocker<DHStackWalk>&)
+        __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress, CriticalSectionLocker<DbgHelp>&)
     {
         return ::StackWalk64(MachineType, hProcess, hThread, StackFrame, ContextRecord, ReadMemoryRoutine,
             FunctionTableAccessRoutine, GetModuleBaseRoutine, TranslateAddress);
@@ -135,8 +105,8 @@ public:
     }
 private:
     // Disallow certain operations
-    DHStackWalk(const DHStackWalk&);
-    DHStackWalk& operator=(const DHStackWalk&);
+    DbgHelp(const DbgHelp&);
+    DbgHelp& operator=(const DbgHelp&);
 
 private:
     CriticalSection m_lock;
