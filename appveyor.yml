@@ -62,6 +62,13 @@ configuration:
 matrix:
   fast_finish: false
 
+notifications:
+- provider: Webhook
+  url: https://webhooks.gitter.im/e/f26eac97358590c8feca
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: true
+
 build_script:
 - ps: |
     Write-Output "Configuration: $env:CONFIGURATION"
