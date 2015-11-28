@@ -198,7 +198,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__calloc_dbg (size_t      num,
     _calloc_dbg_t pcrtxxd__calloc_dbg = (_calloc_dbg_t)data.pcrtd__calloc_dbg;
     assert(pcrtxxd__calloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__calloc_dbg, debug, (CRTVersion >= 140));
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__calloc_dbg, context_, debug, (CRTVersion >= 140));
 
     return pcrtxxd__calloc_dbg(num, size, type, file, line);
 }
@@ -229,8 +230,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__malloc_dbg (size_t      size,
     _malloc_dbg_t pcrtxxd__malloc_dbg = (_malloc_dbg_t)data.pcrtd__malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__malloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__malloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__malloc_dbg(size, type, file, line);
 }
 
@@ -263,8 +264,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__realloc_dbg (void       *mem,
     _realloc_dbg_t pcrtxxd__realloc_dbg = (_realloc_dbg_t)data.pcrtd__realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__realloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__realloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__realloc_dbg(mem, size, type, file, line);
 }
 
@@ -298,8 +299,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__recalloc_dbg (void       *mem,
     _recalloc_dbg_t pcrtxxd__recalloc_dbg = (_recalloc_dbg_t)data.pcrtd__recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__recalloc_dbg(mem, num, size, type, file, line);
 }
 
@@ -314,8 +315,8 @@ char* CrtPatch<CRTVersion, debug>::crtd__strdup_dbg (const char* src,
     _strdup_dbg_t pcrtxxd__strdup_dbg = (_strdup_dbg_t)data.pcrtd__strdup_dbg;
     assert(pcrtxxd__strdup_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__strdup_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__strdup_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__strdup_dbg(src, type, file, line);
 }
 
@@ -330,8 +331,8 @@ wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup_dbg (const wchar_t* src,
     _wcsdup_dbg_t pcrtxxd__wcsdup_dbg = (_wcsdup_dbg_t)data.pcrtd__wcsdup_dbg;
     assert(pcrtxxd__wcsdup_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__wcsdup_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__wcsdup_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__wcsdup_dbg(src, type, file, line);
 }
 
@@ -361,8 +362,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__scalar_new_dbg (size_t      size,
     new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__scalar_new_dbg;
     assert(pcrtxxd_new_dbg);
 
-    CaptureContext cc((void*)pcrtxxd_new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_new_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_new_dbg(size, type, file, line);
 }
 
@@ -392,8 +393,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__vector_new_dbg (size_t      size,
     new_dbg_crt_t pcrtxxd_new_dbg = (new_dbg_crt_t)data.pcrtd__vector_new_dbg;
     assert(pcrtxxd_new_dbg);
 
-    CaptureContext cc((void*)pcrtxxd_new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_new_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_new_dbg(size, type, file, line);
 }
 
@@ -417,8 +418,8 @@ void* CrtPatch<CRTVersion, debug>::crtd_calloc (size_t num, size_t size)
     calloc_t pcrtxxd_calloc = (calloc_t)data.pcrtd_calloc;
     assert(pcrtxxd_calloc);
 
-    CaptureContext cc((void*)pcrtxxd_calloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_calloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_calloc(num, size);
 }
 
@@ -440,8 +441,8 @@ void* CrtPatch<CRTVersion, debug>::crtd_malloc (size_t size)
     malloc_t pcrtxxd_malloc = (malloc_t)data.pcrtd_malloc;
     assert(pcrtxxd_malloc);
 
-    CaptureContext cc((void*)pcrtxxd_malloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_malloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_malloc(size);
 }
 
@@ -465,8 +466,8 @@ void* CrtPatch<CRTVersion, debug>::crtd_realloc (void *mem, size_t size)
     realloc_t pcrtxxd_realloc = (realloc_t)data.pcrtd_realloc;
     assert(pcrtxxd_realloc);
 
-    CaptureContext cc((void*)pcrtxxd_realloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_realloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_realloc(mem, size);
 }
 
@@ -490,8 +491,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__recalloc (void *mem, size_t num, size_t
     _recalloc_t pcrtxxd_recalloc = (_recalloc_t)data.pcrtd_recalloc;
     assert(pcrtxxd_recalloc);
 
-    CaptureContext cc((void*)pcrtxxd_recalloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_recalloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_recalloc(mem, num, size);
 }
 
@@ -503,8 +504,8 @@ char* CrtPatch<CRTVersion, debug>::crtd__strdup (const char* src)
     _strdup_t pcrtxxd_strdup = (_strdup_t)data.pcrtd__strdup;
     assert(pcrtxxd_strdup);
 
-    CaptureContext cc((void*)pcrtxxd_strdup, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_strdup, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_strdup(src);
 }
 
@@ -515,8 +516,8 @@ wchar_t* CrtPatch<CRTVersion, debug>::crtd__wcsdup (const wchar_t* src)
     _wcsdup_t pcrtxxd_wcsdup = (_wcsdup_t)data.pcrtd__wcsdup;
     assert(pcrtxxd_wcsdup);
 
-    CaptureContext cc((void*)pcrtxxd_wcsdup, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_wcsdup, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_wcsdup(src);
 }
 
@@ -547,8 +548,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc_dbg (size_t      size,
     _aligned_malloc_dbg_t pcrtxxd__aligned_malloc_dbg = (_aligned_malloc_dbg_t)data.pcrtd__aligned_malloc_dbg;
     assert(pcrtxxd__aligned_malloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__aligned_malloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__aligned_malloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__aligned_malloc_dbg(size, alignment, type, file, line);
 }
 
@@ -580,8 +581,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc_dbg (size_t      
     _aligned_offset_malloc_dbg_t pcrtxxd__malloc_dbg = (_aligned_offset_malloc_dbg_t)data.pcrtd__aligned_offset_malloc_dbg;
     assert(pcrtxxd__malloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__malloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__malloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__malloc_dbg(size, alignment, offset, type, file, line);
 }
 
@@ -615,8 +616,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc_dbg (void       *mem,
     _aligned_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_realloc_dbg_t)data.pcrtd__aligned_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__realloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__realloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__realloc_dbg(mem, size, alignment, type, file, line);
 }
 
@@ -651,8 +652,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc_dbg (void       
     _aligned_offset_realloc_dbg_t pcrtxxd__realloc_dbg = (_aligned_offset_realloc_dbg_t)data.pcrtd__aligned_offset_realloc_dbg;
     assert(pcrtxxd__realloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__realloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__realloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__realloc_dbg(mem, size, alignment, offset, type, file, line);
 }
 
@@ -689,8 +690,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc_dbg (void       *mem,
     _aligned_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_recalloc_dbg_t)data.pcrtd__aligned_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__recalloc_dbg(mem, num, size, alignment, type, file, line);
 }
 
@@ -728,8 +729,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc_dbg (void      
     _aligned_offset_recalloc_dbg_t pcrtxxd__recalloc_dbg = (_aligned_offset_recalloc_dbg_t)data.pcrtd__aligned_offset_recalloc_dbg;
     assert(pcrtxxd__recalloc_dbg);
 
-    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd__recalloc_dbg, context_, debug, (CRTVersion >= 140));
     return pcrtxxd__recalloc_dbg(mem, num, size, alignment, offset, type, file, line);
 }
 
@@ -751,8 +752,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_malloc (size_t size, size_t ali
     _aligned_malloc_t pcrtxxd_malloc = (_aligned_malloc_t)data.pcrtd_aligned_malloc;
     assert(pcrtxxd_malloc);
 
-    CaptureContext cc((void*)pcrtxxd_malloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_malloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_malloc(size, alignment);
 }
 
@@ -774,8 +775,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_malloc (size_t size, siz
     _aligned_offset_malloc_t pcrtxxd_malloc = (_aligned_offset_malloc_t)data.pcrtd_aligned_offset_malloc;
     assert(pcrtxxd_malloc);
 
-    CaptureContext cc((void*)pcrtxxd_malloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_malloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_malloc(size, alignment, offset);
 }
 
@@ -799,8 +800,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_realloc (void *mem, size_t size
     _aligned_realloc_t pcrtxxd_realloc = (_aligned_realloc_t)data.pcrtd_aligned_realloc;
     assert(pcrtxxd_realloc);
 
-    CaptureContext cc((void*)pcrtxxd_realloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_realloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_realloc(mem, size, alignment);
 }
 
@@ -824,8 +825,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_realloc (void *mem, size
     _aligned_offset_realloc_t pcrtxxd_realloc = (_aligned_offset_realloc_t)data.pcrtd_aligned_offset_realloc;
     assert(pcrtxxd_realloc);
 
-    CaptureContext cc((void*)pcrtxxd_realloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_realloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_realloc(mem, size, alignment, offset);
 }
 
@@ -851,8 +852,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_recalloc (void *mem, size_t num
     _aligned_recalloc_t pcrtxxd_recalloc = (_aligned_recalloc_t)data.pcrtd_aligned_recalloc;
     assert(pcrtxxd_recalloc);
 
-    CaptureContext cc((void*)pcrtxxd_recalloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_recalloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_recalloc(mem, num, size, alignment);
 }
 
@@ -878,8 +879,8 @@ void* CrtPatch<CRTVersion, debug>::crtd__aligned_offset_recalloc (void *mem, siz
     _aligned_offset_recalloc_t pcrtxxd_recalloc = (_aligned_offset_recalloc_t)data.pcrtd_aligned_offset_recalloc;
     assert(pcrtxxd_recalloc);
 
-    CaptureContext cc((void*)pcrtxxd_recalloc, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_recalloc, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_recalloc(mem, num, size, alignment, offset);
 }
 
@@ -899,8 +900,8 @@ void* CrtPatch<CRTVersion, debug>::crtd_scalar_new (size_t size)
     new_t pcrtxxd_scalar_new = (new_t)data.pcrtd_scalar_new;
     assert(pcrtxxd_scalar_new);
 
-    CaptureContext cc((void*)pcrtxxd_scalar_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_scalar_new, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_scalar_new(size);
 }
 
@@ -920,8 +921,8 @@ void* CrtPatch<CRTVersion, debug>::crtd_vector_new (size_t size)
     new_t pcrtxxd_vector_new = (new_t)data.pcrtd_vector_new;
     assert(pcrtxxd_vector_new);
 
-    CaptureContext cc((void*)pcrtxxd_vector_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pcrtxxd_vector_new, context_, debug, (CRTVersion >= 140));
     return pcrtxxd_vector_new(size);
 }
 
@@ -957,8 +958,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_4p (size_t       size,
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, type, file, line);
 }
 
@@ -985,8 +986,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd__scalar_new_dbg_3p (size_t       size,
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, file, line);
 }
 
@@ -1016,8 +1017,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_4p (size_t       size,
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcd__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, type, file, line);
 }
 
@@ -1044,8 +1045,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd__vector_new_dbg_3p (size_t       size,
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcd__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, file, line);
 }
 
@@ -1065,8 +1066,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd_scalar_new (size_t size)
     new_t pmfcxxd_new = (new_t)data.pmfcd_scalar_new;
     assert(pmfcxxd_new);
 
-    CaptureContext cc((void*)pmfcxxd_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd_new, context_, debug, (CRTVersion >= 140));
     return pmfcxxd_new(size);
 }
 
@@ -1086,8 +1087,8 @@ void* MfcPatch<CRTVersion, debug>::mfcd_vector_new (size_t size)
     new_t pmfcxxd_new = (new_t)data.pmfcd_vector_new;
     assert(pmfcxxd_new);
 
-    CaptureContext cc((void*)pmfcxxd_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd_new, context_, debug, (CRTVersion >= 140));
     return pmfcxxd_new(size);
 }
 
@@ -1117,8 +1118,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_4p (size_t      size,
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__scalar_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, type, file, line);
 }
 
@@ -1145,8 +1146,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud__scalar_new_dbg_3p (size_t      size,
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__scalar_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, file, line);
 }
 
@@ -1176,7 +1177,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_4p (size_t      size,
     new_dbg_crt_t pmfcxxd__new_dbg = (new_dbg_crt_t)data.pmfcud__vector_new_dbg_4p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
 
     return pmfcxxd__new_dbg(size, type, file, line);
 }
@@ -1204,8 +1206,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud__vector_new_dbg_3p (size_t      size,
     new_dbg_mfc_t pmfcxxd__new_dbg = (new_dbg_mfc_t)data.pmfcud__vector_new_dbg_3p;
     assert(pmfcxxd__new_dbg);
 
-    CaptureContext cc((void*)pmfcxxd__new_dbg, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd__new_dbg, context_, debug, (CRTVersion >= 140));
     return pmfcxxd__new_dbg(size, file, line);
 }
 
@@ -1225,8 +1227,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud_scalar_new (size_t size)
     new_t pmfcxxd_new = (new_t)data.pmfcud_scalar_new;
     assert(pmfcxxd_new);
 
-    CaptureContext cc((void*)pmfcxxd_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd_new, context_, debug, (CRTVersion >= 140));
     return pmfcxxd_new(size);
 }
 
@@ -1246,8 +1248,8 @@ void* MfcPatch<CRTVersion, debug>::mfcud_vector_new (size_t size)
     new_t pmfcxxd_new = (new_t)data.pmfcud_vector_new;
     assert(pmfcxxd_new);
 
-    CaptureContext cc((void*)pmfcxxd_new, debug, (CRTVersion >= 140));
-
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pmfcxxd_new, context_, debug, (CRTVersion >= 140));
     return pmfcxxd_new(size);
 }
 

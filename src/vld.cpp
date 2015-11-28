@@ -2883,7 +2883,8 @@ int VisualLeakDetector::ResolveCallstacks()
     return unresolvedFunctionsCount;
 }
 
-CaptureContext::CaptureContext(void* func, BOOL debug, BOOL ucrt, UINT_PTR fp) : m_fp(fp), m_func(func) {
+CaptureContext::CaptureContext(void* func, context_t& context, BOOL debug, BOOL ucrt) : m_context(context) {
+    context.func = reinterpret_cast<UINT_PTR>(func);
     m_tls = g_vld.getTls();
 
     if (debug) {
@@ -2898,7 +2899,7 @@ CaptureContext::CaptureContext(void* func, BOOL debug, BOOL ucrt, UINT_PTR fp) :
     if (m_bFirst) {
         // This is the first call to enter VLD for the current allocation.
         // Record the current frame pointer.
-        Capture();
+        m_tls->context = m_context;
     }
 }
 
@@ -2937,25 +2938,6 @@ CaptureContext::~CaptureContext() {
     Reset();
 }
 
-void CaptureContext::Capture() {
-    m_tls->context.fp = m_fp;
-    m_tls->context.func = (UINT_PTR)(m_func);
-
-    CONTEXT _ctx;
-    RtlCaptureContext(&_ctx);
-#if defined(_M_IX86)
-    m_tls->context.Ebp = _ctx.Ebp; m_tls->context.Esp = _ctx.Esp; m_tls->context.Eip = _ctx.Eip;
-#elif defined(_M_X64)
-    m_tls->context.Rbp = _ctx.Rbp; m_tls->context.Rsp = _ctx.Rsp; m_tls->context.Rip = _ctx.Rip;
-#else
-    // If you want to retarget Visual Leak Detector to another processor
-    // architecture then you'll need to provide an architecture-specific macro to
-    // obtain the frame pointer (or other address) which can be used to obtain the
-    // return address and stack pointer of the calling frame.
-#error "Visual Leak Detector is not supported on this architecture."
-#endif // _M_IX86 || _M_X64
-}
-
 void CaptureContext::Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size) {
     m_tls->heap = heap;
     m_tls->blockWithoutGuard = mem;
@@ -2963,9 +2945,9 @@ void CaptureContext::Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size) {
     m_tls->size = size;
 
     if ((m_tls->blockWithoutGuard) && (g_vld.m_options & VLD_OPT_TRACE_INTERNAL_FRAMES)) {
-        // If VLD_OPT_TRACE_INTERNAL_FRAMES is specified then we capture the frame pointer upto the function that acutally
+        // If VLD_OPT_TRACE_INTERNAL_FRAMES is specified then we capture the frame pointer upto the function that actually
         // performs the allocation to the heap being: HeapAlloc, HeapReAlloc, RtlAllocateHeap, RtlReAllocateHeap.
-        Capture();
+        m_tls->context = m_context;
     }
 }
 
@@ -2982,7 +2964,7 @@ void CaptureContext::Reset() {
 }
 
 BOOL CaptureContext::IsExcludedModule() {
-    HMODULE hModule = GetCallingModule(m_fp);
+    HMODULE hModule = GetCallingModule(m_context.fp);
     if (hModule == g_vld.m_dbghlpBase)
         return TRUE;
 

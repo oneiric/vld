@@ -73,20 +73,20 @@ struct context_t
 
 // Capture current context
 #if defined(_M_IX86)
-#define CAPTURE_CONTEXT(context, function)                                  \
-    CONTEXT _ctx;															\
-    RtlCaptureContext(&_ctx);                                               \
-    context.Ebp = _ctx.Ebp; context.Esp = _ctx.Esp;	context.Eip = _ctx.Eip; \
-    context.fp = (UINT_PTR)_ReturnAddress();		    	                \
-    context.func = (UINT_PTR)(function)
+#define CAPTURE_CONTEXT()                                                       \
+    context_t context_;                                                         \
+    {CONTEXT _ctx;                                                              \
+    RtlCaptureContext(&_ctx);                                                   \
+    context_.Ebp = _ctx.Ebp; context_.Esp = _ctx.Esp; context_.Eip = _ctx.Eip;  \
+    context_.fp = (UINT_PTR)_ReturnAddress();}
 #define GET_RETURN_ADDRESS(context)  (context.fp)
 #elif defined(_M_X64)
-#define CAPTURE_CONTEXT(context, function)									\
-    CONTEXT _ctx;															\
-    RtlCaptureContext(&_ctx);                                               \
-    context.Rbp = _ctx.Rbp; context.Rsp = _ctx.Rsp; context.Rip = _ctx.Rip;	\
-    context.fp = (UINT_PTR)_ReturnAddress();		    	                \
-    context.func = (UINT_PTR)(function)
+#define CAPTURE_CONTEXT()                                                       \
+    context_t context_;                                                         \
+    {CONTEXT _ctx;                                                              \
+    RtlCaptureContext(&_ctx);                                                   \
+    context_.Rbp = _ctx.Rbp; context_.Rsp = _ctx.Rsp; context_.Rip = _ctx.Rip;  \
+    context_.fp = (UINT_PTR)_ReturnAddress();}
 #define GET_RETURN_ADDRESS(context)  (context.fp)
 #else
 // If you want to retarget Visual Leak Detector to another processor
@@ -111,7 +111,7 @@ enum encoding_e {
 // through to replacement functions provided by VLD.
 struct patchentry_t
 {
-    LPCSTR	importName;       // The name (or ordinal) of the imported API being patched.
+    LPCSTR  importName;       // The name (or ordinal) of the imported API being patched.
     LPVOID* original;         // Pointer to the original function.
     LPCVOID replacement;      // Pointer to the function to which the imported API should be patched through to.
 };

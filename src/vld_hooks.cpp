@@ -158,7 +158,8 @@ LPVOID VisualLeakDetector::_RtlAllocateHeap (HANDLE heap, DWORD flags, SIZE_T si
         return block;
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
-        CaptureContext cc(RtlAllocateHeap);
+        CAPTURE_CONTEXT();
+        CaptureContext cc(RtlAllocateHeap, context_);
         cc.Set(heap, block, NULL, size);
     }
 
@@ -176,7 +177,8 @@ LPVOID VisualLeakDetector::_HeapAlloc (HANDLE heap, DWORD flags, SIZE_T size)
         return block;
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
-        CaptureContext cc(HeapAlloc);
+        CAPTURE_CONTEXT();
+        CaptureContext cc(HeapAlloc, context_);
         cc.Set(heap, block, NULL, size);
     }
 
@@ -205,12 +207,12 @@ BYTE VisualLeakDetector::_RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem)
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
     {
-        context_t context;
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, RtlFreeHeap);
+        CAPTURE_CONTEXT();
+        context_.func = reinterpret_cast<UINT_PTR>(RtlFreeHeap);
 
         // Unmap the block from the specified heap.
-        g_vld.unmapBlock(heap, mem, context);
+        g_vld.unmapBlock(heap, mem, context_);
     }
 
     status = RtlFreeHeap(heap, flags, mem);
@@ -226,12 +228,12 @@ BOOL VisualLeakDetector::_HeapFree (HANDLE heap, DWORD flags, LPVOID mem)
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
     {
-        context_t context;
         // Record the current frame pointer.
-        CAPTURE_CONTEXT(context, m_HeapFree);
+        CAPTURE_CONTEXT();
+        context_.func = reinterpret_cast<UINT_PTR>(m_HeapFree);
 
         // Unmap the block from the specified heap.
-        g_vld.unmapBlock(heap, mem, context);
+        g_vld.unmapBlock(heap, mem, context_);
     }
 
     status = m_HeapFree(heap, flags, mem);
@@ -269,7 +271,8 @@ LPVOID VisualLeakDetector::_RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID 
         return newmem;
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
-        CaptureContext cc(RtlReAllocateHeap);
+        CAPTURE_CONTEXT();
+        CaptureContext cc(RtlReAllocateHeap, context_);
         cc.Set(heap, mem, newmem, size);
     }
 
@@ -287,7 +290,8 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
         return newmem;
 
     if (!g_DbgHelp.IsLockedByCurrentThread()) { // skip dbghelp.dll calls
-        CaptureContext cc(HeapReAlloc);
+        CAPTURE_CONTEXT();
+        CaptureContext cc(HeapReAlloc, context_);
         cc.Set(heap, mem, newmem, size);
     }
 
@@ -382,7 +386,8 @@ LPVOID VisualLeakDetector::_CoTaskMemAlloc (SIZE_T size)
         pCoTaskMemAlloc = (CoTaskMemAlloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemAlloc");
     }
 
-    CaptureContext cc((void*)pCoTaskMemAlloc);
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pCoTaskMemAlloc, context_);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     return pCoTaskMemAlloc(size);
@@ -413,7 +418,8 @@ LPVOID VisualLeakDetector::_CoTaskMemRealloc (LPVOID mem, SIZE_T size)
         pCoTaskMemRealloc = (CoTaskMemRealloc_t)g_vld._RGetProcAddress(ole32, "CoTaskMemRealloc");
     }
 
-    CaptureContext cc((void*)pCoTaskMemRealloc);
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)pCoTaskMemRealloc, context_);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     return pCoTaskMemRealloc(mem, size);
@@ -462,7 +468,8 @@ LPVOID VisualLeakDetector::Alloc (_In_ SIZE_T size)
     PRINT_HOOKED_FUNCTION();
     UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
     UINT_PTR iMallocAlloc = cVtablePtr[3];
-    CaptureContext cc((void*)iMallocAlloc);
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)iMallocAlloc, context_);
 
     // Do the allocation. The block will be mapped by _RtlAllocateHeap.
     assert(m_iMalloc != NULL);
@@ -573,7 +580,8 @@ LPVOID VisualLeakDetector::Realloc (_In_opt_ LPVOID mem, _In_ SIZE_T size)
     PRINT_HOOKED_FUNCTION();
     UINT_PTR* cVtablePtr = (UINT_PTR*)((UINT_PTR*)m_iMalloc)[0];
     UINT_PTR iMallocRealloc = cVtablePtr[4];
-    CaptureContext cc((void*)iMallocRealloc);
+    CAPTURE_CONTEXT();
+    CaptureContext cc((void*)iMallocRealloc, context_);
 
     // Do the allocation. The block will be mapped by _RtlReAllocateHeap.
     assert(m_iMalloc != NULL);

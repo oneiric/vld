@@ -186,7 +186,7 @@ typedef Map<DWORD,tls_t*> TlsMap;
 
 class CaptureContext {
 public:
-    CaptureContext(void* func, BOOL debug = FALSE, BOOL ucrt = FALSE, UINT_PTR fp = (UINT_PTR)_ReturnAddress());
+    CaptureContext(void* func, context_t& context, BOOL debug = FALSE, BOOL ucrt = FALSE);
     ~CaptureContext();
     __forceinline void Set(HANDLE heap, LPVOID mem, LPVOID newmem, SIZE_T size);
 private:
@@ -195,15 +195,12 @@ private:
     CaptureContext(const CaptureContext&);
     CaptureContext& operator=(const CaptureContext&);
 private:
-    __forceinline void Capture();
     BOOL IsExcludedModule();
     void Reset();
 private:
     tls_t *m_tls;
     BOOL m_bFirst;
-    BOOL m_bExclude;
-    UINT_PTR m_fp;
-    void* m_func;
+    const context_t& m_context;
 };
 
 class CallStack;
