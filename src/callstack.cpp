@@ -514,6 +514,9 @@ UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
         || endWith(functionName, len, L"initterm_e")
         || beginWith(functionName, len, L"_cinit")
         || beginWith(functionName, len, L"std::`dynamic initializer for '")
+        // VS2012 Release
+        || beginWith(functionName, len, L"std::locale::_Init()")
+        || beginWith(functionName, len, L"std::basic_streambuf<")
         // VS2015
         || beginWith(functionName, len, L"common_initialize_environment_nolock<")
         || beginWith(functionName, len, L"common_configure_argv<")
