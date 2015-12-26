@@ -523,6 +523,12 @@ UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
         || beginWith(functionName, len, L"__acrt_initialize")
         || beginWith(functionName, len, L"__acrt_allocate_buffer_for_argv")
         || beginWith(functionName, len, L"_register_onexit_function")
+        // VS2015 Release
+        || (wcscmp(functionName, L"setlocale") == 0)
+        || (wcscmp(functionName, L"_wsetlocale") == 0)
+        || (wcscmp(functionName, L"_Getctype") == 0)
+        || (wcscmp(functionName, L"std::_Facet_Register") == 0)
+        || endWith(functionName, len, L">::_Getcat")
         ) {
         return CALLSTACK_STATUS_STARTUPCRT;
     }
