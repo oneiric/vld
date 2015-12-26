@@ -147,4 +147,10 @@ __declspec(dllexport) int VLDResolveCallstacks()
     return g_vld.ResolveCallstacks();
 }
 
+/// Internal function for tests. Not safe to use because Vld own returned string
+__declspec(dllexport) const wchar_t* VldInternalGetAllocationCallstack(void* alloc, BOOL showInternalFrames)
+{
+    return g_vld.GetAllocationResolveResults(alloc, showInternalFrames);
+}
+
 }

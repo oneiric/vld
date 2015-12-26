@@ -2759,6 +2759,55 @@ void VisualLeakDetector::setupReporting()
     }
 }
 
+blockinfo_t* VisualLeakDetector::getAllocationBlockInfo(void* alloc)
+{
+    // should be called under g_heapMapLock
+    for (HeapMap::Iterator heapiter = m_heapMap->begin(); heapiter != m_heapMap->end(); ++heapiter)
+    {
+        HANDLE heap = (*heapiter).first;
+        UNREFERENCED_PARAMETER(heap);
+        heapinfo_t* heapinfo = (*heapiter).second;
+        BlockMap& blockmap = heapinfo->blockMap;
+
+        for (BlockMap::Iterator blockit = blockmap.begin(); blockit != blockmap.end(); ++blockit) {
+            // Found a block which is still in the BlockMap. We've identified a
+            // potential memory leak.
+            LPCVOID block = (*blockit).first;
+            blockinfo_t* info = (*blockit).second;
+            if (block == alloc)
+                return info;
+
+            if (isDebugCrtAlloc(block, info)) {
+                // The CRT header is more or less transparent to the user, so
+                // the information about the contained block will probably be
+                // more useful to the user. Accordingly, that's the information
+                // we'll include in the report.
+                if (CRTDBGBLOCKDATA(block) == alloc)
+                    return info;
+            }
+        }
+    }
+    return NULL;
+}
+
+const wchar_t* VisualLeakDetector::GetAllocationResolveResults(void* alloc, BOOL showInternalFrames)
+{
+    LoaderLock ll;
+
+    if (m_options & VLD_OPT_VLDOFF)
+        return NULL;
+
+    CriticalSectionLocker<> cs(g_heapMapLock);
+    blockinfo_t* info = getAllocationBlockInfo(alloc);
+    if (info != NULL)
+    {
+        int unresolvedFunctionsCount = info->callStack->resolve(showInternalFrames);
+        _ASSERT(unresolvedFunctionsCount == 0);
+        return info->callStack->getResolvedCallstack(showInternalFrames);
+    }
+    return NULL;
+}
+
 int VisualLeakDetector::resolveStacks(heapinfo_t* heapinfo)
 {
     int unresolvedFunctionsCount = 0;

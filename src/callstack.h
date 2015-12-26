@@ -88,6 +88,8 @@ public:
     VOID dump (BOOL showinternalframes);
     // Formats the stack frame into a human readable format, and saves it for later retrieval.
     int resolve(BOOL showinternalframes);
+    // Formats the stack frame into a human readable format, and saves it for later retrieval.
+    CONST WCHAR* getResolvedCallstack(BOOL showinternalframes);
     virtual DWORD getHashValue() const = 0;
     virtual VOID getStackTrace (UINT32 maxdepth, const context_t& context) = 0;
     bool isCrtStartupAlloc();

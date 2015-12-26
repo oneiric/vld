@@ -467,6 +467,12 @@ int CallStack::resolve(BOOL showInternalFrames)
     return unresolvedFunctionsCount;
 }
 
+const WCHAR* CallStack::getResolvedCallstack( BOOL showinternalframes )
+{
+    resolve(showinternalframes);
+    return m_resolved;
+}
+
 // push_back - Pushes a frame's program counter onto the CallStack. Pushes are
 //   always appended to the back of the chunk list (aka the "top" chunk).
 //

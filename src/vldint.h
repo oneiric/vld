@@ -278,6 +278,7 @@ public:
     VOID SetModulesList(CONST WCHAR *modules, BOOL includeModules);
     bool GetModulesList(WCHAR *modules, UINT size);
     int ResolveCallstacks();
+    const wchar_t* GetAllocationResolveResults(void* alloc, BOOL showInternalFrames);
 
     static NTSTATUS __stdcall _LdrLoadDll (LPWSTR searchpath, PULONG flags, unicodestring_t *modulename,
         PHANDLE modulehandle);
@@ -327,6 +328,7 @@ private:
     // Utils
     static bool isModuleExcluded (UINT_PTR returnaddress);
     blockinfo_t* findAllocedBlock(LPCVOID, __out HANDLE& heap);
+    blockinfo_t* getAllocationBlockInfo(void* alloc);
     void setupReporting();
     void checkInternalMemoryLeaks();
     bool waitForAllVLDThreads();
