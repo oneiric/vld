@@ -40,16 +40,26 @@ class DynamicLoader : public ::testing::TestWithParam<bool> {
 
 TEST_P(DynamicLoader, LoaderTests)
 {
-    HMODULE hmfcLib = RunLoaderTests(GetParam());    // leaks 18
-    ASSERT_NE(0u, (UINT_PTR)hmfcLib);
-    int leaks = (int)VLDGetLeaksCount();
+    HMODULE hdynLib = LoadDynamicTests();
+    ASSERT_NE(0u, reinterpret_cast<UINT_PTR>(hdynLib));
+#ifdef STATIC_CRT // Toolset <= v100 use own heap
+    VLDMarkAllLeaksAsReported();
+    RunLoaderTests(hdynLib, GetParam());    // leaks 18
+    int leaks = static_cast<int>(VLDGetLeaksCount());
+    FreeLibrary(hdynLib);
+#else
+    //VLDMarkAllLeaksAsReported();
+    RunLoaderTests(hdynLib, GetParam());    // leaks 18
+    FreeLibrary(hdynLib);
+    int leaks = static_cast<int>(VLDGetLeaksCount());
+#endif
     if (18 != leaks) VLDReportLeaks();
     ASSERT_EQ(18, leaks);
 }
 
 TEST_P(DynamicLoader, MultithreadLoadingTests)
 {
-    // Creates 64 threads that each leaks 18 allocations
+    // Creates NUMTHREADS threads that each leaks 18 allocations
     DWORD start = GetTickCount();
     RunLoaderLockTests(GetParam(), false);
     DWORD duration = GetTickCount() - start;
@@ -58,23 +68,38 @@ TEST_P(DynamicLoader, MultithreadLoadingTests)
     int leaks = (int)VLDGetLeaksCount();
     duration = GetTickCount() - start;
     _tprintf(_T("VLDGetLeaksCount took: %u ms\n"), duration);
-    if (64 * 18 != leaks) VLDReportLeaks();
-    ASSERT_EQ(64 * 18, leaks);
+    int correctLeaks = NUMTHREADS * 18;
+    if (correctLeaks != leaks) VLDReportLeaks();
+#ifdef STATIC_CRT // One leak from dll static allocation
+    HMODULE hlib = LoadDynamicTests();
+    for (int i = 0; i < NUMTHREADS + 1; i++)
+        FreeLibrary(hlib);
+#endif
+    ASSERT_EQ(correctLeaks, leaks);
 }
 
 TEST_P(DynamicLoader, MfcLoaderTests)
 {
-    HMODULE hmfcLib = RunMFCLoaderTests(GetParam()); // leaks 11
-    ASSERT_NE(0u, (UINT_PTR)hmfcLib);
+    HMODULE hmfcLib = LoadMFCTests();
+    ASSERT_NE(0u, reinterpret_cast<UINT_PTR>(hmfcLib));
+#ifdef STATIC_CRT // Toolset <= v100 use own heap
+    VLDMarkAllLeaksAsReported();
+    RunMFCLoaderTests(hmfcLib, GetParam()); // leaks 11
+    int leaks = (int)VLDGetLeaksCount();
+    FreeLibrary(hmfcLib);
+#else
+    //VLDMarkAllLeaksAsReported();
+    RunMFCLoaderTests(hmfcLib, GetParam()); // leaks 11
     FreeLibrary(hmfcLib);
     int leaks = (int)VLDGetLeaksCount();
+#endif
     if (11 != leaks) VLDReportLeaks();
     ASSERT_EQ(11, leaks);
 }
 
 TEST_P(DynamicLoader, MfcMultithreadLoadingTests)
 {
-    // Creates 64 threads that each leaks 11 allocations
+    // Creates NUMTHREADS threads that each leaks 11 allocations
     DWORD start = GetTickCount();
     RunLoaderLockTests(GetParam(), true);
     DWORD duration = GetTickCount() - start;
@@ -83,8 +108,13 @@ TEST_P(DynamicLoader, MfcMultithreadLoadingTests)
     int leaks = (int)VLDGetLeaksCount();
     duration = GetTickCount() - start;
     _tprintf(_T("VLDGetLeaksCount took: %u ms\n"), duration);
-    if (64 * 11 != leaks) VLDReportLeaks();
-    ASSERT_EQ(64 * 11, leaks);
+    if (NUMTHREADS * 11 != leaks) VLDReportLeaks();
+#ifdef STATIC_CRT // One leak from dll static allocation
+    HMODULE hlib = LoadMFCTests();
+    for (int i = 0; i < NUMTHREADS + 1; i++)
+        FreeLibrary(hlib);
+#endif
+    ASSERT_EQ(NUMTHREADS * 11, leaks);
 }
 
 INSTANTIATE_TEST_CASE_P(ResolveVal,

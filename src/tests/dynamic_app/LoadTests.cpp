@@ -42,25 +42,32 @@ void CallDynamicMethods(HMODULE module, const CHAR* function)
     }
 }
 
-HMODULE RunLoaderTests(bool resolve)
+HMODULE LoadDynamicTests()
 {
     HMODULE hdyn = LoadLibrary(_T("dynamic.dll"));
     if (hdyn)
     {
         VLDEnableModule(hdyn);
-
-        // Should leak 18 memory allocations in total
-        // These requires ansi, not Unicode strings
-        CallDynamicMethods(hdyn, "SimpleLeak_Malloc");    // leaks 6
-        CallDynamicMethods(hdyn, "SimpleLeak_New");       // leaks 6
-        CallDynamicMethods(hdyn, "SimpleLeak_New_Array"); // leaks 6
-
-        if (resolve)
-        {
-            CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
-        }
     }
     return hdyn;
+}
+
+void RunLoaderTests(HMODULE hdyn, bool resolve)
+{
+    if (!hdyn)
+        return;
+    VLDEnableModule(hdyn);
+
+    // Should leak 18 memory allocations in total
+    // These requires ansi, not Unicode strings
+    CallDynamicMethods(hdyn, "SimpleLeak_Malloc");    // leaks 6
+    CallDynamicMethods(hdyn, "SimpleLeak_New");       // leaks 6
+    CallDynamicMethods(hdyn, "SimpleLeak_New_Array"); // leaks 6
+
+    if (resolve)
+    {
+        CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+    }
 }
 
 void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
@@ -80,23 +87,28 @@ void CallLibraryMethods( HMODULE hmfcLib, LPCSTR function )
     }
 }
 
-
-HMODULE RunMFCLoaderTests(bool resolve)
+HMODULE LoadMFCTests()
 {
     HMODULE hmfcLib = LoadLibrary(_T("test_mfc.dll"));
     if (hmfcLib)
     {
         VLDEnableModule(hmfcLib);
-        // Should leak 11 memory allocations in total
-        // This requires ansi, not Unicode strings
-        CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4 x 2 = 8
-        CallLibraryMethods(hmfcLib, "MFC_LeakArray");  // leaks 3
-
-        if (resolve)
-        {
-            CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
-        }
     }
     return hmfcLib;
+}
+
+void RunMFCLoaderTests(HMODULE hmfcLib, bool resolve)
+{
+    if (!hmfcLib)
+        return;
+    // Should leak 11 memory allocations in total
+    // This requires ansi, not Unicode strings
+    CallLibraryMethods(hmfcLib, "MFC_LeakSimple"); // Leaks 4 x 2 = 8
+    CallLibraryMethods(hmfcLib, "MFC_LeakArray");  // leaks 3
+
+    if (resolve)
+    {
+        CallVLDExportedMethod("VLDResolveCallstacks"); // This requires ansi, not Unicode strings
+    }
 }
 

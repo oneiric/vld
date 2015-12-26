@@ -1,4 +1,6 @@
 #pragma once
 
-HMODULE RunLoaderTests( bool resolve );
-HMODULE RunMFCLoaderTests( bool resolve );
+HMODULE LoadDynamicTests();
+void RunLoaderTests(HMODULE hdyn, bool resolve);
+HMODULE LoadMFCTests();
+void RunMFCLoaderTests(HMODULE hmfcLib, bool resolve);

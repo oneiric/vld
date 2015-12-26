@@ -22,15 +22,21 @@ void RunPSApiLoaderTests()
 void Call_LoaderLocks(const ThreadData& threadData)
 {
 	RunPSApiLoaderTests(); // will not crash
-	HMODULE hmfcLib;
-	if (threadData.mfc)
-		hmfcLib = RunMFCLoaderTests(threadData.resolve); // Leaks 11 allocs
-	else
-		hmfcLib = RunLoaderTests(threadData.resolve); // Leaks 18 allocs
+	HMODULE hlib;
+    if (threadData.mfc)
+    {
+        hlib = LoadMFCTests();
+        RunMFCLoaderTests(hlib, threadData.resolve); // Leaks 11 allocs
+    }
+    else
+    {
+        hlib = LoadDynamicTests();
+        RunLoaderTests(hlib, threadData.resolve); // Leaks 18 allocs
+    }
 #ifndef STATIC_CRT
-    FreeLibrary(hmfcLib);
+    FreeLibrary(hlib);
 #else
-    UNREFERENCED_PARAMETER(hmfcLib);
+    UNREFERENCED_PARAMETER(hlib);
 #endif
 
     HMODULE this_app = NULL;
@@ -63,7 +69,6 @@ unsigned __stdcall Dynamic_Thread_Procedure(LPVOID foo)
 
 void RunLoaderLockTests(bool resolve, bool mfc)
 {
-    static const int NUMTHREADS = 64;
     HANDLE threads[NUMTHREADS] = {0};
     unsigned thread_id = NULL;
 	ThreadData threadData;

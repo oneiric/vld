@@ -62,6 +62,10 @@ configuration:
 matrix:
   fast_finish: false
 
+nuget:
+  project_feed: true
+  disable_publish_on_pr: true
+
 notifications:
 - provider: Webhook
   url: https://webhooks.gitter.im/e/f26eac97358590c8feca

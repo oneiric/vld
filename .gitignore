@@ -18,3 +18,4 @@ src/bin/vld.ini
 /src/tests/vld_ComTest/ComTest_i.h
 /src/tests/vld_ComTest/ComTest_p.c
 /src/tests/vld_ComTest/ComTest_i.c
+*.VC.opendb

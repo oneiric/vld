@@ -1,4 +1,5 @@
 #pragma once
 
-void RunLoaderLockTests(bool, bool);
+static const int NUMTHREADS = 64;
 
+void RunLoaderLockTests(bool, bool);
