@@ -23,7 +23,7 @@ class TestBasics : public ::testing::TestWithParam<bool>
 TEST_P(TestBasics, Malloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eMalloc, repeats, GetParam());
+    LeakMemoryMalloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -33,7 +33,7 @@ TEST_P(TestBasics, Malloc)
 TEST_P(TestBasics, New)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eNew, repeats, GetParam());
+    LeakMemoryNew(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -43,7 +43,7 @@ TEST_P(TestBasics, New)
 TEST_P(TestBasics, NewArray)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eNewArray, repeats, GetParam());
+    LeakMemoryNewArray(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -53,7 +53,7 @@ TEST_P(TestBasics, NewArray)
 TEST_P(TestBasics, Calloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eCalloc, repeats, GetParam());
+    LeakMemoryCalloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -63,7 +63,7 @@ TEST_P(TestBasics, Calloc)
 TEST_P(TestBasics, Realloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eRealloc, repeats, GetParam());
+    LeakMemoryRealloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -73,7 +73,7 @@ TEST_P(TestBasics, Realloc)
 TEST_P(TestBasics, CoTaskMem)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eCoTaskMem, repeats, GetParam());
+    LeakMemoryCoTaskMem(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 2;
@@ -83,7 +83,7 @@ TEST_P(TestBasics, CoTaskMem)
 TEST_P(TestBasics, AlignedMalloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eAlignedMalloc, repeats, GetParam());
+    LeakMemoryAlignedMalloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 3;
@@ -93,7 +93,7 @@ TEST_P(TestBasics, AlignedMalloc)
 TEST_P(TestBasics, AlignedRealloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eAlignedRealloc, repeats, GetParam());
+    LeakMemoryAlignedRealloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 3;
@@ -103,7 +103,7 @@ TEST_P(TestBasics, AlignedRealloc)
 TEST_P(TestBasics, Strdup)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eStrdup, repeats, GetParam());
+    LeakMemoryStrdup(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 4;
@@ -113,7 +113,7 @@ TEST_P(TestBasics, Strdup)
 TEST_P(TestBasics, HeapAlloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eHeapAlloc, repeats, GetParam());
+    LeakMemoryHeapAlloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
@@ -123,7 +123,7 @@ TEST_P(TestBasics, HeapAlloc)
 TEST_P(TestBasics, IMalloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eIMalloc, repeats, GetParam());
+    LeakMemoryIMalloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
@@ -133,7 +133,7 @@ TEST_P(TestBasics, IMalloc)
 TEST_P(TestBasics, GetProcMalloc)
 {
     int prev = static_cast<int>(VLDGetLeaksCount());
-    LeakMemory(eGetProcMalloc, repeats, GetParam());
+    LeakMemoryGetProcMalloc(repeats, GetParam());
     int total = static_cast<int>(VLDGetLeaksCount());
     int leaks = total - prev;
     int correctLeaks = GetParam() ? 0 : repeats * 1;
