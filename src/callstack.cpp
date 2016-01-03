@@ -715,6 +715,14 @@ VOID SafeCallStack::getStackTrace (UINT32 maxdepth, const context_t& context)
         push_back(function);
     }
 
+    if (context.IPREG == NULL)
+    {
+        return;
+    }
+
+    count++;
+    push_back(context.IPREG);
+
     DWORD   architecture   = X86X64ARCHITECTURE;
 
     // Get the required values for initialization of the STACKFRAME64 structure
