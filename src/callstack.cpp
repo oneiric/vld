@@ -520,6 +520,10 @@ UINT CallStack::isCrtStartupFunction( LPCWSTR functionName ) const
         || endWith(functionName, len, L"initterm_e")
         || beginWith(functionName, len, L"_cinit")
         || beginWith(functionName, len, L"std::`dynamic initializer for '")
+        // VS2008 Release
+        || (wcscmp(functionName, L"std::locale::facet::facet_Register") == 0)
+        // VS2010 Release
+        || (wcscmp(functionName, L"std::locale::facet::_Facet_Register") == 0)
         // VS2012 Release
         || beginWith(functionName, len, L"std::locale::_Init()")
         || beginWith(functionName, len, L"std::basic_streambuf<")
