@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Visual Leak Detector"
-#define MyAppVersion "2.5rc"
+#define MyAppVersion "2.5"
 #define MyAppPublisher "VLD Team"
 #define MyAppURL "http://vld.codeplex.com/"
 #define MyAppRegKey "Software\Visual Leak Detector"
@@ -52,38 +52,9 @@ Source: "..\src\bin\x64\Release-v140\vld_x64.dll"; DestDir: "{app}\bin\Win64"; F
 Source: "..\src\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\src\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld.ini"; DestDir: "{app}"; Flags: ignoreversion
-Source: "version.h"; DestDir: "{app}\src"; Flags: ignoreversion
 Source: "..\AUTHORS.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\src\callstack.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\dllspatches.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\ntapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\stdafx.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\utility.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld_hooks.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vldapi.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vldheap.cpp"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\callstack.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\criticalsection.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\crtmfcpatch.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\map.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\ntapi.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\resource.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\set.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\stdafx.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\tree.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\utility.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld_def.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vldheap.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vldint.h"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.dll.dependency.x64.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.dll.dependency.x86.manifest"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.rc"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.vcxproj"; DestDir: "{app}\src"; Flags: ignoreversion
-Source: "..\src\vld.vcxproj.filters"; DestDir: "{app}\src"; Flags: ignoreversion
 
 [Tasks]
 Name: "modifypath"; Description: "Add VLD directory to your environmental path"

@@ -5,15 +5,15 @@ TITLE Building VLD...
 SETLOCAL ENABLEDELAYEDEXPANSION
 
 REM Check if the needed files are present
-IF "%VS100COMNTOOLS%"=="" GOTO :BadPaths
+IF "%VS140COMNTOOLS%"=="" GOTO :BadPaths
 
 CD %~dp0/..
 
 GOTO :GoodPaths
 
 :BadPaths
-ECHO: "Not all build dependencies found. To build iZ3D Driver you need:"
-ECHO: "* Visual Studio 2010 installed"
+ECHO: "Not all build dependencies found. To build VLD you need:"
+ECHO: "* Visual Studio 2015 installed"
 PAUSE
 GOTO :EndGood
 
@@ -26,7 +26,7 @@ IF "%1"=="" SET BUILDTYPE=/rebuild
 rem IF "%1"=="build" SET BUILDTYPE=
 
 SET ORIGPATH="%CD%"
-CALL "%VS100COMNTOOLS%vsvars32.bat"
+CALL "%VS140COMNTOOLS%vsvars32.bat"
 CD %ORIGPATH%
 
 :: Store start time
@@ -36,9 +36,9 @@ FOR /f "tokens=1-4 delims=:.," %%T IN ("%TIME%") DO (
 	SET /a Start100S=%%T*360000+1%%U*6000+1%%V*100+1%%W - 610100
 )
 
-devenv /nologo vld_vs10.sln %BUILDTYPE% "Release|Win32" /Project vld
+devenv /nologo vld_vs14.sln %BUILDTYPE% "Release|Win32" /Project vld
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
-devenv /nologo vld_vs10.sln %BUILDTYPE% "Release|x64" /Project vld
+devenv /nologo vld_vs14.sln %BUILDTYPE% "Release|x64" /Project vld
 IF %ERRORLEVEL% NEQ 0 GOTO EndBad
 
 if not exist "%ProgFiles%\Inno Setup 5\ISCC.exe" GOTO EndBad
