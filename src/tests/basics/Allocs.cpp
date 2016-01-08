@@ -6,6 +6,10 @@
 #include <ObjBase.h>
 #include <assert.h>
 #include <tchar.h>
+#include <sstream>
+#include <algorithm>
+
+#include <gtest/gtest.h>
 
 // Name of the debug C Runtime Library DLL on this system
 #ifdef _DEBUG
@@ -75,10 +79,117 @@ typedef void (*allocFunc_t) (bool bFree);
 
 static const int recursion = 3;
 
+::testing::AssertionResult AssertCompareCallStacks(const char* actual_expr,
+    const char* expected_expr,
+    const wchar_t* actual,
+    const char* expected)
+{
+    using namespace ::testing::internal;
+    bool succeded = true;
+    std::wistringstream actualStream(actual != NULL ? actual : L"");
+    std::istringstream expectedStream(expected != NULL ? expected : "");
+    std::ostringstream resultStream;
+    std::string expectedLine;
+    while (std::getline(expectedStream, expectedLine))
+    {
+        std::wstring wactualLine;
+        if (!std::getline(actualStream, wactualLine))
+        {
+            return ::testing::AssertionFailure()
+                << resultStream.str() << actual_expr << " contain less lines than " << expected_expr << "";
+        }
+        std::string actualLine(wactualLine.begin(), wactualLine.end());
+        std::transform(actualLine.begin(), actualLine.end(), actualLine.begin(), ::tolower);
+        if (!RE::FullMatch(actualLine, RE(expectedLine)))
+        {
+            if (succeded)
+            {
+                succeded = false;
+                resultStream
+                    << actual_expr << " and " << expected_expr << " lines are not match\n";
+            }
+            resultStream
+                << "line:\n" << actualLine << "\n and \n" << expectedLine << "\n";
+        }
+    }
+    return succeded ? ::testing::AssertionSuccess() : (::testing::AssertionSuccess() << resultStream.str());
+}
+
+#ifdef _WIN64
+static const TCHAR* sVld_dll = _T("vld_x64.dll");
+#else
+static const TCHAR* sVld_dll = _T("vld_x86.dll");
+#endif
+
+typedef const wchar_t*(*VldGetCallstack_func)(void* alloc, BOOL showInternalFrames);
+static VldGetCallstack_func VldInternalGetAllocationCallstack = NULL;
+
+void GetVldFunctions()
+{
+    if (VldInternalGetAllocationCallstack == NULL)
+    {
+        HMODULE vld_module = GetModuleHandle(sVld_dll);
+        assert(vld_module);
+        typedef int(*VLDAPI_func)();
+        if (vld_module != NULL)
+        {
+            VldInternalGetAllocationCallstack = (VldGetCallstack_func)GetProcAddress(vld_module,
+                "VldInternalGetAllocationCallstack");
+            assert(VldInternalGetAllocationCallstack);
+        }
+    }
+}
+
 __declspec(noinline) void allocMalloc(bool bFree)
 {
+    GetVldFunctions();
     int* leaked_memory = (int*)malloc(78);
+    const wchar_t* callstack = VldInternalGetAllocationCallstack(leaked_memory, false);
+    if (callstack != NULL)
+    {
+        const char* expectedCallstack =
+#ifdef _DLL
+//#ifdef _DEBUG
+//            "\\s+\\S+.cpp \\(\\d+\\): \\w+\\.dll!malloc\\(\\)\n"
+//#else
+            "\\s+\\w+\\.dll!malloc\\(\\)\n"
+//#endif
+#else
+            "\\s+ntdll\\.dll!rtlallocateheap\\(\\)\n"
+#ifdef _DEBUG
+            "\\s+\\S+\\\\heap\\\\malloc\\.cpp \\(\\d+\\): \\w+\\.\\w+!malloc\\(\\) \\+ 0x\\S+ bytes\n"
+#else
+            "\\s+\\S+\\\\heap\\\\malloc_base\\.cpp \\(\\d+\\): \\w+\\.\\w+!_malloc_base\\(\\)\n"
+#endif
+#endif
+            "\\s+\\S+\\\\allocs\\.cpp \\(\\d+\\): \\w+\\.\\w+!allocmalloc\\(\\).*\n"
+            "\\s+\\S+\\\\allocs\\.cpp \\(\\d+\\): \\w+\\.\\w+!allocator<0>::alloc\\(\\) \\+ 0x\\S+ bytes";
+        EXPECT_PRED_FORMAT2(AssertCompareCallStacks, callstack, expectedCallstack);
+    }
     int* leaked_memory_dbg = (int*)_malloc_dbg(80, _NORMAL_BLOCK, __FILE__, __LINE__);
+    callstack = VldInternalGetAllocationCallstack(leaked_memory_dbg, false);
+    if (callstack != NULL)
+    {
+        const char* expectedCallstack =
+#ifdef _DLL
+#ifdef _DEBUG
+            "\\s+\\w+\\.dll!_?malloc_dbg\\(\\)\n"
+//            "\\s+\\S+.cpp \\(\\d+\\): \\w+\\.dll!_?malloc_dbg\\(\\)\n"
+#else
+            "\\s+\\w+\\.dll!malloc\\(\\)\n"
+#endif
+#else
+            "\\s+ntdll\\.dll!rtlallocateheap\\(\\)\n"
+#ifdef _DEBUG
+            "\\s+\\S+\\\\heap\\\\debug_heap\\.cpp \\(\\d+\\): \\w+\\.\\w+!_malloc_dbg\\(\\) \\+ 0x\\S+ bytes\n"
+#else
+            "\\s+\\S+\\\\heap\\\\malloc_base\\.cpp \\(\\d+\\): \\w+\\.\\w+!_malloc_base\\(\\)\n"
+#endif
+#endif
+            "\\s+\\S+\\\\allocs\\.cpp \\(\\d+\\): \\w+\\.\\w+!allocmalloc\\(\\).*\n"
+            "\\s+\\S+\\\\allocs\\.cpp \\(\\d+\\): \\w+\\.\\w+!allocator<0>::alloc\\(\\) \\+ 0x\\S+ bytes";
+        EXPECT_PRED_FORMAT2(AssertCompareCallStacks, callstack, expectedCallstack);
+    }
     if (bFree)
     {
         free(leaked_memory);
