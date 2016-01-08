@@ -86,13 +86,13 @@
     <ClInclude Include="criticalsection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="setup\version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="vldallocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dbghelp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\setup\version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
