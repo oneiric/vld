@@ -48,6 +48,7 @@ environment:
   - VldStackWalkMethod: fast
     Toolset: v140_xp
     Solution: vld_vs14.sln
+    PublishOnSuccess: True
 
 platform:
   - Win32
@@ -72,6 +73,14 @@ notifications:
   on_build_success: true
   on_build_failure: true
   on_build_status_changed: true
+
+install:
+- ps: |
+    Write-Host "Is a Pull Request = " -NoNewLine
+    Write-Host $($Env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) -ForegroundColor "Green"
+    $Env:SHOULD_PACKAGE_NUGET_ARTIFACT = -not $Env:APPVEYOR_PULL_REQUEST_NUMBER -and -not $Env:APPVEYOR_SCHEDULED_BUILD
+    Write-Host "Should package Nuget artifact = " -NoNewLine
+    Write-Host $Env:SHOULD_PACKAGE_NUGET_ARTIFACT -ForegroundColor "Green"
 
 build_script:
 - ps: |
@@ -156,3 +165,13 @@ test_script:
         "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
     $correctTestCount =  if ($env:GTEST_FILTER -like '*Mfc*') { 49 } else { 53 }
     Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])" $correctTestCount
+    cd ..
+
+after_test:
+- ps: |
+    If ($Env:SHOULD_PACKAGE_NUGET_ARTIFACT -eq $True -and $Env:PublishOnSuccess -eq $True -and ($env:PLATFORM -eq "Win32"))
+    {
+      msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="x64" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+      nuget pack vld.nuspec -OutputDirectory src\bin
+      Get-ChildItem src\bin\*.nupkg | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+    }

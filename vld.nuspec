@@ -18,13 +18,13 @@
 
 	  <file src="src\bin\Win32\Release-v140\vld.lib" target="lib\native\address-model-32\lib" />
 	  <file src="src\bin\Win32\Release-v140\vld_x86.dll" target="lib\native\address-model-32\lib" />
-	  <file src="src\bin\Win32\Release-v140\dbghelp.dll" target="lib\native\address-model-32\lib" />
-	  <file src="src\bin\Win32\Release-v140\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-32\lib" />
+	  <file src="setup\dbghelp\x86\dbghelp.dll" target="lib\native\address-model-32\lib" />
+	  <file src="setup\dbghelp\x86\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-32\lib" />
 
 	  <file src="src\bin\x64\Release-v140\vld.lib" target="lib\native\address-model-64\lib" />
 	  <file src="src\bin\x64\Release-v140\vld_x64.dll" target="lib\native\address-model-64\lib" />
-	  <file src="src\bin\x64\Release-v140\dbghelp.dll" target="lib\native\address-model-64\lib" />
-	  <file src="src\bin\x64\Release-v140\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-64\lib" />
+	  <file src="setup\dbghelp\x64\dbghelp.dll" target="lib\native\address-model-64\lib" />
+	  <file src="setup\dbghelp\x64\Microsoft.DTfW.DHL.manifest" target="lib\native\address-model-64\lib" />
   </files>
 </package>
 
