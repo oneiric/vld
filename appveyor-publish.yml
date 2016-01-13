@@ -7,61 +7,9 @@ branches:
 
 os: Visual Studio 2015
 
-environment:
-  GTEST_REPEAT: 1
-
-  matrix:
-  - VldStackWalkMethod: safe
-    Toolset: v90
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v100
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v110
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: safe
-    Toolset: v120_xp
-    Solution: vld_vs14.sln
-  - VldStackWalkMethod: safe
-    Toolset: v140_xp
-    Solution: vld_vs14.sln
-
-  - VldStackWalkMethod: fast
-    Toolset: v90
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v100
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v110
-    Solution: vld_vs14_wo_mfc.sln
-    GTEST_FILTER: -*.Mfc*
-  - VldStackWalkMethod: fast
-    Toolset: v120_xp
-    Solution: vld_vs14.sln
-  - VldStackWalkMethod: fast
-    Toolset: v140_xp
-    Solution: vld_vs14.sln
-    PublishOnSuccess: True
-
-platform:
-  - Win32
-  - x64
-
-configuration:
-  - Debug_VldRelease
-  - Debug_VldRelease_StaticCrt
-  - Release
-  - Release_StaticCrt
-
-matrix:
-  fast_finish: false
+nuget:
+  project_feed: true
+  disable_publish_on_pr: true
 
 notifications:
 - provider: Webhook
@@ -70,23 +18,29 @@ notifications:
   on_build_failure: true
   on_build_status_changed: true
 
+artifacts:
+  - path: test.zip
+    name: MyApp
+
+  - path: bin\**\*.exe.xml
+    name: GtestResults
+    type: zip
+
 build_script:
 - ps: |
-    Write-Output "Configuration: $env:CONFIGURATION"
-    Write-Output "Platform: $env:PLATFORM"
-    if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
+    msbuild /v:m /p:"Configuration=Release" /p:Platform="Win32" "vld_vs14.sln" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    if ($LastExitCode -gt 0)
     {
-        return
+        Throw "msbuild exited with error code: $lastexitcode"
     }
-    & .\change_toolset.ps1 $env:Toolset
-    msbuild /v:m /p:"Configuration=$env:CONFIGURATION" /p:Platform="$env:PLATFORM" "$env:Solution" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    msbuild /v:m /p:"Configuration=Release" /p:Platform="x64" "vld_vs14.sln" /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    if ($LastExitCode -gt 0)
+    {
+        Throw "msbuild exited with error code: $lastexitcode"
+    }
 
 test_script:
 - ps: |
-    if (($env:Toolset -eq "v100") -and ($env:PLATFORM -eq "x64"))
-    {
-        return
-    }
     cd src\
 
     function Add-GTest-Result($testResult)
@@ -146,11 +100,12 @@ test_script:
         }
     }
 
-    $pos = $env:Toolset.IndexOf("_")
-    if ($pos -eq -1) { $pos = $env:Toolset.length }
-    $suffix = $env:Toolset.Substring(0, $pos )
-    $folders = @{"Debug_VldRelease" = "Debug(Release)-$suffix"; "Debug_VldRelease_StaticCrt" = "Debug(Release)_StaticCrt-$suffix";
-        "Release" = "Release-$suffix"; "Release_StaticCrt" = "Release_StaticCrt-$suffix"}
-    $correctTestCount =  if ($env:GTEST_FILTER -like '*Mfc*') { 49 } else { 53 }
-    Run-Tests "$env:PLATFORM" "$($folders[$env:CONFIGURATION])" $correctTestCount
+    $correctTestCount =  53
+    Run-Tests "Win32" "Release-v140" $correctTestCount
+    Run-Tests "x64" "Release-v140" $correctTestCount
     cd ..
+
+after_test:
+- ps: |
+    nuget pack vld.nuspec -OutputDirectory src\bin
+    Get-ChildItem src\bin\*.nupkg | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
