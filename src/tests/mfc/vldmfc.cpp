@@ -2,9 +2,6 @@
 #include "vldmfc.h"
 #include "vldmfcdlg.h"
 
-// Include Visual Leak Detector
-#include <vld.h>
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE

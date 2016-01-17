@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld", "src\vld.vcxproj", "{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}"
 EndProject
@@ -39,6 +39,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libformat", "lib\cppformat\format.vcxproj", "{4ADFD279-56C6-4B1D-BA9E-B815E81C1B17}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld_main", "src\tests\vld_main\vld_main_vs14.vcxproj", "{8C732490-DC1A-40C0-923F-1555B9141B80}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE} = {0D30FFCB-45DA-4D2B-8E3C-81BC145BF2DE}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vld_unload", "src\tests\vld_unload\vld_unload_vs14.vcxproj", "{A8EEDB38-1E5A-4D6E-A3E0-F15EF1F2E814}"
 	ProjectSection(ProjectDependencies) = postProject
