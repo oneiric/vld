@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Visual Leak Detector"
-#define MyAppVersion "2.5"
+#define MyAppVersion "2.5.1"
 #define MyAppPublisher "VLD Team"
 #define MyAppURL "http://vld.codeplex.com/"
 #define MyAppRegKey "Software\Visual Leak Detector"
@@ -119,8 +119,8 @@ begin
   // default return value
   Result := False;
 
-  if MsgBox('VLD is already installed. Uninstall the current version?',
-    mbConfirmation, MB_YESNO) = IDYES then
+  if SuppressibleMsgBox('VLD is already installed. Uninstall the current version?',
+    mbConfirmation, MB_YESNO, IDYES) = IDYES then
   begin
     regPath := RemoveQuotes(regPath);
     if Exec(regPath, params,'', SW_HIDE, ewWaitUntilTerminated, iResultCode) then
@@ -457,5 +457,5 @@ begin
   Result := True;
  
   if CurPageID = wpReady then
-    Msgbox('Please close Visual Studio before starting the installation.', mbInformation, MB_OK);
+    SuppressibleMsgBox('Please close Visual Studio before starting the installation.', mbInformation, MB_OK, IDOK);
 end;
