@@ -25,7 +25,7 @@ We encourage developers who've added their own features, or fixed bugs they've f
 * [Source code at Codeplex](http://vld.codeplex.com/SourceControl/BrowseLatest)
 * [Source code at GitHub](https://github.com/KindDragon/vld)
 
-Copyright © 2005-2016 VLD Team
+Copyright © 2005-2017 VLD Team
 
  [1]: http://vld.codeplex.com/discussions
  [2]: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=N3QTYHP9LH6UY&lc=GB&item_name=Visual%20Leak%20Detector&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted

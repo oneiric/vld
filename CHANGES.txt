@@ -1,7 +1,17 @@
-Visual Leak Detector (VLD) Version 2.5.0
+Visual Leak Detector (VLD) Version 2.5.1
 
 
   Change Log / Release Notes
+
+2.5.1 (30 January 2017)
+----------------------------
+  Enhancements:
+  + PDB added to installer.
+
+  Bugs Fixed:
+  + Fix ntdll loader patch for Windows 10 (1607) Anniversary Update causing crashes (thanks to ioannis-e).
+  + Vld dll loading order fixed with MFC.
+  + Supressible msgboxes in setup with cmdline /silent /suppressmsgboxes.
 
 2.5 (09 January 2016)
 ----------------------------

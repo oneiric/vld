@@ -42,6 +42,7 @@
     <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)-v$(PlatformToolsetVersion)\$(ProjectName)\</IntDir>
     <CodeAnalysisRuleSet Condition="'$(Platform)'=='Win32'">NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <TargetName>$(ProjectName)_$(NumericPlatform)</TargetName>
+    <VcpkgEnabled>false</VcpkgEnabled>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <RunCodeAnalysis>false</RunCodeAnalysis>

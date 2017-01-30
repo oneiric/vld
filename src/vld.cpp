@@ -351,27 +351,27 @@ VisualLeakDetector::VisualLeakDetector ()
     wcsncpy_s(m_reportFilePath, MAX_PATH, VLD_DEFAULT_REPORT_FILE_NAME, _TRUNCATE);
     m_status         = 0x0;
 
-	HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-	if (ntdll)
-	{
-		if (!IsWindows8OrGreater())
-		{
-			LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
-		} else
-		{
-			LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
-			ldrLoadDllPatch[0].replacement = _LdrLoadDllWin8;
-		}
-		RtlAllocateHeap = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
-		RtlFreeHeap = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
-		RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+    if (ntdll)
+    {
+        if (!IsWindows8OrGreater())
+        {
+            LdrLoadDll = (LdrLoadDll_t)GetProcAddress(ntdll, "LdrLoadDll");
+        } else
+        {
+            LdrLoadDllWin8 = (LdrLoadDllWin8_t)GetProcAddress(ntdll, "LdrLoadDll");
+            ldrLoadDllPatch[0].replacement = _LdrLoadDllWin8;
+        }
+        RtlAllocateHeap = (RtlAllocateHeap_t)GetProcAddress(ntdll, "RtlAllocateHeap");
+        RtlFreeHeap = (RtlFreeHeap_t)GetProcAddress(ntdll, "RtlFreeHeap");
+        RtlReAllocateHeap = (RtlReAllocateHeap_t)GetProcAddress(ntdll, "RtlReAllocateHeap");
 
-		LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
-		LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
-		LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
-		LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
-		LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
-	}
+        LdrGetDllHandle = (LdrGetDllHandle_t)GetProcAddress(ntdll, "LdrGetDllHandle");
+        LdrGetProcedureAddress = (LdrGetProcedureAddress_t)GetProcAddress(ntdll, "LdrGetProcedureAddress");
+        LdrUnloadDll = (LdrUnloadDll_t)GetProcAddress(ntdll, "LdrUnloadDll");
+        LdrLockLoaderLock = (LdrLockLoaderLock_t)GetProcAddress(ntdll, "LdrLockLoaderLock");
+        LdrUnlockLoaderLock = (LdrUnlockLoaderLock_t)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
+    }
 
     // Load configuration options.
     configure();
@@ -390,11 +390,11 @@ VisualLeakDetector::VisualLeakDetector ()
     }
     else
     {
-		if (kernelBase)
-		{
-			m_GetProcAddress = (GetProcAddress_t)GetProcAddress(kernelBase, "GetProcAddress");
-			m_GetProcAddressForCaller = (GetProcAddressForCaller_t)GetProcAddress(kernelBase, "GetProcAddressForCaller");
-		}
+        if (kernelBase)
+        {
+            m_GetProcAddress = (GetProcAddress_t)GetProcAddress(kernelBase, "GetProcAddress");
+            m_GetProcAddressForCaller = (GetProcAddressForCaller_t)GetProcAddress(kernelBase, "GetProcAddressForCaller");
+        }
         assert(m_patchTable[0].patchTable == m_kernelbasePatch);
         m_patchTable[0].exportModuleName = "kernelbase.dll";
     }
@@ -2168,7 +2168,7 @@ FARPROC VisualLeakDetector::_GetProcAddress (HMODULE module, LPCSTR procname)
 
 FARPROC VisualLeakDetector::_RGetProcAddress(HMODULE module, LPCSTR procname)
 {
-	return m_GetProcAddress(module, procname);
+    return m_GetProcAddress(module, procname);
 }
 
 // _GetProcAddress - Calls to GetProcAddress are patched through to this
@@ -2237,7 +2237,7 @@ FARPROC VisualLeakDetector::_GetProcAddressForCaller(HMODULE module, LPCSTR proc
 
 FARPROC VisualLeakDetector::_RGetProcAddressForCaller(HMODULE module, LPCSTR procname, LPVOID caller)
 {
-	return m_GetProcAddressForCaller(module, procname, caller);
+    return m_GetProcAddressForCaller(module, procname, caller);
 }
 
 // _LdrLoadDll - Calls to LdrLoadDll are patched through to this function. This
