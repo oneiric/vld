@@ -1,5 +1,3 @@
-# Visual Leak Detector
-
 ## Introduction
 
 Visual C++ provides built-in memory leak detection, but its capabilities are minimal at best. This memory leak detector was created as a free alternative to the built-in memory leak detector provided with Visual C++. Here are some of Visual Leak Detector's features, none of which exist in the built-in detector:
@@ -17,6 +15,11 @@ Visual Leak Detector is [licensed][1] free of charge as a service to the Windows
 ## Documentation
 
 Read the documentation at [https://github.com/KindDragon/vld/wiki](https://github.com/KindDragon/vld/wiki)
+
+## Latest release
+
+## [{{  site.github.latest_release.name }}]({{ site.github.latest_release.html_url }}) - {{ site.github.latest_release.published_at | date: "%Y-%m-%d" }}
+{{ site.github.latest_release.body | markdownify }}
 
 ## Contributing
 
