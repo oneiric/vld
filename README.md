@@ -12,8 +12,6 @@ Visual C++ provides built-in memory leak detection, but its capabilities are min
 
 Other after-market leak detectors for Visual C++ are already available. But most of the really popular ones, like Purify and BoundsChecker, are very expensive. A few free alternatives exist, but they're often too intrusive, restrictive, or unreliable. Visual Leak Detector is currently the only freely available memory leak detector for Visual C++ that provides all of the above professional-level features packaged neatly in an easy-to-use library.
 
-Visual Leak Detector is [licensed][1] free of charge as a service to the Windows developer community. If you find it to be useful and would like to just say "Thanks!", or you think it stinks and would like to say "This thing sucks!", please feel free to drop us a note. Or, if you'd prefer, you can [contribute a small donation][2]. Both are very appreciated.
-
 ## Latest release
 
 ## [{{  site.github.latest_release.name }}]({{ site.github.latest_release.html_url }}) - {{ site.github.latest_release.published_at | date: "%Y-%m-%d" }}
