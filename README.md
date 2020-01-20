@@ -14,10 +14,6 @@ Other after-market leak detectors for Visual C++ are already available. But most
 
 Visual Leak Detector is [licensed][1] free of charge as a service to the Windows developer community. If you find it to be useful and would like to just say "Thanks!", or you think it stinks and would like to say "This thing sucks!", please feel free to drop us a note. Or, if you'd prefer, you can [contribute a small donation][2]. Both are very appreciated.
 
-## Documentation
-
-Read the documentation at [https://github.com/KindDragon/vld/wiki](https://github.com/KindDragon/vld/wiki)
-
 ## Latest release
 
 ## [{{  site.github.latest_release.name }}]({{ site.github.latest_release.html_url }}) - {{ site.github.latest_release.published_at | date: "%Y-%m-%d" }}
@@ -27,7 +23,4 @@ Read the documentation at [https://github.com/KindDragon/vld/wiki](https://githu
 
 We encourage developers who've added their own features, or fixed bugs they've found, to contribute to the project. The full version-controlled source tree is available publicly via Git at the URL below. Feel free to clone from this URL and submit patches for consideration for inclusion in future versions. You can also issue pull requests for changes that you've made and would like to share.
 
-* [Source code at GitHub](https://github.com/KindDragon/vld)
-
- [1]: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=N3QTYHP9LH6UY&lc=GB&item_name=Visual%20Leak%20Detector&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted
- [2]: https://github.com/KindDragon/vld/blob/master/COPYING.txt
+* [Source code at GitHub](https://github.com/oneiric/vld)
