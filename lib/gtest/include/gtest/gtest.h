@@ -51,6 +51,8 @@
 #ifndef GTEST_INCLUDE_GTEST_GTEST_H_
 #define GTEST_INCLUDE_GTEST_GTEST_H_
 
+#define _SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
+
 #include <limits>
 #include <ostream>
 #include <vector>
