@@ -1,4 +1,4 @@
-# Visual Leak Detector (Support Visual Studio 2019 16.4)
+# Visual Leak Detector (Support Visual Studio 2019 16.7)
 
 ## Introduction
 
@@ -18,6 +18,6 @@ We encourage developers who've added their own features, or fixed bugs they've f
 
 * [Source code](https://github.com/oneiric/vld)
 
-Copyright © 2005-2020 VLD Team
+Copyright © 2005-2021 VLD Team
 
  [1]: https://github.com/oneiric/vld/blob/master/COPYING.txt

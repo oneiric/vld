@@ -54,7 +54,7 @@
     <ProjectGuid>{87911ED6-84BC-4526-9654-A4FF4E0EDF52}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>corruption</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>corruption</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

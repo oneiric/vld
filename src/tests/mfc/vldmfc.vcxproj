@@ -37,7 +37,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A231973E-072A-428E-982E-5363ADD1CDE2}</ProjectGuid>
     <Keyword>MFCProj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>vldmfc</ProjectName>
     <RootNamespace>vldmfc</RootNamespace>
   </PropertyGroup>
